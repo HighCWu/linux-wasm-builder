@@ -68,7 +68,7 @@ def fetch_github_fields(path: Path) -> dict[str, str]:
 
 def check_text_files() -> list[str]:
     errors: list[str] = []
-    paths = [ROOT / "README.md", ROOT / "CONTRIBUTING.md", *sorted((ROOT / "docs").glob("*.md"))]
+    paths = [ROOT / "README.md", ROOT / "CONTRIBUTING.md", *sorted((ROOT / "docs").rglob("*.md"))]
 
     for path in paths:
         data = path.read_bytes()
