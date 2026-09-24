@@ -1,0 +1,20 @@
+[submodule "sources/distro"]
+	path = sources/distro
+	url = https://github.com/HighCWu/distro.git
+	branch = main
+	shallow = true
+[submodule "sources/linux"]
+	path = sources/linux
+	url = https://github.com/HighCWu/linux.git
+	branch = wasm
+	shallow = true
+[submodule "sources/llvm-project"]
+	path = sources/llvm-project
+	url = https://github.com/HighCWu/llvm-project.git
+	branch = wasm-linux
+	shallow = true
+[submodule "sources/musl"]
+	path = sources/musl
+	url = https://github.com/HighCWu/musl.git
+	branch = master
+	shallow = true
