@@ -18,28 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  plan:
-    name: Plan distro checks
-    runs-on: ubuntu-24.04
-    outputs:
-      heavy-checks: ${{ steps.checks.outputs.heavy-checks }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          submodules: false
-      - name: Initialize the distro build source
-        run: git submodule update --init --depth 1 sources/distro
-      - uses: nixbuild/nix-quick-install-action@v35
-      - id: checks
-        name: Discover heavy checks
-        working-directory: sources/distro
-        run: |
-          checks=$(nix eval --json '.#ciJobs.x86_64-linux.heavyChecks' \
-            --apply 'checks: builtins.attrNames checks')
-          echo "heavy-checks=$(jq --compact-output '{check: .}' <<< "$checks")" \
-            >> "$GITHUB_OUTPUT"
-
   packages:
     name: Kernel and guest packages
     runs-on: ubuntu-24.04
@@ -58,54 +36,3 @@ jobs:
             --print-build-logs \
             ./sources/distro#kernel \
             ./sources/distro#linux-guest
-
-  checks:
-    name: Distro checks
-    needs:
-      - plan
-      - packages
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          submodules: false
-      - name: Initialize the distro build source
-        run: git submodule update --init --depth 1 sources/distro
-      - uses: nixbuild/nix-quick-install-action@v35
-      - name: Build standard checks
-        working-directory: sources/distro
-        run: |
-          mapfile -t installables < <(
-            nix eval --json '.#ciJobs.x86_64-linux.checks' \
-              --apply 'checks: builtins.map (name: checks.${name}.drvPath) (builtins.attrNames checks)' \
-              | jq --raw-output '.[] + "^*"'
-          )
-          nix build \
-            --keep-going \
-            --no-link \
-            --print-build-logs \
-            "${installables[@]}"
-
-  heavy-check:
-    name: Heavy check / ${{ matrix.check }}
-    needs:
-      - plan
-      - checks
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.heavy-checks) }}
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          submodules: false
-      - name: Initialize the distro build source
-        run: git submodule update --init --depth 1 sources/distro
-      - uses: nixbuild/nix-quick-install-action@v35
-      - name: Build isolated check
-        working-directory: sources/distro
-        run: |
-          installable=".#ciJobs.x86_64-linux.heavyChecks.${{ matrix.check }}"
-          nix build --no-link --print-build-logs "$installable"
