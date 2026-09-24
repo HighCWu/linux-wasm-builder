@@ -1,0 +1,38 @@
+name: Build baseline
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .gitmodules
+      - sources/**
+      - .github/workflows/build.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  packages:
+    name: Kernel and guest packages
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          submodules: false
+      - name: Initialize the distro build source
+        run: git submodule update --init --depth 1 sources/distro
+      - uses: nixbuild/nix-quick-install-action@v35
+      - name: Build pinned baseline
+        run: |
+          nix build \
+            --no-link \
+            --print-build-logs \
+            ./sources/distro#kernel \
+            ./sources/distro#linux-guest
