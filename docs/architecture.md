@@ -90,10 +90,6 @@ SBOM和对应源码包。
 专项的 direct/managed/hybrid 指针模型、TLB布局与版本协商见
 [softmmu-abi.md](softmmu-abi.md)。
 
-旧项目的i386解释器、影子页表、futex等待和进程复制方案只能作为设计证据，不能直接
-定义当前原生Wasm Linux实现。适用性分析见
-[research/old-project-memory-process.md](research/old-project-memory-process.md)。
-
 ## 组件边界
 
 ### Linux（GPL）
