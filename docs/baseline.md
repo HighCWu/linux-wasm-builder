@@ -6,14 +6,14 @@
 能力”“本仓库重新验证的能力”和“未来路线”，避免把源码中存在的实现直接写成已经
 通过全部环境验证的承诺。
 
-基线日期：2026-09-24。
+基线日期：2026-09-25。
 
 ## 固定源码
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `90d4ed4157585b204eede8d5954da462d519d1e8` | 集成构建与测试入口 |
-| `HighCWu/linux` | `wasm` | `f06dad0dcdfbc8b48309093c9abb68ba47502b7f` | `distro` Nix pin与submodule一致 |
+| `HighCWu/distro` | `main` | `949369bb6b602ca89af36b2bb631fec784f22bd3` | 集成构建与测试入口 |
+| `HighCWu/linux` | `wasm` | `b957f53b5af88139ddd2b55857ba0d63d47bdfc6` | `distro` Nix pin与submodule一致 |
 | `HighCWu/llvm-project` | `wasm-linux` | `9aaceb42fef4f924a00126e0d66140d01482921c` | `distro` Nix pin与submodule一致 |
 | `HighCWu/musl` | `master` | `637b0d25dafa7e4740357f25fb0b5e3949f1ed1f` | `distro` Nix pin与submodule一致 |
 
@@ -27,7 +27,9 @@
 
 ### 内核和执行环境
 
-- Linux 7.1 Wasm架构，当前用户ABI为`wasm32-unknown-linux-musl`且采用NOMMU路线；
+- Linux 7.1 Wasm架构，默认用户ABI为`wasm32-unknown-linux-musl`且采用NOMMU路线；
+- 内核提供独立的实验性wasm64/Memory64构建profile；宿主、musl、SDK和用户程序闭环
+  尚未完成，因此它还不是可发布的wasm64系统；
 - browser Worker和Node宿主；
 - SMP、独立用户进程memory以及跨Worker的进程和virtio交接；
 - `clone()`/`execve()`和`posix_spawn()`工作流；
@@ -94,7 +96,12 @@
 
 - [主仓库元数据检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/35989981737)
 - [主仓库基线构建](https://github.com/HighCWu/linux-wasm-builder/actions/runs/35989981757)
-- [distro完整矩阵](https://github.com/HighCWu/distro/actions/runs/35989601707)
+- [distro既有wasm32完整矩阵](https://github.com/HighCWu/distro/actions/runs/35989601707)
+- [Linux wasm32/wasm64内核矩阵](https://github.com/HighCWu/linux/actions/runs/36089002814)
+
+更新Linux pin后的[distro验证作业](https://github.com/HighCWu/distro/actions/runs/36089806803)
+确认新内核可以完成编译；作业随后因Nixpkgs引用的`git-2.55.0.tar.xz`上游镜像返回404而失败，
+不是内核构建回归。该外部源码可用性问题需与Memory64集成分开跟踪。
 
 `uuidd`结果应继续作为flaky候选跟踪。后续若再次失败，应保留guest日志并诊断signal投递、
 进程状态转换和测试等待上限，不能用无界重试掩盖。
