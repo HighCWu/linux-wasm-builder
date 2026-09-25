@@ -12,7 +12,7 @@
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `6e278a878467b54e739ed1964a761a362f6951c6` | 集成构建与测试入口 |
+| `HighCWu/distro` | `main` | `6e278a8c34d26fa6f05b1acb164b7d15d6f73b1e` | 集成构建与测试入口 |
 | `HighCWu/linux` | `wasm` | `cb3bfdbb62a0d52961eca64d209df9ef7fb90e2c` | `distro` Nix pin与submodule一致 |
 | `HighCWu/llvm-project` | `wasm-linux` | `137009e264eb237b5f5adcbae1b7e209f79291f5` | `distro` Nix pin与submodule一致 |
 | `HighCWu/musl` | `master` | `6c8c062c63d21682828a788a011982339a2f82ad` | `distro` Nix pin与submodule一致 |
