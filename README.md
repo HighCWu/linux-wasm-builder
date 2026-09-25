@@ -64,7 +64,7 @@ CONFIG_MMU=n linux.wasm
 - [许可证与发行政策](docs/licensing.md)
 - [贡献指南](CONTRIBUTING.md)
 
-## 计划中的源码组成
+## 源码组成
 
 本仓库将以 submodule 固定以下 fork。正式构建以 `distro` 中记录并发布到 GitHub 的
 精确 commit pin 为准；主仓库的 submodule 指针应与这些 pin 保持一致。开发者在多个
@@ -78,10 +78,15 @@ sources/
 └── musl/            HighCWu/musl:master
 ```
 
-submodule、构建脚本和测试将在文档基线评审后加入。
+这些submodule、构建脚本和测试已经纳入仓库；`scripts/check_repository.py`会检查gitlink、
+远端、分支和Nix source pin是否一致。
 
 ## 当前状态
 
-当前阶段先建立未经改造的 Linux/Wasm 可复现基线和跨组件测试矩阵，再按独立工作流
-推进内核、工具链、用户态和宿主能力。`docs/softmmu-abi.md` 是内存工作流的专项草案，
-其中标记为“待验证”的内容不能被视为已稳定 UAPI。
+项目已经建立可复现基线和跨组件测试矩阵。wasm32仍是默认profile；实验性wasm64路径
+已经在Node 24、Chromium和Firefox中执行最小musl用户程序，下一步继续扩大线程、TLS、
+信号、映射、SDK和真实软件包覆盖。各子系统按路线图独立推进，不能从单项smoke测试
+推定整个平台已经完成。
+
+`docs/softmmu-abi.md`是内存工作流的专项草案，其中标记为“待验证”的内容不能被视为
+已稳定UAPI。
