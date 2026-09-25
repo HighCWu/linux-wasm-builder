@@ -12,7 +12,7 @@
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `13b69a8cc42413231b2b8d1556902732f984400b` | 集成构建与测试入口 |
+| `HighCWu/distro` | `main` | `a2d93437867a90d33b66c4b4ff76793e94bad028` | 集成构建与测试入口 |
 | `HighCWu/linux` | `wasm` | `b957f53b5af88139ddd2b55857ba0d63d47bdfc6` | `distro` Nix pin与submodule一致 |
 | `HighCWu/llvm-project` | `wasm-linux` | `9aaceb42fef4f924a00126e0d66140d01482921c` | `distro` Nix pin与submodule一致 |
 | `HighCWu/musl` | `master` | `637b0d25dafa7e4740357f25fb0b5e3949f1ed1f` | `distro` Nix pin与submodule一致 |
@@ -109,7 +109,12 @@
 独立的[wasm64启动验证](https://github.com/HighCWu/distro/actions/runs/36095361227)在Node 24
 中创建shared Memory64，实例化64位内核、启动首个kernel Worker，并读到`Linux version`
 banner。Node 22不能验证该产物中的64位table limits，因此当前实验profile的Node测试
-基线为Node 24；浏览器矩阵仍需单独验证。
+基线为Node 24。
+
+独立的[wasm64浏览器验证](https://github.com/HighCWu/distro/actions/runs/36095849736)还在
+Playwright固定的Chromium和Firefox稳定浏览器中，以COOP/COEP隔离页面和Web Worker启动
+同一内核并读到banner。该测试只证明内核与宿主启动边界，不代表wasm64 libc或用户态
+已经完成。
 
 `uuidd`结果应继续作为flaky候选跟踪。后续若再次失败，应保留guest日志并诊断signal投递、
 进程状态转换和测试等待上限，不能用无界重试掩盖。
