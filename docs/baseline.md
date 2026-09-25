@@ -12,7 +12,7 @@
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `f8e068b92b087c019e273a2720b6c3180713f0f2` | 集成构建与测试入口 |
+| `HighCWu/distro` | `main` | `6e278a878467b54e739ed1964a761a362f6951c6` | 集成构建与测试入口 |
 | `HighCWu/linux` | `wasm` | `cb3bfdbb62a0d52961eca64d209df9ef7fb90e2c` | `distro` Nix pin与submodule一致 |
 | `HighCWu/llvm-project` | `wasm-linux` | `137009e264eb237b5f5adcbae1b7e209f79291f5` | `distro` Nix pin与submodule一致 |
 | `HighCWu/musl` | `master` | `6c8c062c63d21682828a788a011982339a2f82ad` | `distro` Nix pin与submodule一致 |
@@ -108,6 +108,8 @@
 `git-2.55.0.tar.xz`上游镜像返回404而失败。主仓库的
 [固定基线构建](https://github.com/HighCWu/linux-wasm-builder/actions/runs/36091182303)也复现了前者。
 这些失败不在内核构建栈中，外部源码可用性问题需与Memory64集成分开跟踪。
+`distro` commit `6e278a8`随后修正了`mirror://kernel`路径中重复的`pub/`前缀；修正后的
+util-linux和Git地址均返回HTTP 200。
 
 独立的[wasm64启动验证](https://github.com/HighCWu/distro/actions/runs/36095361227)在Node 24
 中创建shared Memory64，实例化64位内核、启动首个kernel Worker，并读到`Linux version`
