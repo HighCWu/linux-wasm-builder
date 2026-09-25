@@ -53,8 +53,8 @@ user program.wasm
 - 将 GPL 库误当作仅因生成 `.wasm` 就不再附带原有许可证义务；
 - 依赖把许可证不兼容的紧耦合模块拆成不同文件来规避许可证。
 
-softmmu fast path应由 LLVM生成、MIT runtime或带 LLVM exception 的支持代码提供。
-Linux端实现只通过 UAPI/执行 ABI与程序交互。
+用户态JIT或应用自行实现的guest地址翻译应保持在其适用许可证边界内。Linux端只通过
+UAPI/执行ABI与程序交互，不把内核实现链接进用户程序。
 
 ## Linux发行义务
 

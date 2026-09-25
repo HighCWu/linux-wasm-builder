@@ -3,9 +3,8 @@
 # Linux/Wasm 平台路线图
 
 路线图以持续完善 Linux 在 WebAssembly 上的可用性为核心。内核、工具链、用户态、
-宿主和发行可以并行推进；softmmu2 是内存兼容工作流中的一个里程碑，不是总路线。
-各阶段编号用于组织依赖和验收，不表示整个项目在等待 softmmu2；除明确依赖外，所有
-工作流都应持续推进。
+宿主和发行可以并行推进。用户地址保持direct linear-memory模型；各阶段编号用于组织
+依赖和验收，除明确依赖外，所有工作流都应持续推进。
 
 ## 全程原则
 
@@ -100,35 +99,28 @@
 - direct memory grow、brk、匿名分配和边界错误。
 - fork第一版允许eager copy，先保证可观察语义。
 
-### P5.2 softmmu2+TLB里程碑
+### P5.2 direct匿名映射
 
-本阶段交付一种地址兼容机制，而不是新的应用编程模型，也不是平台完成的标志。若验证
-表明其他实现更合适，可以在保持 Linux UAPI 和已发布 psABI 兼容性的前提下替换内部
-机制。
+- 让brk和匿名映射共享同一个direct地址分配器，禁止重叠。
+- 恢复`MAP_PRIVATE | MAP_ANONYMOUS`和`munmap`的可验证子集。
+- 记录wasm32/wasm64 profile上限，并以`RLIMIT_AS`约束进程maximum。
+- 测试耗尽、溢出、线程并发和fork/exec后的allocator状态。
 
-- 定义版本化 `linux.softmmu` psABI和loader协商。
-- wasm32固定高地址与稀疏managed mapping。
-- LLVM对stable-direct访问消除翻译，unknown pointer动态分流。
-- TLB fast path、跨页/权限slow path和hybrid uaccess。
-- `munmap`后失效、managed `mprotect`和多线程invalidation。
-- direct-only对照构建仅用于调试和性能比较，正式工具链默认支持softmmu。
-
-专项设计见 [softmmu-abi.md](softmmu-abi.md)。
+专项约束见[direct-memory.md](direct-memory.md)。
 
 ### P5.3 标准映射与fork完善
 
-- `mmap`自动选择direct或managed实现。
-- `MAP_FIXED`、文件映射、dirty tracking和`msync`。
-- managed私有映射复制或COW优化。
-- `MAP_SHARED`共享backing。
+- direct范围内逐步支持地址hint和`MAP_FIXED`；超范围请求返回明确错误。
+- 评估文件映射、dirty tracking、`msync`和`MAP_SHARED`中能够诚实实现的子集。
+- fork第一版使用eager copy；不承诺透明COW。
 - `/proc/<pid>/maps`与guest-visible地址一致。
 - 不支持的direct页保护返回明确错误，不能静默成功。
 
 ### P5.4 wasm64
 
 - 维持已跑通的Memory64内核、匹配宽度用户模块loader和最小musl程序执行闭环。
-- 64位pointer ABI和softmmu2两级稀疏chunk。
-- 高GVA映射到低backing。
+- 64位pointer ABI、direct allocator和边界溢出审计。
+- 公布16 GiB构建上限与实际运行时可用范围的区别。
 - pointer/int往返、syscall结构和原子宽度审计。
 
 ## P6：用户态发行版
@@ -152,7 +144,7 @@
 
 - 在静态程序和进程内存语义稳定后，单独设计Linux/Wasm动态loader ABI。
 - 共享memory/table、TLS、relocation、constructors和`dlopen/dlsym`。
-- 动态库映射可使用managed内存能力，但不得反向绑死softmmu内部布局。
+- 动态库只能使用可直接访问的linear-memory区间；无法满足的布局明确失败。
 - 评估调试器、性能分析、checkpoint、容器式隔离和不可信模块验证。
 
 ## 质量矩阵

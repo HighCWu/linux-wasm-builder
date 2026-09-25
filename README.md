@@ -30,9 +30,9 @@
 - 以可复现构建、上游友好改动、兼容性测试和清晰许可证边界作为长期约束。
 - 用户程序只依赖稳定 Linux UAPI 和版本化 Wasm psABI，不依赖内核私有实现。
 
-softmmu2+TLB 是内存与地址兼容路线中的一个可替换实现里程碑，用于补足固定高地址、
-稀疏映射和严格映射失效等能力。它不是项目本身，不定义平台的公共 Linux 编程模型，
-也不应阻塞其他 Linux/Wasm 子系统继续演进。
+默认用户地址模型是direct linear memory：成功返回给应用的指针必须能由普通Wasm
+load/store直接访问。内核不提供隐藏的softmmu；需要guest虚拟地址空间的FEX、Box64
+或应用可在自身内部实现地址翻译。
 
 ```text
 Linux application source
@@ -51,7 +51,7 @@ CONFIG_MMU=n linux.wasm
   ├─ process / thread / signal / time
   ├─ VFS / block / storage / networking
   ├─ virtio / browser host integration
-  └─ optional memory-compatibility facilities
+  └─ bounded direct user linear memory
 ```
 
 ## 文档
@@ -59,7 +59,7 @@ CONFIG_MMU=n linux.wasm
 - [架构](docs/architecture.md)
 - [当前基线](docs/baseline.md)
 - [WebAssembly 特性采用策略](docs/wasm-features.md)
-- [softmmu2 psABI 草案](docs/softmmu-abi.md)
+- [Direct linear-memory 契约](docs/direct-memory.md)
 - [路线图](docs/roadmap.md)
 - [许可证与发行政策](docs/licensing.md)
 - [贡献指南](CONTRIBUTING.md)
@@ -88,5 +88,5 @@ sources/
 信号、映射、SDK和真实软件包覆盖。各子系统按路线图独立推进，不能从单项smoke测试
 推定整个平台已经完成。
 
-`docs/softmmu-abi.md`是内存工作流的专项草案，其中标记为“待验证”的内容不能被视为
-已稳定UAPI。
+`docs/direct-memory.md`规定当前地址模型及失败边界；尚未通过实现和测试的映射能力
+不能被视为已支持。
