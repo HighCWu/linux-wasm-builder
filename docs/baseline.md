@@ -127,5 +127,11 @@ stable中经过`execve`、`binfmt_wasm`和Memory64用户模块loader运行，并
 `write` syscall返回成功标记。这确认了最小用户态闭环；尚未覆盖的线程、TLS、信号、
 映射和更大软件包不能由该结果推定为已经完成。
 
+[direct anonymous mmap验证](https://github.com/HighCWu/distro/actions/runs/36144523610)
+随后构建并运行了包含匿名`mmap()`/`munmap()`、线程、TLS、table64回调和信号处理的
+wasm64工具链smoke，同时确认超范围`MAP_FIXED`返回`ENOMEM`；该工作流也通过Node 24、
+Chromium和Firefox stable的Memory64启动检查。此结果只覆盖当前明确列出的direct子集，
+不代表raw mmap syscall、固定映射、文件映射或严格页保护已经实现。
+
 `uuidd`结果应继续作为flaky候选跟踪。后续若再次失败，应保留guest日志并诊断signal投递、
 进程状态转换和测试等待上限，不能用无界重试掩盖。
