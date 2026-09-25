@@ -12,10 +12,10 @@
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `a2d93437867a90d33b66c4b4ff76793e94bad028` | 集成构建与测试入口 |
-| `HighCWu/linux` | `wasm` | `b957f53b5af88139ddd2b55857ba0d63d47bdfc6` | `distro` Nix pin与submodule一致 |
-| `HighCWu/llvm-project` | `wasm-linux` | `9aaceb42fef4f924a00126e0d66140d01482921c` | `distro` Nix pin与submodule一致 |
-| `HighCWu/musl` | `master` | `637b0d25dafa7e4740357f25fb0b5e3949f1ed1f` | `distro` Nix pin与submodule一致 |
+| `HighCWu/distro` | `main` | `b88558e62662aa4150ec4cefd64b5eaeef151681` | 集成构建与测试入口 |
+| `HighCWu/linux` | `wasm` | `cb3bfdbb62a0d52961eca64d209df9ef7fb90e2c` | `distro` Nix pin与submodule一致 |
+| `HighCWu/llvm-project` | `wasm-linux` | `137009e264eb237b5f5adcbae1b7e209f79291f5` | `distro` Nix pin与submodule一致 |
+| `HighCWu/musl` | `master` | `1d948aa57867e055fdf5ede227d9297dc070fad9` | `distro` Nix pin与submodule一致 |
 
 `scripts/check_repository.py`在CI中检查URL、分支、gitlink以及三个Nix pin，防止主仓库
 展示的源码版本与实际构建版本分离。
@@ -28,9 +28,8 @@
 ### 内核和执行环境
 
 - Linux 7.1 Wasm架构，默认用户ABI为`wasm32-unknown-linux-musl`且采用NOMMU路线；
-- 内核提供独立的实验性wasm64/Memory64构建profile；Node 24宿主已经实际启动该内核并
-  读到Linux banner，但musl、SDK和wasm64用户程序闭环尚未完成，因此它还不是可发布的
-  wasm64系统；
+- 内核提供独立的实验性wasm64/Memory64构建profile；Node 24、Chromium和Firefox已经
+  实际执行最小musl用户程序，但SDK、软件包和ABI回归覆盖尚未达到默认发布条件；
 - browser Worker和Node宿主；
 - SMP、独立用户进程memory以及跨Worker的进程和virtio交接；
 - `clone()`/`execve()`和`posix_spawn()`工作流；
@@ -115,6 +114,12 @@ banner。Node 22不能验证该产物中的64位table limits，因此当前实�
 Playwright固定的Chromium和Firefox稳定浏览器中，以COOP/COEP隔离页面和Web Worker启动
 同一内核并读到banner。该测试只证明内核与宿主启动边界，不代表wasm64 libc或用户态
 已经完成。
+
+随后完成的[wasm64用户态执行验证](https://github.com/HighCWu/distro/actions/runs/36116763735)
+将由本项目工具链构建的最小musl程序直接作为`/init`，在Node 24、Chromium和Firefox
+stable中经过`execve`、`binfmt_wasm`和Memory64用户模块loader运行，并通过Linux
+`write` syscall返回成功标记。这确认了最小用户态闭环；尚未覆盖的线程、TLS、信号、
+映射和更大软件包不能由该结果推定为已经完成。
 
 `uuidd`结果应继续作为flaky候选跟踪。后续若再次失败，应保留guest日志并诊断signal投递、
 进程状态转换和测试等待上限，不能用无界重试掩盖。

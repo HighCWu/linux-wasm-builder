@@ -11,7 +11,7 @@ profile。进入标准或浏览器并不等于应立即成为默认编译选项�
 | profile | 定位 | 当前状态 |
 |---|---|---|
 | `wasm32` | 跨主流浏览器的默认兼容基线 | 内核、runtime、musl和发行版继续默认使用 |
-| `wasm64` | 已发布Memory64宿主的实验路径 | 内核已在Node 24、Chromium和Firefox启动；musl、SDK和发行版尚未形成完整交付闭环 |
+| `wasm64` | 已发布Memory64宿主的实验路径 | 内核和最小musl用户程序已在Node 24、Chromium和Firefox执行；仍需扩大SDK、软件包和ABI覆盖 |
 
 `HighCWu/linux` 的Memory64内核路径参考了
 [`joelseverin/linux-wasm`](https://github.com/joelseverin/linux-wasm)及其
@@ -26,11 +26,13 @@ Linux 7.1基线、设备树、virtio、独立用户memory和远程uaccess架构�
 - 64位memory和table索引所需的BigInt宿主边界；
 - 与wasm32分离的defconfig及CI产物。
 
-Node 24、Chromium和Firefox启动验证已经覆盖shared Memory64分配、64位设备树cell、
-64位table索引、Worker交接和早期内核启动，但不代表wasm64用户程序已经可运行。完整
-支持仍需逐项完成wasm64 musl ABI、compiler-rt/sysroot、用户模块装载以及用户态浏览器
-测试。Node 22不能接受当前LLVM 22产物中的64位table limits，不能作为这一实验profile
-的宿主基线。
+Node 24、Chromium和Firefox验证已经覆盖shared Memory64分配、64位设备树cell、64位
+table索引、Worker交接和早期内核启动。最小wasm64 musl程序也已作为`/init`经过
+`execve`、`binfmt_wasm`和用户模块loader执行，并通过Linux syscall输出成功标记。这
+证明了compiler-rt、基础sysroot、用户模块装载和浏览器用户态执行的最小闭环，不代表
+完整SDK或现有软件包已经全部支持wasm64；pointer、TLS、atomics、线程、信号、映射和
+calling convention仍需扩大回归覆盖。Node 22不能接受当前LLVM 22产物中的64位table
+limits，不能作为这一实验profile的宿主基线。
 
 ## 已稳定但按需采用
 

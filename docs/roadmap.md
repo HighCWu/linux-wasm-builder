@@ -63,8 +63,8 @@
 ## P2：工具链与 libc
 
 - 稳定 `wasm32-unknown-linux-musl` target和sysroot。
-- 在已能构建Memory64内核的基础上，完成wasm64宿主、musl、sysroot和用户程序闭环，
-  并继续审计pointer、TLS、atomics和calling convention。
+- 在已有wasm64宿主、musl、sysroot和最小用户程序闭环的基础上，扩大SDK与真实软件
+  覆盖，并继续审计pointer、TLS、atomics和calling convention。
 - 补齐 Clang driver、LLD、compiler-rt、libunwind和sanitizer可行路径。
 - musl启动、pthread、signal、spawn/fork接口及标准头文件兼容。
 - 构建 C/C++、Rust和其他语言的最小程序与真实软件。
@@ -126,6 +126,7 @@
 
 ### P5.4 wasm64
 
+- 维持已跑通的Memory64内核、匹配宽度用户模块loader和最小musl程序执行闭环。
 - 64位pointer ABI和softmmu2两级稀疏chunk。
 - 高GVA映射到低backing。
 - pointer/int往返、syscall结构和原子宽度审计。
