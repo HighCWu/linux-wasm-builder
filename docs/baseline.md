@@ -12,7 +12,7 @@
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `949369bb6b602ca89af36b2bb631fec784f22bd3` | 集成构建与测试入口 |
+| `HighCWu/distro` | `main` | `13b69a8cc42413231b2b8d1556902732f984400b` | 集成构建与测试入口 |
 | `HighCWu/linux` | `wasm` | `b957f53b5af88139ddd2b55857ba0d63d47bdfc6` | `distro` Nix pin与submodule一致 |
 | `HighCWu/llvm-project` | `wasm-linux` | `9aaceb42fef4f924a00126e0d66140d01482921c` | `distro` Nix pin与submodule一致 |
 | `HighCWu/musl` | `master` | `637b0d25dafa7e4740357f25fb0b5e3949f1ed1f` | `distro` Nix pin与submodule一致 |
@@ -28,8 +28,9 @@
 ### 内核和执行环境
 
 - Linux 7.1 Wasm架构，默认用户ABI为`wasm32-unknown-linux-musl`且采用NOMMU路线；
-- 内核提供独立的实验性wasm64/Memory64构建profile；宿主、musl、SDK和用户程序闭环
-  尚未完成，因此它还不是可发布的wasm64系统；
+- 内核提供独立的实验性wasm64/Memory64构建profile；Node 24宿主已经实际启动该内核并
+  读到Linux banner，但musl、SDK和wasm64用户程序闭环尚未完成，因此它还不是可发布的
+  wasm64系统；
 - browser Worker和Node宿主；
 - SMP、独立用户进程memory以及跨Worker的进程和virtio交接；
 - `clone()`/`execve()`和`posix_spawn()`工作流；
@@ -104,6 +105,11 @@
 `git-2.55.0.tar.xz`上游镜像返回404而失败。主仓库的
 [固定基线构建](https://github.com/HighCWu/linux-wasm-builder/actions/runs/36091182303)也复现了前者。
 这些失败不在内核构建栈中，外部源码可用性问题需与Memory64集成分开跟踪。
+
+独立的[wasm64启动验证](https://github.com/HighCWu/distro/actions/runs/36095361227)在Node 24
+中创建shared Memory64，实例化64位内核、启动首个kernel Worker，并读到`Linux version`
+banner。Node 22不能验证该产物中的64位table limits，因此当前实验profile的Node测试
+基线为Node 24；浏览器矩阵仍需单独验证。
 
 `uuidd`结果应继续作为flaky候选跟踪。后续若再次失败，应保留guest日志并诊断signal投递、
 进程状态转换和测试等待上限，不能用无界重试掩盖。

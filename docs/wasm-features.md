@@ -11,7 +11,7 @@ profile。进入标准或浏览器并不等于应立即成为默认编译选项�
 | profile | 定位 | 当前状态 |
 |---|---|---|
 | `wasm32` | 跨主流浏览器的默认兼容基线 | 内核、runtime、musl和发行版继续默认使用 |
-| `wasm64` | Chrome、Firefox及Node等已发布Memory64宿主的实验路径 | 内核可构建；runtime、musl、SDK和发行版尚未形成完整交付闭环 |
+| `wasm64` | 已发布Memory64宿主的实验路径 | 内核可构建并已在Node 24启动；浏览器、musl、SDK和发行版尚未形成完整交付闭环 |
 
 `HighCWu/linux` 的Memory64内核路径参考了
 [`joelseverin/linux-wasm`](https://github.com/joelseverin/linux-wasm)及其
@@ -26,9 +26,10 @@ Linux 7.1基线、设备树、virtio、独立用户memory和远程uaccess架构�
 - 64位memory和table索引所需的BigInt宿主边界；
 - 与wasm32分离的defconfig及CI产物。
 
-内核成功链接只证明内核侧代码生成闭环，不代表wasm64用户程序已经可运行。完整支持仍需
-逐项完成宿主BigInt转换、wasm64 musl ABI、compiler-rt/sysroot、用户模块装载以及真实
-浏览器启动测试。
+Node 24启动验证已经覆盖shared Memory64分配、64位设备树cell、64位table索引、Worker
+交接和早期内核启动，但不代表wasm64用户程序已经可运行。完整支持仍需逐项完成wasm64
+musl ABI、compiler-rt/sysroot、用户模块装载以及真实浏览器启动测试。Node 22不能接受
+当前LLVM 22产物中的64位table limits，不能作为这一实验profile的宿主基线。
 
 ## 已稳定但按需采用
 
