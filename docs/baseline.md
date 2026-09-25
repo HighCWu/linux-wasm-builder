@@ -100,8 +100,10 @@
 - [Linux wasm32/wasm64内核矩阵](https://github.com/HighCWu/linux/actions/runs/36089002814)
 
 更新Linux pin后的[distro验证作业](https://github.com/HighCWu/distro/actions/runs/36089806803)
-确认新内核可以完成编译；作业随后因Nixpkgs引用的`git-2.55.0.tar.xz`上游镜像返回404而失败，
-不是内核构建回归。该外部源码可用性问题需与Memory64集成分开跟踪。
+确认新内核可以完成编译；作业随后因Nixpkgs引用的`util-linux-2.42.2.tar.xz`和
+`git-2.55.0.tar.xz`上游镜像返回404而失败。主仓库的
+[固定基线构建](https://github.com/HighCWu/linux-wasm-builder/actions/runs/36091182303)也复现了前者。
+这些失败不在内核构建栈中，外部源码可用性问题需与Memory64集成分开跟踪。
 
 `uuidd`结果应继续作为flaky候选跟踪。后续若再次失败，应保留guest日志并诊断signal投递、
 进程状态转换和测试等待上限，不能用无界重试掩盖。
