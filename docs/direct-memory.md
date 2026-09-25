@@ -2,7 +2,7 @@
 
 # Direct linear-memory 契约
 
-状态：**项目架构约束；具体映射接口仍在实现和验证中**。
+状态：**项目架构约束；direct anonymous映射子集已进入实现和验证阶段**。
 
 Linux/Wasm 用户指针始终表示当前进程 `WebAssembly.Memory` 中可直接访问的字节偏移。
 内核、loader和默认工具链不提供隐藏的softmmu地址翻译，也不返回只能通过私有翻译器

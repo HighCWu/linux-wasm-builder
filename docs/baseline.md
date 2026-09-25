@@ -12,10 +12,10 @@
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `b88558e62662aa4150ec4cefd64b5eaeef151681` | 集成构建与测试入口 |
+| `HighCWu/distro` | `main` | `f8e068b92b087c019e273a2720b6c3180713f0f2` | 集成构建与测试入口 |
 | `HighCWu/linux` | `wasm` | `cb3bfdbb62a0d52961eca64d209df9ef7fb90e2c` | `distro` Nix pin与submodule一致 |
 | `HighCWu/llvm-project` | `wasm-linux` | `137009e264eb237b5f5adcbae1b7e209f79291f5` | `distro` Nix pin与submodule一致 |
-| `HighCWu/musl` | `master` | `1d948aa57867e055fdf5ede227d9297dc070fad9` | `distro` Nix pin与submodule一致 |
+| `HighCWu/musl` | `master` | `6c8c062c63d21682828a788a011982339a2f82ad` | `distro` Nix pin与submodule一致 |
 
 `scripts/check_repository.py`在CI中检查URL、分支、gitlink以及三个Nix pin，防止主仓库
 展示的源码版本与实际构建版本分离。
@@ -51,6 +51,8 @@
 ### 用户态和发行
 
 - musl sysroot及C/C++工具链，并包含Rust smoke路径；
+- musl已恢复`MAP_PRIVATE | MAP_ANONYMOUS`、读写、非固定地址的direct `mmap()`子集，
+  并支持对整段已登记映射执行`munmap()`；分配与现有malloc/brk路径共用底层分配器；
 - BusyBox、Bash、coreutils、curl、Dropbear、Git、Lua、Python、QuickJS、SQLite、Vim等
   软件包定义和测试；
 - `@lowland/kernel`和`@lowland/guest` npm包；
@@ -60,8 +62,10 @@
 
 ## 当前明确缺失或受限的能力
 
-- 当前基线没有`fork()`、`vfork()`或`mmap()`系列；现有程序主要通过`posix_spawn()`
-  启动子进程。恢复这些标准Linux接口属于后续工作，而不是已完成能力。
+- 当前基线没有`fork()`或`vfork()`；现有程序主要通过`posix_spawn()`启动子进程。
+- `mmap()`当前只是musl libc层的direct anonymous子集，尚未恢复raw `SYS_mmap`；
+  `MAP_FIXED`、文件映射、共享映射和严格页保护均不支持，`munmap()`只接受完整、精确
+  匹配的映射，释放后也不能保证陈旧指针立即fault。
 - `futex_waitv`对有效的栈上参数仍返回`EFAULT`。
 - 宿主网络尚无任意目标的出站UDP代理，TCP桥接尚无重传，并存在队列丢包风险。
 - System V IPC当前配置或执行路径不完整，`shmget`会在已知实验配置中trap。
