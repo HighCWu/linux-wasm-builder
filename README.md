@@ -58,6 +58,7 @@ CONFIG_MMU=n linux.wasm
 
 - [架构](docs/architecture.md)
 - [当前基线](docs/baseline.md)
+- [WebAssembly 特性采用策略](docs/wasm-features.md)
 - [softmmu2 psABI 草案](docs/softmmu-abi.md)
 - [路线图](docs/roadmap.md)
 - [许可证与发行政策](docs/licensing.md)
