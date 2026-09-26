@@ -29,6 +29,11 @@ jobs:
       - name: Initialize the distro build source
         run: git submodule update --init --depth 1 sources/distro
       - uses: nixbuild/nix-quick-install-action@v35
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-baseline-${{ runner.os }}-${{ hashFiles('sources/distro/**/*.nix', 'sources/distro/flake.lock') }}
+          restore-prefixes-first-match: nix-baseline-${{ runner.os }}-
+          gc-max-store-size-linux: 9G
       - name: Build pinned baseline
         run: |
           nix build \
@@ -36,3 +41,8 @@ jobs:
             --print-build-logs \
             ./sources/distro#kernel \
             ./sources/distro#linux-guest
+          # Keep expensive build-only inputs reachable during the cache post-step GC.
+          nix build \
+            --out-link result-ci-cache \
+            ./sources/distro#llvm-toolchain-unwrapped \
+            ./sources/distro#linux
