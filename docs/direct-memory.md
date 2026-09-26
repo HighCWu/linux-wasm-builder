@@ -42,6 +42,11 @@ wasm32的理论地址宽度是4 GiB，当前wasm64 profile的链接上限是16 G
 - `MAP_FIXED_NOREPLACE`与已有区域冲突时返回`EEXIST`；
 - 不支持的文件映射、alias、权限或共享语义必须返回明确错误。
 
+当前anonymous子集允许`munmap()`按页解除完整映射或其前缀、后缀和中间子区间。
+中间解除会把存活范围拆成两个登记区间；共同backing只在最后一个存活区间解除后释放。
+对未登记范围执行合法、页对齐的`munmap()`按Linux语义视为成功的no-op，但这不意味着
+解除后的原生Wasm load/store会产生页错误。
+
 `brk`和匿名映射必须由同一个direct地址分配器协调，禁止两个互不知情的
 `memory.grow`路径返回重叠区间。
 
