@@ -31,9 +31,9 @@ Linux 接口和跨组件 ABI 则必须受到兼容性治理。
 `linux.syscall` 等少量 imports 进入内核。该模型提供清晰的 syscall 和许可证边界，
 本项目保留这一性质。
 
-当前系统缺少完整 `mmap`/`fork` 使用面。本项目在 NOMMU 基础上恢复可用的标准
-接口，但不冒充硬件MMU：成功返回的用户地址必须直接存在于进程linear memory中；
-无法满足的固定、高位或稀疏映射明确失败。
+当前系统已经在NOMMU基础上恢复raw `SYS_mmap`/`SYS_munmap`的direct anonymous子集，
+但仍缺少完整`mmap`/`fork`使用面。本项目恢复标准接口时不冒充硬件MMU：成功返回的
+用户地址必须直接存在于进程linear memory中；无法满足的固定、高位或稀疏映射明确失败。
 
 ## 平台工作面
 

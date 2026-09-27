@@ -101,10 +101,12 @@
 
 ### P5.2 direct匿名映射
 
-- 让brk和匿名映射共享同一个direct地址分配器，禁止重叠。
-- 恢复`MAP_PRIVATE | MAP_ANONYMOUS`和`munmap`的可验证子集。
-- 记录wasm32/wasm64 profile上限，并以`RLIMIT_AS`约束进程maximum。
-- 测试耗尽、溢出、线程并发和fork/exec后的allocator状态。
+- 已让brk和匿名映射共享同一个direct地址分配器，禁止重叠。
+- 已通过标准raw `SYS_mmap`/`SYS_munmap`恢复
+  `MAP_PRIVATE | MAP_ANONYMOUS`和partial `munmap`的可验证子集。
+- 已记录wasm32/wasm64 profile上限，并以`RLIMIT_AS`约束进程maximum。
+- 继续补齐耗尽、溢出、线程并发和fork/exec后的allocator状态压力测试；非法flag、
+  zero-length、zero-fill、普通load/store和partial unmap由集成smoke覆盖。
 
 专项约束见[direct-memory.md](direct-memory.md)。
 

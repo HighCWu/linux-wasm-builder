@@ -2,7 +2,7 @@
 
 # Direct linear-memory 契约
 
-状态：**项目架构约束；direct anonymous映射子集已进入实现和验证阶段**。
+状态：**项目架构约束；direct anonymous映射子集已通过标准syscall进入集成验证**。
 
 Linux/Wasm 用户指针始终表示当前进程 `WebAssembly.Memory` 中可直接访问的字节偏移。
 内核、loader和默认工具链不提供隐藏的softmmu地址翻译，也不返回只能通过私有翻译器
@@ -49,6 +49,15 @@ wasm32的理论地址宽度是4 GiB，当前wasm64 profile的链接上限是16 G
 
 `brk`和匿名映射必须由同一个direct地址分配器协调，禁止两个互不知情的
 `memory.grow`路径返回重叠区间。
+
+当前实现保留`CONFIG_MMU=n`并恢复asm-generic编号的raw `SYS_mmap`/`SYS_munmap`。
+Linux的arch wrapper负责校验上述子集，再通过同步Wasm执行ABI调用当前进程的用户态
+direct allocator；musl的公开`mmap()`/`munmap()`也走同一标准syscall路径。allocator
+元数据留在进程linear memory中，因此与现有malloc/brk共享底层分配状态，并随当前
+eager-copy fork一起复制。内核不会返回伪地址，也不为这一接口建立softmmu、页表或TLB。
+
+这一阶段仍不接受`MAP_FIXED`或`MAP_FIXED_NOREPLACE`；二者返回`ENOMEM`。上文列出的
+冲突检测和可表示区间规则是后续开放fixed子集时必须满足的条件，不代表当前已支持。
 
 ## 4. 不能伪造的语义
 

@@ -51,9 +51,11 @@
 ### 用户态和发行
 
 - musl sysroot及C/C++工具链，并包含Rust smoke路径；
-- musl已恢复`MAP_PRIVATE | MAP_ANONYMOUS`、读写、非固定地址的direct `mmap()`子集，
-  并支持按页解除完整映射或其前缀、后缀和中间子区间；分配与现有malloc/brk路径共用
-  底层分配器，拆分映射的最后一个存活区间解除后才释放共同backing；
+- Linux已恢复asm-generic编号的raw `SYS_mmap`/`SYS_munmap` direct anonymous子集，
+  musl公开接口通过标准syscall进入同一路径；支持读写、非固定的
+  `MAP_PRIVATE | MAP_ANONYMOUS`，以及按页解除完整映射或其前缀、后缀和中间子区间；
+  分配与现有malloc/brk路径共用底层分配器，拆分映射的最后一个存活区间解除后才释放
+  共同backing；
 - BusyBox、Bash、coreutils、curl、Dropbear、Git、Lua、Python、QuickJS、SQLite、Vim等
   软件包定义和测试；
 - `@lowland/kernel`和`@lowland/guest` npm包；
@@ -64,9 +66,9 @@
 ## 当前明确缺失或受限的能力
 
 - 当前基线没有`fork()`或`vfork()`；现有程序主要通过`posix_spawn()`启动子进程。
-- `mmap()`当前只是musl libc层的direct anonymous子集，尚未恢复raw `SYS_mmap`；
-  `MAP_FIXED`、文件映射、共享映射和严格页保护均不支持。`munmap()`会更新内部区间并
-  回收完整解除的backing，但不能保证陈旧指针立即fault或让linear memory物理缩小。
+- `mmap()`当前只恢复了direct anonymous子集；`MAP_FIXED`/`MAP_FIXED_NOREPLACE`、文件
+  映射、共享映射和严格页保护均不支持。`munmap()`会更新进程内的区间登记并回收完整
+  解除的backing，但不能保证陈旧指针立即fault或让linear memory物理缩小。
 - `futex_waitv`对有效的栈上参数仍返回`EFAULT`。
 - 宿主网络尚无任意目标的出站UDP代理，TCP桥接尚无重传，并存在队列丢包风险。
 - System V IPC当前配置或执行路径不完整，`shmget`会在已知实验配置中trap。
@@ -132,13 +134,19 @@ stable中经过`execve`、`binfmt_wasm`和Memory64用户模块loader运行，并
 随后构建并运行了包含匿名`mmap()`/`munmap()`、线程、TLS、table64回调和信号处理的
 wasm64工具链smoke，同时确认超范围`MAP_FIXED`返回`ENOMEM`；该工作流也通过Node 24、
 Chromium和Firefox stable的Memory64启动检查。此结果只覆盖当前明确列出的direct子集，
-不代表raw mmap syscall、固定映射、文件映射或严格页保护已经实现。
+当时尚不代表raw mmap syscall、固定映射、文件映射或严格页保护已经实现；raw syscall
+在后续direct-memory增量中恢复。
 
 后续的partial `munmap()`验证在[wasm32常规CI](https://github.com/HighCWu/distro/actions/runs/36205546683)
-中真实启动工具铮smoke，并在[wasm64工作流](https://github.com/HighCWu/distro/actions/runs/36205546695)
+中真实启动工具链smoke，并在[wasm64工作流](https://github.com/HighCWu/distro/actions/runs/36205546695)
 中完成Memory64用户程序执行及Node 24、Chromium和Firefox stable启动验证。测试覆盖
 中间拆分、前缀和后缀裁剪、共同backing的最后释放、未登记范围no-op，以及非对齐
 `munmap()`的`EINVAL`语义。
+
+[标准mmap syscall集成CI](https://github.com/HighCWu/distro/actions/runs/36280351560)进一步从
+Linux、musl和宿主runtime的固定GitHub pins重建发行栈；其中`basic-init-check-mmap`真实
+启动guest并验证libc和raw `SYS_mmap`/`SYS_munmap`路径、页对齐、zero-fill、普通load/store、
+前缀/后缀/中间partial unmap，以及fixed、非法protection和zero-length请求的错误语义。
 
 `uuidd`结果应继续作为flaky候选跟踪。后续若再次失败，应保留guest日志并诊断signal投递、
 进程状态转换和测试等待上限，不能用无界重试掩盖。
