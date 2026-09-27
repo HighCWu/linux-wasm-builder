@@ -6,16 +6,16 @@
 能力”“本仓库重新验证的能力”和“未来路线”，避免把源码中存在的实现直接写成已经
 通过全部环境验证的承诺。
 
-基线日期：2026-09-26。
+基线日期：2026-09-27。
 
 ## 固定源码
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `e00afb95514c8b2624250c1ac4676954a936d87c` | 集成构建与测试入口 |
-| `HighCWu/linux` | `wasm` | `cb3bfdbb62a0d52961eca64d209df9ef7fb90e2c` | `distro` Nix pin与submodule一致 |
+| `HighCWu/distro` | `main` | `7f0c9bcab39d2adb59eb1d4504951b9bb39677e4` | 集成构建与测试入口 |
+| `HighCWu/linux` | `wasm` | `fc6322a827d9814c806169a9a45c77b04bcdc3ac` | `distro` Nix pin与submodule一致 |
 | `HighCWu/llvm-project` | `wasm-linux` | `137009e264eb237b5f5adcbae1b7e209f79291f5` | `distro` Nix pin与submodule一致 |
-| `HighCWu/musl` | `master` | `b368b62a769c79cfdd2128df6763981ae3815b7d` | `distro` Nix pin与submodule一致 |
+| `HighCWu/musl` | `master` | `03594de9a5b30b541b6c94f0379c300624526133` | `distro` Nix pin与submodule一致 |
 
 `scripts/check_repository.py`在CI中检查URL、分支、gitlink以及三个Nix pin，防止主仓库
 展示的源码版本与实际构建版本分离。
@@ -156,7 +156,18 @@ Linux、musl和宿主runtime的固定GitHub pins重建发行栈；其中`basic-i
 判定为过期，不需要Linux架构特判或softmmu。
 
 [合入main后的复验](https://github.com/HighCWu/distro/actions/runs/36290446402)再次通过上述
-futex检查，但`util-linux-check-programs`先后暴露`uuidd`的SIGINT清理竞态和已有的前台
-`SIGALRM`退出超时；一次有界重跑后不再继续重试。`uuidd`应继续作为独立flaky候选跟踪，
-保留的guest日志应用于诊断signal投递、进程状态转换和测试等待上限，不能用无界重试
-掩盖。
+futex检查，但`util-linux-check-programs`先后暴露`uuidd`的SIGINT清理和前台`SIGALRM`
+退出超时。后续压力测试确认Linux/Wasm可以稳定完成跨进程signal路由、signalfd唤醒、
+双fd poll、进程回收和Unix socket清理；故障样本中的SIGALRM已经从pending队列移除，
+而服务仍能响应新的UUID请求。
+
+最终确认这是测试readiness竞态：uuidd会先创建socket并写pidfile，随后才阻塞受管信号、
+创建signalfd并进入服务循环。测试若在文件刚出现时发送外部SIGALRM，可能命中仍在生效
+的启动超时handler；该handler只处理`SI_TIMER`，因此会消费并忽略来自`kill()`的信号。
+测试现在以一次成功的UUID协议请求作为服务循环ready barrier，再分别对24个全新进程
+发送SIGALRM和SIGINT，并要求正常退出、回收及删除socket/pidfile。修正后的两轮定向压力
+检查（[第一轮](https://github.com/HighCWu/distro/actions/runs/36313842026)、
+[第二轮](https://github.com/HighCWu/distro/actions/runs/36314247672)）和
+[117-job完整矩阵](https://github.com/HighCWu/distro/actions/runs/36314691212)均通过。因此该
+现象不再作为内核signal投递缺陷或独立flaky项跟踪；失败时的pending mask、fd和服务探测
+诊断仍予以保留。
