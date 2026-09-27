@@ -33,7 +33,8 @@
 - browser Worker和Node宿主；
 - SMP、独立用户进程memory以及跨Worker的进程和virtio交接；
 - `clone()`/`execve()`和`posix_spawn()`工作流；
-- futex、信号、时间和其他接口由现有kselftests/LTP子集覆盖。
+- futex、信号、时间和其他接口由现有kselftests/LTP子集覆盖；`futex_waitv`已验证
+  private/shared waiter在值不匹配时返回`EAGAIN`，并在绝对超时到期时返回`ETIMEDOUT`。
 
 ### 设备、存储和文件系统
 
@@ -69,7 +70,6 @@
 - `mmap()`当前只恢复了direct anonymous子集；`MAP_FIXED`/`MAP_FIXED_NOREPLACE`、文件
   映射、共享映射和严格页保护均不支持。`munmap()`会更新进程内的区间登记并回收完整
   解除的backing，但不能保证陈旧指针立即fault或让linear memory物理缩小。
-- `futex_waitv`对有效的栈上参数仍返回`EFAULT`。
 - 宿主网络尚无任意目标的出站UDP代理，TCP桥接尚无重传，并存在队列丢包风险。
 - System V IPC当前配置或执行路径不完整，`shmget`会在已知实验配置中trap。
 - 重复创建guest进程会使宿主emulator内存持续增长，进程销毁后的资源回收尚未稳定。
@@ -148,5 +148,15 @@ Linux、musl和宿主runtime的固定GitHub pins重建发行栈；其中`basic-i
 启动guest并验证libc和raw `SYS_mmap`/`SYS_munmap`路径、页对齐、zero-fill、普通load/store、
 前缀/后缀/中间partial unmap，以及fixed、非法protection和zero-length请求的错误语义。
 
-`uuidd`结果应继续作为flaky候选跟踪。后续若再次失败，应保留guest日志并诊断signal投递、
-进程状态转换和测试等待上限，不能用无界重试掩盖。
+[futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
+`distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
+值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
+`KSELFTEST_HARNESS_NO_FORK`适配NOMMU用户态，并重新运行upstream
+`futex_wait_wouldblock`和`futex_wait_timeout`。因此此前对合法参数返回`EFAULT`的记录已
+判定为过期，不需要Linux架构特判或softmmu。
+
+[合入main后的复验](https://github.com/HighCWu/distro/actions/runs/36290446402)再次通过上述
+futex检查，但`util-linux-check-programs`先后暴露`uuidd`的SIGINT清理竞态和已有的前台
+`SIGALRM`退出超时；一次有界重跑后不再继续重试。`uuidd`应继续作为独立flaky候选跟踪，
+保留的guest日志应用于诊断signal投递、进程状态转换和测试等待上限，不能用无界重试
+掩盖。
