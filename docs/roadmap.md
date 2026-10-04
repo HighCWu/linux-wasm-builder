@@ -118,7 +118,10 @@
 ### P5.3 标准映射与fork完善
 
 - direct范围内逐步支持地址hint和`MAP_FIXED`；超范围请求返回明确错误。
-- 评估文件映射、dirty tracking、`msync`和`MAP_SHARED`中能够诚实实现的子集。
+- 文件映射从读取完成后原子发布的`MAP_PRIVATE`子集开始；异步失败必须返回错误，不能
+  留下半完成映射或永久等待。
+- `MAP_SHARED`只在跨进程可见的共享backing、写入传播与持久化路径完整后开放；在真实
+  回写存在以前，`msync`不得以no-op报告成功。
 - 维持callback clone的eager-copy快照并完善失败回滚、超时和Worker/Memory回收；不承诺
   透明COW。
 - 单独研究标准`fork()`的执行continuation。若需要工具链变换，必须形成公开、版本化并
