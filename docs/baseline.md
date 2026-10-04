@@ -163,6 +163,11 @@ zero-length请求的错误语义。
 页对齐、已保留backing空洞的精确复用与zero-fill，以及hint与live mapping冲突时回退
 到普通分配而不覆盖原映射。
 
+[MAP_FIXED_NOREPLACE检查](https://github.com/HighCWu/distro/actions/runs/37211278317)在
+`distro` commit `bc66022`上从固定Linux和musl pins重建并启动同一用户态测试，验证已
+保留空洞的精确映射与zero-fill、live mapping冲突的`EEXIST`、未对齐地址的`EINVAL`
+以及未保留高地址的`ENOMEM`。普通`MAP_FIXED`仍保持明确失败。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过

@@ -62,13 +62,16 @@ private-memory callback clone的eager-copy快照一起复制。该机制从明�
 宿主把Linux已校验的完整请求原样转发给当前进程模块的`__wasm_mmap_v2`导出。这一版本
 仍落到既有direct allocator；非固定hint向下对齐到页边界后，只有完整请求区间位于该
 allocator已经保留、但当前没有live mapping的backing页洞中才会采用，否则按Linux语义
-回退到普通分配。这一保守子集不会把任意数字变成可访问地址，也不开放fixed或文件映射。
+回退到普通分配。这一保守子集不会把任意数字变成可访问地址，也不开放覆盖式fixed或
+文件映射。
 旧内核继续使用`user.mmap(len)`，新宿主在旧用户模块缺少v2导出时可回退到
 `__wasm_mmap(len)`；该回退只承接Linux已经限制的现有anonymous子集，不能绕过内核校验
 或扩大能力范围。
 
-这一阶段仍不接受`MAP_FIXED`或`MAP_FIXED_NOREPLACE`；二者返回`ENOMEM`。上文列出的
-冲突检测和可表示区间规则是后续开放fixed子集时必须满足的条件，不代表当前已支持。
+`MAP_FIXED_NOREPLACE`现已在同一安全页洞子集内开放：地址必须页对齐且完整区间已经由
+allocator保留；精确空洞映射成功，live mapping冲突返回`EEXIST`，未保留或不可表示区间
+返回`ENOMEM`。普通`MAP_FIXED`仍返回`ENOMEM`，因为覆盖并拆分已有映射的生命周期语义
+尚未实现。
 
 ## 4. 文件映射准入条件
 
