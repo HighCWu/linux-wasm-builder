@@ -58,6 +58,13 @@ private-memory callback clone的eager-copy快照一起复制。该机制从明�
 开始执行，不是标准`fork()`；复制linear memory不能复制Wasm引擎内部的调用栈。内核
 不会返回伪地址，也不为这一接口建立softmmu、页表或TLB。
 
+映射执行边界使用版本化的`user_v2.mmap(addr, len, prot, flags, fd, pgoff)` import，
+宿主把Linux已校验的完整请求原样转发给当前进程模块的`__wasm_mmap_v2`导出。这一版本
+目前仍落到既有direct allocator，不会因此开放地址hint、fixed或文件映射；保留完整参数
+是为了以后扩展这些语义时不再改变函数签名。旧内核继续使用`user.mmap(len)`，新宿主在
+旧用户模块缺少v2导出时可回退到`__wasm_mmap(len)`；该回退只承接Linux已经限制的现有
+anonymous子集，不能绕过内核校验或扩大能力范围。
+
 这一阶段仍不接受`MAP_FIXED`或`MAP_FIXED_NOREPLACE`；二者返回`ENOMEM`。上文列出的
 冲突检测和可表示区间规则是后续开放fixed子集时必须满足的条件，不代表当前已支持。
 

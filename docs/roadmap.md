@@ -110,6 +110,8 @@
   `MAP_PRIVATE | MAP_ANONYMOUS`和partial `munmap`的可验证子集。
 - 已记录wasm32/wasm64 profile上限，并以`RLIMIT_AS`约束进程maximum。
 - 已覆盖长度溢出、多线程并发分配、并发partial unmap、碎片解除后的重新分配及zero-fill。
+- 已把完整映射请求放入版本化`user_v2`执行ABI，同时保留旧内核和旧用户模块兼容路径；
+  当前allocator仍只实现已验证的direct anonymous子集。
 - 继续补齐地址空间耗尽和exec后的allocator状态压力测试；callback clone后的快照与隔离、
   非法flag、zero-length和普通load/store已有集成检查。
 
