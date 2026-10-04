@@ -6,14 +6,14 @@
 能力”“本仓库重新验证的能力”和“未来路线”，避免把源码中存在的实现直接写成已经
 通过全部环境验证的承诺。
 
-基线日期：2026-09-27。
+基线日期：2026-10-04。
 
 ## 固定源码
 
 | 组件 | 分支 | commit | 构建关系 |
 |---|---|---|---|
-| `HighCWu/distro` | `main` | `7f0c9bcab39d2adb59eb1d4504951b9bb39677e4` | 集成构建与测试入口 |
-| `HighCWu/linux` | `wasm` | `fc6322a827d9814c806169a9a45c77b04bcdc3ac` | `distro` Nix pin与submodule一致 |
+| `HighCWu/distro` | `main` | `080f9bc72134ff173965659d7a274cc2475989ba` | 集成构建与测试入口 |
+| `HighCWu/linux` | `wasm` | `fa8637a3088f6eb3fa79436ecc74c743d3a068c6` | `distro` Nix pin与submodule一致 |
 | `HighCWu/llvm-project` | `wasm-linux` | `137009e264eb237b5f5adcbae1b7e209f79291f5` | `distro` Nix pin与submodule一致 |
 | `HighCWu/musl` | `master` | `03594de9a5b30b541b6c94f0379c300624526133` | `distro` Nix pin与submodule一致 |
 
@@ -173,3 +173,11 @@ futex检查，但`util-linux-check-programs`先后暴露`uuidd`的SIGINT清理�
 [117-job完整矩阵](https://github.com/HighCWu/distro/actions/runs/36314691212)均通过。因此该
 现象不再作为内核signal投递缺陷或独立flaky项跟踪；失败时的pending mask、fd和服务探测
 诊断仍予以保留。
+
+private-memory callback clone随后增加了有界的Worker启动握手：父Worker最多等待30秒，
+子Worker只有在内核与用户实例准备完成后才能发布成功，创建、反序列化、实例化或memory
+复制失败会发布负errno；超时后晚到的子Worker不能进入guest。Linux端同时补齐了
+`kernel_clone()`失败时callback参数的释放。定向检查
+[basic-init-check-clone-no-vm](https://github.com/HighCWu/distro/actions/runs/37195556538)
+从新的Linux固定pin重建并验证了全局区、堆、栈和direct mmap allocator的父子快照与
+后续隔离。该结果验证的是从明确函数和新栈开始的callback clone，不代表标准`fork()`。
