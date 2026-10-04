@@ -15,8 +15,8 @@ Linux/Wasm 用户指针始终表示当前进程 `WebAssembly.Memory` 中可直�
 3. `mmap()`成功返回的整个区间必须能够由普通Wasm指令直接解引用。
 4. 无法直接表示的固定、高位或稀疏映射必须在建立映射时明确失败，不能推迟到访问时
    trap。
-5. 用户态JIT、模拟器或应用可以在自身内部实现guest softmmu/TLB；该实现不属于
-   linux-wasm内核ABI。
+5. 用户态JIT、模拟器或应用可以为其所模拟的地址空间实现自己的softmmu/TLB；该实现
+   不属于linux-wasm内核ABI。
 
 ## 2. 地址空间上限
 
@@ -74,11 +74,12 @@ Wasm linear memory当前不能为单个页提供Linux式fault和访问权限。�
 
 能安全提供较弱但标准允许的行为时必须配套测试和文档；否则返回标准错误。
 
-## 5. 用户态guest MMU
+## 5. 用户态自有地址翻译
 
-FEX、Box64及类似JIT控制guest每次访存，可以自行把guest virtual address翻译为direct
-Wasm backing。应用也可以选择相同方式。linux-wasm只为这些程序提供普通进程、线程、
-文件、信号、futex和direct内存资源，不规定其页表或TLB格式，也不进行第二次翻译。
+FEX、Box64及类似JIT控制被模拟程序的每次访存，可以自行把被模拟程序的virtual
+address翻译为direct Wasm backing。应用也可以选择相同方式。linux-wasm只为这些程序
+提供普通进程、线程、文件、信号、futex和direct内存资源，不规定其页表或TLB格式，也
+不进行第二次翻译。
 
 ## 6. 未来Wasm能力
 

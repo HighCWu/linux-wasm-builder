@@ -84,7 +84,7 @@
 
 - virtio-net与虚拟交换机稳定性。
 - 浏览器可用的TCP、UDP、DNS宿主适配。
-- 多guest私网、端口转发和连接生命周期。
+- 多运行实例私网、端口转发和连接生命周期。
 - socket、poll/epoll、超时、半关闭和错误码一致性。
 - TLS、curl、SSH、包管理器和语言runtime的真实网络测试。
 - 明确浏览器安全模型，不伪装浏览器无法提供的原始网络能力。
@@ -122,7 +122,7 @@
   透明COW。
 - 单独研究标准`fork()`的执行continuation。若需要工具链变换，必须形成公开、版本化并
   可测试的ABI；不能仅增加syscall号或libc符号来假装支持。
-- `/proc/<pid>/maps`与guest-visible地址一致。
+- `/proc/<pid>/maps`与用户态可见地址一致。
 - 不支持的direct页保护返回明确错误，不能静默成功。
 
 ### P5.4 wasm64
@@ -142,7 +142,7 @@
 
 ## P7：SDK、API与发布
 
-- 稳定 `@lowland/kernel`、guest和高层facade边界。
+- 稳定 `@lowland/kernel`、`@lowland/guest`和高层facade边界。
 - npm包的Node/browser条件导出和package-relative assets。
 - 源码联合构建与预编译runtime使用相同版本协议。
 - 错误、日志、性能计数和调试接口。
@@ -166,7 +166,7 @@
 | CPU | 单CPU、SMP |
 | 用户ABI | wasm32、后续wasm64 |
 | 文件系统 | EROFS、ext4、OverlayFS、OPFS/host share |
-| 网络 | 无网络、guest私网、host代理 |
+| 网络 | 无网络、运行实例私网、宿主代理 |
 | 程序 | 微测试、kselftests/LTP、真实应用 |
 | 构建 | debug、release、对应源码重建 |
 

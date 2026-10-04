@@ -41,11 +41,11 @@
 - virtio block、console、filesystem、network、vsock和entropy设备接口；
 - EROFS只读系统盘、ext4可写盘和可选OverlayFS临时写层；
 - Node目录共享、OPFS以及浏览器File System Access API适配；
-- guest SDK提供进程执行、流式I/O、文件和挂载操作。
+- `@lowland/guest` SDK提供进程执行、流式I/O、文件和挂载操作。
 
 ### 网络
 
-- guest间虚拟以太网交换；
+- Linux/Wasm运行实例间虚拟以太网交换；
 - ARP、IPv4、TCP、UDP和DNS宿主实现；
 - HTTP/Fetch适配以及通过可配置connector访问宿主TCP服务。
 
@@ -61,8 +61,8 @@
   软件包定义和测试；
 - `@lowland/kernel`和`@lowland/guest` npm包；
 - Nix负责构建和依赖求解。当前`distro`内部使用Alpine风格的v3 APK格式组装rootfs并
-  支持guest内安装；这是当前发行版的可替换实现选择，不是Linux/Wasm平台ABI，也与
-  Android APK无关。
+  支持在运行中的Linux/Wasm系统内安装；这是当前发行版的可替换实现选择，不是
+  Linux/Wasm平台ABI，也与Android APK无关。
 
 ## 当前明确缺失或受限的能力
 
@@ -74,7 +74,8 @@
   解除的backing，但不能保证陈旧指针立即fault或让linear memory物理缩小。
 - 宿主网络尚无任意目标的出站UDP代理，TCP桥接尚无重传，并存在队列丢包风险。
 - System V IPC当前配置或执行路径不完整，`shmget`会在已知实验配置中trap。
-- 重复创建guest进程会使宿主emulator内存持续增长，进程销毁后的资源回收尚未稳定。
+- 重复创建Linux/Wasm运行实例会使宿主runtime内存持续增长，实例销毁后的资源回收
+  尚未稳定。
 - 浏览器CPU交接与并发memory growth之间存在已知stale typed-array view竞态。
 - 若干LTP测试仍失败、跳过或hang；测试框架本身也还有可能掩盖部分晚到错误。
 
@@ -84,7 +85,7 @@
 ## 验证层级
 
 1. `CI`检查文档格式、submodule元数据和Nix pin一致性，不构建大型源码树。
-2. `Build baseline`在GitHub-hosted runner上构建kernel和guest包。
+2. `Build baseline`在GitHub-hosted runner上构建`@lowland/kernel`和`@lowland/guest`包。
 3. 标准distro checks在单独任务中运行。
 4. scheduler敏感或耗时较长的heavy checks按测试项拆分运行。
 
@@ -96,7 +97,8 @@
 2026-09-24的首次公开CI结果：
 
 - 主仓库元数据检查通过；
-- 主仓库在`distro` commit `90d4ed4`上完成kernel和guest packages构建，用时42秒；
+- 主仓库在`distro` commit `90d4ed4`上完成`@lowland/kernel`和`@lowland/guest`包构建，
+  用时42秒；
 - `HighCWu/distro`完成标准构建、npm packages和完整heavy-check矩阵；
 - 第一次矩阵中`util-linux-check-programs`的`uuidd`前台`SIGALRM`退出测试等待5秒后
   超时；仅重跑失败任务后通过，workflow attempt 2最终成功。
@@ -147,8 +149,9 @@ Chromium和Firefox stable的Memory64启动检查。此结果只覆盖当前明�
 
 [标准mmap syscall集成CI](https://github.com/HighCWu/distro/actions/runs/36280351560)进一步从
 Linux、musl和宿主runtime的固定GitHub pins重建发行栈；其中`basic-init-check-mmap`真实
-启动guest并验证libc和raw `SYS_mmap`/`SYS_munmap`路径、页对齐、zero-fill、普通load/store、
-前缀/后缀/中间partial unmap，以及fixed、非法protection和zero-length请求的错误语义。
+启动Linux/Wasm用户态程序并验证libc和raw `SYS_mmap`/`SYS_munmap`路径、页对齐、
+zero-fill、普通load/store、前缀/后缀/中间partial unmap，以及fixed、非法protection和
+zero-length请求的错误语义。
 
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
@@ -176,7 +179,7 @@ futex检查，但`util-linux-check-programs`先后暴露`uuidd`的SIGINT清理�
 
 private-memory callback clone随后增加了有界的Worker启动握手：父Worker最多等待30秒，
 子Worker只有在内核与用户实例准备完成后才能发布成功，创建、反序列化、实例化或memory
-复制失败会发布负errno；超时后晚到的子Worker不能进入guest。Linux端同时补齐了
+复制失败会发布负errno；超时后晚到的子Worker不能执行子进程用户代码。Linux端同时补齐了
 `kernel_clone()`失败时callback参数的释放。定向检查
 [basic-init-check-clone-no-vm](https://github.com/HighCWu/distro/actions/runs/37195556538)
 从新的Linux固定pin重建并验证了全局区、堆、栈和direct mmap allocator的父子快照与

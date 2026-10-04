@@ -31,8 +31,8 @@
 - 用户程序只依赖稳定 Linux UAPI 和版本化 Wasm psABI，不依赖内核私有实现。
 
 默认用户地址模型是direct linear memory：成功返回给应用的指针必须能由普通Wasm
-load/store直接访问。内核不提供隐藏的softmmu；需要guest虚拟地址空间的FEX、Box64
-或应用可在自身内部实现地址翻译。
+load/store直接访问。内核不提供隐藏的softmmu；FEX、Box64等需要表示被模拟程序虚拟
+地址空间的用户态软件，可在自身内部实现地址翻译。
 
 ```text
 Linux application source
