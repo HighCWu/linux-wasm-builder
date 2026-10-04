@@ -153,6 +153,11 @@ Linux、musl和宿主runtime的固定GitHub pins重建发行栈；其中`basic-i
 zero-fill、普通load/store、前缀/后缀/中间partial unmap，以及fixed、非法protection和
 zero-length请求的错误语义。
 
+[direct mmap并发与边界检查](https://github.com/HighCWu/distro/actions/runs/37199096884)
+随后在`distro` commit `e177452`上扩展同一用户态测试，覆盖四线程重复分配、映射内容
+隔离、并发partial unmap、碎片解除后的重新分配与zero-fill，并确认长度溢出、未对齐
+`munmap()`及尚未支持的`MAP_FIXED_NOREPLACE`返回明确错误。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过

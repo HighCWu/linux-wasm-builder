@@ -109,8 +109,9 @@
 - 已通过标准raw `SYS_mmap`/`SYS_munmap`恢复
   `MAP_PRIVATE | MAP_ANONYMOUS`和partial `munmap`的可验证子集。
 - 已记录wasm32/wasm64 profile上限，并以`RLIMIT_AS`约束进程maximum。
-- 继续补齐耗尽、溢出、线程并发和callback clone/exec后的allocator状态压力测试；非法flag、
-  zero-length、zero-fill、普通load/store和partial unmap由集成smoke覆盖。
+- 已覆盖长度溢出、多线程并发分配、并发partial unmap、碎片解除后的重新分配及zero-fill。
+- 继续补齐地址空间耗尽和exec后的allocator状态压力测试；callback clone后的快照与隔离、
+  非法flag、zero-length和普通load/store已有集成检查。
 
 专项约束见[direct-memory.md](direct-memory.md)。
 
