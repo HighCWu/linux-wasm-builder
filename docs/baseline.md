@@ -67,6 +67,8 @@
 ## 当前明确缺失或受限的能力
 
 - 当前基线没有`fork()`或`vfork()`；现有程序主要通过`posix_spawn()`启动子进程。
+  callback形式的非`CLONE_VM` clone已经能eager-copy进程linear memory，但子进程从
+  明确提供的函数和新栈开始，不能从`fork()`调用点继续执行。
 - `mmap()`当前只恢复了direct anonymous子集；`MAP_FIXED`/`MAP_FIXED_NOREPLACE`、文件
   映射、共享映射和严格页保护均不支持。`munmap()`会更新进程内的区间登记并回收完整
   解除的backing，但不能保证陈旧指针立即fault或让linear memory物理缩小。

@@ -97,7 +97,11 @@
 
 - stack/global/TLS/heap继续原生linear-memory访问。
 - direct memory grow、brk、匿名分配和边界错误。
-- fork第一版允许eager copy，先保证可观察语义。
+- private-memory callback clone使用eager copy：子进程得到独立linear memory，并从调用者
+  明确提供的函数和新栈开始执行。
+- 标准`fork()`还需要让子进程从调用点以返回值0继续执行。原生Wasm调用栈不在linear
+  memory中，不能仅靠复制memory实现；在具备可移植的执行continuation方案前不得把
+  callback clone表述为`fork()`。
 
 ### P5.2 direct匿名映射
 
@@ -105,7 +109,7 @@
 - 已通过标准raw `SYS_mmap`/`SYS_munmap`恢复
   `MAP_PRIVATE | MAP_ANONYMOUS`和partial `munmap`的可验证子集。
 - 已记录wasm32/wasm64 profile上限，并以`RLIMIT_AS`约束进程maximum。
-- 继续补齐耗尽、溢出、线程并发和fork/exec后的allocator状态压力测试；非法flag、
+- 继续补齐耗尽、溢出、线程并发和callback clone/exec后的allocator状态压力测试；非法flag、
   zero-length、zero-fill、普通load/store和partial unmap由集成smoke覆盖。
 
 专项约束见[direct-memory.md](direct-memory.md)。
@@ -114,7 +118,10 @@
 
 - direct范围内逐步支持地址hint和`MAP_FIXED`；超范围请求返回明确错误。
 - 评估文件映射、dirty tracking、`msync`和`MAP_SHARED`中能够诚实实现的子集。
-- fork第一版使用eager copy；不承诺透明COW。
+- 维持callback clone的eager-copy快照并完善失败回滚、超时和Worker/Memory回收；不承诺
+  透明COW。
+- 单独研究标准`fork()`的执行continuation。若需要工具链变换，必须形成公开、版本化并
+  可测试的ABI；不能仅增加syscall号或libc符号来假装支持。
 - `/proc/<pid>/maps`与guest-visible地址一致。
 - 不支持的direct页保护返回明确错误，不能静默成功。
 

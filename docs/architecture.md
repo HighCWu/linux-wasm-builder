@@ -80,11 +80,13 @@ SBOM和对应源码包。
 ## 内存兼容工作流：Direct pointer
 
 当前`CONFIG_MMU=n`路径只使用原生linear-memory指针。内存工作流在这一约束下逐步
-补齐mmap和fork；超出direct范围的高地址、稀疏映射和严格页保护明确报告不支持。
+补齐mmap和进程复制；超出direct范围的高地址、稀疏映射和严格页保护明确报告不支持。
 
-应用继续使用标准 `mmap`、`munmap`、`mprotect`、`fork`、`clone` 和 `execve`，不
-改写为私有编程模型。不支持的语义必须通过标准错误或明确能力说明暴露，不能静默
-假装成功。需要guest MMU的JIT或应用在自身内部翻译地址。
+应用使用已实现的标准`mmap`、`munmap`、`clone`和`execve`接口；尚未实现的
+`mprotect`和`fork`语义必须通过标准错误、缺失符号或明确能力说明暴露，不能静默假装
+成功。当前非`CLONE_VM`的callback clone会eager-copy linear memory，但子进程从明确
+提供的函数和新栈开始，不具备`fork()`从调用点继续执行的语义。需要guest MMU的JIT或
+应用在自身内部翻译地址。
 
 专项约束见[direct-memory.md](direct-memory.md)。
 

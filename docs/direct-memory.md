@@ -53,8 +53,10 @@ wasm32的理论地址宽度是4 GiB，当前wasm64 profile的链接上限是16 G
 当前实现保留`CONFIG_MMU=n`并恢复asm-generic编号的raw `SYS_mmap`/`SYS_munmap`。
 Linux的arch wrapper负责校验上述子集，再通过同步Wasm执行ABI调用当前进程的用户态
 direct allocator；musl的公开`mmap()`/`munmap()`也走同一标准syscall路径。allocator
-元数据留在进程linear memory中，因此与现有malloc/brk共享底层分配状态，并随当前
-eager-copy fork一起复制。内核不会返回伪地址，也不为这一接口建立softmmu、页表或TLB。
+元数据留在进程linear memory中，因此与现有malloc/brk共享底层分配状态，并随现有
+private-memory callback clone的eager-copy快照一起复制。该机制从明确的子函数和新栈
+开始执行，不是标准`fork()`；复制linear memory不能复制Wasm引擎内部的调用栈。内核
+不会返回伪地址，也不为这一接口建立softmmu、页表或TLB。
 
 这一阶段仍不接受`MAP_FIXED`或`MAP_FIXED_NOREPLACE`；二者返回`ENOMEM`。上文列出的
 冲突检测和可表示区间规则是后续开放fixed子集时必须满足的条件，不代表当前已支持。
