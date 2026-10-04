@@ -112,6 +112,8 @@
 - 已覆盖长度溢出、多线程并发分配、并发partial unmap、碎片解除后的重新分配及zero-fill。
 - 已把完整映射请求放入版本化`user_v2`执行ABI，同时保留旧内核和旧用户模块兼容路径；
   当前allocator仍只实现已验证的direct anonymous子集。
+- 已支持在allocator既有backing的空闲页洞内采用非固定地址hint；冲突或未保留的hint
+  回退到普通分配，不会覆盖live mapping或凭空声明任意地址可用。
 - 继续补齐地址空间耗尽和exec后的allocator状态压力测试；callback clone后的快照与隔离、
   非法flag、zero-length和普通load/store已有集成检查。
 
@@ -119,7 +121,8 @@
 
 ### P5.3 标准映射与fork完善
 
-- direct范围内逐步支持地址hint和`MAP_FIXED`；超范围请求返回明确错误。
+- 扩大非固定地址hint在安全direct保留区间内的可采用范围；`MAP_FIXED`仍须单独证明保留、
+  冲突替换和生命周期语义，超范围请求返回明确错误。
 - 文件映射从读取完成后原子发布的`MAP_PRIVATE`子集开始；异步失败必须返回错误，不能
   留下半完成映射或永久等待。
 - `MAP_SHARED`只在跨进程可见的共享backing、写入传播与持久化路径完整后开放；在真实

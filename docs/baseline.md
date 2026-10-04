@@ -158,6 +158,11 @@ zero-length请求的错误语义。
 隔离、并发partial unmap、碎片解除后的重新分配与zero-fill，并确认长度溢出、未对齐
 `munmap()`及尚未支持的`MAP_FIXED_NOREPLACE`返回明确错误。
 
+[direct mmap地址hint检查](https://github.com/HighCWu/distro/actions/runs/37207472475)在
+`distro` commit `87fc6bd`上从固定musl pin重建并启动用户态测试，验证未对齐hint的
+页对齐、已保留backing空洞的精确复用与zero-fill，以及hint与live mapping冲突时回退
+到普通分配而不覆盖原映射。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过

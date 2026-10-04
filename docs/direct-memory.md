@@ -2,7 +2,7 @@
 
 # Direct linear-memory 契约
 
-状态：**项目架构约束；direct anonymous映射子集已通过标准syscall进入集成验证**。
+状态：**项目架构约束；direct anonymous映射及安全地址hint复用已通过标准syscall集成验证**。
 
 Linux/Wasm 用户指针始终表示当前进程 `WebAssembly.Memory` 中可直接访问的字节偏移。
 内核、loader和默认工具链不提供隐藏的softmmu地址翻译，也不返回只能通过私有翻译器
@@ -60,10 +60,12 @@ private-memory callback clone的eager-copy快照一起复制。该机制从明�
 
 映射执行边界使用版本化的`user_v2.mmap(addr, len, prot, flags, fd, pgoff)` import，
 宿主把Linux已校验的完整请求原样转发给当前进程模块的`__wasm_mmap_v2`导出。这一版本
-目前仍落到既有direct allocator，不会因此开放地址hint、fixed或文件映射；保留完整参数
-是为了以后扩展这些语义时不再改变函数签名。旧内核继续使用`user.mmap(len)`，新宿主在
-旧用户模块缺少v2导出时可回退到`__wasm_mmap(len)`；该回退只承接Linux已经限制的现有
-anonymous子集，不能绕过内核校验或扩大能力范围。
+仍落到既有direct allocator；非固定hint向下对齐到页边界后，只有完整请求区间位于该
+allocator已经保留、但当前没有live mapping的backing页洞中才会采用，否则按Linux语义
+回退到普通分配。这一保守子集不会把任意数字变成可访问地址，也不开放fixed或文件映射。
+旧内核继续使用`user.mmap(len)`，新宿主在旧用户模块缺少v2导出时可回退到
+`__wasm_mmap(len)`；该回退只承接Linux已经限制的现有anonymous子集，不能绕过内核校验
+或扩大能力范围。
 
 这一阶段仍不接受`MAP_FIXED`或`MAP_FIXED_NOREPLACE`；二者返回`ENOMEM`。上文列出的
 冲突检测和可表示区间规则是后续开放fixed子集时必须满足的条件，不代表当前已支持。
