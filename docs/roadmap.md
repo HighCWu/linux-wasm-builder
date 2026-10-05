@@ -119,6 +119,8 @@
 - 已让普通匿名映射优先复用512 KiB direct backing chunk中的空闲区间，并允许hint和
   `MAP_FIXED_NOREPLACE`采用尚未映射过的保留页；预留失败退回请求大小，最后一个live
   mapping解除后释放整个chunk。
+- 已覆盖16轮交错页拆分与精确回填，以及8线程争抢同一`MAP_FIXED_NOREPLACE`空洞时
+  恰好一个成功、其余返回`EEXIST`的并发生命周期。
 - 继续补齐地址空间耗尽和exec后的allocator状态压力测试；callback clone后的快照与隔离、
   非法flag、zero-length和普通load/store已有集成检查。
 
@@ -126,8 +128,8 @@
 
 ### P5.3 标准映射与fork完善
 
-- 根据压力与碎片测试调整direct chunk尺寸和查找结构；`MAP_FIXED`仍须单独证明冲突
-  替换、拆分和生命周期语义，超范围请求返回明确错误。
+- 增加大规模映射数量与延迟基准，再根据数据调整direct chunk尺寸和线性查找结构；
+  `MAP_FIXED`仍须单独证明冲突替换、拆分和生命周期语义，超范围请求返回明确错误。
 - 文件映射从读取完成后原子发布的`MAP_PRIVATE`子集开始；异步失败必须返回错误，不能
   留下半完成映射或永久等待。
 - `MAP_SHARED`只在跨进程可见的共享backing、写入传播与持久化路径完整后开放；在真实

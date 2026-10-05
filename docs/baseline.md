@@ -172,6 +172,10 @@ zero-length请求的错误语义。
 `distro` commit `3da3b03`上验证普通匿名映射会复用同一保留chunk的相邻空闲页，并验证
 `MAP_FIXED_NOREPLACE`可精确采用该chunk中尚未映射过的页且保持zero-fill。
 
+[direct chunk碎片与并发检查](https://github.com/HighCWu/distro/actions/runs/37247580370)在
+`distro` commit `d2a32cd`上完成16轮8页交错拆分、zero-fill精确回填和整体释放，并让
+8个线程争抢同一保留空洞，确认恰好一个映射成功且其余请求全部返回`EEXIST`。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
