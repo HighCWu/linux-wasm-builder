@@ -73,6 +73,12 @@ allocator保留；精确空洞映射成功，live mapping冲突返回`EEXIST`，
 返回`ENOMEM`。普通`MAP_FIXED`仍返回`ENOMEM`，因为覆盖并拆分已有映射的生命周期语义
 尚未实现。
 
+为扩大安全可用范围，allocator以8个Linux/Wasm页（当前共512 KiB）作为小型direct
+backing chunk。普通匿名映射优先从已有chunk的空闲区间做first-fit分配；新chunk预留失败
+时退回按请求大小分配，避免仅因预留策略扩大低内存失败面。尚未映射过的chunk空闲页与
+partial `munmap()`形成的页洞遵循相同hint和`MAP_FIXED_NOREPLACE`规则。chunk中最后一个
+live mapping解除后释放整个malloc backing，不形成永久地址保留。
+
 ## 4. 文件映射准入条件
 
 当前实现不接受文件映射。后续实现必须从可验证的`MAP_PRIVATE`子集开始，并满足以下

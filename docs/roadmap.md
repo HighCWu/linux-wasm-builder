@@ -116,6 +116,9 @@
   回退到普通分配，不会覆盖live mapping或凭空声明任意地址可用。
 - 已在同一安全页洞子集内支持`MAP_FIXED_NOREPLACE`的精确映射、`EEXIST`冲突检测、
   未对齐`EINVAL`和未保留区间`ENOMEM`；普通`MAP_FIXED`仍明确失败。
+- 已让普通匿名映射优先复用512 KiB direct backing chunk中的空闲区间，并允许hint和
+  `MAP_FIXED_NOREPLACE`采用尚未映射过的保留页；预留失败退回请求大小，最后一个live
+  mapping解除后释放整个chunk。
 - 继续补齐地址空间耗尽和exec后的allocator状态压力测试；callback clone后的快照与隔离、
   非法flag、zero-length和普通load/store已有集成检查。
 
@@ -123,8 +126,8 @@
 
 ### P5.3 标准映射与fork完善
 
-- 扩大非固定地址hint和`MAP_FIXED_NOREPLACE`在安全direct保留区间内的可采用范围；
-  `MAP_FIXED`仍须单独证明冲突替换、拆分和生命周期语义，超范围请求返回明确错误。
+- 根据压力与碎片测试调整direct chunk尺寸和查找结构；`MAP_FIXED`仍须单独证明冲突
+  替换、拆分和生命周期语义，超范围请求返回明确错误。
 - 文件映射从读取完成后原子发布的`MAP_PRIVATE`子集开始；异步失败必须返回错误，不能
   留下半完成映射或永久等待。
 - `MAP_SHARED`只在跨进程可见的共享backing、写入传播与持久化路径完整后开放；在真实

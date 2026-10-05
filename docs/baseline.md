@@ -168,6 +168,10 @@ zero-length请求的错误语义。
 保留空洞的精确映射与zero-fill、live mapping冲突的`EEXIST`、未对齐地址的`EINVAL`
 以及未保留高地址的`ENOMEM`。普通`MAP_FIXED`仍保持明确失败。
 
+[direct backing chunk检查](https://github.com/HighCWu/distro/actions/runs/37245571783)在
+`distro` commit `3da3b03`上验证普通匿名映射会复用同一保留chunk的相邻空闲页，并验证
+`MAP_FIXED_NOREPLACE`可精确采用该chunk中尚未映射过的页且保持zero-fill。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
