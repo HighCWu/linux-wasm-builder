@@ -217,6 +217,12 @@ raw initramfs的[wasm64完整mmap检查](https://github.com/HighCWu/distro/actio
 [关闭搜索优化的wasm64复验](https://github.com/HighCWu/distro/actions/runs/37408421747)
 也通过，包括仓库格式检查。以上检查不包含性能采样，不据此声称性能收益。
 
+该revision在主线的[Memory64回归](https://github.com/HighCWu/distro/actions/runs/37409204391)
+通过。随后[首轮wasm32配对job](https://github.com/HighCWu/distro/actions/runs/37409211822/job/112093622663)
+完成两种模式的正确性检查和六次全新benchmark启动，输出270条经校验的采样记录。
+全部CSV和环境信息已长期归档，结果及限制见[mmap-benchmark.md](mmap-benchmark.md)。
+此记录只证明该wasm32 job成功，不代表其wasm64配对job、第二个独立run或新完整矩阵已成功。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
