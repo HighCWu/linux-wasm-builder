@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: MIT
+name: Prefetch source hash
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: HighCWu source repository
+        required: true
+        type: choice
+        options:
+          - musl
+          - linux
+          - llvm-project
+      revision:
+        description: Full 40-character commit SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prefetch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: nixbuild/nix-quick-install-action@v35
+      - name: Compute unpacked source hash
+        env:
+          SOURCE_REPOSITORY: ${{ inputs.repository }}
+          SOURCE_REVISION: ${{ inputs.revision }}
+        run: |
+          case "$SOURCE_REPOSITORY" in
+            musl|linux|llvm-project) ;;
+            *) exit 1 ;;
+          esac
+          [[ "$SOURCE_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          nix store prefetch-file --unpack --json \
+            "https://github.com/HighCWu/$SOURCE_REPOSITORY/archive/$SOURCE_REVISION.tar.gz" \
+            | tee "$RUNNER_TEMP/source-hash.json"
+          {
+            echo "Repository: HighCWu/$SOURCE_REPOSITORY"
+            echo "Revision: $SOURCE_REVISION"
+            echo "Hash: $(jq --raw-output .hash "$RUNNER_TEMP/source-hash.json")"
+          } >> "$GITHUB_STEP_SUMMARY"
