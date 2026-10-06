@@ -158,7 +158,7 @@ initializer不得启动异步I/O或在失败后使用候选指针；文件读取
 
 distro独立分支commit `87dbcea33ebc1c9fa3493a73ba37ac71a0b39b25`新增MIT实现
 `FileMmapCopy`，已接入实际worker的实例化和kernel import对象，但Linux尚未声明或调用
-该接口，musl尚未提供对应export。不是已接通的VFS路径，也没有开放文件mmap。
+该接口，该版本的musl尚未提供对应export。不是已接通的VFS路径，也没有开放文件mmap。
 
 实验执行契约使用独立版本名，不改变legacy或v2 mmap：
 
@@ -185,8 +185,32 @@ syscall、切换用户实例或忽略复制失败后发布候选映射；staging
 本地TypeScript及61组相关Node检查通过（包含现有memory/worker检查）。
 [轻量公开CI](https://github.com/HighCWu/distro/actions/runs/37450194272)已通过37组契约检查。
 新增宿主接口后的[wasm32既有mmap复验](https://github.com/HighCWu/distro/actions/runs/37450293296)
-及[wasm64既有mmap复验](https://github.com/HighCWu/distro/actions/runs/37450299409)已启动，结果待确认。
-下一步连接musl的可选wrapper并验证实际分配回滚，再接入内核拥有的staging和受限VFS读取。
+及[wasm64既有mmap复验](https://github.com/HighCWu/distro/actions/runs/37450299409)均已成功。
+
+## 可选musl复制wrapper与拒绝路径实测
+
+musl commit `7c45461e5f34ad629a3bed0314b66d6a42c19d86`新增独立MIT对象
+`src/mman/wasm32/mmap_init.c`，实现实验函数`__wasm_mmap_init_v1(rounded, length)`。
+它先验证正的整页长度及`length <= rounded`，再使用已有初始化分配器分配新backing、
+清零并同步调用`linux_mmap_init_v1.copy`；只有copy返回0才允许分配器登记mapping。
+正常负errno触发已有回滚路径；宿主trap不等同于普通errno，仍不保证C层资源已回收。
+
+独立对象避免普通mmap链接时强制引入新copy import。发行版默认linker flags没有加入
+该export，只有新`mmap-copy.c`检查显式链接导出它；因此目前不是默认SDK能力，也不改变
+旧程序执行契约。Linux仍未调用新桥接，没有staging来源或成功VFS文件映射。
+
+distro commit `f5cb317217c6a6d4e923245a7b4eafdbbad62de6`更新musl pin/hash并添加
+两个位宽共用的真实启动检查：验证非法长度拒绝、直接用户调用没有内核授权时返回EPERM、
+零长度copy也不能绕过授权；循环失败后再做普通anonymous分配，检查新区域清零、已有
+映射内容不变及munmap可用。该检查经过实际musl wrapper和宿主copy import，不是模拟
+回调，但只覆盖拒绝/回滚路径，不证明所有泄漏已排除或成功复制发布已接通。
+
+本地C语法检查通过，源码hash由[公开prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37451427689)
+计算成功，没有本地构建LLVM或Linux。
+[wasm32复制拒绝/回滚检查](https://github.com/HighCWu/distro/actions/runs/37451615569)和
+[wasm64复制拒绝/回滚检查](https://github.com/HighCWu/distro/actions/runs/37451620863)已启动，结果待确认。
+后续需要内核拥有的受控staging检查，覆盖实际成功复制、尾部清零、copy失败及发布边界，
+再加入文件不可变性准入、VFS读取与文件引用生命周期，不能跳过这些条件开放文件映射。
 
 ## 读取与发布的生命周期
 
