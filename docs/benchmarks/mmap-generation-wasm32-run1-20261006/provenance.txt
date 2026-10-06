@@ -1,0 +1,250 @@
+revision=2db18cf8b2a2d7becbe693a85edb7f78b621e633
+pointer_bits=32
+cpus=4
+comparison=generation-vs-reset
+off=reset-dedup
+on=generation-dedup
+v24.21.0
+Linux runnervm8df0l 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           48 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  4
+On-line CPU(s) list:                     0-3
+Vendor ID:                               AuthenticAMD
+Model name:                              AMD EPYC 7763 64-Core Processor
+CPU family:                              25
+Model:                                   1
+Thread(s) per core:                      2
+Core(s) per socket:                      2
+Socket(s):                               1
+Stepping:                                1
+BogoMIPS:                                4890.85
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl tsc_reliable nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves user_shstk clzero xsaveerptr rdpru arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload umip vaes vpclmulqdq rdpid fsrm
+Virtualization:                          AMD-V
+Hypervisor vendor:                       Microsoft
+Virtualization type:                     full
+L1d cache:                               64 KiB (2 instances)
+L1i cache:                               64 KiB (2 instances)
+L2 cache:                                1 MiB (2 instances)
+L3 cache:                                32 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-3
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Ghostwrite:                Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             Not affected
+Vulnerability L1tf:                      Not affected
+Vulnerability Mds:                       Not affected
+Vulnerability Meltdown:                  Not affected
+Vulnerability Mmio stale data:           Not affected
+Vulnerability Old microcode:             Not affected
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Not affected
+Vulnerability Spec rstack overflow:      Vulnerable: Safe RET, no microcode
+Vulnerability Spec store bypass:         Vulnerable
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Retpolines; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Vulnerable: No microcode
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Not affected
+on artifacts: /nix/store/hqiqwivpqcqr1gmanjldgz0sjgp2lhn2-mmap-benchmark-artifacts-wasm32
+off artifacts: /nix/store/5aglym8m17zfzdwvbj0f5n3lab4xnpf4-mmap-benchmark-artifacts-wasm32
+/nix/store/2m046xnix99swl1syyk88lzd55sv4kc2-lowland-kernel-0.0.0
+{
+  pkgs,
+  lib,
+  debug,
+  wasmBits ? 32,
+  deduplicateMmapSearch ? true,
+  generationMmapSearch ? false,
+  generationEpochLimit ? null,
+  llvm-toolchain-unwrapped,
+  src ? pkgs.fetchFromGitHub {
+    owner = "HighCWu";
+    repo = "musl";
+    rev = "fe9e88b15b18d04aa6661e0c8e19b66b99cbc833";
+    hash = "sha256-CIKZ59v6rl9ll38Zb2fZtTFd/c0uuM3xYjZkq6H3GGg=";
+  },
+}:
+
+assert builtins.elem wasmBits [
+  32
+  64
+];
+assert !generationMmapSearch || deduplicateMmapSearch;
+assert
+  generationEpochLimit == null
+  || (
+    generationMmapSearch
+    && builtins.isInt generationEpochLimit
+    && generationEpochLimit > 0
+    && (wasmBits != 32 || generationEpochLimit <= 4294967295)
+  );
+
+pkgs.stdenvNoCC.mkDerivation {
+  name = "musl-wasm${toString wasmBits}";
+  inherit src;
+
+  nativeBuildInputs = [ llvm-toolchain-unwrapped ];
+
+  # TODO: split for size, only relevant for dynamic linking
+  # outputs = [ "out" "dev" ];
+  configurePhase = ''
+    runHook preConfigure
+
+    cat >config.mak <<EOF
+    ARCH=wasm32
+    WASM_BITS=${toString wasmBits}
+    prefix=$out
+    syslibdir=$out
+    CFLAGS=${lib.optionalString debug "-g"}${
+      lib.optionalString (!deduplicateMmapSearch) " -DWASM_MMAP_DEDUP_SEARCH=0"
+    }${lib.optionalString generationMmapSearch " -DWASM_MMAP_SEARCH_GENERATIONS=1"}${
+      lib.optionalString (
+        generationEpochLimit != null
+      ) " -DWASM_MMAP_SEARCH_EPOCH_MAX=${toString generationEpochLimit}"
+    }
+    EOF
+
+    runHook postConfigure
+  '';
+
+  buildPhase = ''
+    runHook preBuild
+    make clean
+    make -j$NIX_BUILD_CORES
+    runHook postBuild
+  '';
+
+  installPhase = ''
+    runHook preInstall
+    mkdir $out
+    make -j$NIX_BUILD_CORES install-libs install-headers
+    runHook postInstall
+  '';
+}
+# The kernel is a build-platform artifact: a wasm blob and headers. The
+# JavaScript host library lives in the repository's @lowland/kernel workspace
+# package. This derivation uses explicit tools because kbuild drives its own
+# cross setup rather than the wasm stdenv.
+{
+  pkgs,
+  lib,
+  debug,
+  wasmBits ? 32,
+  llvm-toolchain-unwrapped,
+  src ? pkgs.fetchFromGitHub {
+    owner = "HighCWu";
+    repo = "linux";
+    rev = "4cf13832724fc0e4d895a6123869716e1c3c893e";
+    hash = "sha256-OU+2BsGz+PvRLGgaFsmXXrPZQlZt+foj314WX9RPf5U=";
+  },
+}:
+
+assert lib.assertOneOf "wasmBits" wasmBits [
+  32
+  64
+];
+
+pkgs.stdenvNoCC.mkDerivation {
+  pname = "linux-wasm${toString wasmBits}";
+  version = "0.0.0";
+  inherit src;
+
+  outputs = [
+    "out"
+    "headers"
+  ];
+
+  # The outputs are wasm and headers: nixpkgs' fixup would strip nothing.
+  dontFixup = true;
+
+  nativeBuildInputs = [
+    llvm-toolchain-unwrapped
+    pkgs.bc
+    pkgs.bison
+    pkgs.findutils
+    pkgs.flex
+    pkgs.gnumake
+    pkgs.perl
+    pkgs.rsync
+    pkgs.wabt
+  ];
+
+  buildPhase = ''
+    runHook preBuild
+
+    make() {
+      command make -j$NIX_BUILD_CORES HOSTCC=${pkgs.llvmPackages_22.clang}/bin/clang "$@"
+    }
+
+    make mrproper
+    mkdir -p $out
+
+    make wasm${toString wasmBits}_defconfig ${lib.optionalString debug "debug.config"}
+
+    make vmlinux.wasm
+
+    cp vmlinux.wasm $out/
+
+    make headers_install INSTALL_HDR_PATH=$headers
+
+    runHook postBuild
+  '';
+
+  installPhase = "runHook preInstall; runHook postInstall";
+}
+# clang/lld for the build platform, from the HighCWu/llvm-project fork whose
+# wasm-linux branch carries the wasm32-unknown-linux-musl target.
+{
+  pkgs,
+  src ? pkgs.fetchFromGitHub {
+    owner = "HighCWu";
+    repo = "llvm-project";
+    rev = "137009e264eb237b5f5adcbae1b7e209f79291f5";
+    hash = "sha256-Rms9gK6XU3cN7muwE9kHTIe+DB++amxC6MeJcyciPS8=";
+  },
+}:
+
+let
+  llvmPackages = pkgs.llvmPackages_22;
+
+  nativeTarget =
+    if pkgs.stdenv.hostPlatform.isx86_64 then
+      "X86"
+    else if pkgs.stdenv.hostPlatform.isAarch64 then
+      "AArch64"
+    else
+      throw "unsupported LLVM host target: ${pkgs.stdenv.hostPlatform.config}";
+
+  cmakeFlags = [
+    "-DCMAKE_BUILD_TYPE=Release"
+    "-DCMAKE_C_COMPILER=${llvmPackages.clang}/bin/clang"
+    "-DCMAKE_CXX_COMPILER=${llvmPackages.clang}/bin/clang++"
+    "-DCMAKE_AR=${llvmPackages.llvm}/bin/llvm-ar"
+    "-DCMAKE_RANLIB=${llvmPackages.llvm}/bin/llvm-ranlib"
+    "-DLLVM_ENABLE_PROJECTS=clang;lld"
+    "-DLLVM_ENABLE_RUNTIMES="
+    "-DBUILD_SHARED_LIBS=OFF"
+    "-DLLVM_BUILD_LLVM_DYLIB=OFF"
+    "-DLLVM_LINK_LLVM_DYLIB=OFF"
+    "-DCLANG_LINK_CLANG_DYLIB=OFF"
+    "-DLIBCLANG_BUILD_STATIC=ON"
+    "-DLLVM_INCLUDE_BENCHMARKS=OFF"
+    "-DLLVM_INCLUDE_TESTS=OFF"
+    "-DLLVM_INCLUDE_DOCS=OFF"
+    "-DCLANG_INCLUDE_TESTS=OFF"
+    "-DCLANG_INCLUDE_DOCS=OFF"
+    "-DLLVM_TOOL_LLVM_EXEGESIS_BUILD=OFF"
+    "-DLLVM_INSTALL_BINUTILS_SYMLINKS=ON"
+    "-DLLVM_INSTALL_UTILS=ON"
+    "-DCLANG_DEFAULT_RTLIB=compiler-rt"
+    "-DCLANG_DEFAULT_CXX_STDLIB=libc++"
+    "-DCLANG_DEFAULT_LINKER=lld"
+    "-DLLVM_TARGETS_TO_BUILD=${nativeTarget};WebAssembly"
+    "-DLLVM_ENABLE_LIBXML2=ON"
+    "-DLLVM_ENABLE_ZLIB=ON"
+    "-DLLVM_ENABLE_ZSTD=OFF"
