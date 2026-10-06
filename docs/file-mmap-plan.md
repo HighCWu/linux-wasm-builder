@@ -331,7 +331,7 @@ WeakSet中登记原设备对象。没有公开注册函数或可填入的immutab
 释放storage引用，后续生成的属性为空；已经生成的设备树不会因close动态更新，所以
 这个标记只描述启动时来源，不能当作实时存活状态或绕过设备清理错误的许可证。
 
-这是可信宿主内的来源关联，不抵御恶意宿主篡改设备树。属性暂不由Linux文件准入读取，
+这是可信宿主内的来源关联，不抵御恶意宿主篡改设备树。在这个阶段属性尚不由Linux文件准入读取，
 没有新增内核import或UAPI，也没有开放mmap；默认磁盘加载仍不调用实验工厂，函数尚未
 从SDK根入口导出。远程ready协议不携带来源声明，不用一个未经验证的消息布尔值把
 Worker设备变成认证快照。
@@ -350,6 +350,53 @@ MessagePort代理不继承身份，以及两种root cell宽度下的实际FDT编
 不代表额外数据设备也不可变；首批应拒绝多设备、file-backed及无法证明来源的组合。
 overlay等间接来源也不自动继承标记。完成内核检查、真实单设备EROFS读取、设备生命周期
 及32/64位启动验证之前，不能宣称已建立完整“普通文件到不可变backing”的准入链路。
+
+## 单设备EROFS的内核来源查询（实验）
+
+Linux commit `95426f820b1db264b4c1821f385e0342630b031a`接入两项独立检查：
+
+- `erofs_is_single_bdev`确认superblock确实属于EROFS、有主块设备，并拒绝额外设备、
+  file-backed、fscache及非零backing偏移。不能仅凭文件系统名称或只读mount认证来源。
+- `wasm_bdev_has_snapshot_source`拒绝分区，沿disk parent找到实际virtio设备；确认
+  transport config ops确实属于virtio_wasm、设备类型为block、已协商RO特征，并要求
+  对应OF节点的`lowland,snapshot-image-v1`为u32版本1。其它transport不作强制类型转换。
+
+必要内核实现及helper按Linux许可证；独立宿主实现、用户测试及文档保持MIT。
+两项检查只能证明受信任宿主建立的启动来源关联，不证明设备当前健康或抵御恶意宿主。
+调用者仍须持有文件及挂载backing引用，读取错误不得转为成功；这不是sealed memfd，
+也没有开启CONFIG_MMU或把普通Wasm指针变为Linux页表管理的虚拟地址。
+
+测试开关`CONFIG_WASM_MMAP_COPY_TEST`下新增私有syscall 256，仅查询fd来源，持有
+fget引用后组合上述检查并fput。返回1/0或EBADF，不进行mmap，不发布到UAPI头文件，
+默认生产内核关闭此测试开关。普通文件mmap准入及既有v2执行ABI均未改变。
+
+distro commit `f970d81f0208c471724377bab64788793af1d890`加入实际启动检查：构建
+一个小型EROFS镜像，以相同内容挂载两个只读virtio块设备；一个使用内部快照工厂，
+另一个使用普通只读宿主文件。前者查询应为1，后者及initramfs文件为0；同时验证
+两份真实文件读取内容、EBADF、close和卸载。测试runner显式选择实验工厂，默认
+加载路径不变，不把普通只读磁盘自动认证为快照。
+
+distro commit `503f1d3ab3a17eaaf6cebe90743bd411ae3b36b7`补上配置合并边界：插件
+设备树的任何层级不得提供保留来源属性；已登记快照节点不得被替换，或覆盖compatible、
+host-id、virtio-device-id、features、config。先验证完整fragment再合并，最后才从
+私有登记生成标记；拒绝时不部分应用配置。普通自定义节点和非身份属性仍可合并。
+这避免普通配置伪造来源或把认证节点重定向至另一宿主设备，不作为恶意JavaScript隔离。
+新增测试覆盖伪造属性、嵌套节点、身份覆盖、节点替换及关闭撤销；本地TypeScript和
+72项相关Node检查通过。
+
+Linux源码pin的解包hash为`sha256-AcBT3gCq7OPH/LeR5RsvYzGVHiEIiWHR3oSv5k+pgyw=`，
+[公开预取检查](https://github.com/HighCWu/distro/actions/runs/37478312511)通过。
+本轮实际启动检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37478732014)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37478742787)仍在执行，基于f970d81；
+配置合并加固的
+[轻量CI](https://github.com/HighCWu/distro/actions/runs/37479331449)也尚待结果。
+这些运行未完成前，不宣称32/64位内核来源关联已经通过启动验证。
+
+下一步是在这条已验证的来源链上，把真实EROFS文件的有界kernel_read接入既有staging
+和初始化allocator测试桥，检查非零offset、末页清零、拒绝未认证文件及失败回滚。
+仍先走测试开关，不直接开放标准文件mmap；文件类型、访问权限、范围、生命周期与
+并发行为必须分别验证，来源查询成功本身不是映射许可证。
 
 ## 读取与发布的生命周期
 
