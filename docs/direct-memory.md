@@ -124,6 +124,7 @@ live mapping解除后释放整个malloc backing，不形成永久地址保留。
 
 以上是未来文件映射的准入要求，不是已经实现的新能力；不改变当前v2 anonymous
 ABI或开放文件请求。实际实现仍需按标准Linux UAPI和版本化执行ABI独立审阅。
+分阶段实现、64位文件offset及staging持有方案见[文件映射实施计划](file-mmap-plan.md)。
 
 ## 5. 不能伪造的语义
 
