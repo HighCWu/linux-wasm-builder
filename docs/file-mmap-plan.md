@@ -44,6 +44,12 @@ JS边界使用BigInt；内核负返回值和用户地址仍按各自profile处�
 anonymous映射内容。因为所有文件请求仍失败，它不能证明转换正确，也没有测试真实
 大文件读取。开放文件路径时必须增加非零offset的成功内容对照，不能只保留拒绝测试。
 
+preflight首次运行在进入mmap校验前暴露了musl lseek的变参参数传递问题：wasm64
+对真实文件执行lseek(fd, 7, SEEK_SET)返回EINVAL。修正采用内部带参数类型转换的
+syscall分派，保留原errno处理；另增加libc/raw交叉检查大于4 GiB的SEEK_SET和SEEK_CUR。
+这只验证文件位置传递，不需要创建大文件，也不证明大文件I/O或Memory64容量。
+修正仍在独立分支验证中，不把初次失败归因于文件mmap已经开放或内核offset转换。
+
 ## 读取与发布的生命周期
 
 首选“任务独占staging，读取完成后选址并同步提交”，而不是把已经登记的anonymous
