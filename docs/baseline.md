@@ -188,6 +188,14 @@ Memory64检查。新增测试覆盖wasm32/wasm64的完整v2参数转发、length
 [mmap-benchmark.md](mmap-benchmark.md)；本检查不设固定耗时门槛，也不构成浏览器或
 wasm64性能承诺。
 
+搜索去重在`distro` commit `6324617`上通过
+[默认mmap正确性](https://github.com/HighCWu/distro/actions/runs/37401438602)、
+[关闭优化的正确性](https://github.com/HighCWu/distro/actions/runs/37401446721)和两种构建的
+性能采样。源码pin、原始数据与局限见[mmap-benchmark.md](mmap-benchmark.md)。
+此前完整矩阵中的`basic-init-check-clone-multithreaded-no-vm`因Nix缓存下载HTTP 416失败，
+测试程序尚未构建；[本次定向重跑](https://github.com/HighCWu/distro/actions/runs/37401454738)
+已通过，不应把原下载失败记作clone语义回归，也不代表旧完整矩阵已经整体成功。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过

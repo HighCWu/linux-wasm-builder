@@ -58,6 +58,26 @@ gh api "repos/HighCWu/distro/actions/jobs/$job_id/logs" \
 内核CPU数和采样方法。公开runner的负载变化、JIT预热和多worker调度都会影响结果。
 这些样本用于决定查找结构和chunk策略，不能直接转换为本机Linux或其它系统的性能比值。
 
+## 可关闭的搜索优化基线
+
+musl默认启用`WASM_MMAP_DEDUP_SEARCH`，普通分配对每个backing只搜索一次。
+`deduplicateMmapSearch = false`的Nix override会设置
+`-DWASM_MMAP_DEDUP_SEARCH=0`，同时排除去重字段和搜索标记逻辑，恢复原始搜索路径。
+基线与默认构建使用同一个源码pin、相同内核和测试程序，不改变Linux UAPI或Wasm import。
+
+以下定向检查分别覆盖默认和关闭优化的构建：
+
+| 目的 | heavy-check |
+|---|---|
+| 默认正确性 | `basic-init-check-mmap` |
+| 默认基准 | `basic-init-check-mmap-benchmark` |
+| 关闭优化的正确性 | `mmap-search-baseline-correctness` |
+| 关闭优化的基准 | `mmap-search-baseline-benchmark` |
+
+每项都可通过前面的`gh workflow run`命令运行。获取基线日志时，应选择相应的
+`Heavy check / mmap-search-baseline-benchmark` job；两种基准输出分别交给同一个汇总
+脚本，不能把同名样本拼在一起计算中位数。
+
 ## 2026-10-06 首轮基线
 
 [定向CI](https://github.com/HighCWu/distro/actions/runs/37397972606)通过全部操作校验及
@@ -107,3 +127,49 @@ GitHub `ubuntu-24.04` runner、Nix提供的Node 24.18.0、4个Linux/Wasm CPU、w
 
 测试runner现在先解码并输出完整LF文本行，避免借用Wasm缓冲区在Node异步输出期间
 复用，以及TTY原始CRLF使Nix日志丢失内容的问题；该边界已有独立协议回归检查。
+
+## 2026-10-06 搜索去重开关对照
+
+同一源码分别运行[开启优化基准](https://github.com/HighCWu/distro/actions/runs/37401442856)
+和[关闭优化基准](https://github.com/HighCWu/distro/actions/runs/37401450673)，并通过
+[开启正确性检查](https://github.com/HighCWu/distro/actions/runs/37401438602)与
+[关闭正确性检查](https://github.com/HighCWu/distro/actions/runs/37401446721)。两种构建均通过
+仓库格式检查。原始样本分别见
+[dedup-on CSV](benchmarks/mmap-wasm32-dedup-on-20261006.csv)和
+[dedup-off CSV](benchmarks/mmap-wasm32-dedup-off-20261006.csv)，各含15组、每组三次样本。
+
+| 组件 | commit |
+|---|---|
+| distro | `63246175800b5af51a2414051b3c9c8cccce9695` |
+| musl | `834a0890d2ce2616ef18fc6dc092266c9014535f` |
+| Linux | `4cf13832724fc0e4d895a6123869716e1c3c893e` |
+| LLVM | `137009e264eb237b5f5adcbae1b7e209f79291f5` |
+
+环境仍为公开`ubuntu-24.04` runner、Node 24.18.0、wasm32、64 KiB页、4个
+Linux/Wasm CPU、测试程序`-O2`。下表延迟仍是三次批量平均值的中位数；吞吐包含两类操作。
+0%空洞控制组没有操作，不列入数值比较，但保留在CSV中。
+
+| Scenario | Mappings | Holes % | Threads | off mmap µs/op | on mmap µs/op | off Operations/s | on Operations/s |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| scale | 16 | 0 | 1 | 17.500 | 21.875 | 104918 | 86486 |
+| scale | 64 | 0 | 1 | 8.828 | 10.156 | 200000 | 174150 |
+| scale | 256 | 0 | 1 | 43.418 | 17.637 | 44697 | 106445 |
+| fragment | 64 | 25 | 1 | 13.125 | 5.000 | 136170 | 266667 |
+| fragment | 64 | 50 | 1 | 8.438 | 4.219 | 213333 | 376471 |
+| fragment | 256 | 25 | 1 | 193.438 | 31.484 | 10265 | 61244 |
+| fragment | 256 | 50 | 1 | 94.805 | 16.758 | 20855 | 112775 |
+| concurrent | 16 | 0 | 1 | 14.844 | 12.793 | 89276 | 99321 |
+| concurrent | 16 | 0 | 2 | 29.014 | 20.908 | 58935 | 95389 |
+| concurrent | 16 | 0 | 4 | 49.575 | 50.654 | 80773 | 77974 |
+| concurrent | 256 | 0 | 1 | 129.688 | 34.512 | 13206 | 48902 |
+| concurrent | 256 | 0 | 2 | 170.986 | 38.857 | 17203 | 53937 |
+| concurrent | 256 | 0 | 4 | 173.306 | 80.542 | 25397 | 59892 |
+
+256映射的scale组mmap延迟约降低至原来的1/2.46；256映射、25%和50%空洞组分别
+约为1/6.14与1/5.66。这支持保留按唯一backing搜索的优化，但小规模scale组与16映射
+四线程组本轮稍慢。重置标记仍需遍历live mapping，去重也未改变空洞搜索的数据结构。
+不能由这些数据断言所有场景提速、锁竞争消除或复杂度已整体降至线性。
+
+开关两边是不同公开runner上的各一轮采样，尚无独立重复run或统计置信区间，JIT、
+调度和runner负载仍是混杂因素。下一步重复独立对照、检查小规模额外开销，并扩展
+wasm64性能采样；wasm64启动检查不等于wasm64性能基准。

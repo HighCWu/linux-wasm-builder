@@ -75,6 +75,16 @@ softmmu psABI 的变更必须同时包含：
 等占用大量磁盘的验证由公开仓库的GitHub Actions承担；除非正在诊断特定问题，不要求
 贡献者在本地构建全部组件。
 
+更新源码pin时，可先使用`Prefetch source hash`轻量工作流取得解包后的Nix hash：
+
+```sh
+gh workflow run prefetch-source.yml --repo HighCWu/linux-wasm-builder \
+  -f repository=musl -f revision=FULL_COMMIT_SHA
+```
+
+它仅下载所选HighCWu源码归档并计算hash，不构建LLVM、内核或发行版。`revision`必须为
+完整40字符commit SHA；workflow日志及summary记录仓库、revision和SRI hash。
+
 新增或修改工作流时，应保持最小`GITHUB_TOKEN`权限，避免无界矩阵和无界缓存，并为
 测试artifact设置与用途相称的较短保留期。发布任务必须与运行不受信任fork代码的任务
 隔离。

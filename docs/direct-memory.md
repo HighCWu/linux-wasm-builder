@@ -82,6 +82,11 @@ backing chunk。普通匿名映射优先从已有chunk的空闲区间做first-fi
 partial `munmap()`形成的页洞遵循相同hint和`MAP_FIXED_NOREPLACE`规则。chunk中最后一个
 live mapping解除后释放整个malloc backing，不形成永久地址保留。
 
+普通分配的backing查找采用按次去重：同一backing在一次查找中最多执行一次空闲区间
+扫描，并保留其在live mapping链表中首次出现的候选顺序。标记在现有allocator锁内
+重置与使用，不增加独立分配、free-list或额外回收路径。构建时可关闭优化，使用原始
+搜索路径运行同一正确性检查和性能基准；该开关不属于用户程序ABI。
+
 ## 4. 文件映射准入条件
 
 当前实现不接受文件映射。后续实现必须从可验证的`MAP_PRIVATE`子集开始，并满足以下
