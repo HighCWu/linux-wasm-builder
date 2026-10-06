@@ -65,8 +65,11 @@ allocator已经保留、但当前没有live mapping的backing页洞中才会采�
 回退到普通分配。这一保守子集不会把任意数字变成可访问地址，也不开放覆盖式fixed或
 文件映射。
 旧内核继续使用`user.mmap(len)`，新宿主在旧用户模块缺少v2导出时可回退到
-`__wasm_mmap(len)`；该回退只承接Linux已经限制的现有anonymous子集，不能绕过内核校验
-或扩大能力范围。
+`__wasm_mmap(len)`；宿主只允许private anonymous read/write、`fd=-1`、offset=0的请求
+进入该回退，非固定hint可以忽略。旧callback无法表达精确地址，因此宿主对
+`MAP_FIXED`和`MAP_FIXED_NOREPLACE`返回`ENOMEM`，且不调用分配器。这样旧用户模块不会
+把fixed请求静默降级为其他地址的普通分配；使用精确页洞映射需要v2用户模块。无可用
+callback时返回`ENOSYS`，上述错误均保持wasm32/wasm64各自的返回值类型。
 
 `MAP_FIXED_NOREPLACE`现已在同一安全页洞子集内开放：地址必须页对齐且完整区间已经由
 allocator保留；精确空洞映射成功，live mapping冲突返回`EEXIST`，未保留或不可表示区间

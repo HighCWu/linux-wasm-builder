@@ -112,6 +112,8 @@
 - 已覆盖长度溢出、多线程并发分配、并发partial unmap、碎片解除后的重新分配及zero-fill。
 - 已把完整映射请求放入版本化`user_v2`执行ABI，同时保留旧内核和旧用户模块兼容路径；
   当前allocator仍只实现已验证的direct anonymous子集。
+- 已限制旧用户模块的length-only回退：固定请求在调用allocator前返回`ENOMEM`，普通
+  anonymous请求及非固定hint继续兼容；wasm32/wasm64转发和错误类型有宿主回归测试。
 - 已支持在allocator既有backing的空闲页洞内采用非固定地址hint；冲突或未保留的hint
   回退到普通分配，不会覆盖live mapping或凭空声明任意地址可用。
 - 已在同一安全页洞子集内支持`MAP_FIXED_NOREPLACE`的精确映射、`EEXIST`冲突检测、
