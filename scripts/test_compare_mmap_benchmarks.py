@@ -30,6 +30,20 @@ class PairedComparison(unittest.TestCase):
         with self.assertRaises(OSError):
             compare(self.directory)
 
+    def test_pair_ratios_are_not_ratio_of_separate_medians(self):
+        for trial, off_us, on_us in ((1, 2, 1), (2, 10, 15), (3, 30, 15)):
+            for mode, latency in (("off", off_us), ("on", on_us)):
+                path = self.directory / f"trial-{trial}-{mode}.csv"
+                lines = path.read_text().splitlines()
+                for index, line in enumerate(lines):
+                    if line.startswith("mmap-bench,scale,16,0,1,"):
+                        fields = line.split(",")
+                        fields[7] = str(latency * 16 * 1000)
+                        fields[9] = "1000000000"
+                        lines[index] = ",".join(fields)
+                path.write_text("\n".join(lines) + "\n")
+        self.assertIn("| scale | 16 | 0 | 1 | 10.000 | 15.000 | 2.00 [0.67–2.00] |", compare(self.directory))
+
     def test_mismatched_operations(self):
         path = self.directory / "trial-2-on.csv"
         text = path.read_text().replace("mmap-bench,scale,16,0,1,1,16,", "mmap-bench,scale,16,0,1,1,17,")
