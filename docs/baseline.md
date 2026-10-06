@@ -206,6 +206,13 @@ wasm64性能承诺。
 集成仓库[构建基线](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37402639018)
 通过。这些结果确认搜索去重版本的主线构建与回归，不替代配对采样的性能结论。
 
+raw initramfs的[wasm64完整mmap检查](https://github.com/HighCWu/distro/actions/runs/37408418308)
+在`distro` commit `99cc973`上通过，使用与wasm32相同的正确性源码和四CPU配置。
+首次两种模式均在raw `SYS_mmap`处返回`EINVAL`；检查发现测试向变参`syscall()`传入
+混合宽度参数，而musl按六个`long`读取。修正测试的机器字类型和未使用参数填充后，
+默认wasm64模式完成raw syscall、partial unmap、zero-fill、hint、固定空洞回填和
+并发争抢检查。未修改内核、libc或其错误校验；其余raw syscall调用尚需单独审计。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过

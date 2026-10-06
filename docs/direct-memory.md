@@ -134,3 +134,15 @@ address翻译为direct Wasm backing。应用也可以选择相同方式。linux-
 Memory Control、Multiple Memories和Custom Page Sizes都不应被提前等同于完整MMU。
 只有标准化并由目标浏览器稳定实现的机制真正提供所需页映射、保护、重映射或fault
 能力后，项目才评估新的可选profile。实验性提案不能成为默认ABI前提。
+
+## 8. Raw syscall测试的参数类型
+
+当前musl公开的变参`syscall()`实现按六个`long`读取参数。raw mmap测试必须把地址、
+长度、protection、flags、fd和offset显式转换为机器字；raw munmap测试也补齐六个
+`long`参数，未使用项为`0L`。这些辅助函数仍调用标准`SYS_mmap`/`SYS_munmap`，不是
+改走libc映射封装或宿主allocator捷径。
+
+wasm64中`int`为32位、`long`为64位，Wasm变参不使用某些本机架构的寄存器槽布局。
+混用类型会使被调用者读到错误参数；不能把这种测试调用错误记作内核mmap拒绝合法
+请求，或通过忽略flags/fd校验使测试通过。这也不意味着所有用户软件的raw syscall
+调用已经完成wasm64审计；其余调用与更易用的类型安全封装应另行评估。
