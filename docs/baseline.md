@@ -240,6 +240,18 @@ generation tags实验的[第一轮](https://github.com/HighCWu/distro/actions/ru
 构建基线和两个完整配对run共同完成该版本的验证闭环；不表示所有可能的软件、
 文件映射、页保护或透明fork能力已经实现。
 
+后续offset前置回归发现并修正了共享Wasm syscall头文件的64位别名错误：wasm64
+不再选择32位_llseek或mmap2调用布局，生成SYS别名时保留宽度条件；generic lseek
+实现未改变。musl `cc93a0d6e41e75d7d058eea8466c1a4f0ce3e6e9`与distro
+`9865c5e82a497ce67ee9ab601b2b8f2e5d469bcd`已原样合入各自主线。
+[32位offset](https://github.com/HighCWu/distro/actions/runs/37422145740)、
+[64位offset](https://github.com/HighCWu/distro/actions/runs/37422149817)、
+[完整CI](https://github.com/HighCWu/distro/actions/runs/37422258526)及
+[Memory64回归](https://github.com/HighCWu/distro/actions/runs/37422265224)均成功。
+测试验证libc/raw大于4 GiB的文件位置传递以及当前文件映射请求的明确拒绝，不证明
+大文件读取、成功的文件offset转换或文件映射能力。实施边界见
+[文件映射计划](file-mmap-plan.md)。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过

@@ -53,9 +53,9 @@ syscall宏已经转换参数类型；改写该调用没有修复问题，现已�
 
 回归增加了编译期别名断言和libc/raw交叉检查大于4 GiB的SEEK_SET和SEEK_CUR。
 这只验证文件位置传递，不需要创建大文件，也不证明大文件I/O或Memory64容量。
-修正仍在独立分支验证中；文件请求当前全部失败，不把它当作成功offset转换的证明。
+修正与前置测试已通过验证并合入主线；文件请求当前全部失败，不把它当作成功offset转换的证明。
 
-验证记录（源码均在独立分支，尚未合入主线）：
+验证记录（以下测试源码已原样合入主线，固定commit不变）：
 
 - 最初的[wasm64失败](https://github.com/HighCWu/distro/actions/runs/37419656809)
   在小offset seek返回EINVAL；仅改写调用后的
@@ -66,7 +66,7 @@ syscall宏已经转换参数类型；改写该调用没有修复问题，现已�
 - 当前[wasm32定向检查](https://github.com/HighCWu/distro/actions/runs/37422145740)、
   [wasm64定向检查](https://github.com/HighCWu/distro/actions/runs/37422149817)、
   [完整CI](https://github.com/HighCWu/distro/actions/runs/37422258526)及
-  [Memory64回归](https://github.com/HighCWu/distro/actions/runs/37422265224)均已启动，结果待确认。
+  [Memory64回归](https://github.com/HighCWu/distro/actions/runs/37422265224)均成功。
 - 本地仅生成syscall头文件并按long为4/8预处理检查，不构建内核或LLVM。
   生成后的NR与SYS别名均按宽度选择；generic lseek实现与原主线一致。
 
