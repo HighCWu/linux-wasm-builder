@@ -70,6 +70,30 @@ syscall宏已经转换参数类型；改写该调用没有修复问题，现已�
 - 本地仅生成syscall头文件并按long为4/8预处理检查，不构建内核或LLVM。
   生成后的NR与SYS别名均按宽度选择；generic lseek实现与原主线一致。
 
+## Offset契约模型的当前进度
+
+独立分支`codex/mmap-file-offset-contract`新增了MIT的内部契约模型
+`packages/kernel/src/file-mmap-offset.ts`和八组单元测试，源码commit为distro
+`48e3bc6a549d9288bc40a656afc4d6f2d0abcd10`。
+
+- raw mmap2先按unsigned i32解释传输位，再拓宽并乘4096；同时接受Wasm signed i32
+  和显式unsigned表示，拒绝越宽、非整数及错误JS类型，不静默截断输入。
+- raw mmap输入必须是BigInt，采用字节单位；负offset返回EINVAL，超出signed 64位
+  文件位置范围返回EOVERFLOW。大于2^53的值不能借道Number。
+- canonical extent校验页对齐、正length、页取整与exclusive end；保守要求取整后的
+  整个extent都能由signed 64位文件位置表示。失败结果不包含有效extent。
+- 4096字节syscall单位不替代65536字节页对齐；同一非零offset在32/64位得到相同
+  byte_offset，最大raw mmap2值仍须独立通过页对齐检查。
+
+模型不读取文件、不分配backing、不发布映射，不接入现有syscall，不新增Wasm import，
+也不通过包主入口发布稳定SDK。现有v2/legacy兼容测试原样保留。它是未来实现的对照
+契约，而不是“已经完成内核offset转换”的证据；实际VFS路径还需用成功内容测试与该
+契约交叉验证。正式新执行接口只传canonical i64字节offset，不能在宿主再次乘4096。
+
+本地TypeScript检查与八组新测试、八组既有mmap桥接测试均通过；
+[独立分支CI](https://github.com/HighCWu/distro/actions/runs/37436143890)已启动，结果待确认。
+内核staging及新的执行接口仍未实现，不把契约校验成功当作文件准入成功。
+
 ## 读取与发布的生命周期
 
 首选“任务独占staging，读取完成后选址并同步提交”，而不是把已经登记的anonymous
