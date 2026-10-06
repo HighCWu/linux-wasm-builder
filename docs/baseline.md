@@ -196,6 +196,10 @@ wasm64性能承诺。
 测试程序尚未构建；[本次定向重跑](https://github.com/HighCWu/distro/actions/runs/37401454738)
 已通过，不应把原下载失败记作clone语义回归，也不代表旧完整矩阵已经整体成功。
 
+同一源码的[Memory64回归](https://github.com/HighCWu/distro/actions/runs/37401738284)已完成
+产物构建、Node及稳定版Chromium/Firefox启动测试。这验证的是现有Memory64 smoke与
+启动边界，不是关闭优化的wasm64差异性能测试，也不覆盖尚未实现的映射能力。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
