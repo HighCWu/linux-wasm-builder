@@ -221,7 +221,12 @@ raw initramfs的[wasm64完整mmap检查](https://github.com/HighCWu/distro/actio
 通过。随后[首轮wasm32配对job](https://github.com/HighCWu/distro/actions/runs/37409211822/job/112093622663)
 完成两种模式的正确性检查和六次全新benchmark启动，输出270条经校验的采样记录。
 全部CSV和环境信息已长期归档，结果及限制见[mmap-benchmark.md](mmap-benchmark.md)。
-此记录只证明该wasm32 job成功，不代表其wasm64配对job、第二个独立run或新完整矩阵已成功。
+此job的早期结果随后由完整配对workflow补齐：
+[run 1](https://github.com/HighCWu/distro/actions/runs/37409211822)和
+[run 2](https://github.com/HighCWu/distro/actions/runs/37409215653)均成功，分别完成wasm32和
+wasm64的两种模式正确性检查及三轮性能对照，合计1080条记录全部归档。
+同一源码版本的集成仓库[构建基线](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37409207636)
+也通过。具体退化组、硬件差异与统计限制见性能文档；这些结果不代表新完整矩阵已成功。
 
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
