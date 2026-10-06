@@ -55,6 +55,21 @@ syscall宏已经转换参数类型；改写该调用没有修复问题，现已�
 这只验证文件位置传递，不需要创建大文件，也不证明大文件I/O或Memory64容量。
 修正仍在独立分支验证中；文件请求当前全部失败，不把它当作成功offset转换的证明。
 
+验证记录（源码均在独立分支，尚未合入主线）：
+
+- 最初的[wasm64失败](https://github.com/HighCWu/distro/actions/runs/37419656809)
+  在小offset seek返回EINVAL；仅改写调用后的
+  [wasm64失败](https://github.com/HighCWu/distro/actions/runs/37420047994)
+  仍无法通过libc/raw大offset位置对照，故不接受最初的变参归因。
+- 修正源码：musl `cc93a0d6e41e75d7d058eea8466c1a4f0ce3e6e9`、
+  distro `9865c5e82a497ce67ee9ab601b2b8f2e5d469bcd`。
+- 当前[wasm32定向检查](https://github.com/HighCWu/distro/actions/runs/37422145740)、
+  [wasm64定向检查](https://github.com/HighCWu/distro/actions/runs/37422149817)、
+  [完整CI](https://github.com/HighCWu/distro/actions/runs/37422258526)及
+  [Memory64回归](https://github.com/HighCWu/distro/actions/runs/37422265224)均已启动，结果待确认。
+- 本地仅生成syscall头文件并按long为4/8预处理检查，不构建内核或LLVM。
+  生成后的NR与SYS别名均按宽度选择；generic lseek实现与原主线一致。
+
 ## 读取与发布的生命周期
 
 首选“任务独占staging，读取完成后选址并同步提交”，而不是把已经登记的anonymous
