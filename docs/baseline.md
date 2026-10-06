@@ -228,6 +228,13 @@ wasm64的两种模式正确性检查及三轮性能对照，合计1080条记录�
 同一源码版本的集成仓库[构建基线](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37409207636)
 也通过。具体退化组、硬件差异与统计限制见性能文档。
 
+generation tags实验的[第一轮](https://github.com/HighCWu/distro/actions/runs/37413862807)和
+[第二轮](https://github.com/HighCWu/distro/actions/runs/37416061054)均成功，验证了实验分支的
+32/64位正确性、强制epoch回绕及callback clone快照；1080条配对采样已归档。
+但目标小规模并发性能没有改善，其它组收益亦未稳定复现，因此该实现和实验pins不合入
+主线；主线仍使用上述已经完成验证的重置式去重版本。实验成功的CI不等同于性能方案
+被接受，具体结果与复现方法见[mmap-benchmark.md](mmap-benchmark.md)。
+
 同一distro revision的[主线完整CI](https://github.com/HighCWu/distro/actions/runs/37409204383)
 最终完成123个成功job，两个发布相关job按条件跳过。此结果与上述Memory64回归、
 构建基线和两个完整配对run共同完成该版本的验证闭环；不表示所有可能的软件、
