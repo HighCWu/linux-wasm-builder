@@ -3,7 +3,7 @@
 # wasm32第一轮配对采样
 
 来源：[Paired wasm32 job](https://github.com/HighCWu/distro/actions/runs/37409211822/job/112093622663)。
-该job成功；归档时同一workflow的wasm64 job尚未完成，不能把本数据当作整个workflow成功。
+该job和所属完整配对workflow均成功；此目录仅记录wasm32的数据。
 
 - distro：`99cc973215246d651163d339bc3da626b28ce3ff`
 - musl：`834a0890d2ce2616ef18fc6dc092266c9014535f`
