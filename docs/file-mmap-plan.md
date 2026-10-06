@@ -44,11 +44,16 @@ JS边界使用BigInt；内核负返回值和用户地址仍按各自profile处�
 anonymous映射内容。因为所有文件请求仍失败，它不能证明转换正确，也没有测试真实
 大文件读取。开放文件路径时必须增加非零offset的成功内容对照，不能只保留拒绝测试。
 
-preflight首次运行在进入mmap校验前暴露了musl lseek的变参参数传递问题：wasm64
-对真实文件执行lseek(fd, 7, SEEK_SET)返回EINVAL。修正采用内部带参数类型转换的
-syscall分派，保留原errno处理；另增加libc/raw交叉检查大于4 GiB的SEEK_SET和SEEK_CUR。
+preflight首次运行在进入mmap校验前发现wasm64对真实文件执行
+lseek(fd, 7, SEEK_SET)返回EINVAL。最初归因为变参传递，但源码进一步证明musl内部的
+syscall宏已经转换参数类型；改写该调用没有修复问题，现已恢复原generic实现。
+根因是共享的Wasm syscall头文件在64位仍定义32位_llseek布局，同时也定义了mmap2。
+修正按long宽度选择别名，并让头文件生成保留条件编译指令，而不是丢弃条件后生成
+无条件SYS别名。32位保留_llseek/mmap2，64位改用lseek及字节offset的mmap。
+
+回归增加了编译期别名断言和libc/raw交叉检查大于4 GiB的SEEK_SET和SEEK_CUR。
 这只验证文件位置传递，不需要创建大文件，也不证明大文件I/O或Memory64容量。
-修正仍在独立分支验证中，不把初次失败归因于文件mmap已经开放或内核offset转换。
+修正仍在独立分支验证中；文件请求当前全部失败，不把它当作成功offset转换的证明。
 
 ## 读取与发布的生命周期
 
