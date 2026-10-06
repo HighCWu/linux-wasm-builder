@@ -248,3 +248,48 @@ let
     "-DLLVM_ENABLE_LIBXML2=ON"
     "-DLLVM_ENABLE_ZLIB=ON"
     "-DLLVM_ENABLE_ZSTD=OFF"
+    "-DLLVM_ENABLE_TERMINFO=ON"
+    "-DLLVM_ENABLE_LIBEDIT=OFF"
+    "-DLLVM_BUILD_UTILS=ON"
+  ];
+in
+
+llvmPackages.stdenv.mkDerivation {
+  pname = "llvm-toolchain-unwrapped";
+  version = llvmPackages.release_version;
+  inherit src;
+
+  nativeBuildInputs = [
+    pkgs.cmake
+    pkgs.ninja
+    pkgs.perl
+    pkgs.python3
+  ];
+
+  buildInputs = [
+    pkgs.libffi
+    pkgs.libxml2
+    pkgs.ncurses
+    pkgs.zlib
+  ];
+
+  configurePhase = ''
+    runHook preConfigure
+    cmake -S llvm -B build -G Ninja -DCMAKE_INSTALL_PREFIX=$out ${pkgs.lib.escapeShellArgs cmakeFlags}
+    runHook postConfigure
+  '';
+
+  buildPhase = ''
+    runHook preBuild
+    cmake --build build --target install -j$NIX_BUILD_CORES
+    runHook postBuild
+  '';
+
+  installPhase = ''
+    runHook preInstall
+    ln -sf clang $out/bin/cc
+    ln -sf clang++ $out/bin/c++
+    ln -sf ld.lld $out/bin/ld
+    runHook postInstall
+  '';
+}
