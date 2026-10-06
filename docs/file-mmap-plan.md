@@ -390,7 +390,7 @@ Linux源码pin的解包hash为`sha256-AcBT3gCq7OPH/LeR5RsvYzGVHiEIiWHR3oSv5k+pgy
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37478732014)和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37478742787)仍在执行，基于f970d81；
 配置合并加固的
-[轻量CI](https://github.com/HighCWu/distro/actions/runs/37479331449)也尚待结果。
+[轻量CI](https://github.com/HighCWu/distro/actions/runs/37479331449)已通过72项检查。
 这些运行未完成前，不宣称32/64位内核来源关联已经通过启动验证。
 
 下一步是在这条已验证的来源链上，把真实EROFS文件的有界kernel_read接入既有staging
