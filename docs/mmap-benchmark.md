@@ -301,3 +301,38 @@ wasm64采样仅证明Memory64程序在这些工作负载下可运行；没有测
   若采用generation tag，需覆盖计数器回绕、并发、解除与backing重用的差异测试。
 - 文件映射仍是后续平台能力工作；本轮数据不会开放文件请求、共享回写、透明fork
   或页保护，也不会把内核改为softmmu。
+
+## Generation tags 受控实验（尚待验证）
+
+实验源码位于musl的`codex/mmap-generation-tags`分支，集成位于distro的
+`codex/mmap-generation-experiment`分支。默认仍是重置式去重，关闭去重的基线也保持可用。
+本实验不修改Linux、LLVM、UAPI或指针访问方式。
+
+设置musl的`generationMmapSearch = true`后，每次普通backing搜索递增epoch，
+用每个backing的tag跳过本轮已搜索的对象，避免每轮先遍历全部live mappings清零标记。
+epoch和tag均由原有mutex保护；候选顺序、backing生命周期和锁内zero-fill保持不变。
+计数器达到`SIZE_MAX`时，先清除所有仍可达backing的tag，再从1开始，避免复用epoch时
+误跳过候选。新backing的tag初始化为0；callback clone会连同分配器状态复制这些字段。
+
+`generationEpochLimit = 3`仅用于强制回绕检查，不用于性能采样。
+定向checks包括`mmap-search-generation-correctness`及其`-wasm64`版本、
+`mmap-search-generation-wrap-correctness`及其`-wasm64`版本，另有
+`mmap-search-generation-wrap-clone-no-vm`快照检查。mmap正确性源码同时覆盖拆分、解除、
+backing重用、内容保持和并发；强制回绕复用同一源码，不用简化模拟器替代实际运行路径。
+
+实验工作流入口：
+
+```sh
+gh workflow run mmap-benchmark.yml --repo HighCWu/distro \
+  --ref codex/mmap-generation-experiment -f comparison=generation-vs-reset
+```
+
+该comparison的`off`表示重置式去重，`on`表示generation tags；原comparison
+`reset-vs-disabled`仍表示off关闭去重、on重置式去重。必须读取provenance中的comparison，
+不能仅凭文件名推断基线含义。两个profile分别先执行强制回绕检查，再各启动两种模式的
+完整正确性测试；32位profile另执行clone快照检查，最后按原方法采样三个配对boot。
+每组CSV仍可使用`compare_mmap_benchmarks.py`分析，此时off/on比值是reset/generation。
+
+[首次实验CI](https://github.com/HighCWu/distro/actions/runs/37413862807)尚未完成。
+只有正确性和完整采样通过后才能归档性能结论；若小规模并发没有稳定改善，不能把
+标记重置宣称为此前退化的唯一原因，也不能仅凭大规模组收益切换默认策略。
