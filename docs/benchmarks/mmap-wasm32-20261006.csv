@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 mmap-bench,scenario,resident,holes_percent,threads,sample,operations_per_kind,mmap_ns,munmap_ns,elapsed_ns
 mmap-bench,scale,16,0,1,1,16,315000,20000,335000
 mmap-bench,scale,16,0,1,2,16,685000,20000,710000
