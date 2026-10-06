@@ -149,8 +149,44 @@ initializer不得启动异步I/O或在失败后使用候选指针；文件读取
 - musl：`e4c2cca8d0327da47c3ff50b3164fd37c2fcdf1b`
 - distro：`e56f8a125cb9294b1d86ed2f6f4f6f4d45bb2a9c`
 - [wasm32初始化检查](https://github.com/HighCWu/distro/actions/runs/37447772557)和
-  [wasm64初始化检查](https://github.com/HighCWu/distro/actions/runs/37447779526)已启动，结果待确认。
+  [wasm64初始化检查](https://github.com/HighCWu/distro/actions/runs/37447779526)均已成功。
+- 同版本的[wasm32既有mmap回归](https://github.com/HighCWu/distro/actions/runs/37447988161)和
+  [wasm64既有mmap回归](https://github.com/HighCWu/distro/actions/runs/37447994400)均已成功。
 - 本地C语法、TypeScript和仓库元数据检查通过；没有本地构建LLVM或Linux。
+
+## 宿主侧同步staging复制桥接
+
+distro独立分支commit `87dbcea33ebc1c9fa3493a73ba37ac71a0b39b25`新增MIT实现
+`FileMmapCopy`，已接入实际worker的实例化和kernel import对象，但Linux尚未声明或调用
+该接口，musl尚未提供对应export。不是已接通的VFS路径，也没有开放文件mmap。
+
+实验执行契约使用独立版本名，不改变legacy或v2 mmap：
+
+- 内核侧`user_mmap_init_v1.map(rounded, source, length)`提供内核staging地址和已读字节数。
+  内核调用者须独占持有staging，确保生产者已停止写入，且在同步调用返回前不释放它。
+- 宿主调用用户模块`__wasm_mmap_init_v1(rounded, length)`；缺少export返回ENOSYS。
+  用户模块只接收长度，不接收内核地址；未来musl wrapper负责清零、分配和失败回滚。
+- 用户侧`linux_mmap_init_v1.copy(destination, length)`仅在这次同步调用中有效，且只能
+  调用一次、复制全部已读字节。越界、长度不匹配或重复调用明确失败，不允许换目标重试。
+  实例化allowlist只允许此copy，不允许用户模块导入内核侧map接口。
+- 源范围在分配器进入前检查，复制时重新刷新两块memory并重新取视图。嵌套map返回EBUSY，
+  正常返回或trap都在finally中撤销授权。桥接不负责allocator发布或trap后的C资源回收。
+
+这些参数均为当前平台的指针/长度宽度，不是文件offset；后续文件offset仍采用独立i64
+契约，不能因该复制接口以指针宽度传长度而缩窄文件位置。这里没有异步等待、跨Worker
+租约移交或文件不可变性检查。未来initializer必须同步完成copy并检查返回值，不得重入
+syscall、切换用户实例或忽略复制失败后发布候选映射；staging取消与最终发布仍须接入。
+
+新增13组检查覆盖真实Wasm export/import的i32/i64传参、两种memory宽度、memory.grow后
+的复制、越界和错误类型、零长度、旧export缺失、重复/嵌套调用及trap后授权撤销。
+真实Wasm小模块只验证传输ABI；其它检查使用可控回调，不证明musl初始化/发布已接通。
+已有零尾检查只证明复制没有改写尾部，实际清零仍由先前allocator路径负责。
+
+本地TypeScript及61组相关Node检查通过（包含现有memory/worker检查）。
+[轻量公开CI](https://github.com/HighCWu/distro/actions/runs/37450194272)已通过37组契约检查。
+新增宿主接口后的[wasm32既有mmap复验](https://github.com/HighCWu/distro/actions/runs/37450293296)
+及[wasm64既有mmap复验](https://github.com/HighCWu/distro/actions/runs/37450299409)已启动，结果待确认。
+下一步连接musl的可选wrapper并验证实际分配回滚，再接入内核拥有的staging和受限VFS读取。
 
 ## 读取与发布的生命周期
 
