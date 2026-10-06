@@ -317,6 +317,40 @@ distro commit `0870b716553bbfe2ce08894c5ed6e99e55bb4926`新增MIT内部函数
 文件读取。virtio RO位只表示不提供写操作，不能证明读取源不可变；EROFS类型或只读
 mount也不能单独代替backing证明。在这条链路接通前，不接纳任何普通文件mmap。
 
+## 本地快照设备身份与启动设备树
+
+distro commit `b4c0b6b20c04be5aff9f1a9dc3bbef59b11efa47`新增MIT内部工厂
+`snapshot_block_device`，用上述私有storage创建实际virtio block设备，并在模块私有
+WeakSet中登记原设备对象。没有公开注册函数或可填入的immutable选项；普通blockDevice
+即使接收snapshot storage也不自动登记，同配置设备、对象浅拷贝及Worker代理均不继承
+身份。不同模块实例或JS realm之间没有隐式传播，不确定时保持未认证。
+
+实际bootMachine在生成对应`virtio,wasm`节点时，仅为已登记对象添加u32属性
+`lowland,snapshot-image-v1 = 1`。属性编码不随memory32/64的root cell宽度变化；host-id
+仍由最终设备数组生成，不靠文件路径、设备名称或容量猜测身份。关闭回调撤销登记并
+释放storage引用，后续生成的属性为空；已经生成的设备树不会因close动态更新，所以
+这个标记只描述启动时来源，不能当作实时存活状态或绕过设备清理错误的许可证。
+
+这是可信宿主内的来源关联，不抵御恶意宿主篡改设备树。属性暂不由Linux文件准入读取，
+没有新增内核import或UAPI，也没有开放mmap；默认磁盘加载仍不调用实验工厂，函数尚未
+从SDK根入口导出。远程ready协议不携带来源声明，不用一个未经验证的消息布尔值把
+Worker设备变成认证快照。
+
+新增检查验证原对象与同配置设备区分、属性返回对象修改不影响登记、关闭撤销、真实
+MessagePort代理不继承身份，以及两种root cell宽度下的实际FDT编码。实际virtio队列
+测试改用新设备工厂，继续检查源修改、读取、OUT拒绝和关闭后的登记撤销。
+本地TypeScript及71项相关Node检查通过；
+[公开轻量CI](https://github.com/HighCWu/distro/actions/runs/37475990604)同样通过71项检查，
+没有重建Linux或LLVM。
+
+后续内核关联已有代码证据可复用：virtio_blk通过device_add_disk把disk的parent设为
+对应virtio_device，virtio_wasm再关联其platform设备及OF节点；但必须验证transport身份，
+不能把其它virtio transport的parent强行转换为wasm设备。文件侧还要验证其文件系统及
+所有实际backing来源。EROFS的dev_context支持extra_devices，主superblock设备带标记
+不代表额外数据设备也不可变；首批应拒绝多设备、file-backed及无法证明来源的组合。
+overlay等间接来源也不自动继承标记。完成内核检查、真实单设备EROFS读取、设备生命周期
+及32/64位启动验证之前，不能宣称已建立完整“普通文件到不可变backing”的准入链路。
+
 ## 读取与发布的生命周期
 
 首选“任务独占staging，读取完成后选址并同步提交”，而不是把已经登记的anonymous
