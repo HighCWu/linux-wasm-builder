@@ -242,9 +242,48 @@ distro commit `0e09defc2bfa09ff8965694c6ba7b9d2f06be66d`新增两个位宽共用
 本地C语法、TypeScript及13组复制桥接检查通过；Linux源码hash由
 [公开prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37455898107)计算成功。
 [wasm32内核staging集成](https://github.com/HighCWu/distro/actions/runs/37456155367)及
-[wasm64内核staging集成](https://github.com/HighCWu/distro/actions/runs/37456161792)已启动，结果待确认。
+[wasm64内核staging集成](https://github.com/HighCWu/distro/actions/runs/37456161792)均已成功。
 没有本地构建LLVM或Linux，尚未合入主线。下一步先确认这条实际复制/发布链路，再处理
 可证明不可变的文件子集与有界VFS读取，保持现有文件mmap拒绝契约直到准入条件满足。
+
+## NOMMU约束下的受控VFS读取检查
+
+核对当前Linux上游实现后，不能直接把sealed memfd当作首批准入方案：
+`init/Kconfig`中的完整`SHMEM`依赖`MMU`，`fs/Kconfig`中的`TMPFS`依赖`SHMEM`；
+`include/linux/shmem_fs.h`在`CONFIG_SHMEM=n`时使`shmem_file()`返回false，
+`mm/memfd.c`的seal查询仅支持shmem或hugetlb文件。现有NOMMU配置不能靠打开
+`MEMFD_CREATE`获得完整shmem sealing，也不为此改成MMU=y或绕过Kconfig依赖。
+hugetlb不是当前可用后备方案。这排除的是当前配置下的直接复用，不是断言NOMMU平台
+永远无法另行实现文件不可变性。普通O_RDONLY、只读挂载和initramfs仍不自动满足准入。
+
+Linux commit `b809e0cc542b4365b5e49fbdca3c8a71d8cb2bff`在默认关闭的测试配置内
+新增VFS fixture，不接入标准mmap：
+
+- 私有槽254创建匿名只读file，内容由内核生成并独占持有，没有写入或mmap操作；禁止
+  重新open其inode，避免新file没有初始化private_data。私有槽255只接受这个fixture的
+  file_operations，不根据O_RDONLY接纳普通文件。release释放文件数据。
+- 读取请求限制为最多两个64KiB页；持有fget引用，使用局部loff_t位置循环kernel_read，
+  不修改file->f_pos。只把已完成读取的staging交给同步复制桥接，返回后释放staging和
+  file引用。尚不包括跨异步I/O取消或并发fd关闭barrier。
+- 不允许映射完全超出EOF的页，最后有效页的尾部由musl清零。仅允许已知EOF导致的尾部
+  清零，预期区间内的提前EOF返回EIO；负读取错误原样返回，不发布候选映射。
+- 私有测试offset用两个u32表达64位字节位置，保持wasm32检查不截断；它不是稳定执行
+  ABI，也不是mmap2单位。后续正式文件接口仍须采用既定独立i64契约。
+
+新MIT C检查`mmap-vfs.c`覆盖普通只读文件拒绝、非法fd/长度/对齐、4GiB及高位offset
+拒绝、非零offset读取、末页清零、文件位置不变、映射后的close/fd复用及独立用户backing。
+fixture还可注入提前EOF、部分读取后EIO和EINTR，检查反复失败后仍能成功读取/分配。
+这里的EINTR是读取函数的错误注入，不证明真实信号中断/重启已实现；close/fd复用发生
+在读取结束后，不证明读取中的关闭竞态。没有测量全部资源泄漏或真实磁盘性能。
+
+本地C语法、TypeScript及37项契约测试通过，Linux编译与实际VFS启动检查待公开CI确认。
+源码hash由[公开prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37464191408)
+计算成功；distro集成commit为`9f18475a5e8d167d215fed3e6517c8b1ff782220`。
+[wasm32受控VFS检查](https://github.com/HighCWu/distro/actions/runs/37464566888)和
+[wasm64受控VFS检查](https://github.com/HighCWu/distro/actions/runs/37464575133)已启动，结果待确认。
+这条路径验证真实kernel_read、staging和分配器的组合，但文件内容来自测试专属file，
+不能声称普通文件mmap已实现。下一步仍须选择并证明默认NOMMU内核可用的不可变文件
+来源，并覆盖实际文件生命周期和并发错误，标准文件mmap在此之前继续拒绝。
 
 ## 读取与发布的生命周期
 
