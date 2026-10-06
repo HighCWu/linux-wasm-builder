@@ -302,7 +302,7 @@ wasm64采样仅证明Memory64程序在这些工作负载下可运行；没有测
 - 文件映射仍是后续平台能力工作；本轮数据不会开放文件请求、共享回写、透明fork
   或页保护，也不会把内核改为softmmu。
 
-## Generation tags 受控实验（尚待验证）
+## Generation tags 受控实验（正确性已通过，性能复测中）
 
 实验源码位于musl的`codex/mmap-generation-tags`分支，集成位于distro的
 `codex/mmap-generation-experiment`分支。默认仍是重置式去重，关闭去重的基线也保持可用。
@@ -333,6 +333,29 @@ gh workflow run mmap-benchmark.yml --repo HighCWu/distro \
 完整正确性测试；32位profile另执行clone快照检查，最后按原方法采样三个配对boot。
 每组CSV仍可使用`compare_mmap_benchmarks.py`分析，此时off/on比值是reset/generation。
 
-[首次实验CI](https://github.com/HighCWu/distro/actions/runs/37413862807)尚未完成。
-只有正确性和完整采样通过后才能归档性能结论；若小规模并发没有稳定改善，不能把
-标记重置宣称为此前退化的唯一原因，也不能仅凭大规模组收益切换默认策略。
+[首次实验CI](https://github.com/HighCWu/distro/actions/runs/37413862807)全部成功，
+覆盖上述强制回绕、clone快照、32/64位两种模式完整正确性与12次benchmark启动。
+全部12份CSV共540行已从原始日志重新验证后归档：
+[wasm32数据](benchmarks/mmap-generation-wasm32-run1-20261006/README.md)、
+[wasm64数据](benchmarks/mmap-generation-wasm64-run1-20261006/README.md)。
+两profile均为Node v24.21.0、EPYC 7763、4逻辑CPU（2core SMT），仍不能保证同一物理宿主。
+
+首轮关键结果如下；比值为reset/generation的逐pair中位数，范围不是置信区间：
+
+| Profile | 场景 | reset µs/op | generation µs/op | 比值中位数 [min–max] |
+|---|---|---:|---:|---:|
+| wasm32 | 16背景映射、2线程 | 21.748 | 22.432 | 0.96 [0.72–1.11] |
+| wasm64 | 16背景映射、2线程 | 22.715 | 31.133 | 0.79 [0.73–0.95] |
+| wasm32 | 256背景映射、2线程 | 53.125 | 37.471 | 1.42 [1.36–1.43] |
+| wasm64 | 256背景映射、2线程 | 49.756 | 63.164 | 0.83 [0.71–0.88] |
+| wasm32 | 256映射、25%空洞 | 27.266 | 26.641 | 1.02 [1.01–1.03] |
+| wasm64 | 256映射、25%空洞 | 33.125 | 34.609 | 0.95 [0.90–0.96] |
+
+这一轮没有修复目标小规模并发退化，wasm64双线程组三个pair反而都更慢，且较多背景
+映射的双线程组在两宽度间方向相反。省去清零遍历不等于端到端变快；新增tag访问、
+JIT代码生成、锁竞争和宿主调度仍需区分。它不能证明某一因素是唯一根因，也不能与
+此前另一runner上的绝对耗时直接相减来估计重置成本。
+
+[第二轮独立复测](https://github.com/HighCWu/distro/actions/runs/37416061054)已启动，
+继续使用完全相同pins和采样方法。默认保持重置式去重；即使正确性通过，也不因个别组
+收益合入默认优化。完成复测后再决定保留opt-in实验或转向其它查找/锁开销诊断。
