@@ -280,10 +280,42 @@ fixture还可注入提前EOF、部分读取后EIO和EINTR，检查反复失败�
 源码hash由[公开prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37464191408)
 计算成功；distro集成commit为`9f18475a5e8d167d215fed3e6517c8b1ff782220`。
 [wasm32受控VFS检查](https://github.com/HighCWu/distro/actions/runs/37464566888)和
-[wasm64受控VFS检查](https://github.com/HighCWu/distro/actions/runs/37464575133)已启动，结果待确认。
+[wasm64受控VFS检查](https://github.com/HighCWu/distro/actions/runs/37464575133)均已成功。
 这条路径验证真实kernel_read、staging和分配器的组合，但文件内容来自测试专属file，
 不能声称普通文件mmap已实现。下一步仍须选择并证明默认NOMMU内核可用的不可变文件
 来源，并覆盖实际文件生命周期和并发错误，标准文件mmap在此之前继续拒绝。
+
+## 有界私有镜像backing
+
+distro commit `0870b716553bbfe2ce08894c5ed6e99e55bb4926`新增MIT内部函数
+`snapshot_block_storage`，可作为现有`blockDevice`的storage。尚未从SDK根入口导出，
+没有更改默认磁盘加载方式、Linux import或mmap准入，也没有给通用storage增加可随意
+声明的immutable布尔值。
+
+函数同步复制输入Uint8Array到私有缓冲，不保留输入view；Node Buffer也复制而不是
+使用会共享底层数据的Buffer.slice。默认最多64MiB，可显式提供有限的安全整数上限，
+镜像长度须按512字节sector对齐。拒绝SharedArrayBuffer源，不把并发修改期间得到的
+混合镜像当作一致快照；源获取过程、内容完整性和文件系统格式仍由调用者负责。
+
+返回对象冻结，容量固定，不提供write/flush，不暴露私有字节或view。read只复制到
+调用者提供的目标，使用内建set避免把私有view交给可重写的target.set；修改目标不
+影响后续读取。非法offset失败，越过capacity返回短读，close撤销读取并丢弃私有引用，
+重复close无副作用。GC何时归还内存不做承诺，分配异常明确抛出，不回退到可变源。
+
+这提供可信宿主内的backing不变性，不是防恶意JavaScript宿主的安全边界，也不等于
+已验证文件内容真实性。会额外复制并持有整个镜像，峰值至少包括源与副本，不替换
+大磁盘的现有按需读取路径，不声称所有镜像都适合整份复制。
+
+新增7项测试包括输入subarray/Buffer修改、目标修改与set覆盖、容量/offset/共享源
+拒绝、短读及close，并经过实际virtio packed队列检查读取、OUT拒绝及拒绝写后重读。
+本地TypeScript及68项相关Node检查通过。
+[轻量公开CI](https://github.com/HighCWu/distro/actions/runs/37473996168)已通过68项检查；
+仅安装kernel所需npm依赖并构建bytes辅助包，不下载或构建Linux、LLVM或Nix大源码。
+
+后续候选组合是“项目持有的私有镜像backing + EROFS只读文件系统”，但仍需建立可靠的
+设备身份与内核文件来源关联，覆盖跨Worker路由、设备生命周期、默认加载路径和真实
+文件读取。virtio RO位只表示不提供写操作，不能证明读取源不可变；EROFS类型或只读
+mount也不能单独代替backing证明。在这条链路接通前，不接纳任何普通文件mmap。
 
 ## 读取与发布的生命周期
 
