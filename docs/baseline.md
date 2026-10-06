@@ -213,6 +213,10 @@ raw initramfs的[wasm64完整mmap检查](https://github.com/HighCWu/distro/actio
 默认wasm64模式完成raw syscall、partial unmap、zero-fill、hint、固定空洞回填和
 并发争抢检查。未修改内核、libc或其错误校验；其余raw syscall调用尚需单独审计。
 
+同一commit的[wasm32复验](https://github.com/HighCWu/distro/actions/runs/37408425017)与
+[关闭搜索优化的wasm64复验](https://github.com/HighCWu/distro/actions/runs/37408421747)
+也通过，包括仓库格式检查。以上检查不包含性能采样，不据此声称性能收益。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
