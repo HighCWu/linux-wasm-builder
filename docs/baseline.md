@@ -176,6 +176,12 @@ zero-length请求的错误语义。
 `distro` commit `d2a32cd`上完成16轮8页交错拆分、zero-fill精确回填和整体释放，并让
 8个线程争抢同一保留空洞，确认恰好一个映射成功且其余请求全部返回`EEXIST`。
 
+[mmap ABI兼容与Memory64回归](https://github.com/HighCWu/distro/actions/runs/37395332661)在
+`distro` commit `264b6c8`上通过宿主kernel测试、Node启动及稳定版Chromium/Firefox
+Memory64检查。新增测试覆盖wasm32/wasm64的完整v2参数转发、length-only anonymous
+回退、固定请求在调用分配器前返回`ENOMEM`，以及缺失callback的`ENOSYS`。这些宿主
+兼容测试不替代用户态allocator压力测试，也不表示旧模块具备精确地址映射能力。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
