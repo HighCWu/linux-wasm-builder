@@ -182,6 +182,12 @@ Memory64检查。新增测试覆盖wasm32/wasm64的完整v2参数转发、length
 回退、固定请求在调用分配器前返回`ENOMEM`，以及缺失callback的`ENOSYS`。这些宿主
 兼容测试不替代用户态allocator压力测试，也不表示旧模块具备精确地址映射能力。
 
+[direct mmap性能基准](https://github.com/HighCWu/distro/actions/runs/37397972606)在
+`distro` commit `b0c8539`上通过定向运行及格式检查，输出45个wasm32样本，覆盖映射
+规模、交错空洞和线程并发。原始数据、采样方法、汇总及结果限制见
+[mmap-benchmark.md](mmap-benchmark.md)；本检查不设固定耗时门槛，也不构成浏览器或
+wasm64性能承诺。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
