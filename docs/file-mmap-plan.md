@@ -92,7 +92,8 @@ syscall宏已经转换参数类型；改写该调用没有修复问题，现已�
 
 本地TypeScript检查与八组新测试、八组既有mmap桥接测试均通过；
 [独立分支CI](https://github.com/HighCWu/distro/actions/runs/37436143890)首轮有四个job失败，
-日志均为同一源码下载HTTP 429及依赖构建失败，未进入对应运行检查；仅失败job已重跑。
+日志均为同一源码下载HTTP 429及依赖构建失败，未进入对应运行检查；仅失败job重跑后
+完整workflow已成功。原始失败仍保留，未通过跳过检查获得成功。
 内核staging及新的执行接口仍未实现，不把契约校验成功当作文件准入成功。
 
 ## Staging所有权原型
@@ -119,8 +120,37 @@ distro原型commit为`263500e8e15383671dd328ceb9af6a919b44168a`，尚未合入�
 
 主线的[Memory64合入后复验](https://github.com/HighCWu/distro/actions/runs/37435459409)
 已成功；[主线完整CI](https://github.com/HighCWu/distro/actions/runs/37435459432)的kcmp和
-runner检查也因同一源码下载HTTP 429失败，失败job已重跑，不能记录为完整矩阵已通过。
+runner检查也因同一源码下载HTTP 429失败；仅失败job重跑后完整workflow已成功。
 上述失败均不通过吞掉错误或跳过检查处理。
+
+## 实际allocator的初始化后发布路径
+
+独立分支`codex/mmap-initialized-backing`新增musl内部bring-up函数
+`__wasm_mmap_initialized`，不是稳定用户API或Wasm执行export；标准mmap、munmap和
+现有v2接口不变，也未增加host import或文件syscall准入。
+
+初始化请求直接分配全新backing，不走已登记页洞的复用路径。先清零请求区间，然后
+调用同步initializer；仅返回0才在原有allocator锁内登记mapping。initializer失败或
+最终加锁失败都释放临时mapping和backing；合法负errno原样返回，非法回调结果返回EIO。
+初始化过程中不持有mapping锁，不把一个已登记anonymous地址暴露给读取任务。
+initializer不得启动异步I/O或在失败后使用候选指针；文件读取必须此前已完成。
+
+这条实际分配器路径为后续copy/commit提供发布边界，但尚未连接kernel staging或VFS。
+新函数只由专门C测试引用，发行版默认链接flags不把它导出为Wasm执行ABI。
+取消、不可变文件准入、文件引用及host传输仍须独立接入，不能因initializer返回0就
+宣称Linux文件映射成立。首次路径不提供fixed覆盖或精确hint。
+
+同一C测试源码在两种指针宽度下运行，配置两个Linux/Wasm CPU。测试用原子barrier
+暂停initializer，再并发munmap候选范围、尝试fixed-noreplace以及分配邻接映射，验证
+候选尚未登记且不被其它分配覆盖；继续初始化后检查内容并部分解除。另循环注入失败、
+非法回调返回和后续成功提交。这里的暂停是测试barrier，不代表支持锁内异步文件读取。
+测试检查行为和回滚后的可用性，不声称测出了所有资源泄漏或clone竞态。
+
+- musl：`e4c2cca8d0327da47c3ff50b3164fd37c2fcdf1b`
+- distro：`e56f8a125cb9294b1d86ed2f6f4f6f4d45bb2a9c`
+- [wasm32初始化检查](https://github.com/HighCWu/distro/actions/runs/37447772557)和
+  [wasm64初始化检查](https://github.com/HighCWu/distro/actions/runs/37447779526)已启动，结果待确认。
+- 本地C语法、TypeScript和仓库元数据检查通过；没有本地构建LLVM或Linux。
 
 ## 读取与发布的生命周期
 
