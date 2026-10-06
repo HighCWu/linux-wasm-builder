@@ -208,9 +208,43 @@ distro commit `f5cb317217c6a6d4e923245a7b4eafdbbad62de6`更新musl pin/hash并�
 本地C语法检查通过，源码hash由[公开prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37451427689)
 计算成功，没有本地构建LLVM或Linux。
 [wasm32复制拒绝/回滚检查](https://github.com/HighCWu/distro/actions/runs/37451615569)和
-[wasm64复制拒绝/回滚检查](https://github.com/HighCWu/distro/actions/runs/37451620863)已启动，结果待确认。
+[wasm64复制拒绝/回滚检查](https://github.com/HighCWu/distro/actions/runs/37451620863)均已成功。
 后续需要内核拥有的受控staging检查，覆盖实际成功复制、尾部清零、copy失败及发布边界，
 再加入文件不可变性准入、VFS读取与文件引用生命周期，不能跳过这些条件开放文件映射。
+
+## 默认关闭的内核staging集成检查
+
+Linux commit `c8d1ed15ffa5067217f95cbaf1612a070ade6bb7`声明新复制import并新增
+`CONFIG_WASM_MMAP_COPY_TEST`，默认n，只在专门测试内核启用。该fixture使用架构私有
+syscall槽253，没有写入UAPI头，不承诺编号稳定，也不得供应用使用；默认内核仍返回
+ENOSYS。Linux内修改遵循Linux许可证，独立C测试和Nix集成保持MIT。
+
+fixture最多分配两个64KiB页的内核staging，对调用者指定的有效长度写入确定性模式，
+然后同步调用新复制桥接；无异步生产者、无用户提供的源地址、无VFS读取。只有同步调用
+返回后才释放staging，成功返回的用户backing由musl继续持有；长度超过上限先返回EINVAL。
+这是集成测试入口，不是新的文件映射实现。宿主trap仍可能阻止C清理，不把它归类为已
+验证的普通errno回滚，也没有加入异步取消或跨Worker资源移交。
+
+distro commit `0e09defc2bfa09ff8965694c6ba7b9d2f06be66d`新增两个位宽共用的检查：
+
+- `mmap-staging.c`经过真实syscall、内核缓冲、宿主桥接、musl初始化和映射登记，测试
+  零字节、单字节、跨页及整区间长度；逐字节检查内容与清零尾部，内核释放源后修改用户
+  backing并部分munmap，返回用户态后再确认copy授权已撤销。
+- `mmap-staging-legacy.c`故意不链接新export，确认内核正常持有/释放staging时宿主返回
+  ENOSYS，而不是偷偷回退anonymous分配。它和成功路径合为一个heavy check，复用同一个
+  专用测试内核，避免在不同公开job重复构建。
+- 既有`mmap-copy.c`另加入默认内核不得启用测试槽的检查；新版该检查尚待独立复验。
+
+专用内核通过Nix局部override启用测试选项，默认linux/kernel包与默认defconfig不启用；
+默认SDK链接flags仍不导出新wrapper。模型和上述测试不能代替不可变文件准入、EOF边界、
+实际读取失败及短读处理、信号与clone并发检查。文件mmap继续明确拒绝。
+
+本地C语法、TypeScript及13组复制桥接检查通过；Linux源码hash由
+[公开prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37455898107)计算成功。
+[wasm32内核staging集成](https://github.com/HighCWu/distro/actions/runs/37456155367)及
+[wasm64内核staging集成](https://github.com/HighCWu/distro/actions/runs/37456161792)已启动，结果待确认。
+没有本地构建LLVM或Linux，尚未合入主线。下一步先确认这条实际复制/发布链路，再处理
+可证明不可变的文件子集与有界VFS读取，保持现有文件mmap拒绝契约直到准入条件满足。
 
 ## 读取与发布的生命周期
 
