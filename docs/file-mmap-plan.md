@@ -91,8 +91,36 @@ syscall宏已经转换参数类型；改写该调用没有修复问题，现已�
 契约交叉验证。正式新执行接口只传canonical i64字节offset，不能在宿主再次乘4096。
 
 本地TypeScript检查与八组新测试、八组既有mmap桥接测试均通过；
-[独立分支CI](https://github.com/HighCWu/distro/actions/runs/37436143890)已启动，结果待确认。
+[独立分支CI](https://github.com/HighCWu/distro/actions/runs/37436143890)首轮有四个job失败，
+日志均为同一源码下载HTTP 429及依赖构建失败，未进入对应运行检查；仅失败job已重跑。
 内核staging及新的执行接口仍未实现，不把契约校验成功当作文件准入成功。
+
+## Staging所有权原型
+
+独立分支`codex/mmap-file-staging`增加MIT的`FileMmapStaging<T>`内部原型和八组测试。
+它持有调用者提供的缓冲及回收函数；不实现内核缓冲分配、VFS读取、线程唤醒或跨Worker锁。
+每个请求有自己的记录，不能靠可能复用的tid找到旧请求。尚未接入任何文件mmap路径。
+
+- reading不能取得提交租约。complete_read表示生产者已经停止写入，不能仅因调用者
+  不再等待就调用它。读取成功进入ready，读取失败进入aborted并保留错误。
+- 取消reading立即关闭提交资格，但保留缓冲，直到生产者确认停止写入才回收。
+  生产者若无法终止或确认，必须由集成层提供有界取消、隔离及资源预算；原型不伪造确认。
+- ready只能取得一次拷贝租约。拷贝的目标必须是未发布candidate；拷贝中取消不会
+  提前回收源缓冲。租约结束后才回收，且此时finish(true)仍返回false，candidate必须丢弃。
+- finish只接受一次终态。成功授权所有权移交，失败不可重试成成功；重复完成、取消和
+  回收通知不能重复释放缓冲。回收回调要求同步且不抛异常。
+- finish成功不等于已发布映射。集成层仍必须在同一同步allocator临界区内完成最终
+  校验、finish和发布，不能在成功授权与发布之间加入异步等待。租约必须在finally中结束。
+
+本地TypeScript检查及24组相关测试通过（offset 8、staging 8、既有mmap桥接8）。
+[轻量公开CI](https://github.com/HighCWu/distro/actions/runs/37446439154)在Node 24同样通过
+全部24组，不下载Linux/LLVM源码；该工作流不替代完整构建、TypeScript或浏览器回归。
+distro原型commit为`263500e8e15383671dd328ceb9af6a919b44168a`，尚未合入主线。
+
+主线的[Memory64合入后复验](https://github.com/HighCWu/distro/actions/runs/37435459409)
+已成功；[主线完整CI](https://github.com/HighCWu/distro/actions/runs/37435459432)的kcmp和
+runner检查也因同一源码下载HTTP 429失败，失败job已重跑，不能记录为完整矩阵已通过。
+上述失败均不通过吞掉错误或跳过检查处理。
 
 ## 读取与发布的生命周期
 
