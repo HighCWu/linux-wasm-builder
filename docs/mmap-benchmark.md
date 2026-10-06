@@ -173,3 +173,41 @@ Linux/Wasm CPU、测试程序`-O2`。下表延迟仍是三次批量平均值的�
 开关两边是不同公开runner上的各一轮采样，尚无独立重复run或统计置信区间，JIT、
 调度和runner负载仍是混杂因素。下一步重复独立对照、检查小规模额外开销，并扩展
 wasm64性能采样；wasm64启动检查不等于wasm64性能基准。
+
+## 同runner配对复测
+
+`distro`的`Paired mmap benchmark`是仅手动触发的有界工作流。它为wasm32和wasm64
+各使用一个公开runner，不并行运行这两个profile。两种profile都复用现有
+`basic-init/tests/mmap.c`与`mmap-benchmark.c`，使用`-O2`与对应宽度的工具链，分别链接
+默认musl和关闭`WASM_MMAP_DEDUP_SEARCH`的musl。它不新增内核或编译器变更。
+
+为避免依赖尚未齐备的wasm64安装包集合，程序作为raw initramfs中的`/init`运行。
+这与此前安装式wasm32检查的rootfs布局不同，必须单独标注，不能把新旧样本拼接成
+同一组统计数据。wasm32也采用相同raw initramfs路径，以减少两种宽度之间的测试差异。
+
+```sh
+gh workflow run mmap-benchmark.yml --repo HighCWu/distro --ref main
+gh run download RUN_ID --repo HighCWu/distro \
+  --name mmap-paired-wasm64 --dir ARTIFACT_DIRECTORY
+python3 scripts/compare_mmap_benchmarks.py ARTIFACT_DIRECTORY
+```
+
+工作流先在两种模式下分别重新启动并执行完整mmap正确性检查，然后执行三轮配对：
+`off/on`、`on/off`、`off/on`。每次都直接启动新的Node进程与Linux/Wasm实例，而不是
+读取缓存的Nix benchmark check输出；源码和二进制构建可以复用缓存。每次启动仍
+包含原有预热与每组三个样本，单profile共270条测量记录。模式顺序交替只能减轻
+时间顺序偏差，并非完全随机化。
+
+artifact保存两种正确性日志、六份benchmark日志/CSV、源码revision、Nix产物路径、
+源码pins、Node版本和runner CPU信息，保留七天。CSV生成前检查pointer宽度、64 KiB
+页、完整15组/45样本矩阵、操作数量、唯一sample与明确成功标记；失败记录不会作为
+成功采样归档。工作流每个profile限时60分钟，每次启动限时300秒，不自动触发重型采样。
+
+比较脚本先验证六份CSV的完整性和相同操作数量。每次启动先取三个批量平均延迟的
+中位数，再分别列出三次启动中位数的中位数，以及每轮`off/on`延迟比值的中位数和
+最小–最大值。比值大于1表示该轮开启优化较快，小于1表示较慢；这里的范围不是
+置信区间，也不是单次操作延迟分布。
+
+同一个runner上的三次新启动是进程级复测，不能替代多个独立workflow run的复现。
+wasm32和wasm64分属不同runner，也不能据此把两者差异完全归因于指针宽度。
+后续仍需跨run重复，并在比较报告中保留小规模退化和波动结果。

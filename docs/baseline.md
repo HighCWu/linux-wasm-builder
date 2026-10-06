@@ -200,6 +200,12 @@ wasm64性能承诺。
 产物构建、Node及稳定版Chromium/Firefox启动测试。这验证的是现有Memory64 smoke与
 启动边界，不是关闭优化的wasm64差异性能测试，也不覆盖尚未实现的映射能力。
 
+合入主线后的[完整CI](https://github.com/HighCWu/distro/actions/runs/37402635439)完成120个
+成功job（两个发布相关job按条件跳过），同一revision的
+[wasm64回归](https://github.com/HighCWu/distro/actions/runs/37402635510)也通过。
+集成仓库[构建基线](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37402639018)
+通过。这些结果确认搜索去重版本的主线构建与回归，不替代配对采样的性能结论。
+
 [futex_waitv完整验证](https://github.com/HighCWu/distro/actions/runs/36289066632)在同一
 `distro` commit上通过全部116个job。`basic-init-check-futex`覆盖private/shared waiter的
 值不匹配和绝对超时语义；恢复的`kselftests-check-futex`通过
