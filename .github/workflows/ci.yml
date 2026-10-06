@@ -25,3 +25,5 @@ jobs:
         run: git submodule update --init --depth 1 sources/distro
       - name: Check documentation and source pins
         run: python3 scripts/check_repository.py
+      - name: Check paired benchmark summaries
+        run: python3 -B scripts/test_compare_mmap_benchmarks.py
