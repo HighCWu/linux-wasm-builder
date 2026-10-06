@@ -109,6 +109,22 @@ live mapping解除后释放整个malloc backing，不形成永久地址保留。
 透明dirty tracking不是开放`MAP_PRIVATE`的前提，但这些较弱实现边界必须进入能力文档
 和回归测试。
 
+接入前需单独验证两项当前anonymous测试无法证明的边界：
+
+- offset单位：wasm32 musl通过`SYS_mmap2`传入以4096字节为单位的offset，wasm64
+  `SYS_mmap`传入字节offset。当前arch wrapper直接拒绝非零末参数，v2只验证过offset=0；
+  参数名`pgoff`不能作为已完成单位转换的证据。文件路径必须明确归一化的位置、文件
+  offset的宽度和溢出处理，区分4096字节syscall单位与当前64 KiB映射页。测试应包含
+  同一非零文件offset的libc/raw路径、非页对齐拒绝与可表示范围边界。
+- 读取中backing保活：不能直接把已登记的anonymous地址交给异步读取，再假定其它
+  线程不会解除该区间。需要可测试的reserve/pin、commit/abort生命周期，读取期间
+  不得释放或复用backing；完成时重新校验预留状态，失败时释放预留与文件引用。
+  并发解除、进程退出、信号中断和I/O失败均须有有界终止检查，不能仅以“尚未向
+  mmap调用者返回地址”代替内存保活证明。
+
+以上是未来文件映射的准入要求，不是已经实现的新能力；不改变当前v2 anonymous
+ABI或开放文件请求。实际实现仍需按标准Linux UAPI和版本化执行ABI独立审阅。
+
 ## 5. 不能伪造的语义
 
 Wasm linear memory当前不能为单个页提供Linux式fault和访问权限。实现不得把以下操作
