@@ -777,8 +777,33 @@ fatal exit已经验证。计数不覆盖一般page cache或真实file对象，�
 本地C语法（Wall/Wextra/Werror）、镜像构造边界检查、Nix格式、4项runner协议、
 2项benchmark解析和仓库元数据检查通过。定向CI
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37577887108)及
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37577891344)已触发，尚待实际
-挂载和读取结果。正式文件mmap仍不开放。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37577891344)已触发；wasm32
+已通过，wasm64仍在运行。正式文件mmap仍不开放。
+
+## 真实EROFS有效前缀后读取失败
+
+distro提交`5ccdb9f4f6de485b42dc0b88903fdc8df7ecc065`扩展同一MIT错误镜像与
+C用例：增加大小128KiB的`partial`文件，第一64KiB页对应有效模式数据，第二页
+指向设备容量之外。目录仍按名称排序且不覆盖inode；新增两项Python测试检查
+目录、superblock声明容量、各文件大小/起始地址及完整健康数据，生成镜像时先
+执行这些检查。生成器仍是固定测试fixture，不是通用EROFS实现。
+
+初始化副本实验之前，普通pread请求两页必须只返回一页有效前缀，第二页用户
+buffer保持预置值；从第二页单独pread必须返回EIO，文件位置仍为23。
+这既检查真实Linux短读行为，也让有效第一页进入该文件page cache。随后8轮
+初始化请求覆盖两页，必须返回EIO而不是发布部分内容或把缺失数据补零；继续
+核验请求/staging回零、copy授权失效、原fd位置不变及anonymous sentinel
+完整，再对健康文件完成独立读取和munmap。
+
+普通pread的进度是可观察证据，但没有新增接口计数每次kernel_read的返回值或
+直接读取内核staging内容；不把该对照描述为全程内核进度追踪。该用例仍不覆盖
+读取中的信号、fatal exit或异步生产者取消；资源计数不证明用户allocator或
+全部page cache零泄漏。Linux、musl、正式UAPI、CONFIG_MMU及mmap准入均不变。
+
+本地C语法（Wall/Wextra/Werror）、两项错误镜像单元测试、Nix格式、4项runner
+协议、2项benchmark解析及仓库元数据检查通过。基于5ccdb9f的定向启动CI
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37578997779)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37579001565)已触发，尚待结果。
 
 ## 读取与发布的生命周期
 
