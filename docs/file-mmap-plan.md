@@ -388,15 +388,52 @@ Linux源码pin的解包hash为`sha256-AcBT3gCq7OPH/LeR5RsvYzGVHiEIiWHR3oSv5k+pgy
 [公开预取检查](https://github.com/HighCWu/distro/actions/runs/37478312511)通过。
 本轮实际启动检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37478732014)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37478742787)仍在执行，基于f970d81；
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37478742787)均已通过，基于f970d81；
 配置合并加固的
 [轻量CI](https://github.com/HighCWu/distro/actions/runs/37479331449)已通过72项检查。
-这些运行未完成前，不宣称32/64位内核来源关联已经通过启动验证。
+它们验证了两种位宽下的实际挂载、来源查询、文件内容读取、关闭和卸载；配置合并
+加固由后续轻量CI验证。来源查询通过仍不等于普通文件mmap已经实现。
 
-下一步是在这条已验证的来源链上，把真实EROFS文件的有界kernel_read接入既有staging
+随后是在这条已验证的来源链上，把真实EROFS文件的有界kernel_read接入既有staging
 和初始化allocator测试桥，检查非零offset、末页清零、拒绝未认证文件及失败回滚。
 仍先走测试开关，不直接开放标准文件mmap；文件类型、访问权限、范围、生命周期与
 并发行为必须分别验证，来源查询成功本身不是映射许可证。
+
+## 真实EROFS文件的有界初始化副本（实验）
+
+Linux commit `2ee52fc40fe2f99d33f3cf1b4ff1b5601fe75f8b`扩展测试开关下的私有
+syscall 255：除原有受控anon-inode fixture外，接受上述来源校验通过的EROFS普通
+文件。查询来源的syscall 256不变，默认生产内核仍关闭测试接口；标准mmap仍拒绝
+所有文件请求。本轮没有新增公开UAPI、内核softmmu或执行ABI版本。
+
+持有fget引用后验证文件类型、来源和FMODE_READ，用i_size_read确定不可变长度。
+请求上限仍为两个64KiB页，offset必须页对齐且落在有符号64位范围。通过比较最后
+请求页的起点与剩余文件长度，拒绝任何整页超出EOF，并避免向上取整大文件长度时
+溢出；仅EOF末页缺失部分允许补零。不支持空文件、目录、O_PATH描述符或普通只读
+磁盘上的文件。使用独立loff_t循环kernel_read，不改变file->f_pos；异常短读及负
+错误保持原有失败清理路径。全部读取完成后才调用同步初始化桥，发布副本后释放
+staging和文件引用。
+
+MIT测试`mmap-erofs.c`使用同内容的认证快照设备和普通只读设备，检查来源拒绝、
+目录/O_PATH/空文件、无效fd、长度及32/64位offset边界，且确认标准文件mmap仍
+返回EINVAL。真实pattern文件长两个64KiB页加7字节，验证从非零offset读取、所有
+数据字节及末页零尾。修改一个副本后重新映射和pread均应读到原数据；关闭及复用fd、
+关闭所有源文件并卸载文件系统后，已发布副本仍须完整可读，最后正常munmap。
+
+本轮测试证明目标是同步读取后的副本独立性，不声称验证了读取途中close、信号、
+退出、设备故障或clone竞态。既有受控VFS fixture的短读、EIO、注入EINTR与恢复
+检查继续保留；真实EROFS异步故障与生命周期验证仍是后续工作。私有fixture的
+split-u32 offset传参不是正式文件映射ABI；完整准入之前不能把这一入口作为SDK能力。
+
+distro测试commit为`86dd83e`，Linux pin更新为`337f46d`；源码hash是
+`sha256-UgQIyrPVX5I8M5wybxXud/nZ5yaBH6sgQYQWETkqB0w=`，
+[公开预取CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37556045905)通过。
+本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、72项相关Node检查和4项
+runner协议检查通过，仓库元数据检查通过；没有在本地构建Linux或LLVM。
+基于337f46d的实际初始化副本检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37556226657)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37556232380)已触发，尚待结果。
+在它们通过前，不能宣称真实EROFS文件已成功经过完整初始化映射链路。
 
 ## 读取与发布的生命周期
 
