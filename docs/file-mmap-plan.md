@@ -741,7 +741,18 @@ callback私有副本、普通退出、发布后SIGKILL、并发副本以及fd关
 [Chromium](https://github.com/HighCWu/distro/actions/runs/37573629837)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/37573633523)，wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/37573637505)、
-[Firefox](https://github.com/HighCWu/distro/actions/runs/37573640998)。实际结果尚待验证。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37573640998)。四项均在浏览器
+运行前被treefmt格式检查拒绝：新增的两个JS文件需要oxfmt格式化；这不是C用例
+或浏览器EROFS运行失败，不能据此判断运行语义。
+
+distro修复提交`b3224d7b47459cca7412c37ea0196d5142dedb17`使用与CI一致的
+oxfmt 0.59.0格式化两个文件，未修改测试逻辑。本地oxfmt check、JS语法、4项
+runner协议和仓库元数据检查通过。重跑四项定向CI：wasm32
+[Chromium](https://github.com/HighCWu/distro/actions/runs/37575445797)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37575449397)，wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/37575454609)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37575458529)，仍待实际结果。
+后续新增JS应同时执行仓库格式检查和语法检查；语法通过不代表CI格式准入通过。
 
 ## 读取与发布的生命周期
 
