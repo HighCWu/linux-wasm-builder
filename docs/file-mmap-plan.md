@@ -671,7 +671,7 @@ close、信号、卸载或fatal exit的确定性竞态证明。测试不在工�
 本地C语法（Wall/Wextra/Werror）、Nix格式、4项runner协议、2项benchmark
 解析及仓库元数据检查通过。基于4d34c29的定向CI
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37567486253)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37567490270)仍在运行，尚待结果。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37567490270)均已通过。
 
 ## 真实EROFS已发布副本的进程生命周期
 
@@ -696,9 +696,27 @@ SIGKILL发生在读取已经完成、映射已经发布之后；不证明真实E
 本地C语法（Wall/Wextra/Werror）、4项runner协议、2项benchmark解析及仓库
 元数据检查通过。基于33c14b9的定向CI
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37568171138)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37568176032)已启动，尚待结果。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37568176032)均已通过，包含
+私有副本继承、正常退出、已发布副本后的SIGKILL、父进程恢复及并发读取验证。
 标准文件mmap仍不开放。后续真实读取错误/读取中退出需要能观察并约束真实生产者
 完成的确定性注入，不能用已发布副本退出或受控anon-inode等待替代。
+
+## 浏览器基线回归与尚未覆盖的范围
+
+在上述Node启动检查通过后，基于同一distro源码33c14b9触发已有浏览器检查：
+wasm32 [Chromium](https://github.com/HighCWu/distro/actions/runs/37570352882)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37570356647)，memory64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/37570360583)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37570363960)。四项尚待结果。
+这些使用默认内核而非mmapCopyTest内核；当前memory64浏览器用例只检查Linux
+启动banner，wasm32套件覆盖程序启动、Worker调度及现有存储等路径。浏览器版本
+由nixpkgs/Playwright pin确定，不使用实验开关，也不等同于每家厂商最新发布版。
+
+本轮未将EROFS初始化副本C程序接入浏览器，不能把基线通过计作EROFS、信号或
+fatal teardown的浏览器证明。后续应提供独立实验suite：使用对应位宽的测试
+内核、同一C程序的raw initramfs、快照磁盘及普通只读磁盘，实际等待测试pass/fail
+marker并记录浏览器版本，保留超时和关闭清理。不复用只看banner的成功条件，
+也不让生产浏览器suite默认开启测试内核。相关覆盖范围已同步到distro浏览器README。
 
 ## 读取与发布的生命周期
 
