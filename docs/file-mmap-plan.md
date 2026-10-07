@@ -473,6 +473,34 @@ distro测试commits为`c31b007`和`f1f30c7`，Linux pin更新为`1f4eac3`；hash
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37557814338)已触发，尚待结果；
 本地语法检查不代替实际Wasm pthread、内核completion和调度路径验证。
 
+## 真实信号打断读取等待（受控fixture）
+
+distro commit `2acc58697b497066f50cde4b8eb4f7e1bdd4f108`加入MIT测试
+`mmap-vfs-signal.c`，复用已有mode 4/5的completion，不改Linux pin或增加内核
+接口。主程序安装不带SA_RESTART的处理器，工作线程显式解除SIGUSR1屏蔽；主线程等到
+kernel_read进入barrier后用pthread_kill向该读取线程发送SIGUSR1，并在不放行
+barrier的情况下join。请求必须返回-1/EINTR，处理器须在读取线程恰好执行一次，
+控制线程不能收到该信号。这与mode 3直接返回EINTR的错误注入是不同检查。
+
+两个位置各重复8轮：首次复制前，以及已复制7字节后等待下一次读取。检查独立
+file position不变、中断后初始化copy授权为EPERM、已有anonymous sentinel
+逐字节保持完整。join确认读取已结束后，晚到及重复的PROCEED只改变fixture的
+completion，不得复活旧请求；mode 4可对原文件重新映射，所有轮次还要用新健康
+文件验证后续映射和munmap。handler只修改线程本地volatile sig_atomic_t，不做
+分配或映射。这里没有外部异步I/O生产者，不能把控制completion等同于任意宿主
+晚到完成消息的安全性证明。
+
+组合检查依赖信号、原有fd复用并发及mode 0–3 VFS回归三个独立启动结果，继续
+使用两种位宽和300秒runner watchdog。该测试只约束无SA_RESTART的受控等待；
+真实EROFS块I/O可否中断、SA_RESTART重试、进程退出和clone仍须各自验证。
+普通文件mmap准入、生产配置和执行ABI均未改变。
+
+本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议检查和
+benchmark解析测试通过，仓库元数据检查通过。基于2acc586的组合启动检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37558507392)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37558510807)已触发，尚待结果。
+上一轮并发组合检查也尚未完成；不以本地语法或已验证的注入EINTR代替真实信号结果。
+
 ## 读取与发布的生命周期
 
 首选“任务独占staging，读取完成后选址并同步提交”，而不是把已经登记的anonymous
