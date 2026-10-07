@@ -751,8 +751,34 @@ runner协议和仓库元数据检查通过。重跑四项定向CI：wasm32
 [Chromium](https://github.com/HighCWu/distro/actions/runs/37575445797)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/37575449397)，wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/37575454609)、
-[Firefox](https://github.com/HighCWu/distro/actions/runs/37575458529)，仍待实际结果。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37575458529)，四项均已通过，
+覆盖实际浏览器C测试结果及机器关闭，不再只是默认内核banner检查。
 后续新增JS应同时执行仓库格式检查和语法检查；语法通过不代表CI格式准入通过。
+
+## 真实EROFS越界数据读取的回滚检查
+
+distro实现提交`4fd39ef191e54cd511dd3002fc435d2c5bdb9589`新增MIT镜像生成器
+和`mmap-erofs-errors.c`。生成器仅构造固定的128KiB EROFS测试镜像：4KiB块、
+compact inode、inline目录，无压缩/xattr/checksum/48位特性。目录和两个普通
+文件的元数据在有效范围内，`good`包含完整64KiB模式数据，`bad`大小也为64KiB，
+但起始数据块正好指向设备容量之外。这是刻意损坏的测试输入，不是通用镜像工具。
+
+用已有快照工厂挂载该镜像，先要求挂载、open、fstat及快照来源识别成功，再通过
+已有私有读取入口重复8轮：`bad`必须返回EIO，请求/staging存量归零，同步copy
+授权为EPERM，源文件位置保持23，存活anonymous sentinel不变；每轮之后读取
+`good`须获得完整正确副本并正常munmap。另用普通pread确认坏文件自身也返回
+EIO，避免把错误归因于初始化副本桥接。最后关闭fd、卸载并核验资源基线。
+
+本轮没有修改内核、musl、宿主生产实现或增加私有syscall；独立代码与文档按MIT
+发布。越界读取失败不代表部分成功读取后的错误、异步生产者取消、信号或读取中
+fatal exit已经验证。计数不覆盖一般page cache或真实file对象，不能称为系统
+零泄漏证明。错误fixture目前只接Node，不计作浏览器失败路径覆盖。
+
+本地C语法（Wall/Wextra/Werror）、镜像构造边界检查、Nix格式、4项runner协议、
+2项benchmark解析和仓库元数据检查通过。定向CI
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37577887108)及
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37577891344)已触发，尚待实际
+挂载和读取结果。正式文件mmap仍不开放。
 
 ## 读取与发布的生命周期
 
