@@ -813,9 +813,10 @@ buffer保持预置值；从第二页单独pread必须返回EIO，文件位置仍
 源码对照发现musl的`arch/wasm32/kstat.h`使用公开`nlink_t`和`blksize_t`作为
 原始内核字段类型；wasm64中它们随long变为64位，但Linux asm-generic原始
 stat/stat64中`st_nlink`为unsigned int、`st_blksize`为int，均固定32位。
-链接数字段扩宽导致后续uid/gid、rdev、size等偏移错误，块大小扩宽也使blocks
-及时间字段错位。wasm32时间64位路径此前使用statx转换，不代表wasm64原始
-kstat路径也正确。
+链接数字段扩宽会使原始解码的后续uid/gid、rdev、size等偏移错误，块大小扩宽也
+会使blocks及时间字段错位。后续分离诊断确认当时fstat实际先返回ENOSYS，因此
+这是独立发现且需要修正的潜在布局错误，不能把初始失败归结为已经观察到错位
+返回值。wasm32时间64位路径此前使用statx转换，不代表wasm64原始kstat路径也正确。
 
 musl修复提交`1a4641256199a515f580375b94cbf5e960337243`仅将两项原始字段
 改为固定宽度，保留公开struct stat及musl generic fstatat转换代码；不修改
@@ -831,8 +832,9 @@ syscall失败与内容不匹配分开报告；没有降低原有文件大小断�
 计算并通过。本地双位宽布局检查、C语法及仓库元数据检查通过；修复后的EROFS
 错误回滚双位宽启动CI
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37581539929)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37581544316)已重新触发，实际
-结果仍待确认。正式文件mmap的准入和已公布direct内存边界没有变化。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37581544316)已完成：wasm32
+通过，wasm64的明确诊断为`fstat bad file: Function not implemented`，即ENOSYS。
+布局修复不能补齐缺失的内核入口。正式文件mmap准入和direct内存边界没有变化。
 
 ## 浏览器真实读取错误与有效前缀回滚
 
@@ -853,9 +855,39 @@ raw initramfs和对应磁盘；每项Chromium/Firefox检查独立启动两次机
 [Chromium](https://github.com/HighCWu/distro/actions/runs/37582494663)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/37582499610)，wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/37582504071)、
-[Firefox](https://github.com/HighCWu/distro/actions/runs/37582508917)，均已触发，尚待
-实际结果。根仓库的[轻量布局CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37581663567)
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37582508917)，均已完成：wasm32
+两项通过，wasm64两项在errors场景的fstat返回ENOSYS，尚未进入错误读取验证。
+根仓库的[轻量布局CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37581663567)
 已通过，但不能代替上述启动验证。
+
+## wasm64原生stat入口与libc命名对齐
+
+分离fstat错误诊断后，Node与Firefox均报告ENOSYS。Linux Wasm UAPI头文件仅
+在32位定义`__ARCH_WANT_STAT64`，64位没有定义`__ARCH_WANT_NEW_STAT`，因此
+asm-generic没有注册79/80的原生stat入口；musl却在两个profile都声明了stat64
+别名，64位绕过statx转换后调用未实现的入口。初始复合元数据断言同时检查返回值
+和内容，掩盖了这个缺口；布局修正必须与入口对齐分开说明。
+
+Linux提交`adb58871d5f7b80f89dcf548b5a914b1ff9898d2`为64位启用已有原生
+stat实现，32位保持stat64配置。musl提交
+`995e96bacf04d585ef26bf120644bf4f46b72f60`按long宽度选择32位fstat64/fstatat64
+或64位fstat/newfstatat名称，编号仍为80/79。保留此前kstat字段修正及generic
+libc转换，不修改公开struct stat，不以跳过元数据断言或强制statx规避缺口。
+必要Linux修改遵循内核许可证，musl和独立测试保持MIT；CONFIG_MMU=n不变。
+
+distro pin提交`5e8383056d469bde285266cc81d9be45abae871e`对齐上述源码。
+Linux hash为`sha256-4SGRMbV2ejB/M9gXoXCkotE1JpiaFqVFb0k3OsWma7A=`，musl hash为
+`sha256-0X3VNLLVfq1LCUSQJ8ozN52d5vAYl6dKb5kWPoJNX/4=`；分别由公开预取
+[Linux](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37586452950)与
+[musl](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37586458018)计算并通过。
+轻量检查现同时核验两种long宽度的原始布局和syscall名称/编号，本地检查及仓库
+元数据校验通过。错误回滚断言不放宽，文件mmap仍不开放。
+
+重跑Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37586666191)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37586670752)，以及wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/37586676558)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37586682982)，尚待结果。
+wasm32浏览器的扩展两场景已有上一轮通过记录，不计作这次新pin的重跑。
 
 ## 读取与发布的生命周期
 
