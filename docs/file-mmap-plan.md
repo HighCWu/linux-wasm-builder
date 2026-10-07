@@ -707,16 +707,41 @@ SIGKILL发生在读取已经完成、映射已经发布之后；不证明真实E
 wasm32 [Chromium](https://github.com/HighCWu/distro/actions/runs/37570352882)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/37570356647)，memory64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/37570360583)、
-[Firefox](https://github.com/HighCWu/distro/actions/runs/37570363960)。四项尚待结果。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37570363960)。四项均已通过。
 这些使用默认内核而非mmapCopyTest内核；当前memory64浏览器用例只检查Linux
 启动banner，wasm32套件覆盖程序启动、Worker调度及现有存储等路径。浏览器版本
 由nixpkgs/Playwright pin确定，不使用实验开关，也不等同于每家厂商最新发布版。
 
-本轮未将EROFS初始化副本C程序接入浏览器，不能把基线通过计作EROFS、信号或
-fatal teardown的浏览器证明。后续应提供独立实验suite：使用对应位宽的测试
+上述基线未将EROFS初始化副本C程序接入浏览器，不能把基线通过计作EROFS、信号或
+fatal teardown的浏览器证明。独立实验suite应使用对应位宽的测试
 内核、同一C程序的raw initramfs、快照磁盘及普通只读磁盘，实际等待测试pass/fail
 marker并记录浏览器版本，保留超时和关闭清理。不复用只看banner的成功条件，
 也不让生产浏览器suite默认开启测试内核。相关覆盖范围已同步到distro浏览器README。
+
+## 独立EROFS浏览器实验套件
+
+distro实现提交`dd1ae1be188d7a768000cad296be15cb33ad6053`及README提交
+`b43ebbe`加入独立MIT浏览器实验套件。`mmap-benchmark`两种位宽均导出同一
+EROFS C程序的raw initramfs及磁盘资产；浏览器suite分别构建相应位宽且开启
+`mmapCopyTest`的内核包，不修改已有默认内核suite。
+
+Chromium/Firefox各启动4个CPU，使用console和entropy设备、工厂生成的真实快照
+磁盘以及不带快照身份的普通只读磁盘。复用Node的逐行解码和pass/fail解析，实际
+等待完整C用例结束；仅出现Linux banner不能通过。覆盖内容、零尾、准入拒绝、
+callback私有副本、普通退出、发布后SIGKILL、并发副本以及fd关闭/复用和卸载后
+的副本存活。浏览器测试记录引擎版本并断言crossOriginIsolated，不加实验开关。
+
+执行watchdog为240秒，Playwright用例上限300秒；成功或失败均关闭机器，关闭
+另有10秒上限。若启动在执行超时后才返回，立即关闭返回的机器，避免迟到Worker
+继续运行。测试通过必须同时得到C程序pass结果并完成机器关闭，不吞掉关闭失败。
+本轮不证明真实设备读取中的取消安全，也不开放标准文件mmap或正式SDK能力。
+
+本地JS语法、Nix格式、4项runner协议及仓库元数据检查通过。基于dd1ae1b的
+独立定向CI已启动：wasm32
+[Chromium](https://github.com/HighCWu/distro/actions/runs/37573629837)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37573633523)，wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/37573637505)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37573640998)。实际结果尚待验证。
 
 ## 读取与发布的生命周期
 
