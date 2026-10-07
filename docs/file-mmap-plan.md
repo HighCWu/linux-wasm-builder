@@ -582,8 +582,33 @@ mode 4原文件重新初始化副本，mode 5原文件仍保持EIO，健康新�
 本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
 benchmark解析测试通过。基于78f50da的定向启动检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37562047822)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37562052198)已触发，尚待结果。
-clone用例的双位宽通过结果不能代替这项fatal exit验证。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37562052198)均已通过，覆盖两个
+barrier位置的SIGKILL退出状态、未返回用户回调、原文件及存活allocator的恢复。
+
+## 关闭最后外部fd后终止在途读取（受控fixture）
+
+distro commit `7846dbdfd60ece982f580dfbd4e39ba909b8af32`加入MIT测试
+`mmap-vfs-last-fd.c`，继续复用同一Linux pin及mode 4/5。callback子进程使用
+CLONE_VM | CLONE_FILES | SIGCHLD：共享内存和fd table，但属于独立线程组。
+进入kernel_read barrier后，父进程关闭唯一源fd，因共享table同时从两个进程
+移除该描述符；没有dup或保留控制fd，旧读取依赖已取得的file引用保持源存活。
+
+创建健康新fixture必须复用旧fd号码，其PROCEED必须返回ENOTTY，不能控制旧
+barrier。在旧读取仍等待时先初始化新文件的副本，随后SIGKILL旧读取进程并reap。
+要求旧请求不返回用户回调，新文件位置保持31、已发布副本及anonymous sentinel
+完整，新文件还能再次初始化独立副本并正常munmap/close。两个等待位置各8轮，
+每条旧请求保留独立atomic返回标记并在最后统一检查。
+
+这里旧源已无外部fd，但没有测试按需重新获取这个源的能力，也没有给旧barrier
+添加全局查找或绕过身份的放行接口。与保留控制fd的上一项退出测试分别保留。
+该用例观察最后fd关闭、数字复用和fatal exit组合下的请求身份及存活资源行为；
+不直接计数fput、file release或staging分配，不宣称零泄漏，也不替代真实EROFS
+异步I/O生产者的退出审计。没有修改内核、生产配置、正式UAPI或文件mmap准入。
+
+本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
+benchmark解析测试通过，仓库元数据检查通过。基于7846dbd的定向启动检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37563999751)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37564003514)已触发，尚待结果。
 
 ## 读取与发布的生命周期
 
