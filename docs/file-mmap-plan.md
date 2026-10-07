@@ -645,7 +645,33 @@ fatal exit、最后外部fd关闭，以及默认配置下测试入口不可用�
 本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
 2项benchmark解析测试通过，仓库元数据检查通过。定向检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37566006911)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37566020728)已触发，尚待结果。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37566020728)均已通过，包含
+五项启动检查及其资源基线断言。
+
+## 真实EROFS快照的并发副本与回收
+
+distro commit `4d34c299f2d9c8e0cc54e7662b098c7264ee632c`扩展已有MIT
+`mmap-erofs.c`，继续复用同一测试内核、私有读取入口及两个EROFS磁盘。
+所有已有准入拒绝检查返回后，请求和staging须归零；成功初始化副本之后同样
+验证基线，不能因映射仍存活而继续持有内核staging。
+
+新增4个pthread，各8轮，从同一已打开快照fd读取非零offset的两页副本。
+每轮barrier先同步发起，再等待全部副本发布和内容核验；各线程写入不同首字节，
+重新检查自己的字节、其余源内容及末页零尾，全部检查结束后才能munmap。
+线程join后验证请求/staging归零、共同file position仍为23、pread源首字节
+未改变，原有三份长生命周期副本仍保持完整。随后沿用关闭源fd、复用fd、卸载
+源文件系统后的副本存活验证。启动检查配置4个CPU，并保留runner watchdog。
+
+用户态barrier不保证真实kernel_read或设备I/O必然重叠，所以这不是读取中
+close、信号、卸载或fatal exit的确定性竞态证明。测试不在工作线程尚活跃时
+要求全局计数为零；真实EROFS文件对象不在受控anon-inode文件计数范围内，
+不能据文件计数为零声称已经检查全部真实file引用回收。
+本轮不修改Linux、musl、正式ABI、文件mmap准入或CONFIG_MMU策略。
+
+本地C语法（Wall/Wextra/Werror）、Nix格式、4项runner协议、2项benchmark
+解析及仓库元数据检查通过。两种位宽的`mmap-benchmark[-wasm64]-check-erofs`
+定向CI已触发；GitHub API状态查询暂时返回连接EOF，尚未确认任务编号及结果。
+后续应补记结果，再评估真实文件错误和退出路径的确定性注入测试。
 
 ## 读取与发布的生命周期
 
