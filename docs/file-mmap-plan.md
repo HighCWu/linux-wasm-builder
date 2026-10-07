@@ -552,8 +552,37 @@ distro commit `3ad8450c81bdae7405530ee48e1ad4c8d87c6299`加入MIT测试
 本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
 benchmark解析测试通过。基于3ad8450的定向启动检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37560674146)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37560678430)已触发，尚待结果；
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37560678430)均已通过。
 此前SA_RESTART定向检查已在两种位宽通过；不能把新增clone用例写成已验证能力。
+
+## fatal exit打断读取等待（受控fixture）
+
+distro commit `78f50daa53c8a2b74447a09c4fcf43ae4270cead`加入MIT测试
+`mmap-vfs-exit.c`，复用mode 4/5 completion
+和已有callback clone，用
+CLONE_VM | SIGCHLD创建共享Wasm内存、独立线程组及fd table的子进程。父进程
+等到子进程的kernel_read进入barrier后发送SIGKILL；不先放行completion，必须
+waitpid观察到SIGKILL终止，而不是用户回调获得部分映射、错误或普通返回值。
+每个请求有独立的共享atomic返回标记，在waitpid后及全部轮次结束时检查，便于
+发现旧请求错误地继续执行用户代码。子进程不与控制进程共享线程组，避免SIGKILL
+连带终止测试控制者；这里也不是私有地址空间快照或普通fork。
+
+首次复制前及复制7字节后的两个位置各运行8轮。reap后检查共同file position
+不变、晚到及重复PROCEED不会损坏父进程的anonymous sentinel；父进程可对
+mode 4原文件重新初始化副本，mode 5原文件仍保持EIO，健康新文件则正常完成
+读取和munmap。随后关闭控制fd并释放测试资源，继续保留300秒runner watchdog。
+
+父进程保留原文件引用用于控制和复验，所以不把该测试描述为最后一个外部fd关闭
+或直接验证file release次数。没有内核staging分配计数，也不声称零资源泄漏。
+这是同步VFS等待被fatal signal打断的实验，不能外推为真实EROFS异步生产者退出
+后立即可释放staging的保证。生产配置、Linux pin、正式UAPI及mmap准入没有变化；
+新增独立测试按MIT发布。
+
+本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
+benchmark解析测试通过。基于78f50da的定向启动检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37562047822)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37562052198)已触发，尚待结果。
+clone用例的双位宽通过结果不能代替这项fatal exit验证。
 
 ## 读取与发布的生命周期
 
