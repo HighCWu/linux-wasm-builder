@@ -526,6 +526,34 @@ benchmark解析测试通过，仓库元数据检查通过。基于4fb874a的定�
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37559599981)和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37559605418)已触发，尚待结果。
 
+## 初始化副本的callback clone隔离（受控fixture）
+
+distro commit `3ad8450c81bdae7405530ee48e1ad4c8d87c6299`加入MIT测试
+`mmap-vfs-clone.c`，只使用已有私有VFS测试入口和callback clone，不实现
+普通fork，也不改变Linux pin、生产配置或文件mmap准入。先在单线程阶段完成
+副本初始化并关闭源fd，再进行不带CLONE_VM的callback clone：子进程须读到原
+完整副本，直接调用初始化copy接口仍为EPERM；修改和munmap继承副本后，在子
+进程内创建新的受控文件、初始化新的副本并清理。父进程waitpid后须保持原数据
+和映射有效，仍可修改及munmap。共重复8轮，用于检查已发布backing和allocator
+状态的eager-copy隔离，不引入COW。
+
+随后另起8轮pthread读取，在mode 4的明确barrier处尝试私有callback clone。
+由于另有任务共享mm，现有实现必须返回EOPNOTSUPP；拒绝后放行读取，原请求仍
+须返回完整副本并正常清理。这里不尝试绕过多线程快照限制，也不让子进程继承
+在途staging或宿主copy授权。两阶段分开排列，不假设pthread_join返回的瞬间
+所有内核mm teardown均已完成。
+
+该用例针对受控anon-inode初始化副本，而非真实EROFS读取期间clone、普通fork
+或退出中断。copy授权检查发生在无活跃lease时，不构成复制活跃lease的实验。
+子进程正常结束不等于验证fatal exit、最后一个外部fd关闭或零资源泄漏；这些
+仍需独立barrier和生命周期检查。
+
+本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
+benchmark解析测试通过。基于3ad8450的定向启动检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37560674146)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37560678430)已触发，尚待结果；
+此前SA_RESTART定向检查也仍在运行，不能把新增用例写成已验证能力。
+
 ## 读取与发布的生命周期
 
 首选“任务独占staging，读取完成后选址并同步提交”，而不是把已经登记的anonymous
