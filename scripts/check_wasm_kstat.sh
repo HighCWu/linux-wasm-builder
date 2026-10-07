@@ -38,5 +38,22 @@ OFFSET(st_ctime_sec, 88);
 _Static_assert(sizeof(struct kstat) == 104, "stat64 size");
 #endif
 EOF
+  gcc -m"$bits" -std=c11 -Wall -Wextra -Werror -fsyntax-only -x c - \
+    -I"$root_dir/sources/musl/arch/wasm32/bits" <<'EOF'
+#include "syscall.h.in"
+#if __SIZEOF_LONG__ == 8
+#if defined(__NR_fstat64) || defined(__NR_fstatat64)
+#error 32-bit stat syscall names leaked into the 64-bit profile
+#endif
+_Static_assert(__NR_fstat == 80, "native fstat number");
+_Static_assert(__NR_newfstatat == 79, "native fstatat number");
+#else
+#if defined(__NR_fstat) || defined(__NR_newfstatat)
+#error native stat syscall names leaked into the 32-bit profile
+#endif
+_Static_assert(__NR_fstat64 == 80, "stat64 number");
+_Static_assert(__NR_fstatat64 == 79, "fstatat64 number");
+#endif
+EOF
 done
-echo "Wasm kstat wire layouts passed for both long widths"
+echo "Wasm kstat layouts and syscall names passed for both long widths"
