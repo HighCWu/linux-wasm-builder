@@ -778,7 +778,7 @@ fatal exit已经验证。计数不覆盖一般page cache或真实file对象，�
 2项benchmark解析和仓库元数据检查通过。定向CI
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37577887108)及
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37577891344)已触发；wasm32
-已通过，wasm64仍在运行。正式文件mmap仍不开放。
+已通过，wasm64在fstat元数据校验失败，尚未进入错误读取断言。正式文件mmap仍不开放。
 
 ## 真实EROFS有效前缀后读取失败
 
@@ -803,7 +803,36 @@ buffer保持预置值；从第二页单独pread必须返回EIO，文件位置仍
 本地C语法（Wall/Wextra/Werror）、两项错误镜像单元测试、Nix格式、4项runner
 协议、2项benchmark解析及仓库元数据检查通过。基于5ccdb9f的定向启动CI
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37578997779)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37579001565)已触发，尚待结果。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37579001565)已完成：wasm32
+通过，wasm64同样在坏文件的fstat元数据检查失败，未验证有效前缀后的回滚。
+
+## 错误fixture发现的wasm64原始stat布局问题
+
+上述两轮wasm64失败均实际完成挂载及open，失败标记为
+`invalid readable metadata for bad file`，不是EROFS读取已返回错误的证据。
+源码对照发现musl的`arch/wasm32/kstat.h`使用公开`nlink_t`和`blksize_t`作为
+原始内核字段类型；wasm64中它们随long变为64位，但Linux asm-generic原始
+stat/stat64中`st_nlink`为unsigned int、`st_blksize`为int，均固定32位。
+链接数字段扩宽导致后续uid/gid、rdev、size等偏移错误，块大小扩宽也使blocks
+及时间字段错位。wasm32时间64位路径此前使用statx转换，不代表wasm64原始
+kstat路径也正确。
+
+musl修复提交`1a4641256199a515f580375b94cbf5e960337243`仅将两项原始字段
+改为固定宽度，保留公开struct stat及musl generic fstatat转换代码；不修改
+Linux UAPI或内核结构。libc与新增测试按MIT发布。独立布局检查
+`scripts/check_wasm_kstat.sh`在两种long宽度下验证字段偏移、固定宽度及原始
+结构总大小（32位104、64位128），无需本地Linux/LLVM构建。此检查使用布局
+等价的typedef，不代替Wasm工具链实际启动验证；已接入根仓库轻量CI。
+
+distro测试提交`413b0ce`进一步检查fstat链接数、uid/gid、块大小及块数，并把
+syscall失败与内容不匹配分开报告；没有降低原有文件大小断言。pin提交`c464b25`
+采用上述musl修复，hash为`sha256-I9DmTmLFNa53xkKpVuW/O/u/LQ03qixDYIZiAbwFYC8=`，
+由[公开预取任务](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37581369044)
+计算并通过。本地双位宽布局检查、C语法及仓库元数据检查通过；修复后的EROFS
+错误回滚双位宽启动CI
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37581539929)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37581544316)已重新触发，实际
+结果仍待确认。正式文件mmap的准入和已公布direct内存边界没有变化。
 
 ## 读取与发布的生命周期
 
