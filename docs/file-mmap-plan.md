@@ -470,8 +470,8 @@ distro测试commits为`c31b007`和`f1f30c7`，Linux pin更新为`1f4eac3`；hash
 本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、72项相关Node检查、
 4项runner协议检查及仓库元数据检查通过。新的并发与原有VFS回归组合检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37557810523)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37557814338)已触发，尚待结果；
-本地语法检查不代替实际Wasm pthread、内核completion和调度路径验证。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37557814338)均已通过，覆盖实际
+Wasm pthread、内核completion、fd关闭/复用、allocator进展及mode 0–3回归。
 
 ## 真实信号打断读取等待（受控fixture）
 
@@ -498,8 +498,33 @@ completion，不得复活旧请求；mode 4可对原文件重新映射，所有�
 本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议检查和
 benchmark解析测试通过，仓库元数据检查通过。基于2acc586的组合启动检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37558507392)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37558510807)已触发，尚待结果。
-上一轮并发组合检查也尚未完成；不以本地语法或已验证的注入EINTR代替真实信号结果。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37558510807)均已通过。
+这验证了两个读取位置的真实SIGUSR1、无SA_RESTART的EINTR及后续恢复，不能外推
+到任意真实EROFS块I/O中断、进程退出或所有资源泄漏行为。
+
+## SA_RESTART后的重新读取（受控fixture）
+
+distro commit `4fb874a08a190e436916f5118f7c45d02b04c388`新增MIT测试
+`mmap-vfs-restart.c`，继续复用同一Linux pin及mode 4/5 completion。安装带
+SA_RESTART的SIGUSR1处理器，向已进入读取barrier的工作线程发送信号。handler
+修改线程本地计数、保存/恢复errno，并通过async-signal-safe的write向空pipe写入
+一个字节；fd在pthread_create前设置，join结束前不变且不关闭。主线程必须收到
+确认后才放行completion，无sleep、busy-wait或handler内分配/映射。
+
+mode 4必须重试后返回完整副本，mode 5在重试的部分读取后仍返回EIO，不能把旧
+staging当作完成数据或把重启错误变成EINTR。两个位置各重复8轮，并要求handler
+恰好在读取线程执行一次、file position不变、同步copy授权在返回后为EPERM，
+anonymous sentinel保持完整且健康后续请求能够正常读取及munmap。
+
+fd在重启期间保持打开且不复用；这不是重启过程中close/复用fd语义的检查。
+也不直接计数重试次数或分配释放，不能据此声称零泄漏。SA_RESTART是测试私有
+可中断等待的行为，不是正式文件mmap的通用信号保证。Linux实现、生产配置、
+UAPI及原有执行ABI均未改变；退出、clone及真实设备故障仍是后续验证范围。
+
+本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
+benchmark解析测试通过，仓库元数据检查通过。基于4fb874a的定向启动检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37559599981)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37559605418)已触发，尚待结果。
 
 ## 读取与发布的生命周期
 
