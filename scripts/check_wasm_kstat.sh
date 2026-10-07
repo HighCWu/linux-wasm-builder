@@ -41,7 +41,30 @@ EOF
   gcc -m"$bits" -std=c11 -Wall -Wextra -Werror -fsyntax-only -x c - \
     -I"$root_dir/sources/musl/arch/wasm32/bits" <<'EOF'
 #include "syscall.h.in"
+_Static_assert(__NR_utimensat == 88, "native/time32 utimensat number");
 #if __SIZEOF_LONG__ == 8
+#if defined(__NR_clock_adjtime64) || \
+    defined(__NR_clock_getres_time64) || \
+    defined(__NR_clock_gettime64) || \
+    defined(__NR_clock_nanosleep_time64) || \
+    defined(__NR_clock_settime64) || \
+    defined(__NR_futex_time64) || \
+    defined(__NR_io_pgetevents_time64) || \
+    defined(__NR_mq_timedreceive_time64) || \
+    defined(__NR_mq_timedsend_time64) || \
+    defined(__NR_ppoll_time64) || \
+    defined(__NR_pselect6_time64) || \
+    defined(__NR_recvmmsg_time64) || \
+    defined(__NR_rt_sigtimedwait_time64) || \
+    defined(__NR_sched_rr_get_interval_time64) || \
+    defined(__NR_semtimedop_time64) || \
+    defined(__NR_timer_gettime64) || \
+    defined(__NR_timer_settime64) || \
+    defined(__NR_timerfd_gettime64) || \
+    defined(__NR_timerfd_settime64) || \
+    defined(__NR_utimensat_time64)
+#error 32-bit time64 syscall names leaked into the 64-bit profile
+#endif
 #if defined(__NR_fstat64) || defined(__NR_fstatat64)
 #error 32-bit stat syscall names leaked into the 64-bit profile
 #endif
@@ -53,6 +76,10 @@ _Static_assert(__NR_newfstatat == 79, "native fstatat number");
 #endif
 _Static_assert(__NR_fstat64 == 80, "stat64 number");
 _Static_assert(__NR_fstatat64 == 79, "fstatat64 number");
+_Static_assert(__NR_clock_gettime64 == 403, "time64 clock number");
+_Static_assert(__NR_utimensat_time64 == 412, "time64 utimensat number");
+_Static_assert(__NR_ppoll_time64 == 414, "time64 ppoll number");
+_Static_assert(__NR_futex_time64 == 422, "time64 futex number");
 #endif
 EOF
 done
