@@ -553,7 +553,8 @@ distro commit `3ad8450c81bdae7405530ee48e1ad4c8d87c6299`加入MIT测试
 benchmark解析测试通过。基于3ad8450的定向启动检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37560674146)和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37560678430)均已通过。
-此前SA_RESTART定向检查已在两种位宽通过；不能把新增clone用例写成已验证能力。
+此前SA_RESTART定向检查已在两种位宽通过。本轮clone结果只覆盖上述受控副本和
+多线程拒绝，不扩展为普通fork或fatal exit安全保证。
 
 ## fatal exit打断读取等待（受控fixture）
 
