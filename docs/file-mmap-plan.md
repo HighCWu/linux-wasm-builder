@@ -608,7 +608,44 @@ barrier。在旧读取仍等待时先初始化新文件的副本，随后SIGKILL
 本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
 benchmark解析测试通过，仓库元数据检查通过。基于7846dbd的定向启动检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37563999751)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37564003514)已触发，尚待结果。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37564003514)均已通过。
+
+## 受控VFS资源存量与回收基线
+
+Linux commit `744804ce30cc6ef70c0d5cba2d64f4e2236f459a`为上述实验增加三个
+内核全局atomic存量计数，仅在`CONFIG_WASM_MMAP_COPY_TEST`启用时编译：
+持有成功fget引用的测试读取请求、已分配的staging缓冲、已创建且尚未真正释放的
+受控文件对象。私有syscall 257以selector 0/1/2返回对应数值，其它selector
+返回EINVAL。文件计数在release回调实际kfree之后递减，而不是在close时递减；
+请求与staging计数随共同清理路径回收。计数没有reset接口，不能以清零掩盖残留。
+默认内核仍返回ENOSYS，不增加正式Linux UAPI或SDK能力。必要内核修改遵循Linux
+许可证，独立测试与文档按MIT发布。
+
+distro测试提交`15cb71c`加入MIT辅助头和存量断言，pin提交
+`77ca61a3b8584de21dce0c8b90670fdd00411eb7`更新上述Linux版本。
+源码hash为`sha256-l3Cp0xGjaEBQ8MBshiaQp+pToPoEF9V4Nf1G5DTv8Co=`，由
+[公开预取任务](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37565798265)
+计算并通过。每次独立启动先验证无资源存量及非法selector拒绝，然后在明确稳定
+barrier检查正向存量；三个selector分别读取，并非并发一致性快照。
+
+正常与注入失败读取结束后请求/staging必须归零，文件仍在fd持有期间存活。
+真实EINTR和SIGKILL检查同样的清理边界。最后外部fd关闭时旧读取必须继续保持
+`(请求, staging, 文件) = (1, 1, 1)`；创建并读取替代文件后为`(1, 1, 2)`，
+终止旧读取并reap后只剩替代文件`(0, 0, 1)`，最终全部回到零。
+允许最终fput通过task work或worker延迟释放，使用有界单调时钟和sched_yield
+等待预期基线，不通过全局flush或reset强行满足断言。
+
+新增heavy聚合检查`vfs-resources`复用五个启动结果：正常/注入失败、真实信号、
+fatal exit、最后外部fd关闭，以及默认配置下测试入口不可用。此前各节关于
+“没有资源计数”的描述是当时测试范围；这一轮才补充上述受控对象的存量证据。
+这些计数不覆盖一般内核heap、用户allocator、staging字节数或每次临时fget，
+不能等同于系统零泄漏证明，也不替代真实文件异步生产者的退出审计。
+标准文件mmap仍保持拒绝，CONFIG_MMU=n及direct linear-memory指针策略不变。
+
+本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
+2项benchmark解析测试通过，仓库元数据检查通过。定向检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37566006911)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37566020728)已触发，尚待结果。
 
 ## 读取与发布的生命周期
 
