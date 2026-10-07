@@ -524,7 +524,8 @@ UAPI及原有执行ABI均未改变；退出、clone及真实设备故障仍是�
 本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、4项runner协议及
 benchmark解析测试通过，仓库元数据检查通过。基于4fb874a的定向启动检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37559599981)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37559605418)已触发，尚待结果。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37559605418)均已通过，覆盖实际
+handler确认、SA_RESTART后完整副本、重试后EIO及后续健康请求恢复。
 
 ## 初始化副本的callback clone隔离（受控fixture）
 
@@ -552,7 +553,7 @@ distro commit `3ad8450c81bdae7405530ee48e1ad4c8d87c6299`加入MIT测试
 benchmark解析测试通过。基于3ad8450的定向启动检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37560674146)和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37560678430)已触发，尚待结果；
-此前SA_RESTART定向检查也仍在运行，不能把新增用例写成已验证能力。
+此前SA_RESTART定向检查已在两种位宽通过；不能把新增clone用例写成已验证能力。
 
 ## 读取与发布的生命周期
 
