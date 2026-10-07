@@ -432,8 +432,46 @@ distro测试commit为`86dd83e`，Linux pin更新为`337f46d`；源码hash是
 runner协议检查通过，仓库元数据检查通过；没有在本地构建Linux或LLVM。
 基于337f46d的实际初始化副本检查
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37556226657)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37556232380)已触发，尚待结果。
-在它们通过前，不能宣称真实EROFS文件已成功经过完整初始化映射链路。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37556232380)均已通过。
+这证明上述有界、已认证的真实EROFS文件经过完整初始化副本链路；仍是测试接口，
+不代表标准文件mmap或尚未验证的并发、信号和进程退出行为已受支持。
+
+## 读取途中fd复用与失败恢复（受控fixture）
+
+Linux commit `83df39cb39375ac0e017a804c20cbfc3ef7e5e20`只扩展测试内核的
+anon-inode fixture：mode 4在首次读取前，mode 5在复制7字节后的下一次读取处，
+通过completion通知进入barrier，再等待显式放行。mode 4随后成功，mode 5返回
+EIO。控制ioctl只存在于这个私有测试inode，命令`0x5770/0x5771`无指针参数，
+没有公开UAPI头文件、正式SDK协议或生产配置改动。等待采用可中断completion，
+但本轮不发送信号，不把它描述为已验证的真实EINTR行为。
+
+MIT用户测试`mmap-vfs-lifetime.c`使用pthread及dup保留控制fd。工作线程进入
+kernel_read barrier后，主线程进行anonymous mmap/munmap，关闭原读取fd，再
+创建另一fixture要求复用该fd数字。替代文件故意选择与原请求相反的读取结果，
+便于检测错误地重新查找fd数字。最后通过原文件的控制fd放行，并join检查结果：
+成功请求只能返回原文件完整内容；已复制7字节的失败请求只能返回EIO，不能发布
+半成品映射。共享file position及替代文件position均不改变，已有anonymous
+sentinel逐字节保持完整；关闭文件后成功副本仍可正常读取和munmap。
+
+两种结果各重复8轮，并检查随后的健康请求可正常映射及清理。barrier固定竞争窗口，
+不靠sleep或大文件读取速度；既有runner超时负责阻止永久等待。匿名分配和释放在
+读取暂停期间进行，用于验证这条等待路径不妨碍其它线程使用allocator及系统调用。
+定向CI同时依赖原有VFS回归检查，继续覆盖mode 0–3的正常读取、异常短读、EIO、
+注入EINTR及失败后的恢复，不因引入barrier漏测旧分支。
+
+这里控制fd仍保持原文件引用，验证的是在途请求的fd身份稳定性和失败恢复，不是
+“读取期间所有文件引用均已释放”的实验；也没有直接计数内核分配或证明零资源泄漏。
+真实EROFS设备故障、最后一个外部fd关闭、信号中断、退出及clone仍待分别验证。
+本轮没有改变普通文件mmap准入、staging到allocator同步提交方式或CONFIG_MMU=n。
+
+distro测试commits为`c31b007`和`f1f30c7`，Linux pin更新为`1f4eac3`；hash为
+`sha256-z8LRscnYmaMIOXp02N+Rnpmq1/+algI0et59+H5IV+A=`，
+[公开预取CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37557610011)通过。
+本地C语法（Wall/Wextra/Werror）、Nix格式、TypeScript、72项相关Node检查、
+4项runner协议检查及仓库元数据检查通过。新的并发与原有VFS回归组合检查
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37557810523)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37557814338)已触发，尚待结果；
+本地语法检查不代替实际Wasm pthread、内核completion和调度路径验证。
 
 ## 读取与发布的生命周期
 
