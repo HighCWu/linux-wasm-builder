@@ -669,9 +669,36 @@ close、信号、卸载或fatal exit的确定性竞态证明。测试不在工�
 本轮不修改Linux、musl、正式ABI、文件mmap准入或CONFIG_MMU策略。
 
 本地C语法（Wall/Wextra/Werror）、Nix格式、4项runner协议、2项benchmark
-解析及仓库元数据检查通过。两种位宽的`mmap-benchmark[-wasm64]-check-erofs`
-定向CI已触发；GitHub API状态查询暂时返回连接EOF，尚未确认任务编号及结果。
-后续应补记结果，再评估真实文件错误和退出路径的确定性注入测试。
+解析及仓库元数据检查通过。基于4d34c29的定向CI
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37567486253)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37567490270)仍在运行，尚待结果。
+
+## 真实EROFS已发布副本的进程生命周期
+
+distro commit `33c14b9ccf1a70e5fb4d6130557b68d1d216cb98`继续扩展MIT
+EROFS检查，不修改Linux、musl或执行ABI。在创建任何pthread之前，通过已有
+callback clone创建不带CLONE_VM的私有地址空间子进程；这不是普通fork，也不
+引入COW。子进程继承三份完整副本，关闭自己继承的源fd，核验、修改并munmap
+继承副本，随后重新打开真实快照文件，读取并核验新的两页副本后关闭该fd。
+
+普通退出与SIGKILL两组各8轮：普通子进程显式munmap新副本并正常返回；fatal
+子进程保留已发布新副本，通过pipe确认完成初始化后等待另一pipe，父进程才发
+SIGKILL并waitpid检查终止信号。pipe不携带私有映射指针，无sleep或轮询造窗口。
+正常和fatal退出后均检查父进程三份副本不变、原fd仍打开且位置仍为23，以及新
+读取、内容核验和munmap正常；请求/staging计数须回到零。最后继续运行并发测试
+及源fd关闭、数字复用、卸载后的副本验证。
+
+SIGKILL发生在读取已经完成、映射已经发布之后；不证明真实EROFS读取中的退出
+或异步设备生产者取消安全。受控计数也不直接追踪私有mm用户allocator分配，
+故不能据此声称fatal teardown不存在任何内存泄漏。父子fd table独立，子进程
+关闭继承fd不会关闭父进程描述符；文件位置检查不扩展为一般fd隔离保证。
+
+本地C语法（Wall/Wextra/Werror）、4项runner协议、2项benchmark解析及仓库
+元数据检查通过。基于33c14b9的定向CI
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37568171138)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37568176032)已启动，尚待结果。
+标准文件mmap仍不开放。后续真实读取错误/读取中退出需要能观察并约束真实生产者
+完成的确定性注入，不能用已发布副本退出或受控anon-inode等待替代。
 
 ## 读取与发布的生命周期
 
