@@ -886,8 +886,29 @@ Linux hash为`sha256-4SGRMbV2ejB/M9gXoXCkotE1JpiaFqVFb0k3OsWma7A=`，musl hash�
 重跑Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37586666191)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37586670752)，以及wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/37586676558)、
-[Firefox](https://github.com/HighCWu/distro/actions/runs/37586682982)，尚待结果。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37586682982)，四项均通过。
+Node验证真实EIO与有效前缀之后的回滚；两个wasm64浏览器检查各自执行正常副本
+和错误回滚两个独立启动场景。上述结果不表示正式文件mmap已经开放。
 wasm32浏览器的扩展两场景已有上一轮通过记录，不计作这次新pin的重跑。
+
+## 默认内核的独立stat ABI回归
+
+distro提交`dcc499a542385cfb62630c928bff886ce097e6af`新增MIT
+`distro/basic-init/tests/stat-abi.c`。复用两种位宽的交叉编译入口，但使用默认
+`vm-test`内核，而不是`vm-test-copy`实验内核，没有私有系统调用或复制导出。
+CI检查名为`mmap-benchmark-check-stat`和`mmap-benchmark-wasm64-check-stat`；
+名称沿用已有构建包，不代表测试依赖文件mmap。
+
+覆盖stat/fstat/fstatat/lstat的身份、类型、权限、所有者、大小、块信息及时间
+一致性；硬链接计数从2到1到0；符号链接跟随、不跟随和悬空行为；AT_EMPTY_PATH；
+ENOENT/EBADF；futimens设置2200000001/2200000002秒及非零纳秒后读回。
+不假定ramfs块计数或块大小，不创建大文件，不将宿主C语法检查视为Wasm运行证明。
+没有扩展普通fork、完整POSIX或文件映射的支持范围。
+
+本地C语法、两种long宽度的原始kstat布局和syscall名称、仓库元数据检查通过。
+公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37589703189)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37589708120)启动检查已触发，
+结果待确认；这里不声明浏览器已执行这个新用例。
 
 ## 读取与发布的生命周期
 
