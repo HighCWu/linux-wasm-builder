@@ -906,9 +906,31 @@ ENOENT/EBADF；futimens设置2200000001/2200000002秒及非零纳秒后读回。
 没有扩展普通fork、完整POSIX或文件映射的支持范围。
 
 本地C语法、两种long宽度的原始kstat布局和syscall名称、仓库元数据检查通过。
-公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37589703189)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37589708120)启动检查已触发，
-结果待确认；这里不声明浏览器已执行这个新用例。
+公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37589703189)通过；
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37589708120)失败于
+`set post-2038 timestamps: Not supported`，尚未到达后续stat比较。
+这里不声明浏览器已执行这个新用例。
+
+## wasm64原生时间接口对齐
+
+上述失败来自musl的syscall头：两个位宽均声明403..423的兼容time64编号，
+但Linux asm-generic仅为32位或compat注册这些编号。futimens经utimensat选择
+412，内核返回ENOSYS，libc发现秒值超过time32范围后返回ENOTSUP；不是文件系统
+拒绝保存未来时间，也不是stat读回截断。wasm64的原生88号入口本身使用64位时间。
+
+musl提交`4706a32bb313b6cad7eca911b8de938ca89746f9`将20个兼容time64名称
+限制到32位，64位使用原生编号。保留musl通用时间转换与32位time64路径；不改
+Linux、不新增UAPI、不绕过未来时间断言。根仓库轻量检查同时防止这些兼容名称
+泄漏到64位，并核验32位关键编号仍在。本地布局与编译检查不能替代实际运行。
+
+distro测试提交`b612e31`另覆盖utimensat的dirfd相对路径、未来时间及UTIME_OMIT，
+并要求非法纳秒返回EINVAL且不改变元数据。pin提交
+`ed23bbc7e467816f22855435281f36b8036eeb29`使用
+`sha256-gyNSSaS5eqec9vT/fN0aGjGQQDaaTHdA4fGyIHZ5vko=`，由公开
+[预取CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37591148560)计算。
+修正后的Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37591321471)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37591327423)已触发，结果待确认。
+其它时间接口共享这次头文件修正，但不据此声明它们均已通过端到端测试。
 
 ## 读取与发布的生命周期
 
