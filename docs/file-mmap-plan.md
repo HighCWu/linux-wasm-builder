@@ -834,6 +834,29 @@ syscall失败与内容不匹配分开报告；没有降低原有文件大小断�
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37581544316)已重新触发，实际
 结果仍待确认。正式文件mmap的准入和已公布direct内存边界没有变化。
 
+## 浏览器真实读取错误与有效前缀回滚
+
+distro实现提交`39dab0c0355cec4520d7e1440a180798878e1e04`为已有独立浏览器
+实验suite加入第二个场景。两种位宽的资产分别导出正常副本与真实错误C程序的
+raw initramfs和对应磁盘；每项Chromium/Firefox检查独立启动两次机器，逐场景
+确认结果及关闭。正常副本场景仍使用快照与普通只读两块磁盘；errors场景只用
+刻意损坏的快照，复用完整fstat元数据、真实EIO、有效前缀短读、staging回收、
+存活mapping和健康读取恢复断言，不在浏览器重新编写另一套内存语义模型。
+
+宿主只接受`copies`/`errors`场景，结果包含实际选择的场景名，规格同时核验
+场景名和pass/fail标记，避免默默退回正常副本测试。沿用每个场景的执行watchdog、
+跨域隔离断言、版本日志和机器关闭检查，无实验开关、正式UAPI或生产内核变更。
+旧的浏览器通过记录仅覆盖正常副本，不提前视作这轮错误路径已通过。
+
+本地oxfmt 0.59.0格式检查、JS语法、Nix格式、两项镜像单元测试、4项runner
+协议及仓库元数据检查通过。基于39dab0c的扩展CI：wasm32
+[Chromium](https://github.com/HighCWu/distro/actions/runs/37582494663)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37582499610)，wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/37582504071)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/37582508917)，均已触发，尚待
+实际结果。根仓库的[轻量布局CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37581663567)
+已通过，但不能代替上述启动验证。
+
 ## 读取与发布的生命周期
 
 首选“任务独占staging，读取完成后选址并同步提交”，而不是把已经登记的anonymous
