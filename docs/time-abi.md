@@ -78,9 +78,33 @@ distro提交`41c37ec078b0da87c7b887f946f1e1be4561c70f`新增MIT
 这是libc条件变量行为回归，不是原始futex所有操作的验证，也没有证明工作线程
 signal发生前主线程已经进入内核futex队列。特别地，唤醒竞争和成功返回不能单独
 证明原始futex完整地保存了超长超时；未来截止时间没有实际等待至到期。尚不覆盖
-取消、信号中断、process-shared条件变量、跨进程同步或时钟跳变。
+信号中断、process-shared条件变量、跨进程同步或时钟跳变。取消扩展见下节。
 
 宿主严格C语法、执行pass、kstat/syscall及仓库元数据检查通过。宿主pass后由8秒
 timeout结束框架的常驻循环，不作为Wasm执行证据。公开Node
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37762025680)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37762031463)已触发，结果待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37762031463)均已通过初始条件变量
+唤醒、超时及锁所有权用例。
+
+## 条件变量等待的延迟取消
+
+distro提交`3dc2f8eaf09da646f875c1fe96c4fac56698c080`扩展上述MIT测试，沿用
+默认内核双核检查。realtime和monotonic各执行8轮超长截止时间下的延迟取消：
+
+- 工作线程持锁注册cleanup，设置ready并通过独立条件变量通知主线程，然后进入
+  目标条件变量的timedwait。目标条件变量没有生产者，允许spurious wake后继续等待。
+- 主线程取得同一互斥锁并观察ready，证明工作线程已在timedwait释放过锁；在持锁
+  时请求pthread_cancel，随后解锁使清理继续。没有sleep或私有内核队列观测接口。
+- cleanup以ERRORCHECK互斥锁的unlock检查锁所有权；join结果必须为PTHREAD_CANCELED，
+  cleanup计数必须恰好为1。重新取得互斥锁、signal条件变量，再执行后续轮次和
+  短超时检查，最终销毁对象。
+
+该握手不证明已进入内核futex队列，也不区分请求取消时线程已经阻塞还是取消请求
+在进入阻塞前被处理。这里验证的是POSIX延迟取消、锁重获及对象复用行为，不涵盖
+异步取消、取消与signal/broadcast同时发生、process-shared或任意取消点的通用保证。
+没有修改Linux或musl实现，没有改变生产配置。
+
+宿主严格语法和执行pass、轻量ABI及仓库元数据检查通过。扩展后的Node
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37770600646)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37770606285)已触发，结果待确认。
+宿主验证不作为Wasm运行证据，亦尚未新增浏览器执行记录。
