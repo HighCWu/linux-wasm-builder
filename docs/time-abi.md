@@ -55,5 +55,32 @@ CLOCK_REALTIME和CLOCK_MONOTONIC上分别验证：
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37707490017)均通过初始相对时间、
 timerfd到期及ready-fd等待用例。
 绝对时间扩展的Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37712312324)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37712315836)已触发，结果待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37712315836)均已通过。
 尚未为该用例执行浏览器检查；既有浏览器用例不计为此测试的通过记录。
+
+## 线程条件变量的time64截止时间
+
+distro提交`41c37ec078b0da87c7b887f946f1e1be4561c70f`新增MIT
+`distro/basic-init/tests/thread-time-abi.c`，通过默认内核双核raw initramfs检查
+`mmap-benchmark-check-thread-time`和`mmap-benchmark-wasm64-check-thread-time`执行。
+不修改内核、libc或公开UAPI，也不依赖私有映射入口。
+
+两种位宽分别覆盖默认realtime及显式monotonic条件变量：
+
+- 当前时间加3000000000秒的绝对截止时间下，各执行8轮pthread_cond_timedwait和
+  工作线程signal。主线程持锁创建工作线程，后者只有在timedwait释放锁后才能
+  设置predicate并signal，不以sleep建立先后关系；循环允许spurious wake。
+- 短截止时间在没有生产者时返回ETIMEDOUT；过去截止时间返回ETIMEDOUT；非法纳秒
+  返回EINVAL，遵循pthread接口直接返回错误码的约定。
+- 使用ERRORCHECK互斥锁在每类返回后unlock/relock，核验调用线程仍拥有锁；检查
+  长截止时间参数保持不变、工作线程join结果及对象销毁。
+
+这是libc条件变量行为回归，不是原始futex所有操作的验证，也没有证明工作线程
+signal发生前主线程已经进入内核futex队列。特别地，唤醒竞争和成功返回不能单独
+证明原始futex完整地保存了超长超时；未来截止时间没有实际等待至到期。尚不覆盖
+取消、信号中断、process-shared条件变量、跨进程同步或时钟跳变。
+
+宿主严格C语法、执行pass、kstat/syscall及仓库元数据检查通过。宿主pass后由8秒
+timeout结束框架的常驻循环，不作为Wasm执行证据。公开Node
+[wasm32](https://github.com/HighCWu/distro/actions/runs/37762025680)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37762031463)已触发，结果待确认。
