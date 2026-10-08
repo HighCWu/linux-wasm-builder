@@ -26,8 +26,24 @@ initramfs。复用现有交叉编译包，因此CI名称为`mmap-benchmark-check
 - 零超时ppoll/pselect及clock_nanosleep；后者遵循直接返回错误码的libc约定。
 
 SIGEV_NONE不测试信号递送；ready-fd检查不能证明阻塞状态中的长等待、EINTR或
-SA_RESTART行为。这里没有验证clock_settime/adjtime、定时器取消竞态、futex或
-绝对时间等待，也没有据此声明完整POSIX支持。已有独立测试的结果仍按各自范围解释。
+SA_RESTART行为。这里没有验证clock_settime/adjtime、定时器取消竞态或futex，
+也没有据此声明完整POSIX支持。已有独立测试的结果仍按各自范围解释。
+
+## 绝对时间扩展
+
+distro提交`2cffdb3b8a8ea9cdcf9ac7139bf1cb650a6a1021`扩展同一MIT测试，在
+CLOCK_REALTIME和CLOCK_MONOTONIC上分别验证：
+
+- timerfd及SIGEV_NONE POSIX timer以当前时间加3000000000秒设置绝对截止时间，
+  剩余秒值和周期仍超过有符号32位范围，解除时读回old_value。
+- 两类定时器拒绝1000000000纳秒，返回EINVAL；拒绝后原长定时器仍保持有效。
+- 使用非零但已经过去的绝对时间，使单次timerfd到期，限定5秒等待读取一次计数；
+  不用零值，因为零会解除定时器，而不是使其到期。
+- clock_nanosleep的过去绝对截止时间成功返回，非法纳秒直接返回EINVAL。
+
+保持当前时钟不变，不实际等待未来截止时间。未来定时器的合法剩余值按范围检查，
+不要求动态读数纳秒完全相同。过去截止时间检查不能证明超出2038年的阻塞睡眠
+成功完成，也不能替代信号或时钟跳变测试。宿主运行通过并不等于Wasm运行通过。
 
 ## 验证状态
 
@@ -36,5 +52,8 @@ SA_RESTART行为。这里没有验证clock_settime/adjtime、定时器取消竞�
 证明。仓库元数据和Nix格式检查通过，未在本地构建Linux或LLVM。
 
 公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37707485706)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37707490017)已触发，结果待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37707490017)均通过初始相对时间、
+timerfd到期及ready-fd等待用例。
+绝对时间扩展的Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37712312324)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37712315836)已触发，结果待确认。
 尚未为该用例执行浏览器检查；既有浏览器用例不计为此测试的通过记录。
