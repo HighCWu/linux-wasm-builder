@@ -929,8 +929,11 @@ distro测试提交`b612e31`另覆盖utimensat的dirfd相对路径、未来时间
 `sha256-gyNSSaS5eqec9vT/fN0aGjGQQDaaTHdA4fGyIHZ5vko=`，由公开
 [预取CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/37591148560)计算。
 修正后的Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37591321471)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37591327423)已触发，结果待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37591327423)均已通过，包括新增的
+路径时间更新、UTIME_OMIT和非法纳秒不修改元数据检查。
 其它时间接口共享这次头文件修正，但不据此声明它们均已通过端到端测试。
+后续默认内核的定时器与等待验证单独记录在[时间ABI回归](time-abi.md)，不作为
+文件映射支持的证据。
 
 ## 读取与发布的生命周期
 
