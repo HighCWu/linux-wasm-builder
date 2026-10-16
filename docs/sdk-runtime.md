@@ -284,7 +284,9 @@ CheckFunctionExists只归档对象文件，不核验符号是否能够链接。�
 - CMake已安装依赖及符号探测：[wasm32](https://github.com/HighCWu/distro/actions/runs/38866467060)、
   [wasm64](https://github.com/HighCWu/distro/actions/runs/38866472989)。
 
-其中wasm32 zlib已在默认内核通过压缩、解压及损坏数据检查。其余三项结果待确认。
+上述四项CI均已通过：双位宽zlib在默认内核完成压缩、解压及损坏数据检查；
+双位宽CMake检查通过已安装静态依赖消费及符号链接探测。这些结果对应上述固定
+提交，不代表后续C++异常修复或其他SDK构建入口已经完成运行验证。
 
 ## C++异常处理生成
 

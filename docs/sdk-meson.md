@@ -56,5 +56,9 @@ CC/CXX环境变量设为不可用路径，依赖cross file和CC_FOR_BUILD/CXX_FO
 若安装前缀为sysroot外的绝对路径，还需设置WASM_PKG_CONFIG_SYSROOT_DIR=/。
 
 目标检查`sdk-check-meson-runtime`及`sdk-wasm64-check-meson-runtime`已加入SDK，
-使用安装后的cross file构建程序并在对应默认内核双核环境运行。当前尚未触发这两项
-重型任务，既有C++等CI继续运行。对任意第三方Meson项目的兼容性仍需逐项验证。
+使用安装后的cross file构建程序并在对应默认内核双核环境运行。
+2026-10-16已针对distro提交`7d9588ebb50cb443b31e03c8571d7730bc0dcbe6`启动
+[wasm32检查](https://github.com/HighCWu/distro/actions/runs/38881763620)和
+[wasm64检查](https://github.com/HighCWu/distro/actions/runs/38881774291)。两项均已通过
+任务发现阶段并进入定向重型检查，尚未取得最终结果。这不是完整构建矩阵，也不
+意味着任意第三方Meson项目均兼容；后者仍需逐项验证。
