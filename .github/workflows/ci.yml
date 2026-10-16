@@ -106,6 +106,14 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/browser-fs.test.mjs"
           node --test "$RUNNER_TEMP/browser-fs.test.mjs"
+      - name: Check Node directory sharing without installed workspace packages
+        run: |
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/virtio-fs-node.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/node-fs.test.mjs"
+          node --test "$RUNNER_TEMP/node-fs.test.mjs"
       - name: Check browser lifecycle report gate
         run: node --test scripts/browser-storage/check-report.test.mjs sources/distro/distro/npm/browser-report-check.test.mjs
       - name: Check targeted Nix cache key consistency
