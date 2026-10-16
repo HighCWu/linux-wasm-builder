@@ -46,13 +46,16 @@ distro `5d6e68d` 的原生 GCC/Clang 严格编译及各 5 次运行通过；Wasm
 和运行器，不是 Wasm 目标支持的证据。
 [SDK wasm32](https://github.com/HighCWu/distro/actions/runs/38929881855) 与
 [Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38929879587)
-检查已完成 Nix 检查发现及求值，正在执行重型构建/运行，结果待确认。
+均已成功：实际目标构建/检查与整个工作流通过。SDK wasm32 在 Node 中运行，
+Chromium wasm64 使用强制 6 项浏览器用例门禁，并要求运行及机器关闭成功。
 这两项固定上述早期提交，不包含后续 UDP 或 EPIPE 扩展，不能以其结果替代新版
 验证。distro `655cca5` 的 GCC/Clang 各 5 次原生运行及 Wasm 条件分支宿主语法检查
 也已通过；
 [wasm64 SDK](https://github.com/HighCWu/distro/actions/runs/38930386326) 和
 [Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38930389544)
-检查均已完成 Nix 检查发现及求值，正在执行重型构建/运行，目标结果仍待确认。
+前者已成功：实际目标构建/检查与整个工作流通过，包含 UDP 和 EPIPE 扩展。
+Firefox 仍在执行，不能以 Node 或 Chromium 结果替代其验证。尚无包含 UDP 扩展的
+wasm32 目标通过记录，也不把这些结果外推为完整网络兼容性。
 
 ## 边界
 
