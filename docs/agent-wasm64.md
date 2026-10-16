@@ -525,8 +525,13 @@ DNS 配置、测试程序缺席、随包许可证、文件写入/原生 BusyBox 
 已提交公开 CI，结果待确认。它不替代复杂 shell、浏览器、网络或完整发行版验证，
 也不是配套源码与发布清单已经齐全的正式发行。
 
-带标签的 Node 任务 `38965682439` 仍在 Build isolated check 阶段，日志接口暂时
-返回 404；已核对任务仍运行，没有因此重启或取消它。
+后续 distro `0bb77e7` 为该独立 wasm64 根盘增加 `/etc/passwd`、`/etc/group` 的
+UID/GID 0 名称记录，以及 `/etc/mtab → /proc/mounts`。通用根盘模板的新增配置参数
+默认留空，不改变默认 wasm32 根盘内容。检查扩展为验证配置内容、原生 `id -un`
+输出 `root`、挂载表非空且能通过链接读取；不代表提供登录认证或多用户隔离。
+TypeScript 检查和 17 项相关宿主回归通过，新增目标断言仍待公开 CI 验证。
+[扩展后的实际根盘检查](https://github.com/HighCWu/distro/actions/runs/38967110788)
+固定 `55ead4c`，与前一批最小根盘和 shell 诊断任务独立运行。
 
 #### SDK 子进程关闭与回收顺序
 
@@ -543,10 +548,12 @@ dispose 还会再次对原数字 PID 发 SIGKILL。新增的三项可控宿主�
 原因及描述符关闭错误；独立打包后也通过，主仓库轻量 CI 无需安装整个 workspace
 即可执行。TypeScript、浏览器语料打包和相关三项命令/就绪回归通过。真实 wasm64
 语料补充 SIGKILL disposal 返回前必须释放槽的断言，wasm32 语料也检查关闭返回时
-status 已完成；这些新增目标断言仍待实际运行确认。
+status 已完成。
 
-以下四项固定含文档的 `5c4d1bb`，已提交公开 CI，结果待确认。先前 shell 和
-网络任务仍独立运行，没有因等待而被重启或取消：
+以下四项固定含文档的 `5c4d1bb`。Node、Chromium、Firefox 均已通过；实际日志确认
+Node 为 9 项通过、零失败、零跳过，两个浏览器均完成 8 个内部场景、外层 1 个用例
+通过，严格门禁确认零跳过、零重试。wasm32 集成仍待确认。先前 shell 和网络任务
+保持独立，没有因等待而被重启或取消；此结果不代表公开 BusyBox shell 场景通过：
 
 - [进程关闭 Node](https://github.com/HighCWu/distro/actions/runs/38964964797)
 - [进程关闭 Chromium](https://github.com/HighCWu/distro/actions/runs/38964971985)
