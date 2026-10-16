@@ -4,8 +4,8 @@
 
 目标是在已有 wasm64 内核、SDK 和浏览器用户程序路径上，继续提供匹配位宽的
 进程、文件、挂载及网络 API。当前 `@lowland/guest` 公开启动路径仍使用 wasm32；
-内部原生 wasm64 会话、文件与进程请求链已在 Node 的最小启动检查中运行通过；
-浏览器矩阵、生产启动镜像和完整发行版仍需分别验证。
+内部原生 wasm64 会话、文件与进程请求链已在 Node 和 Chromium 的最小启动检查中
+运行通过；Firefox、生产启动镜像和完整发行版仍需分别验证。
 保持 `CONFIG_MMU=n` 和真实线性内存指针，不引入内核 softmmu。
 
 ## ABI 前置工作
@@ -117,7 +117,8 @@ distro `c6d1980` 在同一最小检查中加入由 wasm64 SDK 编译的用户程
 在 GCC/Clang 下均通过：收养的同组后代被杀死并回收，无关进程保留，重复清理空组
 成功。真实 C 握手回归、用户程序的宿主二进制流冒烟及 TypeScript 检查也通过；
 这些宿主证据不能替代 Wasm 执行。已结束的 wasm32 基线之后，另行对该提交启动
-[默认集成回归](https://github.com/HighCWu/distro/actions/runs/38950090520)，结果待确认。
+[默认集成回归](https://github.com/HighCWu/distro/actions/runs/38950090520)，已通过。
+该结果固定 `c6d1980`，不覆盖后续共享套件重构或生产根切换改动。
 原有 wasm64 文件检查已经失败结束，不冒称包含本增量。
 
 共享清理函数不新增跨 session、主动脱离原进程组的程序或浏览器崩溃后的清理保证。
@@ -153,15 +154,56 @@ assert 和 test；浏览器使用经宿主回归检查的轻量断言适配器�
 固定该提交的 [Chromium](https://github.com/HighCWu/distro/actions/runs/38951454269)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/38951462378) 和
 [共享套件 Node 重跑](https://github.com/HighCWu/distro/actions/runs/38951533223)
-均已启动，结果待确认。之前 `243a96d` 的成功不自动证明这次重构已经通过。
+中，Chromium 与 Node 已通过：Chromium 日志确认六组断言完成，Node 共 7 项通过、
+零失败、零跳过。Firefox 已启动内核并输出就绪行，但随后等待 180 秒超时，
+没有任何一组断言完成的日志，不能宣称双浏览器通过，也尚未确定卡住的具体阶段。
 仍不包含生产 root discovery/pivot、完整软件包系统、挂载或网络矩阵。
+
+## 原生生产入口与根文件系统
+
+distro `dd5051b` 新增内部 `guest-agent.nativeWasm64`，以 wasm64 SDK 编译真实
+`agent.c` 入口，强制检查 pointer/long 均为 64 位，而不是以测试 PID 1 代替。
+产物随附 agent 的 MIT、musl 及 compiler-rt 许可声明；不改变依赖组件许可证。
+
+`guest-agent-check-production-wasm64` 将该入口放入 initramfs，并构建显式 wasm64
+软件包组成的只读 EROFS 根盘（标签 `LOWLAND_ROOT`）。它沿用内核已有的 rootfs
+分层和 pivot_root 支持，无需修改 Linux。共享测试新增根标记、根挂载、proc/sys/devpts
+及旧 initramfs 脱离检查，再运行原有六组文件和进程断言。根盘只包含测试程序及
+必要目录，不是完整发行版，也未切换公开启动镜像。
+
+软件包系统默认仍为 wasm32，新增显式架构参数并拒绝直接混入另一位宽的软件包
+（允许 noarch）。[首次生产检查](https://github.com/HighCWu/distro/actions/runs/38952973425)
+在格式门禁失败，未取得根切换运行证据，不能记为该功能通过。构建和运行继续由
+公开 CI 承担：
+
+```sh
+nix build .#legacyPackages.x86_64-linux.guest-agent.nativeWasm64 -L
+gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
+  -f heavy-check=guest-agent-check-production-wasm64
+```
+
+## 握手等待边界
+
+distro `5cea709` 修正传输连接成功后握手读写仍可能无限等待的问题。会话的
+`timeoutMs` 分别限制连接和握手两个阶段，默认各 5 秒；lane 握手也有默认 5 秒
+边界。超时关闭连接并抛出普通 Error，不冒充身份不匹配的 ProtocolError，因而
+不会让负向身份断言误通过。新增挂起写入和挂起读取两项回归，与原有测试合计
+13 项通过，类型检查通过。共享运行套件增加用例开始、各身份握手和机器清理日志。
+这为 Firefox 故障定位提供边界和证据，不等于已经查明或修复其根因。
+会话与 syscall 宿主测试合计 26 项通过，零失败、零跳过。
+
+后续 `85fcbb9` 简化架构检查的求值表达式以避免冗余括号参与格式修正，
+没有禁用格式门禁或更改架构断言。固定该提交的
+[Firefox 重跑](https://github.com/HighCWu/distro/actions/runs/38953856289) 和
+[生产入口重跑](https://github.com/HighCWu/distro/actions/runs/38953864071) 已启动，
+结果待确认；两项均包含握手超时和新增阶段日志。
 
 ## 后续接入顺序
 
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
-2. 核对共享套件的 Node 重跑及 Chromium/Firefox 实际结果；已通过的旧版最小
-   Node 请求链不代替浏览器或后续重构的验证。
+2. 定位 Firefox 就绪后的等待问题，验证生产入口的根切换；已通过的 Chromium
+   和 Node 最小外壳不代替 Firefox、生产镜像或后续改动的验证。
 3. 在运行验证基础上接入高层镜像选择，保持现有 wasm32 会话兼容性。
 4. 构建匹配位宽的完整启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
    wasm64 SDK 不等于整个发行版 scope 已转换为 wasm64。
