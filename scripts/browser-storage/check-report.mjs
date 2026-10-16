@@ -23,6 +23,7 @@ export const lifecycleCases = Object.freeze([
   "UDP channel close settles idle writers and pending readers",
   "IPv4 parser validates complete header checksums including options",
   "BrowserFS unlink waits for pending OPFS mutations and detaches old handles",
+  "BrowserFS replacement waits for target OPFS mutations before publishing",
 ]);
 
 export function caseFilter() {

@@ -28,7 +28,7 @@ test("browser selection is derived from every required report case", () => {
 
 function fixture() {
   return {
-    stats: { expected: 18, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 19, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -53,6 +53,7 @@ function fixture() {
               "UDP channel close settles idle writers and pending readers",
               "IPv4 parser validates complete header checksums including options",
               "BrowserFS unlink waits for pending OPFS mutations and detaches old handles",
+              "BrowserFS replacement waits for target OPFS mutations before publishing",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -63,7 +64,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the eighteen successful lifecycle cases", () => {
+test("accepts exactly the nineteen successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {
