@@ -27,6 +27,7 @@ distro `b348651` 的 4 项宿主回归覆盖 0/65507 字节接受和 65508/13107
 Chromium/Firefox 的独立存储/网络套件新增同一清理场景，并要求 15 项指定用例
 全部执行、零跳过、零重试。
 [38931469594](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38931469594)
-正在执行，真实浏览器结果仍待 CI；不能把宿主测试当作浏览器
-或 Linux 挂载、网络程序集成的证据。Linux socket ABI 的独立进展见
+已在 Chromium/Firefox 均成功，15 项指定用例的强制门禁通过，包含 UDP 写入失败
+后的清理和合法正文边界。该用例不启动 Linux，也不访问外部网络，不替代 Linux
+网络程序集成证据。Linux socket ABI 的独立进展见
 [SDK socket 说明](sdk-sockets.md)。
