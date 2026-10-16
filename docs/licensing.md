@@ -23,12 +23,19 @@ Linux 用户态上一样，根据自身代码及所用依赖的许可证选择�
 | 独立 runtime、host SDK及内存兼容支持 | MIT | 可用于不同许可证的程序或宿主 |
 | musl修改 | MIT | 用户程序可静态或动态链接 |
 | LLVM/Clang/LLD修改 | Apache-2.0 WITH LLVM-exception | 编译输出不因工具链本身被要求采用同一许可证 |
+| Meson及其源码补丁 | Apache-2.0 | 保留上游声明；使用构建工具本身不要求应用采用同一许可证 |
 | Linux内核修改 | GPL-2.0-only，按文件SPDX | 发行修改后的内核必须履行GPL义务 |
 | Linux UAPI headers | GPL-2.0 WITH Linux-syscall-note等 | 正常syscall用户程序不因此成为GPL派生作品 |
 | distro/rootfs内容 | 混合许可证 | 必须逐包生成清单并履行各自义务 |
 
 “项目尽量 MIT”意味着把可独立实现的新代码放到 MIT 组件；它不意味着把 Linux、
 LLVM 或第三方代码重新标成 MIT。
+
+SDK 的 Meson 归档组修复位于 `sources/distro/distro/sdk/meson-wasm-archive-groups.patch`，
+修改上游 `mesonbuild/compilers/mixins/clike.py`，因此保留 Apache-2.0，而不是改标 MIT。
+独立的 Nix 集成和行为回归测试采用 MIT。Nix override 继承上游 Meson 包的元数据；
+发行含修正版 Meson 的 SDK 时仍应随包保留上游许可证、版权及适用的 NOTICE，标明修改。
+这不改变所编译应用自身或其链接依赖的许可边界，也不代表完整 SDK 许可清单已经生成。
 
 ## 用户程序的许可证边界
 
