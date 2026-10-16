@@ -56,7 +56,7 @@ CLOCK_REALTIME和CLOCK_MONOTONIC上分别验证：
 timerfd到期及ready-fd等待用例。
 绝对时间扩展的Node [wasm32](https://github.com/HighCWu/distro/actions/runs/37712312324)和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37712315836)均已通过。
-尚未为该用例执行浏览器检查；既有浏览器用例不计为此测试的通过记录。
+以上记录为原始 initramfs 路径；后续 SDK 与浏览器的独立验证见下一节。
 
 ## SDK 与真实浏览器接入
 
@@ -67,8 +67,12 @@ raw initramfs，不开启文件映射实验，也不修改内核、musl、公开
 
 双位宽的 Chromium/Firefox 运行套件增加同一程序，必须看到完整时间 ABI 阶段、
 最终通过标记及成功机器关闭。强制指定用例清单由 6 项增至 7 项；缺失、跳过或
-重试均不能作为通过。wasm64 SDK 和 Firefox 定向 CI 已发起，结果待确认；历史
-Node 通过记录和其他浏览器测试均不替代这个新路径的验证。
+重试均不能作为通过。
+[wasm64 SDK](https://github.com/HighCWu/distro/actions/runs/38937536594) 和
+[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38937543746)
+均已成功，固定 distro `a177370`：前者日志包含完整时间 ABI 最终阶段，后者实际
+执行全部 7 项浏览器用例，包含新增 time64 程序及成功机器关闭；目标检查和整个
+工作流均通过。尚不将其外推为 wasm32 SDK 或 Chromium 的新增 time64 用例通过。
 
 新增 2 项宿主回归通过 GCC/Clang 严格构建同一源码，并核对完整阶段及通过标记。
 共享测试框架在标记后保持 sched_yield，因此宿主进程由 3 秒限时强制结束；必须

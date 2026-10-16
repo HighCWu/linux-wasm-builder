@@ -73,9 +73,15 @@ distro `46e2933` 新增上述 EPOLLET/EPOLLONESHOT 场景。GCC/Clang 严格编�
 [SDK](https://github.com/HighCWu/distro/actions/runs/38936314240) 和
 [Chromium](https://github.com/HighCWu/distro/actions/runs/38936325019)
 均被同一处 Nix 文件的全仓库 treefmt 检查拒绝，尚未构建或运行新增 socket 场景，
-不是 epoll 运行失败的证据。distro `1483f23` 修正格式后已重发，目标结果待确认。
+不是 epoll 运行失败的证据。distro `1483f23` 修正格式后重发的
+[wasm64 SDK](https://github.com/HighCWu/distro/actions/runs/38937064614) 和
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38937082094)
+现均已成功：SDK 日志包含新增 epoll 阶段，Chromium 实际执行全部 6 项强制用例，
+目标检查及整个工作流均通过。后续 distro `a177370` 的
+[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38937543746)
+也通过包含该 epoll 扩展的 7 项套件；新增的第 7 项是 time64，不是另一个 socket 场景。
 两种位宽的浏览器套件都要求新增 epoll 阶段标记，但强制测试
-数量仍为 6，因为场景扩展在原有 socket 用例内。历史通过记录不包含这次扩展。
+数量在该提交仍为 6，因为场景扩展在原有 socket 用例内。更早的通过记录不包含这次扩展。
 该扩展没有向宿主网络开放新接口，未改变内核或 libc 实现及许可。
 
 后续 distro `a177370` 在同一浏览器套件中增加独立的 SDK time64 定时器用例，
