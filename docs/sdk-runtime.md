@@ -311,6 +311,17 @@ wasm64 成功记录不含这一扩展。随后 distro
 这仍是 Node/Linux-Wasm 临时文件系统上的验证，不覆盖任意多进程并发、WAL、
 浏览器数据库持久性或崩溃恢复。
 
+后续再增加未提交事务的异常退出恢复：独立子进程更新已有记录，调用
+`sqlite3_db_cacheflush` 将未提交脏页写出，然后 `_exit(23)`，刻意不调用
+`sqlite3_close` 或回滚。父进程核验该专用退出码，并在重新打开前检查 journal
+文件的大小和 SQLite hot-journal 魔数，避免把“脏页从未离开子进程”的情况误算
+为恢复通过。随后经 SQLite 正常 Unix VFS 重新打开，要求已提交的记录数与总和
+保持原值、`integrity_check` 为 `ok`，并确认 DELETE journal 被移除，最后才输出
+恢复阶段与整体通过标记。浏览器套件也要求这一新阶段。
+宿主 GCC/Clang 严格编译及执行已通过；上述旧 Wasm 成功记录不包含这一扩展。
+这只覆盖进程在现存 Linux 文件系统内异常退出后的回滚恢复，不模拟内核、浏览器、
+页面或设备崩溃，不证明 OPFS 重载持久性、断电安全或 WAL 支持。
+
 ## 使用SDK构建上游zlib
 
 SDK新增真实第三方库消费检查：复用`distro/zlib/package.nix`固定的zlib 1.3.1源码及

@@ -125,7 +125,10 @@ COPYING/完整 LICENSES 目录，以及工具链和运行库对应 LLVM 子项�
 `NOTICE`，并附带本项目的 archive-group 补丁及修改说明。来源使用 `meson.src`，
 而不是另行选择一个可能不同版本的上游副本。宿主测试执行真实复制配方，覆盖 Meson
 许可证缺失/为空时失败、可选 NOTICE 原文保留，以及补丁/说明和校验和完整性；
-新增材料尚需固定源码 Nix CI 确认，不沿用上述旧版成功结果。
+对应 distro `94bd9c6` 的
+[固定源码 Nix 检查](https://github.com/HighCWu/distro/actions/runs/38921710474)
+已通过：新增材料构建、校验和与 `allowedReferences = []` 约束均由该检查执行。
+它只验证材料包，不证明后来 SDK 安装视图或完整依赖许可清单已通过审计。
 
 这是部分许可材料包，不是完整 SBOM、依赖许可清单、合规结论或 GPL 对应源码包。
 宿主动态依赖、Meson 的 Python 依赖与继承的 Nixpkgs 补丁、附加库及各源文件自身
