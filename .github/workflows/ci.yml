@@ -98,6 +98,8 @@ jobs:
         run: node --test sources/distro/distro/vm-test/runtime-smoke-test.js
       - name: Check network listener readiness and timeout handling
         run: node --test sources/distro/packages/linux-guest/tests/helpers.test.ts
+      - name: Check complete ephemeral port allocation and exhaustion
+        run: node --test sources/distro/packages/linux-guest/tests/network-ports.test.ts
       - name: Check UDP stream failure cleanup without booting Linux
         run: |
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/network-lifecycle.test.ts \
