@@ -80,7 +80,11 @@ padding；IP 头部校验不包含正文，也不是 TCP/UDP 校验和验证、�
 通过。这些结果只证明解析器及宿主流回归，不代表完整 IPv4 重组或 Linux 网络验证。
 
 Chromium/Firefox 独立套件新增已知头部与 options 校验场景，强制清单增至 17 项；
-浏览器结果待 CI 确认。
+现已通过
+[38936126298](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38936126298)
+验证：两个浏览器的实际测试与报告门禁、整个工作流均成功，17 项指定用例全部执行、
+零跳过、零重试。对应轻量
+[CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38936126013)也通过。
 [38935879332](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38935879332)
 在两个浏览器各执行了原有 16 项，全部通过，但准备目录漏拷贝新增 IPv4 测试文件，
 17 项报告门禁正确拒绝通过；这不是新增解析器浏览器用例的执行结果。根仓库
@@ -89,5 +93,7 @@ Chromium/Firefox 独立套件新增已知头部与 options 校验场景，强制
 distro `f1db621` 同时新增 `linux-guest-package-check-tests-networking` 定向公开检查，
 复用原有 Linux 网络程序测试，覆盖 TCP 双向传输和背压、UDP 及最大长度数据报、
 本地宿主桥接和运行实例之间的通信；它用于验证接收校验不会破坏正常 Linux 流量。
-当前为 wasm32 系统与 Node 宿主，实际结果待 CI 确认，不替代 wasm64 或浏览器网络
-端到端检查。
+当前为 wasm32 系统与 Node 宿主，
+[38935867946](https://github.com/HighCWu/distro/actions/runs/38935867946)
+已失败，失败阶段正在核查；不能将其表述为实际 Linux 网络通过，也不能仅凭工作流
+状态判定是 IPv4 校验回归。该检查不替代 wasm64 或浏览器网络端到端检查。
