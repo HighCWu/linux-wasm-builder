@@ -151,6 +151,13 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/node-fs.test.mjs"
           node --test "$RUNNER_TEMP/node-fs.test.mjs"
+      - name: Check open-file metadata uses the descriptor syscall
+        run: |
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/file-stat.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/file-stat.test.mjs"
+          node --test "$RUNNER_TEMP/file-stat.test.mjs"
       - name: Check IPv4 header integrity and fragment boundaries
         run: node --test sources/distro/packages/linux-guest/tests/network-ipv4.test.ts
       - name: Check browser lifecycle report gate
