@@ -23,6 +23,12 @@ SDK shell中的CC/CXX选择Wasm工具链；CC_FOR_BUILD/CXX_FOR_BUILD选择构�
 原生编译器，PKG_CONFIG_FOR_BUILD选择构建机的依赖查询工具。Meson项目需用
 `native: true`声明构建期间执行的工具，目标依赖继续使用cross file中的pkg-config。
 
+构建机还需要原生归档工具 `ar`（通常由 binutils 提供）。cross file 的 `ar`
+只选择目标归档工具，并不替代 Meson 对构建机工具的探测；仅把 CC_FOR_BUILD
+设为绝对路径，也不会自动把相邻工具加入 PATH。自建精简构建环境需同时提供
+原生编译器、归档工具、Meson 和 Ninja，不能把“缺少构建机工具”判断为 Wasm
+目标不支持。
+
 示例先以native: true构建一个C代码生成器，执行它生成answer.h，再使用生成的
 常量编译目标C++线程程序。生成器源码会拒绝被编译为Wasm，避免误用目标编译器。
 
@@ -59,6 +65,10 @@ CC/CXX环境变量设为不可用路径，依赖cross file和CC_FOR_BUILD/CXX_FO
 使用安装后的cross file构建程序并在对应默认内核双核环境运行。
 2026-10-16已针对distro提交`7d9588ebb50cb443b31e03c8571d7730bc0dcbe6`启动
 [wasm32检查](https://github.com/HighCWu/distro/actions/runs/38881763620)和
-[wasm64检查](https://github.com/HighCWu/distro/actions/runs/38881774291)。两项均已通过
-任务发现阶段并进入定向重型检查，尚未取得最终结果。这不是完整构建矩阵，也不
-意味着任意第三方Meson项目均兼容；后者仍需逐项验证。
+[wasm64检查](https://github.com/HighCWu/distro/actions/runs/38881774291)。wasm32 已失败：
+Meson 在配置构建机工具时找不到 `gcc-ar`、`ar` 或 `gar`，尚未进入目标程序运行。
+`dca1a90` 为这项 Nix 检查加入宿主 binutils，修复后的
+[wasm32任务](https://github.com/HighCWu/distro/actions/runs/38890441490)仍在运行。
+旧 wasm64 任务也仍在运行，且不包含这项修复；不能把任一任务记为运行通过。
+这些检查不是完整构建矩阵，也不意味着任意第三方 Meson 项目均兼容；后者仍需
+逐项验证。
