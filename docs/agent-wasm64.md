@@ -339,11 +339,17 @@ argv/env/cwd 均为必须完成的断言；另要求机器关闭和精确报告�
 
 类型检查、共享语料浏览器打包、JavaScript 语法和 4 项断言适配器测试通过。
 以下公开 CI 均固定 `688fdba`，已通过检查发现与 derivation 求值阶段，运行结果
-仍待确认；此前 Node 成功不替代此次共享语料重构后的复验：
+现已全部通过；此前 Node 成功没有替代此次共享语料重构后的复验：
 
 - [公开 Chromium](https://github.com/HighCWu/distro/actions/runs/38958330336)
 - [公开 Firefox](https://github.com/HighCWu/distro/actions/runs/38958337096)
 - [公开 Node 复验](https://github.com/HighCWu/distro/actions/runs/38958343918)
+
+两项浏览器日志均确认三组断言完成，外层 1 项测试通过，精确报告门禁确认零跳过、
+零重试；返回结果同时要求机器关闭。Node 日志确认三组加外层共 4 项通过，零失败、
+零跳过。它们未启用会话阶段日志，但没有覆盖故意错误 ABI 的拒绝/重连序列。
+固定 `c6ff369` 的既有 wasm32 完整集成回归也已通过：日志为 233 项通过，
+零失败、零跳过；这不是下文新 musl pin 的回归结果。
 
 ### 下一步
 
@@ -351,16 +357,47 @@ argv/env/cwd 均为必须完成的断言；另要求机器关闭和精确报告�
 
 - distro `9aa970e` 恢复共享运行语料默认不启用会话阶段日志；诊断仍可显式开启。
   [无日志生产 Firefox 复验](https://github.com/HighCWu/distro/actions/runs/38958737342)
-  固定该提交，已启动，结果待确认；不替代此前带日志成功的独立记录。
+  固定该提交，已失败：v3 拒绝完成后，显式 wasm32 的 v4 握手超时。与此前
+  首次 v3 超时不同，再次说明问题有时序敏感性；公开插件的正确 wasm64 握手
+  成功不能替代错误 ABI 拒绝序列的验证，尚未确定根因。
 - distro `787177d` 新增 `stdenv-wasm64`、`apk-wasm64`、`image-wasm64` 和
   `busybox-wasm64`：显式选择匹配的工具链、sysroot、Linux 头文件、包架构和
   BusyBox 引导镜像。复用既有安装系统检查，不混入 wasm32 loader。
   [安装后的 BusyBox smoke](https://github.com/HighCWu/distro/actions/runs/38958962664)
-  已通过 derivation 求值并进入重型检查，构建和运行结果待确认。其目标为真实
+  已完成编译并成功挂载 ext4 根盘，但 `switch_root` 报旧根不是 ramfs/tmpfs 后
+  PID 1 退出，smoke 未通过。其目标为真实
   shell、文件操作、管道、命令替换、time/ts；不是另一个单文件 C 启动测试。
   进程与 loopback 网络仍是独立检查，尚不宣称通过；浏览器和完整发行版也未覆盖。
   默认包 scope、发行仓库和 npm 镜像保持 wasm32。BusyBox 保持 GPL-2.0-only，
   构建基础设施的 MIT 不改变它的许可或对应源码交付义务。
+
+### 原生文件系统统计 ABI 修正
+
+上述 BusyBox 失败对应一处实际的 musl ABI 错配：Linux asm-generic 在 LP64
+为 43/44 号选择双参数 `statfs/fstatfs`，而旧 wasm 头文件无条件声明
+`statfs64/fstatfs64`，使 musl 通用实现按三参数 ABI 传入额外的结构体大小。此时大小值会
+占据内核期望的输出指针位置，能够产生 EFAULT；调用方得到的零值结构体会导致
+文件系统类型检查失败。不能把这个现象当作 nullfs 或 ext4 挂载失败，更不能绕过
+BusyBox 的根类型保护。
+
+musl `5baebf92200899c02ea4f36f9b16d66dea79297e` 按 long 位宽选择名称，保留
+wasm32 的三参数接口。双位宽轻量编译检查通过；distro `a3e7fad` 新增真实根目录
+的 statfs/fstatfs/statvfs/fstatvfs 返回值、根类型和元数据断言，`5cfce7b` 更新
+musl pin。hash 由[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38960110635)
+确认；`fc6e24a` 将 C 运行检查接入独立重型检查，保留原运行产物入口的别名。
+
+另有 distro `5f592b0` 的 BusyBox 链接产物检查，要求位宽匹配的单个共享
+env.memory、无自定义 memory，且声明上限与平台一致；3 项宿主回归通过，包括
+双位宽接受和非法输入拒绝。这项结构检查不等于运行成功，也不保证宿主能分配上限。
+
+以下四项均固定 `fc6e24a`，已启动，运行结果待确认：
+
+- [wasm64 BusyBox smoke](https://github.com/HighCWu/distro/actions/runs/38960354491)
+- [wasm32 BusyBox smoke](https://github.com/HighCWu/distro/actions/runs/38960361134)
+- [wasm64 C 运行回归](https://github.com/HighCWu/distro/actions/runs/38960367458)
+- [wasm32 C 运行回归](https://github.com/HighCWu/distro/actions/runs/38960373351)
+
+### 后续验证
 
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
