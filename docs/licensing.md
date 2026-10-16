@@ -81,6 +81,19 @@ Linux端只通过UAPI/执行ABI与程序交互，不把内核实现链接进用�
 
 仅给出一个会继续变化的 GitHub分支链接，不应作为唯一合规机制。
 
+内核构建现新增 `linux-build/`：在 `make vmlinux.wasm` 之后保存实际最终 `.config`
+为 `kernel.config`，复制该源码的原始 COPYING / 完整 LICENSES，记录所选源码和
+LLVM 工具链 store 身份、位宽及 debug/test profile，并附构建配方、材料脚本和说明。
+这些 store 身份使用拆分 hash，避免仅因身份字符串保留完整构建输入。
+`SHA256SUMS` 同时覆盖内核字节和材料；从产物根目录执行
+`sha256sum --check linux-build/SHA256SUMS`。npm 内核包将携带此目录，打包解包后
+再次核验，不能只验证打包前的源码树。原 npm Linux 许可表达式保留，syscall
+exception 依据 Linux 官方 COPYING，不把内核实现改标为 MIT。
+5 项宿主测试验证实际材料复制脚本、所需文件缺失/为空或内核不匹配时拒绝，以及
+npm 归档往返和篡改检测。真实 Nix 内核构建与 npm 集成仍需 CI 验证。
+这些只是构建与许可材料，不包含完整 Linux 源码、全套依赖或所有补丁来源，不代表
+完整 GPL 对应源码包或已履行全部发行义务；公开源码交付仍需继续建设。
+
 rootfs中的 BusyBox及其他 copyleft组件也必须单独处理，不能因为它们位于磁盘镜像
 中而忽略。
 
