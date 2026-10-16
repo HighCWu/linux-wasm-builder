@@ -424,6 +424,22 @@ TypeScript、浏览器共享语料打包、JS 与 shell 语法检查通过，7 �
 BusyBox 保持 GPL-2.0-only，自有构建/测试代码采用 MIT。这里的测试根盘不等于
 完整发行版或正式发布，分发时仍需履行组件各自的许可与对应源码义务。
 
+#### 公开 exec 的二进制管道与背压
+
+distro `515dc27` 将 userland 语料扩为五组，新增公开 `exec()` 调用原生 shell 的
+`tee | cat` 管道。输入为 256 KiB + 17 字节的确定性数据，包含 NUL，跨越注入 I/O
+块和 Linux pipe 容量；以 8191 字节分块写入，同时读取 stdout、stderr 并等待退出。
+要求两路输出逐字节等于输入、退出成功且临时文件已删除。子进程在 finally 关闭，
+最外层仍要求机器关闭，浏览器门禁精确要求五组用例，不能跳过新用例获得成功。
+
+TypeScript、浏览器打包、JS 语法和 7 项相关宿主断言/二进制契约回归通过。这些
+轻量检查不证明实际 Wasm 程序通过。以下三项固定含文档的 `316d7b0`，已提交
+公开 CI，结果待确认；前述 `50e37e4` 的四组检查仍独立运行，没有取消或重启：
+
+- [二进制管道 Node](https://github.com/HighCWu/distro/actions/runs/38963030942)
+- [二进制管道 Chromium](https://github.com/HighCWu/distro/actions/runs/38963038435)
+- [二进制管道 Firefox](https://github.com/HighCWu/distro/actions/runs/38963045467)
+
 #### 错误身份的会话资源顺序
 
 distro `f0ef828` 收紧会话资源创建顺序：先验证握手身份，再创建子进程回收线程和
