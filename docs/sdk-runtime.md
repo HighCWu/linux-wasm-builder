@@ -49,7 +49,7 @@ distro提交`cc8ecee2acde42859770b50708fc5f1255c6ddca`新增
   join之后结果可见；没有未同步的轮询。
 
 这不是完整C++标准库或第三方软件兼容认证，不涵盖动态链接、filesystem、iostream、
-线程取消时的C++析构、TLS析构、跨模块异常或sanitizer。宿主原生测试使用本机C++
+线程取消时的C++析构、主线程退出时的TLS析构、跨模块异常或sanitizer。宿主原生测试使用本机C++
 运行库，不能证明Wasm的libc++/libunwind已经通过。
 
 ## 复现
@@ -363,6 +363,11 @@ C++17严格编译和执行通过；上面两个已启动任务不包含这项后
 包含此扩展的 [wasm64 SDK 检查](https://github.com/HighCWu/distro/actions/runs/38903701981)
 对应 `6f168e675e65379c559ee8b719d739a0b7067c04`，当前仍在 Build isolated check
 阶段；它不包含后来增加的 `wasm-linux-sdk-info` 安装入口。
+
+后续样例加入工作线程的非平凡 `thread_local` 对象退出清理：连续创建两个线程，
+每个线程初始化两个对象，要求逆序且恰好一次析构，并在 `join` 后检查清理完成。
+计数器存活至线程结束，不以未同步轮询判断结果。GCC/Clang 宿主严格编译及运行通过，
+浏览器用例要求对应阶段标记；上述旧提交均不覆盖此扩展，Wasm 结果仍待验证。
 
 ### 先前异常生成问题
 
