@@ -35,7 +35,7 @@ SDK shell中的CC/CXX选择Wasm工具链；CC_FOR_BUILD/CXX_FOR_BUILD选择构�
 answer.h，再使用生成的常量编译目标C++线程程序。生成器及其静态库源码都会拒绝
 被编译为Wasm，避免误用目标编译器；原生库的符号必须经真实归档、链接才能运行。
 这条宿主流程已通过，故意指定无效 AR_FOR_BUILD 的反例也被拒绝。下述新版 wasm64
-任务包含原生静态库场景；仍在运行的旧 wasm32 任务不包含它。
+任务包含原生静态库场景；旧 wasm32 任务不包含它。
 
 cross file设置needs_exe_wrapper=true，不提供执行器。目标程序不能在配置阶段被
 当作宿主程序直接运行，项目的运行探针需要明确的交叉编译处理。不能简单把Node
@@ -80,7 +80,10 @@ PKG_CONFIG_PATH_FOR_BUILD 提供原生依赖目录。下述新版 wasm64 任务�
 [wasm64检查](https://github.com/HighCWu/distro/actions/runs/38881774291)。wasm32 已失败：
 Meson 在配置构建机工具时找不到 `gcc-ar`、`ar` 或 `gar`，尚未进入目标程序运行。
 `dca1a90` 为这项 Nix 检查加入宿主 binutils，修复后的
-[wasm32任务](https://github.com/HighCWu/distro/actions/runs/38890441490)仍在运行。
+[wasm32任务](https://github.com/HighCWu/distro/actions/runs/38890441490)已进入链接阶段，
+但因 `wasm-ld` 拒绝 `--start-group` 和 `--end-group` 失败。Meson 1.10.0 的
+GNU 风格链接参数生成会为多个库自动加入归档组；该问题尚待适配，不是内核运行错误。
+不能简单切换到其 Emscripten 链接器类，后者还会生成 Emscripten 专用 `-s` 参数。
 旧 wasm64 任务现已因同样缺少宿主归档器而失败，未进入目标运行。
 已针对 `a7d45554607e6e7185524f5d35b47208acf4a6a6` 启动
 [新版 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38895454756)，包含
