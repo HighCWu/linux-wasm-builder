@@ -8,6 +8,8 @@ on:
       - .gitmodules
       - sources/**
       - .github/workflows/build.yml
+      - scripts/source_manifest.py
+      - scripts/check_repository.py
   workflow_dispatch:
 
 permissions:
@@ -28,6 +30,12 @@ jobs:
           submodules: false
       - name: Initialize the distro build source
         run: git submodule update --init --depth 1 sources/distro
+      - name: Validate and record committed build inputs
+        run: |
+          python3 -B scripts/check_repository.py
+          mkdir -p "$RUNNER_TEMP/baseline-provenance"
+          python3 -B scripts/source_manifest.py > "$RUNNER_TEMP/baseline-provenance/sources.json"
+          git -C sources/distro show HEAD:flake.lock > "$RUNNER_TEMP/baseline-provenance/flake.lock"
       - uses: nixbuild/nix-quick-install-action@v35
       - uses: nix-community/cache-nix-action@v7
         with:
@@ -38,11 +46,20 @@ jobs:
         run: |
           nix build \
             --no-link \
+            --json \
             --print-build-logs \
             ./sources/distro#kernel \
-            ./sources/distro#linux-guest
+            ./sources/distro#linux-guest \
+            > "$RUNNER_TEMP/baseline-provenance/build-results.json"
           # Keep expensive build-only inputs reachable during the cache post-step GC.
           nix build \
             --out-link result-ci-cache \
             ./sources/distro#llvm-toolchain-unwrapped \
             ./sources/distro#linux
+      - name: Upload successful baseline provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-provenance-${{ github.sha }}
+          path: ${{ runner.temp }}/baseline-provenance/
+          if-no-files-found: error
+          retention-days: 7
