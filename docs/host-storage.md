@@ -153,7 +153,12 @@ distro `d9021e7` 修正 JavaScript virtio-fs 设备的节点编号分配：FORGE
 还检查多次查询引用、逐级父子回收、BATCH_FORGET、重新查询后的 attr.ino 及新对象
 分离。全部 128 项内核 JavaScript 宿主测试、17 项 NodeFS 后端回归、2 项描述符
 协议回归及相关类型检查通过。主仓库轻量 CI 包含这些检查；原有四项 Linux 挂载
-断言没有放宽，已在公开 CI 重跑，结果待确认。这两项修复均为 MIT 自有实现，
+断言没有放宽。[公开 CI 重跑](https://github.com/HighCWu/distro/actions/runs/38939954251)
+现已结束：双向读写及 self-rename 通过，但 replacement 与 unlink/recreate 场景仍在
+直接 `fstat64` 上返回 ENOENT，尚未执行后续旧描述符内容断言。上游 FUSE 的
+`fuse_getattr` 经 `fuse_update_get_attr(..., NULL, ...)` 发出不带 FH 的 GETATTR，
+而 NodeFS 对已脱离命名空间的节点仅支持显式 handle 属性查询；下一步需补齐节点级
+属性查询对仍打开 inode 的支持，不能把先前修复记为完整集成通过。这两项修复均为 MIT 自有实现，
 没有修改 Linux 内核或新增 UAPI，也不解决 NodeFS 动态 F_SETFL 的既有限制。
 
 BrowserFS 的显式 atime/mtime/ctime 现会在截短及任何元数据修改之前校验纳秒字段：
