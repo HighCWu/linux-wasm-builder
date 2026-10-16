@@ -107,6 +107,7 @@ jobs:
           node --test sources/distro/packages/browser-tests/agent-assertions.test.js
           node --test sources/distro/packages/linux-guest/tests/agent-wasm64-userland-commands.test.ts
           node --test sources/distro/packages/linux-guest/tests/agent-wasm64-public-network.test.ts
+          node --test sources/distro/packages/linux-guest/tests/run-cleanup.test.ts
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/process-close.test.ts \
             --bundle --platform=node --format=esm --target=node24 \
             --alias:@lowland/bytes=./sources/distro/packages/bytes/src/index.ts \
