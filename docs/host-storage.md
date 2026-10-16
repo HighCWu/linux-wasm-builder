@@ -70,6 +70,14 @@ WebKit 或所有浏览器版本已验证。
 
 ## 验证范围
 
+BrowserFS 目录共享适配器也已在 Chromium/Firefox 的
+[38911626702](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38911626702)
+验证失败写入中止：使用真实 OPFS 文件与写流，在 write/truncate 已执行后注入配额
+错误，要求返回 ENOSPC、调用 abort 而不调用 close、原始文件字节保留，随后同一文件
+可重新成功写入。两种浏览器各 8 项指定测试全部通过，零跳过、零重试；此项测试
+直接执行 distro `5ba05f2` 的目录适配器，不启动 Linux，不覆盖 ext4 或崩溃恢复。
+原型方法包装只注入操作失败，文件内容和流的提交/中止行为由浏览器自身实现。
+
 宿主回归通过真实 virtqueue 描述符验证范围拒绝、I/O 异常后的后续请求，以及
 完成长度只计设备写回的数据和状态字节。这些测试不启动 Linux，也不证明 ext4
 或 OPFS 的端到端持久性。浏览器启动测试、文件系统挂载测试与崩溃恢复测试应分别
