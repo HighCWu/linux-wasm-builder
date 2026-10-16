@@ -136,6 +136,7 @@ jobs:
               --outfile="$RUNNER_TEMP/agent-$profile-root-suite.js"
           done
           node --test sources/distro/packages/browser-tests/agent-persistent-root.test.js
+          node --test sources/distro/packages/runner/tests/disk-storage.test.ts
       - name: Check complete ephemeral port allocation and exhaustion
         run: node --test sources/distro/packages/linux-guest/tests/network-ports.test.ts
       - name: Check UDP stream failure cleanup without booting Linux
