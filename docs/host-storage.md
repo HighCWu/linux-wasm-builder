@@ -70,6 +70,16 @@ WebKit 或所有浏览器版本已验证。
 
 ## 验证范围
 
+BrowserFS 的 `flush` / `fsync` 会加入当前节点的修改队列，等待先前排队的写入和
+截短操作结束；写流的 `close` 完成前不能提前确认同步成功。该排序约束覆盖通过
+同一适配器发出的操作。目录共享使用的浏览器 API 没有额外的物理介质刷盘接口，
+因此这里保证提交顺序，不把它表述为操作系统断电后的持久性保证。
+该同步排序已在
+[38912312816](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38912312816)
+通过真实 Chromium/Firefox 验证：延迟真实 OPFS 写流的 close，确认 flush/fsync
+仍在等待、提交前读取旧内容，释放 close 后同步调用完成并读取新内容。两种浏览器
+各 9 项指定测试全部通过，零跳过、零重试（distro `94ef014`）。
+
 BrowserFS 目录共享适配器也已在 Chromium/Firefox 的
 [38911626702](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38911626702)
 验证失败写入中止：使用真实 OPFS 文件与写流，在 write/truncate 已执行后注入配额
