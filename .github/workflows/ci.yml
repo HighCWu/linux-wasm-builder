@@ -112,6 +112,15 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/network-lifecycle.test.mjs"
           node --test "$RUNNER_TEMP/network-lifecycle.test.mjs"
+      - name: Check TCP stream teardown and graceful half-close through the NIC
+        run: |
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/network-tcp-lifecycle.fixture.js \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/index.ts" \
+            --alias:@lowland/kernel/plugin="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/plugin.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/network-tcp-lifecycle.test.mjs"
+          node --test "$RUNNER_TEMP/network-tcp-lifecycle.test.mjs"
       - name: Check network fixture short I/O and interruption handling
         run: |
           cc -Wall -Wextra -Werror sources/distro/distro/guest-tests/network-io-test.c \
