@@ -37,6 +37,10 @@ SDK 的 Meson 归档组修复位于 `sources/distro/distro/sdk/meson-wasm-archiv
 发行含修正版 Meson 的 SDK 时仍应随包保留上游许可证、版权及适用的 NOTICE，标明修改。
 这不改变所编译应用自身或其链接依赖的许可边界，也不代表完整 SDK 许可清单已经生成。
 
+SDK 的 SQLite 检查复用固定的 SQLite 3.51.0 上游源码，不修改或重新许可 SQLite。
+SQLite 核心由上游声明为 public domain，项目自有的构建集成及运行用例采用 MIT。
+这不是将其他发行版软件包或它们的依赖统一改为 MIT；发行时仍需逐项记录来源和许可。
+
 ## 用户程序的许可证边界
 
 预期结构与普通 Linux 用户态相同：程序通过 syscall/UAPI 使用内核，而不链接内核

@@ -265,6 +265,29 @@ SDK的cmake-runtime检查已改为执行这条两阶段消费流程，产物仍�
 运行。此前已触发的CI固定在旧提交，不包含本节变更；本轮没有追加重型任务，也没有
 Linux、musl、LLVM或浏览器实现变更。示例验证构建接口，不代表任意第三方库已兼容。
 
+## 使用SDK构建上游SQLite
+
+`sdk-check-sqlite-runtime` 和 `sdk-wasm64-check-sqlite-runtime` 复用发行版已经固定的
+SQLite 3.51.0 源码，分别用对应 SDK 编译上游 amalgamation、建立静态归档，再链接独立
+C 程序。wasm64 不复用 wasm32 发行版库，也不需要构建 readline 或 SQLite CLI。
+
+检查覆盖内存数据库、prepared statement、64 位整数和包含零字节的 BLOB、事务提交及
+回滚；文件数据库使用 DELETE journal 和 FULL synchronous，关闭后以只读方式重新
+打开，检查提交的数据与 `integrity_check`。程序通过正常 SQLite Unix VFS 使用 Linux
+文件接口，不引入自定义浏览器 VFS。
+
+首轮沿用现有发行版的 `SQLITE_OMIT_WAL=1` 和 `SQLITE_MAX_MMAP_SIZE=0`，并明确
+启用线程安全、关闭动态扩展加载；这不是 WAL、mmap、多进程锁竞争或崩溃恢复支持的
+证明。文件检查运行于临时 initramfs，也不证明浏览器退出后的磁盘持久性。
+
+```sh
+nix build './sources/distro#checks.x86_64-linux.sdk-check-sqlite-runtime'
+nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-sqlite-runtime'
+```
+
+本机已用 SQLite 3.51.0 源码及上述宏配置完成静态构建与用例运行；这只验证用例和
+构建配方，不代表 Wasm 目标已通过。目标构建与运行结果须以对应 CI 为准。
+
 ## 使用SDK构建上游zlib
 
 SDK新增真实第三方库消费检查：复用`distro/zlib/package.nix`固定的zlib 1.3.1源码及
