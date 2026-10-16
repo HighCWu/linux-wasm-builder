@@ -166,6 +166,19 @@ jobs:
           node --test "$RUNNER_TEMP/file-stat.test.mjs"
       - name: Check IPv4 header integrity and fragment boundaries
         run: node --test sources/distro/packages/linux-guest/tests/network-ipv4.test.ts
+      - name: Check native wasm64 agent ABI schema without a target build
+        run: |
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/src/abi-wasm64.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/agent-abi-wasm64.mjs"
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/abi-wasm64.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/agent-abi-wasm64.test.mjs"
+          AGENT_ABI_TEST_GENERATOR="$GITHUB_WORKSPACE/sources/distro/distro/guest-agent/gen-abi-check.ts" \
+            AGENT_ABI_TEST_SCHEMA="$RUNNER_TEMP/agent-abi-wasm64.mjs" \
+            node --test "$RUNNER_TEMP/agent-abi-wasm64.test.mjs"
       - name: Check browser lifecycle report gate
         run: node --test scripts/browser-storage/check-report.test.mjs sources/distro/distro/npm/browser-report-check.test.mjs
       - name: Check targeted Nix cache key consistency
