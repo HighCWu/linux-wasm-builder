@@ -399,6 +399,23 @@ env.memory、无自定义 memory，且声明上限与平台一致；3 项宿主�
 
 ### 后续验证
 
+distro `f0ef828` 收紧会话资源创建顺序：先验证握手身份，再创建子进程回收线程和
+lane worker 属性。不匹配 ABI 的拒绝路径保持单线程退出，不再为无请求可执行的
+会话创建回收线程。lane listener 仍在握手 echo 前绑定，不改协议布局、超时时间
+或错误断言；身份接受后资源创建失败则终止会话，不在缺少回收线程时服务请求。
+
+GCC/Clang 的真实 socketpair 握手及资源顺序测试通过，覆盖错误 ABI/版本不创建
+线程、正确身份创建一次回收线程、线程创建失败返回错误，并保持 detached lane
+属性。该宿主测试拦截了 pthread_create，不是 Wasm 调度器的复现。已有真实进程
+清理回归及生产入口严格语法检查也通过；不能据此声称 Firefox 已修复。
+
+以下三项固定 `f0ef828`，均默认不启用阶段日志，结果待确认；前一批 libc/BusyBox
+任务仍在运行，没有被重启或取消：
+
+- [生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38960838496)
+- [生产 Chromium](https://github.com/HighCWu/distro/actions/runs/38960845879)
+- [生产 Node](https://github.com/HighCWu/distro/actions/runs/38960853049)
+
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
 2. 继续定位 Firefox 会话握手的时序敏感性，补默认关闭日志的生产入口复验；
