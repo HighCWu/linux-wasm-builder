@@ -112,7 +112,10 @@ COPYING/完整 LICENSES 目录，以及工具链和运行库对应 LLVM 子项�
 验证复制原文、缺失/空文件拒绝及校验和发现篡改。
 [首轮固定源码 CI](https://github.com/HighCWu/distro/actions/runs/38916863482)已通过，
 对应 distro `2aac5a0`；它不包含后来加入的拆分来源 hash、零引用约束及安装校验，
-这些后续约束仍需另行验证。
+不能替代后续约束的验证。
+[收紧后的材料 CI](https://github.com/HighCWu/distro/actions/runs/38917758703)
+也已通过（distro `13596d0`），包含拆分来源 hash 和 Nix 零引用约束；这证明材料包
+本身未引用完整源码树。实际 SDK 安装视图中的校验仍需新版 profile/消费检查确认。
 
 这是部分许可材料包，不是完整 SBOM、依赖许可清单、合规结论或 GPL 对应源码包。
 宿主动态依赖、Meson、附加库及各源文件自身的声明仍须单独审计，不能据此宣布 SDK
