@@ -90,7 +90,18 @@ LLVM 工具链 store 身份、位宽及 debug/test profile，并附构建配方�
 再次核验，不能只验证打包前的源码树。原 npm Linux 许可表达式保留，syscall
 exception 依据 Linux 官方 COPYING，不把内核实现改标为 MIT。
 5 项宿主测试验证实际材料复制脚本、所需文件缺失/为空或内核不匹配时拒绝，以及
-npm 归档往返和篡改检测。真实 Nix 内核构建与 npm 集成仍需 CI 验证。
+npm 归档往返和篡改检测。新增独立 `kernel-check-build-materials` /
+`kernel-wasm64-check-build-materials` 会重新解包实际 npm 产物，逐字节比较所选
+Linux 输出中的内核和整套材料，同时核对宿主 MIT 原文及包的名称、版本和许可
+声明。宿主故障注入还验证替换配置并重算校验和、改写 MIT 文本或将包声明改成
+仅 MIT 均会失败；不能只因某份自带校验和通过就认定来源匹配。
+真实 Nix 内核构建与 npm 集成仍需 CI 验证。
+首轮内核材料检查
+[38925328081](https://github.com/HighCWu/distro/actions/runs/38925328081)
+失败于新 shell 脚本的 treefmt/shfmt 格式门禁，未进入内核编译，不能作为内核功能
+失败或材料包通过的证据。已按仓库规则修正格式。npm 定向检查还强制依赖对应的
+Linux 材料检查，让内核 profile、原始材料和最终 npm 包在同一构建依赖图中验证，
+共享内核构建而不重复安排同一内核的独立作业。
 这些只是构建与许可材料，不包含完整 Linux 源码、全套依赖或所有补丁来源，不代表
 完整 GPL 对应源码包或已履行全部发行义务；公开源码交付仍需继续建设。
 
