@@ -71,10 +71,9 @@ nix develop './sources/distro#sdk-wasm64'
 sysroot及平台flags。普通Makefile可消费CC/CXX/AR/RANLIB；不保证任意构建系统的
 交叉探测自动正确，尤其不能在配置阶段直接执行生成的Wasm程序。
 
-包装器在-c/-S/-E/-M/-MM/-fsyntax-only和常见查询模式省略可执行文件链接参数，
-链接时追加共享线性内存、allocator导出等已有平台参数；保留用户参数及带空格路径。
-暂不支持@response-file并明确报错，避免因隐藏-c而误判阶段。它不是完整Clang
-driver替代品；也不应通过额外target/sysroot参数混用另一个profile。
+初版包装器区分编译与链接模式并拒绝@response-file；后续已改用Clang配置机制，
+支持响应文件，见下节。它不是完整Clang driver替代品；也不应通过额外target/sysroot
+参数混用另一个profile。
 
 SDK产物可分别构建：
 
@@ -119,7 +118,8 @@ Threads::Threads，不手工传递内部平台链接参数；示例目标显式�
 
 CMAKE_TRY_COMPILE_TARGET_TYPE为STATIC_LIBRARY：配置探针不在宿主执行Wasm。
 这不表示任意依赖项目的try_run探针已经解决，也不应将静态编译探针通过当作某函数
-运行可用的证据。响应文件、动态库及任意CMake第三方包兼容性仍不在本轮承诺范围。
+运行可用的证据。动态库及任意CMake第三方包兼容性仍不在本轮承诺范围；强制响应
+文件的后续验证见下节。
 
 本地宿主CMake/Ninja配置、C archive与C++构建、执行pass，以及工具链模板语法
 检查通过；轻量CI重复这些检查而不下载LLVM。宿主构建没有使用Wasm工具链，不计
@@ -129,6 +129,38 @@ sdk-wasm64-check-cmake-runtime。
 公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38860955154)及
 [wasm64](https://github.com/HighCWu/distro/actions/runs/38860960964)已触发，结果待确认。
 这轮不修改Linux、musl或LLVM实现，没有新增浏览器执行记录。
+
+## 由Clang管理响应文件和链接阶段
+
+distro提交`e2cafe9c925f5382af42c4ad29902d6e059d4af3`移除包装脚本的阶段判断和
+响应文件拒绝逻辑。SDK通过--config传入profile参数；共享内存、导出、stack等链接
+选项使用Clang配置的$前缀，仅在链接阶段生效。响应文件、嵌套文件、引用规则及
+缺失文件诊断由Clang自身处理，不由shell展开或eval用户参数。
+
+依据是固定LLVM提交`137009e264eb237b5f5adcbae1b7e209f79291f5`的
+clang/docs/UsersManual.rst配置说明，以及clang/lib/Driver/Driver.cpp的
+readConfigFile/BuildCompilation实现。已有默认配置先于显式配置加载，因此保留
+工具链clang++.cfg的libc++及异常支持选择；本轮没有修改LLVM源码。
+
+本地13项包装契约测试及1项本机Clang 22驱动测试通过。后者实际编译包含配置宏的
+C源文件，经嵌套响应文件传递-c/-Werror及带空格路径，检查编译dry-run没有链接
+标记，链接dry-run包含标记，以及缺失响应文件被拒绝。该测试不在宿主实际链接
+和运行产物，不依赖宿主libc，也不替代Wasm运行证明。
+
+轻量CI在存在clang-22时运行驱动测试，否则明确skip；SDK消费CI显式指定固定fork
+编译器，不允许因找不到编译器而跳过。CMake消费检查新增
+`-DCMAKE_NINJA_FORCE_RESPONSE_FILE=ON`，覆盖实际Wasm编译、归档和链接的响应文件
+消费，随后仍需默认内核输出运行pass。
+
+更新后的公开CI已触发，结果待确认：
+
+- SDK直接消费：[wasm32](https://github.com/HighCWu/distro/actions/runs/38861602519)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/38861607869)。
+- CMake强制响应文件：[wasm32](https://github.com/HighCWu/distro/actions/runs/38861614651)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/38861620256)。
+
+支持当前Clang的响应文件语法，不等于支持任意编译器或构建系统；没有修改内核、
+musl、公开UAPI或浏览器配置。SDK仍依赖Nix store，不是可重定位发行包。
 
 ## 验证状态
 
