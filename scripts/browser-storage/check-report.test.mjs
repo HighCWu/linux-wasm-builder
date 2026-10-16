@@ -28,7 +28,7 @@ test("browser selection is derived from every required report case", () => {
 
 function fixture() {
   return {
-    stats: { expected: 20, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 21, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -37,6 +37,7 @@ function fixture() {
             specs: [
               "invalid disk capacity preserves OPFS data and releases its lock",
               "flushes virtio writes through the real OPFS worker",
+              "disk startup cancellation releases workers and preserves existing OPFS bytes",
               "cancels pending Fetch response reads on disconnect",
               "releases disconnected Fetch callbacks and cancels late responses",
               "forwards fragmented POST bodies through browser Request",
@@ -65,7 +66,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the twenty successful lifecycle cases", () => {
+test("accepts exactly the twenty-one successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {

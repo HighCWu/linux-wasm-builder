@@ -38,6 +38,7 @@ jobs:
           cp sources/distro/packages/browser-tests/server.js sources/distro/packages/browser-tests/playwright.config.js "$suite/"
           cp sources/distro/packages/browser-tests/tests/opfs-disk.spec.js "$suite/tests/"
           cp scripts/browser-storage/*.spec.js "$suite/tests/"
+          cp sources/distro/apps/site/opfs-device.js "$suite/opfs-device.js"
           npm install --prefix "$suite" --no-audit --no-fund
           "$suite/node_modules/.bin/esbuild" sources/distro/apps/site/opfs-disk-worker.js \
             --bundle --format=esm \

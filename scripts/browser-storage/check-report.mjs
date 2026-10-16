@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 export const lifecycleCases = Object.freeze([
   "invalid disk capacity preserves OPFS data and releases its lock",
   "flushes virtio writes through the real OPFS worker",
+  "disk startup cancellation releases workers and preserves existing OPFS bytes",
   "cancels pending Fetch response reads on disconnect",
   "releases disconnected Fetch callbacks and cancels late responses",
   "forwards fragmented POST bodies through browser Request",

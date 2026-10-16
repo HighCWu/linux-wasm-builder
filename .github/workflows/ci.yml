@@ -183,7 +183,7 @@ jobs:
           "$RUNNER_TEMP/network-io-test" zero || network_test_status=$?
           test "$network_test_status" -eq 1
       - name: Check OPFS initialization ownership and failure cleanup
-        run: node --test sources/distro/apps/site/opfs-storage.test.js
+        run: node --test sources/distro/apps/site/opfs-storage.test.js sources/distro/apps/site/opfs-device.test.js
       - name: Check Fetch response lifecycle without booting Linux
         run: node --test sources/distro/packages/linux-guest/tests/host-fetch-lifecycle.test.ts
       - name: Check HTTP input buffer ownership and fragmented framing
