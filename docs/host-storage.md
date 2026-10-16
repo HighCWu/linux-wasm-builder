@@ -38,10 +38,11 @@
 
 指定容量时先校验，再截短文件；初始化失败会尝试关闭已取得的独占句柄，并保留
 原始错误。宿主测试覆盖这些失败路径；“失败 Worker 未被终止时重新打开同一文件，
-并验证原内容未改变”的回归已在 Chromium 独立任务
-[38890164515](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38890164515)
-实际通过（1 项执行、未跳过，distro `fb23e24`）。该任务直接打包真实 Worker，
-不启动 Linux；不能据此宣称 Linux 文件系统持久性或其他浏览器已验证。
+并验证原内容未改变”的回归已在 Chromium 和 Firefox 独立任务
+[38890570648](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38890570648)
+实际通过（每个浏览器各 1 项执行、零跳过、零重试，distro `dca1a90`）。该任务
+直接打包真实 Worker，不启动 Linux；不能据此宣称 Linux 文件系统持久性、
+WebKit 或所有浏览器版本已验证。
 
 这些行为不等于已经证明断电安全、跨标签页并发写安全或跨版本镜像兼容性。
 当前接入应保持单一存储所有者，等待机器正常关闭，并保留重要数据的外部备份。
