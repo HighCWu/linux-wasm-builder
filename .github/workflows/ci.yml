@@ -118,7 +118,7 @@ jobs:
               --outfile="$RUNNER_TEMP/$source-test.mjs"
             node --test "$RUNNER_TEMP/$source-test.mjs"
           done
-          for source in agent-app.js agent-public-app.js agent-tests/agent-check.js agent-tests/agent.spec.js agent-tests/agent-production.spec.js agent-tests/agent-public-check.js agent-tests/agent-public.spec.js agent-tests/agent-public-userland.spec.js agent-tests/agent-public-network.spec.js; do
+          for source in agent-app.js agent-public-app.js agent-minimal-root-app.js agent-persistent-root-app.js agent-tests/agent-check.js agent-tests/agent.spec.js agent-tests/agent-production.spec.js agent-tests/agent-public-check.js agent-tests/agent-public.spec.js agent-tests/agent-public-userland.spec.js agent-tests/agent-public-network.spec.js agent-tests/agent-minimal-root.spec.js agent-tests/agent-persistent-root.spec.js; do
             node --check "sources/distro/packages/browser-tests/$source"
           done
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/agent-wasm64-suite.ts \
@@ -129,6 +129,12 @@ jobs:
             --bundle --platform=browser --format=esm --target=es2022 \
             --external:@lowland/kernel --external:@lowland/kernel/plugin --external:@lowland/bytes \
             --outfile="$RUNNER_TEMP/agent-public-browser-suite.js"
+          for profile in minimal persistent; do
+            npx --yes esbuild@0.25.12 "sources/distro/packages/linux-guest/tests/agent-wasm64-$profile-root-suite.ts" \
+              --bundle --platform=browser --format=esm --target=es2022 \
+              --external:@lowland/kernel --external:@lowland/kernel/plugin --external:@lowland/bytes \
+              --outfile="$RUNNER_TEMP/agent-$profile-root-suite.js"
+          done
       - name: Check complete ephemeral port allocation and exhaustion
         run: node --test sources/distro/packages/linux-guest/tests/network-ports.test.ts
       - name: Check UDP stream failure cleanup without booting Linux
