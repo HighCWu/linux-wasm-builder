@@ -18,6 +18,10 @@ jobs:
   opfs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -40,15 +44,20 @@ jobs:
             --alias:@lowland/kernel/virtio/remote.js="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/remote.ts" \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$suite/opfs-disk-worker.js"
-      - name: Install Chromium
-        run: '"$RUNNER_TEMP/browser-storage/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Install browser
+        run: '"$RUNNER_TEMP/browser-storage/node_modules/.bin/playwright" install --with-deps ${{ matrix.browser }}'
       - name: Verify real OPFS initialization failure recovery
         run: |
           cd "$RUNNER_TEMP/browser-storage"
-          ./node_modules/.bin/playwright test --project=chromium --forbid-only \
-            --grep 'invalid disk capacity preserves OPFS data and releases its lock$'
+          PLAYWRIGHT_JSON_OUTPUT_NAME=storage-report.json \
+            ./node_modules/.bin/playwright test --project=${{ matrix.browser }} --forbid-only \
+              --reporter=line,json \
+              --grep 'invalid disk capacity preserves OPFS data and releases its lock$'
+          node "$GITHUB_WORKSPACE/scripts/browser-storage/check-report.mjs" storage-report.json
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: browser-storage-results
-          path: ${{ runner.temp }}/browser-storage/test-results
+          name: browser-storage-results-${{ matrix.browser }}
+          path: |
+            ${{ runner.temp }}/browser-storage/test-results
+            ${{ runner.temp }}/browser-storage/storage-report.json
