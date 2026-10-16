@@ -96,6 +96,8 @@ wasm32新入口尚未执行重型检查，不替代已有发行版启动及uname
 
 ## P3：存储、文件系统与设备
 
+当前块设备接入契约、错误边界及 OPFS 持久性限制见[宿主块存储说明](host-storage.md)。
+
 - 稳定 virtio block、console、entropy、fs、net和vsock。
 - EROFS只读系统、ext4持久安装和OverlayFS临时可写层。
 - OPFS块设备和目录共享，覆盖崩溃恢复、flush和并发。
