@@ -57,6 +57,79 @@ test("forwards fragmented POST bodies through browser Request", async ({ page })
   }
 });
 
+test("enforces upload budgets only when browser buffering is required", async ({ page }) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    // Observe actual body conversion independently of the adapter's probe.
+    let streaming = false;
+    try {
+      const probe = new Request("https://example.test/", {
+        method: "POST",
+        duplex: "half",
+        body: new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode("hello"));
+            controller.close();
+          },
+        }),
+      });
+      streaming = (await probe.text()) === "hello";
+    } catch {}
+    const { hostFetchNetwork } = await import("/host-http.js");
+    const outcomes = [];
+    for (const chunked of [false, true]) {
+      for (const limit of [0, 4, 5]) {
+        let calls = 0;
+        let received;
+        let cancelled = 0;
+        const network = hostFetchNetwork({
+          maxBufferedRequestBytes: limit,
+          async fetch(request) {
+            calls++;
+            received = await request.text();
+            return new Response("accepted", { status: 201 });
+          },
+        });
+        const wire = new TextEncoder().encode(
+          "POST / HTTP/1.1\r\nHost: example.test\r\n" +
+          (chunked ? "Transfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n"
+            : "Content-Length: 5\r\n\r\nhello"),
+        );
+        let offset = 0;
+        const readable = new ReadableStream({
+          pull(controller) {
+            if (offset < wire.length) controller.enqueue(wire.slice(offset, ++offset));
+            // Leave the connection open: body framing, not EOF, must finish it.
+          },
+          cancel() { cancelled++; },
+        });
+        let output = "";
+        const writable = new WritableStream({
+          write(chunk) { output += new TextDecoder().decode(chunk); },
+        });
+        await network.connectTcp({
+          target: { hostname: "198.18.0.1", port: 80 },
+          signal: new AbortController().signal,
+          readable,
+          writable,
+        });
+        outcomes.push({ limit, calls, received, output, cancelled,
+          locks: [readable.locked, writable.locked] });
+      }
+    }
+    return { streaming, outcomes };
+  });
+  expect(result.outcomes).toHaveLength(6);
+  for (const outcome of result.outcomes) {
+    const accepted = result.streaming || outcome.limit === 5;
+    expect(outcome.calls).toBe(accepted ? 1 : 0);
+    expect(outcome.received).toBe(accepted ? "hello" : undefined);
+    expect(outcome.output).toMatch(accepted ? /^HTTP\/1\.1 201 / : /^HTTP\/1\.1 413 /);
+    expect(outcome.cancelled).toBe(1);
+    expect(outcome.locks).toEqual([false, false]);
+  }
+});
+
 for (const pendingCallback of [false, true]) {
   test(
     pendingCallback

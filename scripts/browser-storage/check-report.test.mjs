@@ -5,7 +5,7 @@ import { checkReport } from "./check-report.mjs";
 
 function fixture() {
   return {
-    stats: { expected: 5, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 6, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -17,6 +17,7 @@ function fixture() {
               "cancels pending Fetch response reads on disconnect",
               "releases disconnected Fetch callbacks and cancels late responses",
               "forwards fragmented POST bodies through browser Request",
+              "enforces upload budgets only when browser buffering is required",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -27,7 +28,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the five successful lifecycle cases", () => {
+test("accepts exactly the six successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {
