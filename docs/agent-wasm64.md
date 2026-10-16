@@ -436,17 +436,45 @@ GCC/Clang 的真实 socketpair 握手及资源顺序测试通过，覆盖错误 
 属性。该宿主测试拦截了 pthread_create，不是 Wasm 调度器的复现。已有真实进程
 清理回归及生产入口严格语法检查也通过；不能据此声称 Firefox 已修复。
 
-以下三项固定 `f0ef828`，均默认不启用阶段日志，结果待确认；前一批 libc/BusyBox
+以下三项固定 `f0ef828`，均默认不启用阶段日志，现已全部通过；前一批 libc/BusyBox
 任务保持独立运行并已全部通过，没有被重启或取消：
 
 - [生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38960838496)
 - [生产 Chromium](https://github.com/HighCWu/distro/actions/runs/38960845879)
 - [生产 Node](https://github.com/HighCWu/distro/actions/runs/38960853049)
 
+实际日志确认 Chromium 和 Firefox 都依次完成拒绝旧 v3、拒绝显式 wasm32、接受
+显式 wasm64，且各有 1 个浏览器用例通过，严格门禁确认零跳过、零重试。Node 为
+9 项通过、零失败、零跳过。本次默认关闭 trace 的 Firefox 回归已通过，但尚不能
+仅凭单次成功证明历史超时的唯一根因，仍需保留后续重复回归。
+
+#### 安装系统的独立进程、网络与许可检查
+
+以下两项固定 `3d47240`，已提交公开 CI，结果待确认；它们不依赖公开 shell 场景
+通过，也不能被 shell smoke 的成功代替：
+
+- [wasm64 BusyBox 进程](https://github.com/HighCWu/distro/actions/runs/38962167511)：
+  继承描述符、定时终止、PTY/script、后台守护进程、ifup/down hook 和 crond。
+- [wasm64 BusyBox 回环网络](https://github.com/HighCWu/distro/actions/runs/38962173958)：
+  HTTP、FTP 目录列表、TCP/UDP 服务；不是浏览器外网连通性验证。
+
+distro `684f996` / `a798519` 为双位宽 BusyBox 安装上游 LICENSE、对应 musl
+COPYRIGHT、实际选用 compiler-rt 源码的 LICENSE.TXT 和说明文件到
+`/share/licenses/busybox/`。安装后的 smoke 要求四个文件均非空；新增门禁结果
+仍待 CI 确认，不能引用之前 smoke 的成功作为此项证明。
+
+以下两项固定包含该变更的 `2b34bfb`，已提交公开 CI，结果待确认：
+
+- [wasm64 安装 smoke 与许可文件](https://github.com/HighCWu/distro/actions/runs/38962531852)
+- [wasm32 安装 smoke 与许可文件](https://github.com/HighCWu/distro/actions/runs/38962537913)
+
+这些文件不包含对应源码包或书面源码提供承诺，不构成完整发布合规证明。
+BusyBox 保持 GPL-2.0-only，不将本项目的 MIT 声明用于重新许可第三方软件。
+
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
-2. 继续定位 Firefox 会话握手的时序敏感性，补默认关闭日志的生产入口复验；
-   启用日志的成功不作为根因已修复的证明。
+2. 保留默认关闭日志的 Firefox 生产入口复验并观察后续稳定性；
+   单次成功不作为历史时序敏感问题根因已唯一确定的证明。
 3. 检查新接入的公开镜像选择链路在浏览器和 Node 的结果，并保留 wasm32 回归。
 4. 验证新接入的原生 BusyBox 构建与安装系统，再扩展匹配位宽的启动镜像和用户态；
    不混用 wasm32 BusyBox/rootfs，wasm64 SDK 不等于整个发行版 scope 已转换。
