@@ -84,6 +84,12 @@ Meson 在配置构建机工具时找不到 `gcc-ar`、`ar` 或 `gar`，尚未进
 但因 `wasm-ld` 拒绝 `--start-group` 和 `--end-group` 失败。Meson 1.10.0 的
 GNU 风格链接参数生成会为多个库自动加入归档组；该问题尚待适配，不是内核运行错误。
 不能简单切换到其 Emscripten 链接器类，后者还会生成 Emscripten 专用 `-s` 参数。
+
+SDK 现通过同一修正版 Meson 供两个开发 shell 和目标检查使用：对 wasm32/wasm64
+不自动插入 GNU 归档组，其他架构保持原行为。wasm-ld 本身按需解析归档符号，不需要
+GNU 的分组重扫参数。补丁保留 Meson 的 Apache-2.0 许可，独立集成与回归测试为 MIT。
+回归直接调用 Meson 参数生成器，原版失败、修正版双位宽通过，并验证原生架构仍分组；
+宿主完整生成器/静态库/消费程序检查通过。目标 Wasm 链接及运行仍须新 CI 确认。
 旧 wasm64 任务现已因同样缺少宿主归档器而失败，未进入目标运行。
 已针对 `a7d45554607e6e7185524f5d35b47208acf4a6a6` 启动
 [新版 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38895454756)，包含
