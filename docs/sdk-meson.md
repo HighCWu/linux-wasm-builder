@@ -82,7 +82,7 @@ Meson 在配置构建机工具时找不到 `gcc-ar`、`ar` 或 `gar`，尚未进
 `dca1a90` 为这项 Nix 检查加入宿主 binutils，修复后的
 [wasm32任务](https://github.com/HighCWu/distro/actions/runs/38890441490)已进入链接阶段，
 但因 `wasm-ld` 拒绝 `--start-group` 和 `--end-group` 失败。Meson 1.10.0 的
-GNU 风格链接参数生成会为多个库自动加入归档组；该问题尚待适配，不是内核运行错误。
+GNU 风格链接参数生成会为多个库自动加入归档组；这是构建工具适配问题，不是内核运行错误。
 不能简单切换到其 Emscripten 链接器类，后者还会生成 Emscripten 专用 `-s` 参数。
 
 SDK 现通过同一修正版 Meson 供两个开发 shell 和目标检查使用：对 wasm32/wasm64
@@ -94,8 +94,11 @@ GNU 的分组重扫参数。补丁保留 Meson 的 Apache-2.0 许可，独立集
 后续消费样例增加 A→B→A 中另一对象的循环归档依赖，并实际调用结果。宿主 Meson
 消费检查通过；同一组 C 源文件用本机 Clang 22 的 wasm32/wasm64 unknown-unknown
 目标无归档组链接，在 Node 中均返回 42。此无 libc 探针证明 wasm-ld 的惰性归档解析，
-不替代 Linux/Wasm SDK 检查。新样例不在已启动的
-[修复验证](https://github.com/HighCWu/distro/actions/runs/38901721763)内，后续需另行验证。
+不替代 Linux/Wasm SDK 检查。首次
+[修复验证](https://github.com/HighCWu/distro/actions/runs/38901721763)在 Nix 求值阶段因
+空值字符串转换失败，未执行目标链接。override 已显式处理上游可为空的 patches 和
+postPatch 字段；包含循环归档样例的 `d70882a` 已启动
+[新版 wasm32 验证](https://github.com/HighCWu/distro/actions/runs/38902458547)，结果待确认。
 旧 wasm64 任务现已因同样缺少宿主归档器而失败，未进入目标运行。
 已针对 `a7d45554607e6e7185524f5d35b47208acf4a6a6` 启动
 [新版 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38895454756)，包含
