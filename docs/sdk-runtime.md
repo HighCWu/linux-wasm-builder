@@ -290,6 +290,25 @@ CheckFunctionExists只归档对象文件，不核验符号是否能够链接。�
 
 ## C++异常处理生成
 
+### 析构函数ABI后续修复
+
+修正异常生成选项后的wasm64任务
+[38873703134](https://github.com/HighCWu/distro/actions/runs/38873703134)
+已通过编译与异常处理代码生成检查，但运行在`__cxa_end_catch`报告
+`null function or function signature mismatch`。固定LLVM源码中的Linux target选择
+通用Itanium ABI，析构函数返回void；libc++abi的`__wasm__`分支则通过返回对象指针的
+函数类型调用析构函数，两者不一致。
+
+应用clang++配置与运行库CXX_FLAGS现均显式使用`-fc++-abi=webassembly`。本地Clang 22
+对双位宽的IR检查确认析构函数返回指针，显式切回Itanium的反例返回void；本地使用
+unknown-unknown目标，安装后的SDK检查使用实际Linux target。此ABI选择要求重建
+C++库及应用，不能混用旧的Itanium ABI产物。完整运行结果仍以定向CI为准：
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38887844197)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38887850625)，提交
+`ba7bf7faf3460c4a7613451efe23101ddf491bb6`，当前待验证。
+
+### 先前异常生成问题
+
 双位宽直接SDK消费检查均已完成编译、链接并启动用户程序，但在运行期间有
 WebAssembly.Exception逃出用户模块，导致init退出。早期C++运行检查同样失败；
 成功的CMake线程示例不包含主动抛出异常，不能替代异常路径的验证。
