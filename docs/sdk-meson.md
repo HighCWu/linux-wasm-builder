@@ -34,8 +34,8 @@ SDK shell中的CC/CXX选择Wasm工具链；CC_FOR_BUILD/CXX_FOR_BUILD选择构�
 示例先以native: true构建一个C静态库和链接该库的代码生成器，执行生成器生成
 answer.h，再使用生成的常量编译目标C++线程程序。生成器及其静态库源码都会拒绝
 被编译为Wasm，避免误用目标编译器；原生库的符号必须经真实归档、链接才能运行。
-这条宿主流程已通过，故意指定无效 AR_FOR_BUILD 的反例也被拒绝。正在运行的旧
-重型任务不包含新增的原生静态库场景，不能视为该场景的 Wasm 集成验证。
+这条宿主流程已通过，故意指定无效 AR_FOR_BUILD 的反例也被拒绝。下述新版 wasm64
+任务包含原生静态库场景；仍在运行的旧 wasm32 任务不包含它。
 
 cross file设置needs_exe_wrapper=true，不提供执行器。目标程序不能在配置阶段被
 当作宿主程序直接运行，项目的运行探针需要明确的交叉编译处理。不能简单把Node
@@ -63,8 +63,8 @@ CC_FOR_BUILD/CXX_FOR_BUILD/AR_FOR_BUILD选择正确工具。该本地流程已�
 反向查询也纳入宿主测试：`native: true` 必须取得同名依赖的宿主元数据，且宿主
 专有依赖对原生工具仍可见；目标查询则必须拒绝该依赖。测试把普通 PKG_CONFIG
 设为无效路径，分别依靠 cross file 和 PKG_CONFIG_FOR_BUILD 选择工具，并通过
-PKG_CONFIG_PATH_FOR_BUILD 提供原生依赖目录。当前重型运行早于这项扩展，不能
-用其结果替代扩展场景的目标验证。
+PKG_CONFIG_PATH_FOR_BUILD 提供原生依赖目录。下述新版 wasm64 任务包含此扩展，
+但仍需等其结果；旧 wasm32 任务不能替代该场景的目标验证。
 
 集成测试还用Meson构建并安装两个独立静态库，再通过目标pkg-config将它们链接到
 示例程序中。主库依赖辅助库，后者仅由Libs.private传递；删除这项元数据后，新的
@@ -81,6 +81,10 @@ PKG_CONFIG_PATH_FOR_BUILD 提供原生依赖目录。当前重型运行早于这
 Meson 在配置构建机工具时找不到 `gcc-ar`、`ar` 或 `gar`，尚未进入目标程序运行。
 `dca1a90` 为这项 Nix 检查加入宿主 binutils，修复后的
 [wasm32任务](https://github.com/HighCWu/distro/actions/runs/38890441490)仍在运行。
-旧 wasm64 任务也仍在运行，且不包含这项修复；不能把任一任务记为运行通过。
+旧 wasm64 任务现已因同样缺少宿主归档器而失败，未进入目标运行。
+已针对 `a7d45554607e6e7185524f5d35b47208acf4a6a6` 启动
+[新版 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38895454756)，包含
+binutils 修复、原生静态库生成器、双向依赖隔离和 C++ ABI 配置修复。
+新版两项任务均尚未取得运行通过证据，不能把旧任务失败解释成 Wasm 网络或内核故障。
 这些检查不是完整构建矩阵，也不意味着任意第三方 Meson 项目均兼容；后者仍需
 逐项验证。
