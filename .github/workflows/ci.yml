@@ -179,13 +179,17 @@ jobs:
           AGENT_ABI_TEST_GENERATOR="$GITHUB_WORKSPACE/sources/distro/distro/guest-agent/gen-abi-check.ts" \
             AGENT_ABI_TEST_SCHEMA="$RUNNER_TEMP/agent-abi-wasm64.mjs" \
             node --test "$RUNNER_TEMP/agent-abi-wasm64.test.mjs"
-      - name: Check agent session ABI handshake without booting Linux
+      - name: Check agent session and syscall ABIs without booting Linux
         run: |
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/session-handshake.test.ts \
             --bundle --platform=node --format=esm \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/session-handshake.test.mjs"
-          node --test "$RUNNER_TEMP/session-handshake.test.mjs"
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/syscalls-abi.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/syscalls-abi.test.mjs"
+          node --test "$RUNNER_TEMP/session-handshake.test.mjs" "$RUNNER_TEMP/syscalls-abi.test.mjs"
           for compiler in gcc clang; do
             "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror \
               sources/distro/distro/guest-agent/handshake-test.c \
