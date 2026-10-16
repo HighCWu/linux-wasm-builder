@@ -86,7 +86,7 @@ jobs:
       - name: Check Fetch response lifecycle without booting Linux
         run: node --test sources/distro/packages/linux-guest/tests/host-fetch-lifecycle.test.ts
       - name: Check browser lifecycle report gate
-        run: node --test scripts/browser-storage/check-report.test.mjs
+        run: node --test scripts/browser-storage/check-report.test.mjs sources/distro/distro/npm/browser-report-check.test.mjs
       - name: Check targeted Nix cache key consistency
         run: python3 -B scripts/test_ci_cache_contract.py
       - name: Check all kernel host tests without building Linux or LLVM
