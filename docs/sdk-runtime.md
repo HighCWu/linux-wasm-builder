@@ -19,6 +19,16 @@ MIT而被重新许可。使用者可按自身代码与实际依赖的许可证�
 配置变更后仍须重建依赖，不能仅凭目标位宽相同就混用旧产物。该新增安装入口的 Nix
 集成验证仍待包含它的后续构建；已运行的旧提交不覆盖此入口。
 
+配置记录可通过独立的 `sdk-check-profile` / `sdk-wasm64-check-profile` 检查验证，
+无需构建和启动 Linux 内核；仍需要对应工具链、sysroot 和 SDK 的 Nix 依赖。
+检查比较 CLI 与安装文件、目标位宽及默认参数，检查实际配置路径，并验证错误参数
+返回非零状态且不输出 JSON。C++ 消费检查仍强制依赖此检查，未降低运行验证要求。
+例如：
+
+```sh
+nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-profile'
+```
+
 ## 为什么需要独立启动检查
 
 既有toolchain-smoke会编译并验证C/C++ Wasm模块；已有C用户程序启动检查。但
