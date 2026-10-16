@@ -82,6 +82,8 @@ socket、time64 定时器和 pthread 等待/取消/广播，以及加载失败�
 [定向记录](https://github.com/HighCWu/distro/actions/runs/38943658455)固定 distro
 `0316709`，报告门禁确认零跳过、零重试。该结果不等于 wasm64 高层 agent 或
 完整发行版矩阵通过；agent 的 syscall wire ABI 目前仍为 wasm32。
+高层 agent 的 wasm64 ABI 描述及目标编译检查已开始接入，当前范围与后续依赖见
+[agent wasm64 接入](agent-wasm64.md)；不把描述器检查当作运行支持已经完成。
 
 Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
 toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界MAP_FIXED、
