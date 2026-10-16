@@ -81,9 +81,12 @@ wasm64 的容器、RAII 异常清理、线程及 TLS 已在默认双核 Linux �
 socket、time64 定时器和 pthread 等待/取消/广播，以及加载失败后的恢复；
 [定向记录](https://github.com/HighCWu/distro/actions/runs/38943658455)固定 distro
 `0316709`，报告门禁确认零跳过、零重试。该结果不等于 wasm64 高层 agent 或
-完整发行版矩阵通过；agent 的 syscall wire ABI 目前仍为 wasm32。
-高层 agent 的 wasm64 ABI 描述及目标编译检查已开始接入，当前范围与后续依赖见
-[agent wasm64 接入](agent-wasm64.md)；不把描述器检查当作运行支持已经完成。
+完整发行版矩阵通过。公开 agent 镜像路径仍为 wasm32，但内部 v4/wasm64 会话的
+真实最小 Node 请求链已通过：包括文件操作、原生用户程序与标准流、信号及会话清理。
+[运行记录](https://github.com/HighCWu/distro/actions/runs/38950484007)固定 distro
+`243a96d`，六组用例加外层共 7 项，零失败、零跳过。共用语料的浏览器检查已接入，
+结果尚待确认。范围及后续依赖见[agent wasm64 接入](agent-wasm64.md)；
+不把 Node 最小外壳通过当作生产镜像或浏览器矩阵已经完成。
 
 Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
 toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界MAP_FIXED、
