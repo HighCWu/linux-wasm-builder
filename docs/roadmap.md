@@ -156,6 +156,8 @@ SQLite 持久化通过，也不是 SQLite 或存储同步故障的证据。distr
 - TLS、curl、SSH、包管理器和语言runtime的真实网络测试。
 - 明确浏览器安全模型，不伪装浏览器无法提供的原始网络能力。
   当前 Fetch 转换、取消所有权和验证边界见[宿主 HTTP 说明](host-http.md)。
+  SDK 双位宽的 Unix/TCP 回环、非阻塞就绪和半关闭验证见
+  [SDK socket 说明](sdk-sockets.md)；目标运行结果仍待验证，不据此宣称外部网络支持。
 
 ## P5：进程和内存兼容
 
