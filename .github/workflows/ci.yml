@@ -84,7 +84,7 @@ jobs:
       - name: Check OPFS initialization ownership and failure cleanup
         run: node --test sources/distro/apps/site/opfs-storage.test.js
       - name: Check Fetch response lifecycle without booting Linux
-        run: node --test sources/distro/packages/linux-guest/tests/host-fetch-lifecycle.test.ts
+        run: node --test sources/distro/packages/linux-guest/tests/host-fetch-lifecycle.test.ts sources/distro/packages/linux-guest/tests/browser-fs-ownership.test.ts
       - name: Check browser lifecycle report gate
         run: node --test scripts/browser-storage/check-report.test.mjs sources/distro/distro/npm/browser-report-check.test.mjs
       - name: Check targeted Nix cache key consistency
