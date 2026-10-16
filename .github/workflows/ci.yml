@@ -61,7 +61,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libsqlite3-dev sqlite3
-          node --test sources/distro/packages/browser-tests/site-sqlite.test.js
+          node --test sources/distro/packages/browser-tests/site-sqlite.test.js sources/distro/packages/browser-tests/site-fs-trace.test.js
           for compiler in gcc clang; do
             "$compiler" -O2 -pthread -Wall -Wextra -Werror \
               sources/distro/distro/sdk/sqlite-example.c -lsqlite3 \
