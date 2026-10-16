@@ -3,7 +3,8 @@
 # 高层 agent 的 wasm64 接入
 
 目标是在已有 wasm64 内核、SDK 和浏览器用户程序路径上，继续提供匹配位宽的
-进程、文件、挂载及网络 API。当前 `@lowland/guest` 会话仍使用 wasm32 ABI；
+进程、文件、挂载及网络 API。当前 `@lowland/guest` 公开启动路径仍使用 wasm32；
+内部会话已能选择原生 wasm64 syscall 编码，但尚无真实 wasm64 agent 运行证明。
 已有 wasm64 C/C++ 通过记录不代表 agent 或完整发行版通过。
 保持 `CONFIG_MMU=n` 和真实线性内存指针，不引入内核 softmmu。
 
@@ -45,27 +46,41 @@ distro `943aae8` 保持默认 v3/wasm32 会话，新增内部显式 ABI 的 v4 �
 宿主也要求相同版本及 ABI 回显，lane 不一致会使会话失败并关闭连接，不自动降级。
 
 内部 `GuestSession.connect(device, { abi })` 使用 v4；不指定 abi 时保留 v3，
-因此现有合规 wasm32 镜像保持原握手。高层公开 API 尚未选择 wasm64 镜像；
-原生 syscall adapter 尚未接入，wasm64 会话的 syscall helper 在发送请求前明确
-拒绝，不能以握手成功为由发出旧布局。该保护是后续适配前的临时边界，不是 wasm64
-平台支持的最终范围。
+因此现有合规 wasm32 镜像保持原握手。高层公开 API 尚未选择 wasm64 镜像。
+该提交曾在原生 syscall adapter 接入前禁止 wasm64 请求；下节的后续提交已移除
+这项临时保护，改为按已协商的会话 ABI 编码。
 
 11 项宿主回归及同套独立打包检查、类型检查通过，覆盖两种 ABI 的 v4、默认 v3、
-短回复、错误身份、lane 不一致、关闭及禁止旧 syscall 编码。GCC/Clang 通过本地
+短回复、错误身份、lane 不一致、关闭及当时的 syscall 保护。GCC/Clang 通过本地
 socket pair 执行真实 C 握手，包括拒绝 native LP64 的 v3、错误 ABI 和错误 lane
 版本；没有启动 PID 1，也不计作 Wasm 执行证明。更新后的
-[目标编译](https://github.com/HighCWu/distro/actions/runs/38947236148) 及
+[目标编译](https://github.com/HighCWu/distro/actions/runs/38947236148) 已通过，
+日志确认构建 `linux-agent-abi-wasm64`，包括 v4 agent C 与 ABI 静态断言。
 [默认 wasm32 完整 agent 集成检查](https://github.com/HighCWu/distro/actions/runs/38947242982)
-已另行启动，固定 distro `943aae8`，结果待确认。
+仍在运行；两项均固定 distro `943aae8`，不包含下述后续 syscall 改动。
+
+## 按会话选择 syscall 布局
+
+distro `70ad41c` 将 seek、truncate、路径与描述符 stat 接入已协商的会话 ABI。
+wasm32 保留拆分参数与 104 字节结构；wasm64 使用原生参数与 128 字节结构。
+原始 seek 结果保持 bigint，超出有符号 64 位的 offset/length 在发送前拒绝。
+公开 number 字段不可精确表示时抛出 RangeError，不静默舍入；公开 seek 若收到
+不可表示的结果，会在内核已改变文件位置后拒绝。调用者应留意这一副作用。
+时间先以 bigint 合并秒与纳秒，再转换为毫秒；超过 JS Date 范围返回 null。
+
+13 项新增 syscall/精度回归与更新后的 11 项会话回归均通过，独立打包执行也通过。
+加上已有 stat 与 ABI 描述检查，共 30 项宿主测试及类型检查通过。覆盖负 offset、
+两种参数布局、带偏移视图、errno、整数精度与 Date 正负边界。它们验证的是宿主
+编码和解码，不能代替真实 wasm64 Linux 上的 agent syscall 运行。
 
 ## 后续接入顺序
 
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
-2. 在已有 v4 身份检查之上接入高层镜像选择，保持现有 wasm32 会话兼容性。
-3. 让 syscall 层依会话选择 seek、truncate、stat 的参数和结构；审计 bigint、
-   signed scalar 与公开 number API 的边界，不静默截断不可表示的值。
-4. 构建匹配位宽的 agent、启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
+2. 优先以最小 initramfs 启动真实 wasm64 agent，验证 v4 会话及 seek、truncate、
+   stat 的完整请求链，避免以宿主模拟测试代替执行证据。
+3. 在运行验证基础上接入高层镜像选择，保持现有 wasm32 会话兼容性。
+4. 构建匹配位宽的完整启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
    wasm64 SDK 不等于整个发行版 scope 已转换为 wasm64。
 5. 在 Node 和真实 Chromium/Firefox 验证启动、进程/标准流、metadata、大 offset、
    删除后打开描述符、挂载、网络及关闭，同时保留 wasm32 回归。

@@ -167,8 +167,12 @@ distro `5144ef6` 补齐不带 FH 的节点属性查询：节点记录自己的�
 节点再次返回 ENOENT，不能借此重新打开旧文件。仍不提供跨宿主进程的命名空间隔离。
 新增回归在修复前复现 ENOENT，修复后 18 项 NodeFS 后端测试、同套独立打包测试及
 类型检查通过，覆盖 unlink/recreate 和替换后两个打开描述符逐一关闭的行为。
-原有四项 Linux 挂载断言保持不变，已启动
-[定向重跑](https://github.com/HighCWu/distro/actions/runs/38944517538)，结果待确认。
+原有四项 Linux 挂载断言保持不变，
+[定向重跑](https://github.com/HighCWu/distro/actions/runs/38944517538) 已通过，
+固定 distro `5144ef6`。实际运行日志确认双向读写、self-rename、替换后保留旧打开
+inode、unlink/recreate 后原描述符与新文件分离全部通过；包含外层测试共 5 项，
+零失败、零跳过。这是 Node 宿主上 wasm32 Linux 挂载链的运行证据，不代表
+BrowserFS、真实浏览器或 wasm64 agent 的对应行为已验证。
 
 BrowserFS 的显式 atime/mtime/ctime 现会在截短及任何元数据修改之前校验纳秒字段：
 必须为 `[0, 1000000000)` 内的整数，否则返回 EINVAL，原文件字节和元数据不变。
