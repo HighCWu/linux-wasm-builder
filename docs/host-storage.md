@@ -97,6 +97,9 @@ NodeFS 时间戳对 1970 年前的值使用向下取整的秒和非负纳秒余�
 数字秒字符串，不再经 Date 截断到毫秒，也避免 Node 将负数参数解释为当前时间。
 纳秒必须为 [0, 1e9) 内的整数，秒必须可安全表示；无效输入在截短等修改前拒绝。
 回归覆盖亚毫秒时间、仅修改 mtime 时保留 atime、1970 年前时间及错误输入。
+Node/宿主 API 仍有浮点和平台精度限制，测试按微秒级误差核验亚毫秒值；未指定的
+时间目前通过读取再写回保留，不是原子的 UTIME_OMIT，不保证保留纳秒精度或并发
+外部修改。这些宿主结果不替代 Linux 挂载端到端验证。
 
 BrowserFS 的显式 atime/mtime/ctime 现会在截短及任何元数据修改之前校验纳秒字段：
 必须为 `[0, 1000000000)` 内的整数，否则返回 EINVAL，原文件字节和元数据不变。
@@ -104,10 +107,9 @@ BrowserFS 的显式 atime/mtime/ctime 现会在截短及任何元数据修改之
 JavaScript 浮点数限制截断，省略纳秒视为 0，atime/mtime 的 `now` 仍在修改队列内
 求值。这些是适配器生命周期内的合成元数据，不代表 OPFS 持久保存 Unix 时间戳。
 宿主回归覆盖三个字段各五种非法纳秒、修改前拒绝、负秒、大于 2^53 的秒及输入
-对象隔离；Chromium/Firefox 独立存储套件扩为 14 项，真实浏览器结果待 CI 验证。
-Node/宿主 API 仍有浮点和平台精度限制，测试按微秒级误差核验亚毫秒值；未指定的
-时间目前通过读取再写回保留，不是原子的 UTIME_OMIT，不保证保留纳秒精度或并发
-外部修改。这些宿主结果不替代 Linux 挂载端到端验证。
+对象隔离；Chromium/Firefox 独立存储套件扩为 14 项，
+[38929166175](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38929166175)
+固定 distro `c8ce624`，真实浏览器结果待 CI 验证。
 
 BrowserFS 在读取文件或创建写流前检查完整 I/O 范围：偏移和长度必须非负且能由
 JavaScript 安全整数精确表示，结束位置也不得溢出。无效范围返回 EINVAL，而不是
@@ -130,6 +132,10 @@ BrowserFS 的 `O_APPEND` 写入在当前节点的修改队列内读取已提交�
 [38921224883](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38921224883)
 已在 Chromium/Firefox 均通过：日志确认各 12 项指定用例实际执行、零跳过、零重试，
 包含追加和当前标志切换，固定 distro `6b6d4e7`。它不等同于 Linux 挂载端到端验证。
+上述动态标志支持仅指 BrowserFS。NodeFS 当前依赖打开宿主描述符时的 O_APPEND，
+没有同步后续 F_SETFL 的追加标志切换；需要这项语义的软件不应将 Node 共享目录
+当作已完整兼容的 Linux 文件系统。后续修复需要保留描述符的 inode 身份以及追加
+原子性，不能通过重新打开当前路径来假定仍是同一文件。
 
 BrowserFS 的 create、mkdir、unlink、rmdir、rename 现还共用适配器级的命名修改
 队列，避免两个独占创建都在检查阶段观察到“不存在”后一起成功，或创建请求穿插
