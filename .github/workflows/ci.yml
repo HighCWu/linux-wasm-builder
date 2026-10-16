@@ -191,6 +191,8 @@ jobs:
             --outfile="$RUNNER_TEMP/syscalls-abi.test.mjs"
           node --test "$RUNNER_TEMP/session-handshake.test.mjs" "$RUNNER_TEMP/syscalls-abi.test.mjs"
           for compiler in gcc clang; do
+            "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror -fsyntax-only \
+              sources/distro/distro/guest-agent/runtime-init.c
             "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror \
               sources/distro/distro/guest-agent/handshake-test.c \
               -o "$RUNNER_TEMP/agent-handshake-host"
