@@ -130,6 +130,9 @@ BusyBox 还新增随包许可证文本与静态链接运行库声明，以及安
 `36578fd` 新增公开网络插件的独立六组语料，Node 和两浏览器均已提交 CI：从
 宿主连接原生 BusyBox HTTP 服务，检查 NIC 配置、TCP LISTEN、HTTP 正文和服务
 退出/资源关闭。轻量检查通过，实际结果待确认；不依赖外网，也不宣称外网已可用。
+`6e6047c` 修正 SDK 子进程 disposal：等待回收及槽释放，已确认回收后不再对原
+数字 PID 发送 SIGKILL。八项双位宽协议回归通过；真实 wasm64 Node/两浏览器与
+wasm32 完整集成已提交 CI。该修正不等于 pidfd 或完整进程组生命周期支持。
 
 Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
 toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界MAP_FIXED、

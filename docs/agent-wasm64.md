@@ -435,7 +435,7 @@ distro `515dc27` 将 userland 语料扩为五组，新增公开 `exec()` 调用�
 
 TypeScript、浏览器打包、JS 语法和 7 项相关宿主断言/二进制契约回归通过。这些
 轻量检查不证明实际 Wasm 程序通过。以下三项固定含文档的 `316d7b0`，已提交
-公开 CI，结果待确认。它们仍包含同一条不受支持的 `set -eu`，需要下述修正，
+公开 CI，现均已失败。它们仍包含同一条不受支持的 `set -eu`，需要下述修正，
 不能把编译通过视为运行验证通过；原任务未取消或重启：
 
 - [二进制管道 Node](https://github.com/HighCWu/distro/actions/runs/38963030942)
@@ -482,6 +482,31 @@ TypeScript、JS 语法、浏览器打包和 10 项相关宿主回归通过。其
 - [公开网络 Node](https://github.com/HighCWu/distro/actions/runs/38964197663)
 - [公开网络 Chromium](https://github.com/HighCWu/distro/actions/runs/38964203587)
 - [公开网络 Firefox](https://github.com/HighCWu/distro/actions/runs/38964210907)
+
+#### SDK 子进程关闭与回收顺序
+
+distro `6e6047c` 修正实际 SDK 的 `ChildProcess.close()`：原实现仅等待缓冲输入和
+描述符关闭，未等待 status/reap，因此可能在进程槽释放前返回；正常回收完成后的
+dispose 还会再次对原数字 PID 发 SIGKILL。新增的三项可控宿主回归在旧实现均失败。
+
+修正后，成功 reap 会记录状态；已确认回收的进程关闭时不再发送信号。关闭仍先
+终止运行进程、等待缓冲输入和关闭描述符，之后等待 status 完成与槽释放，即使
+描述符关闭失败也不跳过等待。取消原因继续由 status 返回，不被 dispose 覆盖。
+这不是 pidfd 或完整进程组管理，不宣称消除所有 signal/reap 并发竞态。
+
+双位宽共八项可控协议回归通过，覆盖延迟回收、幂等关闭、回收后不发送信号、取消
+原因及描述符关闭错误；独立打包后也通过，主仓库轻量 CI 无需安装整个 workspace
+即可执行。TypeScript、浏览器语料打包和相关三项命令/就绪回归通过。真实 wasm64
+语料补充 SIGKILL disposal 返回前必须释放槽的断言，wasm32 语料也检查关闭返回时
+status 已完成；这些新增目标断言仍待实际运行确认。
+
+以下四项固定含文档的 `5c4d1bb`，已提交公开 CI，结果待确认。先前 shell 和
+网络任务仍独立运行，没有因等待而被重启或取消：
+
+- [进程关闭 Node](https://github.com/HighCWu/distro/actions/runs/38964964797)
+- [进程关闭 Chromium](https://github.com/HighCWu/distro/actions/runs/38964971985)
+- [进程关闭 Firefox](https://github.com/HighCWu/distro/actions/runs/38964979535)
+- [wasm32 完整集成](https://github.com/HighCWu/distro/actions/runs/38964986294)
 
 #### 错误身份的会话资源顺序
 
