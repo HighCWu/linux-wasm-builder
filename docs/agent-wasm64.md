@@ -415,7 +415,8 @@ stdout、空 stderr、成功状态、四组断言完成和机器关闭；不存�
 不退回单个 C 程序，也不传外部 initramfs、手工启动参数或会话 trace 标志。
 
 TypeScript、浏览器共享语料打包、JS 与 shell 语法检查通过，7 项相关宿主断言及
-二进制契约测试通过。以下三项均固定 `50e37e4`，已启动，运行结果待确认：
+二进制契约测试通过。以下三项均固定 `50e37e4`，现已失败：前三组完成，但
+shell 在 `set -eu` 处退出，三宿主日志均报 `sh: set: -eu: invalid option`。
 
 - [公开原生 shell Node](https://github.com/HighCWu/distro/actions/runs/38961589917)
 - [公开原生 shell Chromium](https://github.com/HighCWu/distro/actions/runs/38961598074)
@@ -434,11 +435,29 @@ distro `515dc27` 将 userland 语料扩为五组，新增公开 `exec()` 调用�
 
 TypeScript、浏览器打包、JS 语法和 7 项相关宿主断言/二进制契约回归通过。这些
 轻量检查不证明实际 Wasm 程序通过。以下三项固定含文档的 `316d7b0`，已提交
-公开 CI，结果待确认；前述 `50e37e4` 的四组检查仍独立运行，没有取消或重启：
+公开 CI，结果待确认。它们仍包含同一条不受支持的 `set -eu`，需要下述修正，
+不能把编译通过视为运行验证通过；原任务未取消或重启：
 
 - [二进制管道 Node](https://github.com/HighCWu/distro/actions/runs/38963030942)
 - [二进制管道 Chromium](https://github.com/HighCWu/distro/actions/runs/38963038435)
 - [二进制管道 Firefox](https://github.com/HighCWu/distro/actions/runs/38963045467)
+
+#### 固定 hush 的能力边界与命令语料修正
+
+固定 BusyBox `4ad91c87` 的 `shell/hush.c` 仅实现 pipefail、noexec、errexit
+及可选 xtrace，没有 nounset；这不是配置开关或 wasm64 argv 传递错误。
+distro `8122442` 将共享命令提取到独立文件，使用受支持的 `set -e`，保留 cwd、
+参数、环境、数据和退出断言，未新增 shell、未声称补齐 POSIX shell。更完整的
+shell 支持仍属于用户态软件工作，不能以本次测试修正代替。
+
+两项新增宿主回归检查脚本语法、fail-fast 首语句和明确的输入值断言，并实际在
+隔离临时目录运行同一二进制管道命令，核对双路输出、文件清理及空 TMPDIR 的失败。
+TypeScript、浏览器打包、相关宿主检查通过；它们不替代真实 Linux/Wasm 执行。
+主仓库轻量 CI 已接入该回归。以下三项固定 `189a7a7`，结果待确认：
+
+- [修正后 Node](https://github.com/HighCWu/distro/actions/runs/38963628226)
+- [修正后 Chromium](https://github.com/HighCWu/distro/actions/runs/38963636320)
+- [修正后 Firefox](https://github.com/HighCWu/distro/actions/runs/38963643976)
 
 #### 错误身份的会话资源顺序
 
@@ -466,7 +485,7 @@ GCC/Clang 的真实 socketpair 握手及资源顺序测试通过，覆盖错误 
 
 #### 安装系统的独立进程、网络与许可检查
 
-以下两项固定 `3d47240`，已提交公开 CI，结果待确认；它们不依赖公开 shell 场景
+以下两项固定 `3d47240`，均已通过，实际日志确认 `::vm-test::pass`；不依赖公开 shell 场景
 通过，也不能被 shell smoke 的成功代替：
 
 - [wasm64 BusyBox 进程](https://github.com/HighCWu/distro/actions/runs/38962167511)：
@@ -476,10 +495,9 @@ GCC/Clang 的真实 socketpair 握手及资源顺序测试通过，覆盖错误 
 
 distro `684f996` / `a798519` 为双位宽 BusyBox 安装上游 LICENSE、对应 musl
 COPYRIGHT、实际选用 compiler-rt 源码的 LICENSE.TXT 和说明文件到
-`/share/licenses/busybox/`。安装后的 smoke 要求四个文件均非空；新增门禁结果
-仍待 CI 确认，不能引用之前 smoke 的成功作为此项证明。
+`/share/licenses/busybox/`。安装后的 smoke 要求四个文件均非空。
 
-以下两项固定包含该变更的 `2b34bfb`，已提交公开 CI，结果待确认：
+以下两项固定包含该变更的 `2b34bfb`，均已通过，实际日志确认 `::vm-test::pass`：
 
 - [wasm64 安装 smoke 与许可文件](https://github.com/HighCWu/distro/actions/runs/38962531852)
 - [wasm32 安装 smoke 与许可文件](https://github.com/HighCWu/distro/actions/runs/38962537913)
