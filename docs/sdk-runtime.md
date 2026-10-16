@@ -314,6 +314,7 @@ C++异常tag和catch处理仍存在。旧配置会失败，修正后通过；SDK
 
 Autoconf项目可使用SDK的`wasm-linux-configure`入口，使用方式、配置探测及验证
 边界见[Autoconf构建说明](sdk-autoconf.md)。
+Meson项目可使用安装后的cross file及显式构建机工具，见[Meson构建说明](sdk-meson.md)。
 
 宿主g++ C++17严格编译及执行通过，Nix语法格式化和仓库元数据检查通过。本地没有
 构建Linux或LLVM。公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38859969295)
