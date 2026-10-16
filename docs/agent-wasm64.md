@@ -3,9 +3,11 @@
 # 高层 agent 的 wasm64 接入
 
 目标是在已有 wasm64 内核、SDK 和浏览器用户程序路径上，继续提供匹配位宽的
-进程、文件、挂载及网络 API。当前 `@lowland/guest` 公开启动路径仍使用 wasm32；
+进程、文件、挂载及网络 API。当前 `@lowland/guest` 默认打包镜像仍使用 wasm32，
+新增显式自定义 ABI/镜像的公开入口，其 Node 实际启动检查已通过；
 内部原生 wasm64 会话、文件与进程请求链已在 Node 最小启动检查和 Chromium 的
-生产入口/根切换检查中运行通过；Firefox、GPT 磁盘启动和完整发行版仍需分别验证。
+生产入口/根切换检查中运行通过；GPT 磁盘启动也已在 Node 通过。
+Firefox、公开镜像选择的浏览器端到端路径和完整发行版仍需分别验证。
 保持 `CONFIG_MMU=n` 和真实线性内存指针，不引入内核 softmmu。
 
 ## ABI 前置工作
@@ -279,16 +281,56 @@ gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
 检查通过。固定 `c6ff369` 的[磁盘启动检查](https://github.com/HighCWu/distro/actions/runs/38955898504)、
 [wasm32 完整集成回归](https://github.com/HighCWu/distro/actions/runs/38955905288) 和
 [带完整错误诊断的生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38955911495)
-已启动、结果待确认。编译、实际磁盘构建及启动在公开 CI 执行，不以本地类型或
-格式检查替代启动证据；旧版浏览器任务保留，不因运行较久而重启或取消。
+中，磁盘启动已通过：日志确认根切换及全部七组文件/进程断言完成，八组加外层共
+9 项通过，零失败、零跳过。wasm32 回归仍待确认。Firefox 已失败，完整错误确定
+为 `agent v3/wasm32 handshake timed out`：传输连接已建立，首次 v3 握手超时，
+机器随后正常关闭；尚不能确定是数据投递、会话初始化还是拒绝后的关闭通知问题。
+本次磁盘成功固定 `c6ff369`，不包含下一节新增的公开镜像选择接口。
+
+### 显式公开镜像选择
+
+distro `8fb34f7` 新增 `guestAgent({ abi: "wasm64", image })`，调用方提供匹配的
+GPT agent 磁盘，仍由插件负责启动参数、vsock、就绪等待和高层能力，不必自行创建
+内部会话。默认 `guestAgent()` 保持打包 wasm32 镜像和 v3；显式 ABI 使用 v4，
+无自动降级。公开 `GuestAgentOptions` 为判别联合，并导出 `AgentAbi` 类型。
+
+运行时也检查 JavaScript 调用：自定义镜像必须显式指定 ABI，wasm64 不得误用默认
+wasm32 镜像，镜像必须是非空且整扇区的 Uint8Array。创建时复制输入视图，避免
+调用方之后修改字节或选项改变已选镜像。形状检查不等于解析或验证镜像内程序位宽，
+真正的内核加载与握手验证仍不可省略。必须使用匹配的 wasm64 内核和独立系统根盘；
+这不是将默认发布的内核/根盘包全体切换到 wasm64。
+
+4 项镜像选择回归连同会话、syscall 和客户端回归共 35 项宿主测试通过；类型检查及
+公开入口的浏览器打包/语法检查通过。新增 `guest-agent-check-public-wasm64` 通过
+公开导出创建 agent，不传 initcpio 或手写启动参数；检查根切换、只读根、文件 seek/
+metadata/truncate、`run()` 的退出码及 argv/env/cwd。它复用磁盘启动检查的资产，
+不以那项检查的成功代替自己的运行结果。
+[公开启动检查](https://github.com/HighCWu/distro/actions/runs/38956757415) 固定
+`a0498bc`（实现及说明），已通过：日志确认三个子用例实际完成，加外层共 4 项，
+零失败、零跳过，并正常等待机器关闭。这证明 Node 上的公开插件路径，不是浏览器
+公开插件、完整发行版或默认 npm 发布包已切换到 wasm64 的证明。
+
+### 会话阶段诊断
+
+distro `af5a160` 新增默认关闭的 `lowland.agent.trace=1`，记录接受连接、clone、
+会话 worker、lane listener、reaper 创建、握手读取和接受/拒绝退出阶段及 PID，
+不输出请求载荷或程序数据。共享运行检查显式启用，便于定位 Firefox 超时在哪一层，
+不增加实验性引擎参数，不延长原握手期限或放宽断言。
+
+GCC/Clang 的真实握手回归与新增日志回归通过，检查默认静默、启用输出及 errno
+保留；生产 agent 和测试入口的严格语法检查、TypeScript 检查通过。该增量只补
+诊断，尚未证明 Firefox 根因已修复。构建和运行继续交由公开 CI，旧版任务不因
+运行较久而重启或取消。
+[带阶段日志的生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38957371982)
+固定 `af5a160`，已启动、结果待确认。
 
 ### 下一步
 
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
-2. 定位 Firefox 就绪后的等待问题，验证生产入口的根切换；已通过的 Chromium
-   生产入口和 Node 最小外壳不代替 Firefox、GPT 磁盘启动或后续改动的验证。
-3. 验证原生 GPT 磁盘启动，再接入高层镜像选择，保持现有 wasm32 会话兼容性。
+2. 定位 Firefox 会话握手问题；已通过的 Chromium 生产入口和 Node 磁盘启动
+   不代替 Firefox 或后续改动的验证。
+3. 将已通过 Node 的公开镜像选择链路接入浏览器验证，并保留 wasm32 回归。
 4. 构建匹配位宽的完整启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
    wasm64 SDK 不等于整个发行版 scope 已转换为 wasm64。
 5. 在 Node 和真实 Chromium/Firefox 验证启动、进程/标准流、metadata、大 offset、
