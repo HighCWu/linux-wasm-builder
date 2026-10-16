@@ -101,6 +101,12 @@ socket、time64 定时器和 pthread 等待/取消/广播，以及加载失败�
 范围及后续依赖见[agent wasm64 接入](agent-wasm64.md)；
 不把 Node 最小外壳通过当作生产镜像或浏览器矩阵已经完成。
 
+原生用户态开始从单文件程序向安装系统推进：distro `787177d` 新增显式
+`stdenv-wasm64`、64 位包/镜像构造器及 `busybox-wasm64`，重用原有 shell、
+进程与 loopback 网络检查，而不是复用 wasm32 loader。首项安装系统 smoke
+已在公开 CI 进入重型检查，结果待确认；尚不宣称构建成功、浏览器通过或完整
+发行版已迁移。默认 scope 仍为 wasm32，各包继续遵守自身许可证。
+
 Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
 toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界MAP_FIXED、
 pthread/TLS及信号检查，只有完整用户程序通过标记才算成功。宿主控制流回归已覆盖

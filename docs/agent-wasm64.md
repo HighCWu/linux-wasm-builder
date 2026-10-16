@@ -347,13 +347,28 @@ argv/env/cwd 均为必须完成的断言；另要求机器关闭和精确报告�
 
 ### 下一步
 
+已新增两项并行推进的增量：
+
+- distro `9aa970e` 恢复共享运行语料默认不启用会话阶段日志；诊断仍可显式开启。
+  [无日志生产 Firefox 复验](https://github.com/HighCWu/distro/actions/runs/38958737342)
+  固定该提交，已启动，结果待确认；不替代此前带日志成功的独立记录。
+- distro `787177d` 新增 `stdenv-wasm64`、`apk-wasm64`、`image-wasm64` 和
+  `busybox-wasm64`：显式选择匹配的工具链、sysroot、Linux 头文件、包架构和
+  BusyBox 引导镜像。复用既有安装系统检查，不混入 wasm32 loader。
+  [安装后的 BusyBox smoke](https://github.com/HighCWu/distro/actions/runs/38958962664)
+  已通过 derivation 求值并进入重型检查，构建和运行结果待确认。其目标为真实
+  shell、文件操作、管道、命令替换、time/ts；不是另一个单文件 C 启动测试。
+  进程与 loopback 网络仍是独立检查，尚不宣称通过；浏览器和完整发行版也未覆盖。
+  默认包 scope、发行仓库和 npm 镜像保持 wasm32。BusyBox 保持 GPL-2.0-only，
+  构建基础设施的 MIT 不改变它的许可或对应源码交付义务。
+
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
 2. 继续定位 Firefox 会话握手的时序敏感性，补默认关闭日志的生产入口复验；
    启用日志的成功不作为根因已修复的证明。
 3. 检查新接入的公开镜像选择链路在浏览器和 Node 的结果，并保留 wasm32 回归。
-4. 构建匹配位宽的完整启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
-   wasm64 SDK 不等于整个发行版 scope 已转换为 wasm64。
+4. 验证新接入的原生 BusyBox 构建与安装系统，再扩展匹配位宽的启动镜像和用户态；
+   不混用 wasm32 BusyBox/rootfs，wasm64 SDK 不等于整个发行版 scope 已转换。
 5. 在 Node 和真实 Chromium/Firefox 验证启动、进程/标准流、metadata、大 offset、
    删除后打开描述符、挂载、网络及关闭，同时保留 wasm32 回归。
 
