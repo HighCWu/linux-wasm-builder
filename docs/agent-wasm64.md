@@ -522,6 +522,10 @@ distro `f62f9d1` 改为 `command || status=$?` 立即保存，仍严格要求退
 
 [定向 Node shell/管道/HTTP 复验](https://github.com/HighCWu/distro/actions/runs/38967861065)
 固定 `82bd0d4`，先验证包含 shell 前置检查的六组完整语料，再决定浏览器网络复验。
+该任务现已成功；实际日志确认六组全部完成，加外层共 7 项通过、零失败、零跳过。
+shell 组包含运行中取消及后续命令，二进制管道逐字节断言通过，HTTP 组实际执行，
+不再停在 shell 前置检查。该结果仍只证明附加 NIC 的原生 HTTP 链路，不证明外网、
+DNS、代理或 TLS；已据此提交 Chromium/Firefox 的完整网络语料复验。
 
 #### 不含测试程序的最小系统根盘
 
