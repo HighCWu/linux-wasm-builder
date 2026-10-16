@@ -116,10 +116,11 @@ cmake --build build-sdk
 调用，并在线程中使用vector，join后核验结果。CMakeLists选择C11/C++17，使用
 Threads::Threads，不手工传递内部平台链接参数；示例目标显式设置.wasm后缀。
 
-CMAKE_TRY_COMPILE_TARGET_TYPE为STATIC_LIBRARY：配置探针不在宿主执行Wasm。
-这不表示任意依赖项目的try_run探针已经解决，也不应将静态编译探针通过当作某函数
-运行可用的证据。动态库及任意CMake第三方包兼容性仍不在本轮承诺范围；强制响应
-文件的后续验证见下节。
+工具链保持CMake默认的可执行文件try_compile：配置探针会编译并链接，但不在宿主
+执行Wasm。缺失符号应使链接失败，避免把仅能编译的函数声明误认为库中已有实现。
+try_run仍需要目标运行环境或项目提供经过验证的结果；编译、链接通过不等于函数
+运行语义已受支持。动态库及任意CMake第三方包兼容性仍不在本轮承诺范围。
+升级工具链后应使用新构建目录，避免旧CMake缓存保留此前的探测误判。
 
 本地宿主CMake/Ninja配置、C archive与C++构建、执行pass，以及工具链模板语法
 检查通过；轻量CI重复这些检查而不下载LLVM。宿主构建没有使用Wasm工具链，不计
@@ -259,8 +260,29 @@ SDK_TEST_ZLIB_SOURCE=/absolute/path/to/zlib-1.3.1 \
 及raw initramfs；Node宿主收到程序pass才算运行成功。固定distro提交
 `90e0fdb3d2ad298f481de84e4ac8195280b97782`的公开
 [wasm32](https://github.com/HighCWu/distro/actions/runs/38865687673)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/38865697512)已通过检查发现阶段并
-开始构建，运行结果待确认；尚未新增浏览器验证。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38865697512)均在前置treefmt检查
+失败：pkg-config.sh中的条件表达式引号被shfmt规范化。两次任务尚未进入zlib编译和
+运行阶段，不能据此判断zlib兼容性。该格式问题已修正，重跑记录见下节。
+
+## CMake链接探测修正
+
+早期工具链把CMAKE_TRY_COMPILE_TARGET_TYPE固定为STATIC_LIBRARY，导致
+CheckFunctionExists只归档对象文件，不核验符号是否能够链接。宿主复现显示，一个
+刻意不存在的linux_wasm_sdk_missing_function也被报告为找到。
+
+工具链现已移除该覆盖，恢复默认的可执行文件链接探测。示例同时要求malloc存在、
+上述测试符号不存在；本地使用工具链模板及宿主编译器的交叉编译模式验证修正，
+独立安装静态依赖的消费回归也通过。轻量CI新增同一模板检查，实际Wasm编译器的
+探测由两种位宽的cmake-runtime检查覆盖。该修正不提供try_run执行器。
+
+修复后的distro提交`5ad3a970b12b47f83334782d8cbbf9c2205af886`已触发：
+
+- zlib：[wasm32](https://github.com/HighCWu/distro/actions/runs/38866455970)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/38866462004)。
+- CMake已安装依赖及符号探测：[wasm32](https://github.com/HighCWu/distro/actions/runs/38866467060)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/38866472989)。
+
+这些任务的目标运行结果待确认，不以本地宿主回归代替Wasm证据。
 
 ## 验证状态
 
