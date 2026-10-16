@@ -628,6 +628,10 @@ distro `9e042d7` 修正 SDK `exec()` 的进程槽等待：原实现达到 8 个�
 进程，再成功执行 `/bin/true`。新增目标断言待固定 `e630196` 的定向 Node 网络及
 wasm32 完整集成验证；不把前一批 `82bd0d4` 通过当作本次取消路径已验收。
 
+其中固定 `e630196` 的 Node 全链现已成功，实际日志确认六组加外层共 7 项通过、
+零失败、零跳过；shell/生命周期组包含新增满槽取消断言。它不替代尚在运行的
+wasm32 集成或其他浏览器版本。
+
 - [满槽取消后的 Node 全链](https://github.com/HighCWu/distro/actions/runs/38970071619)
 - [满槽取消后的 wasm32 集成](https://github.com/HighCWu/distro/actions/runs/38970077410)
 
