@@ -22,6 +22,8 @@ meson compile -C build-meson
 SDK shell中的CC/CXX选择Wasm工具链；CC_FOR_BUILD/CXX_FOR_BUILD选择构建机的
 原生编译器，PKG_CONFIG_FOR_BUILD选择构建机的依赖查询工具。Meson项目需用
 `native: true`声明构建期间执行的工具，目标依赖继续使用cross file中的pkg-config。
+两个开发 shell 也提供宿主 binutils，并用 AR_FOR_BUILD/RANLIB_FOR_BUILD 指定
+原生归档工具；普通 AR/RANLIB 仍指向目标 LLVM 工具，不应混用。
 
 构建机还需要原生归档工具 `ar`（通常由 binutils 提供）。cross file 的 `ar`
 只选择目标归档工具，并不替代 Meson 对构建机工具的探测；仅把 CC_FOR_BUILD
@@ -41,8 +43,9 @@ cross file设置needs_exe_wrapper=true，不提供执行器。目标程序不能
 
 本地以Meson 1.10.0和宿主编译器使用同一cross file模板，验证交叉构建模式、禁止
 直接运行目标探针、宿主代码生成器及C++消费程序。为检查工具选择，测试还把普通
-CC/CXX环境变量设为不可用路径，依赖cross file和CC_FOR_BUILD/CXX_FOR_BUILD选择
-正确编译器。该本地流程已纳入主仓库轻量CI，不计为Wasm运行通过。
+CC/CXX/AR环境变量设为不可用路径，依赖cross file和
+CC_FOR_BUILD/CXX_FOR_BUILD/AR_FOR_BUILD选择正确工具。该本地流程已纳入主仓库
+轻量CI，不计为Wasm运行通过，也不替代 Nix 开发 shell 的实际构建验证。
 
 配置阶段同时对C和C++执行链接探测：通过函数指针引用malloc/free，验证真实libc
 符号可链接；另一个有意引用不存在函数的程序必须能编译、但不能链接。两种探测
