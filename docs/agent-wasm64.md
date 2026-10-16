@@ -32,13 +32,37 @@ gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
 4 项宿主回归及同套独立打包检查通过，覆盖原生别名、128 字节布局、大于 2^53 的
 字段、负秒、带偏移视图、wasm32 描述不受影响及 C 断言生成。类型检查通过。
 [目标编译检查](https://github.com/HighCWu/distro/actions/runs/38945796060)
-已启动，结果待确认；宿主通过不证明目标头文件编译通过。
+已通过，固定 distro `7e8eeb7`：日志确认构建 `linux-agent-abi-wasm64`，生成的
+原生 ABI 静态断言和当时的 agent C 源码均成功编译，目标检查和整个工作流成功。
+这仍不是 agent 启动、镜像或完整发行版的运行证明。
+
+## 显式会话身份
+
+distro `943aae8` 保持默认 v3/wasm32 会话，新增内部显式 ABI 的 v4 握手。
+8 字节头的末尾 u16 在 v3 必须为 0，在 v4 为 32 或 64；agent 按实际 pointer/long
+位宽校验，不把请求中的任意值盲目回显。原生 LP64 executor 拒绝 v3，避免继续接受
+没有目标身份的 ILP32 请求。session 确定版本后，agent 对每条 lane 要求相同版本；
+宿主也要求相同版本及 ABI 回显，lane 不一致会使会话失败并关闭连接，不自动降级。
+
+内部 `GuestSession.connect(device, { abi })` 使用 v4；不指定 abi 时保留 v3，
+因此现有合规 wasm32 镜像保持原握手。高层公开 API 尚未选择 wasm64 镜像；
+原生 syscall adapter 尚未接入，wasm64 会话的 syscall helper 在发送请求前明确
+拒绝，不能以握手成功为由发出旧布局。该保护是后续适配前的临时边界，不是 wasm64
+平台支持的最终范围。
+
+11 项宿主回归及同套独立打包检查、类型检查通过，覆盖两种 ABI 的 v4、默认 v3、
+短回复、错误身份、lane 不一致、关闭及禁止旧 syscall 编码。GCC/Clang 通过本地
+socket pair 执行真实 C 握手，包括拒绝 native LP64 的 v3、错误 ABI 和错误 lane
+版本；没有启动 PID 1，也不计作 Wasm 执行证明。更新后的
+[目标编译](https://github.com/HighCWu/distro/actions/runs/38947236148) 及
+[默认 wasm32 完整 agent 集成检查](https://github.com/HighCWu/distro/actions/runs/38947242982)
+已另行启动，固定 distro `943aae8`，结果待确认。
 
 ## 后续接入顺序
 
-1. 完成目标检查；头文件与描述不一致时，以真实目标 ABI 为准修正。
-2. 显式识别会话协议版本和目标 ABI，定义不支持或不匹配时的失败行为，不从地址
-   大小或 JavaScript 环境猜测。保持原有 wasm32 会话兼容性。
+1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
+   头文件与描述不一致时，以真实目标 ABI 为准修正。
+2. 在已有 v4 身份检查之上接入高层镜像选择，保持现有 wasm32 会话兼容性。
 3. 让 syscall 层依会话选择 seek、truncate、stat 的参数和结构；审计 bigint、
    signed scalar 与公开 number API 的边界，不静默截断不可表示的值。
 4. 构建匹配位宽的 agent、启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
