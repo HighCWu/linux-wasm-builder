@@ -14,7 +14,7 @@ test("browser workflow stages every local spec, including newly added cases", ()
 
 function fixture() {
   return {
-    stats: { expected: 17, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 18, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -38,6 +38,7 @@ function fixture() {
               "UDP write failure releases the private network flow and pending read",
               "UDP channel close settles idle writers and pending readers",
               "IPv4 parser validates complete header checksums including options",
+              "BrowserFS unlink waits for pending OPFS mutations and detaches old handles",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -48,7 +49,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the seventeen successful lifecycle cases", () => {
+test("accepts exactly the eighteen successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {
