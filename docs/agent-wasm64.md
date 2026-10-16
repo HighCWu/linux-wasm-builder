@@ -608,10 +608,25 @@ worker 使用匹配 wasm64 的内核包单独打包，不因本检查构建整�
 另行验证，不能用上方旧批次替代。范围只包含正常同步后的页面刷新，不包含浏览器
 进程重启、断电、存储回收、崩溃恢复或优雅 Linux 关机。
 
-新增两项均固定含说明的 `13b0976`，待实际结果：
+新增两项均固定含说明的 `13b0976`，实际均失败：内存块保留用例通过，OPFS 用例在
+绑定远程内存时分别报 `Cannot convert 0 to a BigInt` / `can't convert 0 to BigInt`，
+尚未完成 Linux 的 OPFS 写入及刷新读回；不能记作持久化已通过：
 
 - [OPFS 刷新 Chromium](https://github.com/HighCWu/distro/actions/runs/38971471509)
 - [OPFS 刷新 Firefox](https://github.com/HighCWu/distro/actions/runs/38971477439)
+
+失败来自 `serveDevice()` 的固定 `memory.grow(0)`，而 memory64 要求 BigInt 增量。
+`329b5ab` 将内核模块已知的内存位宽经 virtio 连接及 bind 消息传入远程 worker，
+复用 `refresh_memory()` 以 `0n` 或 `0` 刷新；旧 wasm32 消息省略字段时仍按 i32。
+不根据容量猜位宽，不更改 Linux 内核或 OPFS 的同步策略。wasm64 需使用匹配的
+位宽感知 host/worker，不能据此承诺与旧 wasm64 worker 混用。
+
+新增真实共享 memory32/64 的远程块绑定、读写、flush 和关闭回归，在修改前复现
+i64 的同一异常，修改后通过。全部 130 项内核宿主测试、隔离打包的同套测试及
+源码/测试类型检查通过；这不替代真实浏览器修复验收。新复验固定 `329b5ab`：
+
+- [位宽修复后 Chromium](https://github.com/HighCWu/distro/actions/runs/38973378922)
+- [位宽修复后 Firefox](https://github.com/HighCWu/distro/actions/runs/38973384933)
 
 #### 独立 SQLite 应用根盘
 
@@ -633,6 +648,16 @@ amalgamation 和上游 CLI shell，不链接 wasm32 readline/ncurses。构建检
 先验证 Node，确认实际构建后再铺开浏览器，避免重复未定位的构建失败。
 首项 [SQLite 应用根盘 Node](https://github.com/HighCWu/distro/actions/runs/38972726337)
 固定含说明的 `5f57f58`，待实际结果。
+
+后续 `aab1a2b` 将同一 SQLite 编译为独立 `dev` 输出中的静态库与头文件，CLI 链接
+该库；默认只安装 `out`，不向运行根盘加入开发文件。pkg-config 元数据使用安装位置
+相对前缀，声明静态数学/线程依赖。新增消费者复制安装产物到新位置，经 wasm64 SDK
+pkg-config 编译既有 SQLite 消费程序，不重新编译 amalgamation；实际启动要求完整
+事务、锁及 hot rollback-journal 恢复标记。元数据重定位/禁止宿主回退的宿主回归通过，
+目标多输出构建、链接及运行仍待独立开发检查。构建和使用命令见源码 SQLite README。
+固定含说明的 `77cf33c` 已启动
+[SQLite 安装后开发消费者](https://github.com/HighCWu/distro/actions/runs/38973494702)，
+结果待确认。
 
 #### 排队进程取消
 
