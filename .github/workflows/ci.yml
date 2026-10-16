@@ -147,6 +147,11 @@ jobs:
           node --test sources/distro/packages/runner/tests/disk-storage.test.ts
       - name: Check standalone wasm64 embedding example without booting Linux
         run: |
+          npx --yes oxfmt@0.59.0 --check \
+            sources/distro/apps/wasm64-example/*.js \
+            sources/distro/apps/wasm64-example/*.mjs \
+            sources/distro/apps/wasm64-example/*.html \
+            sources/distro/packages/browser-tests/agent-tests/wasm64-example.spec.js
           node --test sources/distro/apps/wasm64-example/server.test.js sources/distro/apps/wasm64-example/browser-support.test.js
           node --test sources/distro/apps/wasm64-example/integrity.test.js
           node --test sources/distro/apps/wasm64-example/program.test.js
