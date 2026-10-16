@@ -319,6 +319,11 @@ wasm64 成功记录不含这一扩展。随后 distro
 保持原值、`integrity_check` 为 `ok`，并确认 DELETE journal 被移除，最后才输出
 恢复阶段与整体通过标记。浏览器套件也要求这一新阶段。
 宿主 GCC/Clang 严格编译及执行已通过；上述旧 Wasm 成功记录不包含这一扩展。
+随后 distro `3ef7c3f` 的
+[wasm64 恢复检查](https://github.com/HighCWu/distro/actions/runs/38922352954)
+已通过：`sdk-wasm64-check-sqlite-runtime` 的实际构建/运行检查及整个工作流均成功。
+该固定提交将恢复检查放在最终用户程序通过标记之前；此处依据工作流和检查代码
+确认结果，尚未另行提取该运行的逐阶段控制台日志。wasm32 与浏览器结果仍待验证。
 这只覆盖进程在现存 Linux 文件系统内异常退出后的回滚恢复，不模拟内核、浏览器、
 页面或设备崩溃，不证明 OPFS 重载持久性、断电安全或 WAL 支持。
 
