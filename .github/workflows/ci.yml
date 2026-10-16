@@ -104,13 +104,17 @@ jobs:
       - name: Check native agent browser assertions and shared suite packaging
         run: |
           node --test sources/distro/packages/browser-tests/agent-assertions.test.js
-          for source in agent-app.js agent-tests/agent-check.js agent-tests/agent.spec.js agent-tests/agent-production.spec.js; do
+          for source in agent-app.js agent-public-app.js agent-tests/agent-check.js agent-tests/agent.spec.js agent-tests/agent-production.spec.js agent-tests/agent-public.spec.js; do
             node --check "sources/distro/packages/browser-tests/$source"
           done
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/agent-wasm64-suite.ts \
             --bundle --platform=browser --format=esm --target=es2022 \
             --external:@lowland/kernel --external:@lowland/bytes \
             --outfile="$RUNNER_TEMP/agent-browser-suite.js"
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/agent-wasm64-public-suite.ts \
+            --bundle --platform=browser --format=esm --target=es2022 \
+            --external:@lowland/kernel --external:@lowland/kernel/plugin --external:@lowland/bytes \
+            --outfile="$RUNNER_TEMP/agent-public-browser-suite.js"
       - name: Check complete ephemeral port allocation and exhaustion
         run: node --test sources/distro/packages/linux-guest/tests/network-ports.test.ts
       - name: Check UDP stream failure cleanup without booting Linux
