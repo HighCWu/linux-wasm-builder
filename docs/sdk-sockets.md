@@ -54,8 +54,9 @@ Chromium wasm64 使用强制 6 项浏览器用例门禁，并要求运行及机�
 [wasm64 SDK](https://github.com/HighCWu/distro/actions/runs/38930386326) 和
 [Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38930389544)
 前者已成功：实际目标构建/检查与整个工作流通过，包含 UDP 和 EPIPE 扩展。
-Firefox 仍在执行，不能以 Node 或 Chromium 结果替代其验证。尚无包含 UDP 扩展的
-wasm32 目标通过记录，也不把这些结果外推为完整网络兼容性。
+Firefox 也已成功：实际目标构建/检查及整个工作流通过，使用同一 6 项强制浏览器
+用例门禁，包含 UDP/EPIPE 扩展及机器关闭判定。尚无包含 UDP 扩展的 wasm32 目标
+通过记录，也不把这些结果外推为完整网络兼容性。
 
 ## 边界
 

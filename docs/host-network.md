@@ -25,6 +25,8 @@ distro `b348651` 的 4 项宿主回归覆盖 0/65507 字节接受和 65508/13107
 通过，与已有 Fetch 生命周期回归合计 27 项通过。
 
 Chromium/Firefox 的独立存储/网络套件新增同一清理场景，并要求 15 项指定用例
-全部执行、零跳过、零重试。真实浏览器结果仍待 CI；不能把宿主测试当作浏览器
+全部执行、零跳过、零重试。
+[38931469594](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38931469594)
+正在执行，真实浏览器结果仍待 CI；不能把宿主测试当作浏览器
 或 Linux 挂载、网络程序集成的证据。Linux socket ABI 的独立进展见
 [SDK socket 说明](sdk-sockets.md)。
