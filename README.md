@@ -104,6 +104,12 @@ LLVM 等子模块，也不会把未提交修改混入清单。它只是源码 pi
 二进制 SBOM、完整传递依赖清单或 GPL 对应源码包；正式构建来源仍须通过
 `scripts/check_repository.py` 校验与 distro 的 pin 一致。
 
+基线构建成功后会上传保留 7 天的 `baseline-provenance-COMMIT` artifact，包含上述
+源码清单、distro 的 `flake.lock` 和 `nix build --json` 输出（derivation 与产物路径）。
+它用于关联一次 CI 构建与源码，不包含二进制、完整对应源码或运行验证结论；记录的
+Nix store 路径也不保证在另一台机器或任务结束后仍可下载。此上传路径尚待后续基线
+构建实际验证，不会因此重启正在运行的定向检查。
+
 项目已经建立可复现基线和跨组件测试矩阵。wasm32仍是默认profile；实验性wasm64路径
 已经在Node 24、Chromium和Firefox中执行最小musl用户程序，下一步继续扩大线程、TLS、
 信号、映射、SDK和真实软件包覆盖。各子系统按路线图独立推进，不能从单项smoke测试
