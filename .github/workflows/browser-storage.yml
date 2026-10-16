@@ -37,6 +37,7 @@ jobs:
           cp scripts/browser-storage/package.json scripts/browser-storage/index.html "$suite/"
           cp sources/distro/packages/browser-tests/server.js sources/distro/packages/browser-tests/playwright.config.js "$suite/"
           cp sources/distro/packages/browser-tests/tests/opfs-disk.spec.js "$suite/tests/"
+          cp scripts/browser-storage/host-http.spec.js "$suite/tests/"
           npm install --prefix "$suite" --no-audit --no-fund
           "$suite/node_modules/.bin/esbuild" sources/distro/apps/site/opfs-disk-worker.js \
             --bundle --format=esm \
@@ -44,6 +45,8 @@ jobs:
             --alias:@lowland/kernel/virtio/remote.js="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/remote.ts" \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$suite/opfs-disk-worker.js"
+          "$suite/node_modules/.bin/esbuild" sources/distro/packages/linux-guest/src/host-fetch-network.ts \
+            --bundle --format=esm --outfile="$suite/host-http.js"
       - name: Install browser
         run: '"$RUNNER_TEMP/browser-storage/node_modules/.bin/playwright" install --with-deps ${{ matrix.browser }}'
       - name: Verify real OPFS initialization failure recovery
@@ -52,7 +55,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_NAME=storage-report.json \
             ./node_modules/.bin/playwright test --project=${{ matrix.browser }} --forbid-only \
               --reporter=line,json \
-              --grep '(invalid disk capacity preserves OPFS data and releases its lock|flushes virtio writes through the real OPFS worker)$'
+              --grep '(invalid disk capacity preserves OPFS data and releases its lock|flushes virtio writes through the real OPFS worker|cancels pending Fetch response reads on disconnect)$'
           node "$GITHUB_WORKSPACE/scripts/browser-storage/check-report.mjs" storage-report.json
       - uses: actions/upload-artifact@v4
         if: failure()
