@@ -69,7 +69,12 @@ Firefox 也已成功：实际目标构建/检查及整个工作流通过，使�
 distro `46e2933` 新增上述 EPOLLET/EPOLLONESHOT 场景。GCC/Clang 严格编译及
 各 5 次宿主运行、Wasm 条件分支宿主语法检查，以及 15 项运行协议/关闭生命周期
 回归通过；这些结果不作为 Wasm 目标证据。wasm64 SDK 与 Chromium 定向检查已
-发起，结果待确认。两种位宽的浏览器套件都要求新增 epoll 阶段标记，但强制测试
+发起；首轮
+[SDK](https://github.com/HighCWu/distro/actions/runs/38936314240) 和
+[Chromium](https://github.com/HighCWu/distro/actions/runs/38936325019)
+均被同一处 Nix 文件的全仓库 treefmt 检查拒绝，尚未构建或运行新增 socket 场景，
+不是 epoll 运行失败的证据。distro `1483f23` 修正格式后已重发，目标结果待确认。
+两种位宽的浏览器套件都要求新增 epoll 阶段标记，但强制测试
 数量仍为 6，因为场景扩展在原有 socket 用例内。历史通过记录不包含这次扩展。
 该扩展没有向宿主网络开放新接口，未改变内核或 libc 实现及许可。
 

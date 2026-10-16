@@ -95,5 +95,8 @@ distro `f1db621` 同时新增 `linux-guest-package-check-tests-networking` 定�
 本地宿主桥接和运行实例之间的通信；它用于验证接收校验不会破坏正常 Linux 流量。
 当前为 wasm32 系统与 Node 宿主，
 [38935867946](https://github.com/HighCWu/distro/actions/runs/38935867946)
-已失败，失败阶段正在核查；不能将其表述为实际 Linux 网络通过，也不能仅凭工作流
-状态判定是 IPv4 校验回归。该检查不替代 wasm64 或浏览器网络端到端检查。
+已在 treefmt 阶段失败：`distro/npm/linux-guest/package.nix` 定义有一处多余括号，
+全仓库格式器要求改写，尚未运行 Linux 网络测试。distro `1483f23` 移除该括号，
+并通过与 CI 相同版本 nixfmt 1.4.0 的本地检查，已重新发起验证。不能将先前失败
+表述为 IPv4 校验回归或实际 Linux 网络通过。该检查不替代 wasm64 或浏览器网络
+端到端检查。
