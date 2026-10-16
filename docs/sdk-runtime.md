@@ -222,6 +222,12 @@ cmake --build build-consumer
 这两个WASM_PKG_CONFIG变量，或在独立shell中操作；不同位宽不得共享依赖或构建目录。
 默认不设置覆盖时，仍按上一节的SDK sysroot进行重定位，也不继承宿主PKG_CONFIG_PATH。
 
+目标 pkg-config 回归检查覆盖 `Requires.private` 的传递依赖、缺失依赖不能回退到
+宿主库，以及显式替换 sysroot 后的编译/链接参数。本机 pkgconf 1.8.1 对含空格的
+sysroot 覆盖值会生成错误参数；外部 sysroot 暂使用不含空格的路径。这是该查询路径的
+已知限制，不应与编译器响应文件已支持含空格路径混为一谈；固定 SDK 版本的对应行为
+仍需另行验证。
+
 本地集成测试实际执行配置、构建、安装、独立消费及宿主运行，并覆盖强制响应文件；
 删去Libs.private后要求链接失败且报告sdk_helper，避免仅验证查询输出。与既有测试
 合计16项通过，新增流程纳入轻量CI。宿主通过不计为Wasm通过。
