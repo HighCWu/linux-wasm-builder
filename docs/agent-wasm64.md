@@ -554,12 +554,34 @@ TypeScript 检查和 17 项相关宿主回归通过，新增目标断言仍待�
 distro `65310ff` 将实际最小根盘的四组语料提取为 Node/浏览器共享实现，新增
 Chromium 和 Firefox 定向检查：身份及挂载表、许可证及无测试程序、BusyBox 二进制
 往返、基本 shell cwd。浏览器要求完整四组名称、机器关闭、精确外层用例及零跳过、
-零重试；不以 Node 成功替代浏览器结果。TypeScript、浏览器打包及 4 项浏览器断言
-适配器宿主测试通过，以下三项均固定 `78ce491`，实际结果仍待确认：
+零重试；不以 Node 成功替代浏览器结果。以下三项均固定 `78ce491`，现已全部成功。
+实际日志确认 Node 四组加外层共 5 项通过、零失败/跳过；两浏览器各完成四组名称、
+外层 1 项通过，严格门禁确认零跳过/重试。此结果不覆盖后续 SDK 或根盘版本：
 
 - [最小根盘 Node](https://github.com/HighCWu/distro/actions/runs/38967783538)
 - [最小根盘 Chromium](https://github.com/HighCWu/distro/actions/runs/38967769877)
 - [最小根盘 Firefox](https://github.com/HighCWu/distro/actions/runs/38967777005)
+
+#### 排队进程取消
+
+distro `9e042d7` 修正 SDK `exec()` 的进程槽等待：原实现达到 8 个活动子进程后，
+排队请求不监听 AbortSignal，必须等活动进程回收后才返回，还可能启动已取消的命令。
+双位宽宿主测试已在原实现复现等待不返回的问题。现在取消会移除对应 waiter 并返回
+原原因；其余请求保留 FIFO。取得槽后、实际 spawn 前再检查信号，取消则归还槽。
+在 grant/abort 时清理排队监听器，不取消其他活动进程，不修改会话协议或内核。
+
+新增六项双位宽宿主测试通过，使用真实客户端及可控协议会话，覆盖排队取消、FIFO、
+监听器清理、grant 后取消、取消后无额外 spawn 和后续槽复用；不是 Wasm 内核验证。
+连同进程关闭、run 清理、shell 命令和网络就绪共 24 项通过，TypeScript、独立宿主
+打包及浏览器打包通过。主仓库轻量 CI 已接入六项测试，不需安装完整 workspace。
+
+真实 wasm64 公开 shell 组和 wasm32 processes 组同时加入：8 个长运行 sleep 占满槽，
+取消第 9 个请求时仍不释放它们，要求原原因在 5 秒截止前返回，随后关闭并回收全部
+进程，再成功执行 `/bin/true`。新增目标断言待固定 `e630196` 的定向 Node 网络及
+wasm32 完整集成验证；不把前一批 `82bd0d4` 通过当作本次取消路径已验收。
+
+- [满槽取消后的 Node 全链](https://github.com/HighCWu/distro/actions/runs/38970071619)
+- [满槽取消后的 wasm32 集成](https://github.com/HighCWu/distro/actions/runs/38970077410)
 
 #### SDK 子进程关闭与回收顺序
 

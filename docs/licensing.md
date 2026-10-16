@@ -158,6 +158,11 @@ BusyBox 源码与材料流式归档，并另给最终安装、strip 后的 `bin/
 - [wasm32 源码归档](https://github.com/HighCWu/distro/actions/runs/38968669994)
 - [wasm64 安装 smoke](https://github.com/HighCWu/distro/actions/runs/38968677130)
 
+修正后的[wasm32 源码归档检查](https://github.com/HighCWu/distro/actions/runs/38969210975)
+固定 `0314774`，现已成功：实际目标检查、源码收集和 artifact 上传步骤均通过。
+API 确认存在对应提交、未过期的 3,169,074 字节 artifact，仍只保留 3 天。
+该结果不代表 wasm64、完整发行依赖或长期源码发布已验证；相关检查继续独立运行。
+
 ## 洁净实现政策
 
 参考其他软件 MMU实现时：
