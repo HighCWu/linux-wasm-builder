@@ -162,6 +162,33 @@ C源文件，经嵌套响应文件传递-c/-Werror及带空格路径，检查编
 支持当前Clang的响应文件语法，不等于支持任意编译器或构建系统；没有修改内核、
 musl、公开UAPI或浏览器配置。SDK仍依赖Nix store，不是可重定位发行包。
 
+## 目标依赖元数据查询
+
+两个SDK shell均提供`wasm-linux-pkg-config`，并将`PKG_CONFIG`指向对应profile的
+包装工具；CMake工具链也默认选择该工具。它在宿主运行pkg-config，但仅查询目标
+sysroot下的`lib/pkgconfig`和`share/pkgconfig`，覆盖继承的PKG_CONFIG_LIBDIR、
+PKG_CONFIG_SYSROOT_DIR及PKG_CONFIG_PATH，避免将宿主库误当成Wasm库。
+当前SDK只支持静态目标库，因此查询默认附加`--static`以包含Libs.private。
+
+```sh
+"$PKG_CONFIG" --cflags --libs mylibrary
+# 可选：添加自行安装的目标 .pc 元数据目录，不要填写宿主库目录。
+export WASM_PKG_CONFIG_PATH=/absolute/path/to/target/pkgconfig
+```
+
+这不代表SDK已经包含示例中的mylibrary，也不会自动编译、安装第三方依赖。
+额外目录必须由使用者保证与所选wasm32/wasm64 profile匹配；绝对路径或自定义
+变量写法复杂的.pc文件仍需审查，搜索路径隔离不是安全沙箱。CMake默认关闭
+FindPkgConfig从CMAKE_PREFIX_PATH追加搜索路径，避免绕过该边界；自行覆盖工具链
+选项的项目需自行保证一致性。
+
+本地真实pkg-config夹具测试通过：宿主同名库及仅宿主存在的包不被选中，目标
+include/lib路径经sysroot重定位，静态私有依赖保留，share目录和显式目标附加
+目录可查询，版本及错误退出码保持正常。连同既有包装及Clang驱动测试共15项
+通过，已纳入轻量CI和SDK包装契约检查。这里验证的是依赖发现行为，不是第三方库
+在Wasm中的编译或运行。本轮没有追加重型构建；前述已触发的Wasm运行检查继续
+验证各自固定提交，不包含本次新增的pkg-config集成。
+
 ## 验证状态
 
 宿主g++ C++17严格编译及执行通过，Nix语法格式化和仓库元数据检查通过。本地没有
