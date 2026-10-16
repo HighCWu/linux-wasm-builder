@@ -58,6 +58,7 @@ jobs:
           done
       - name: Check SDK CMake integration on the build host
         run: |
+          node --test sources/distro/distro/llvm-runtimes/cxa-thread-atexit-test.js
           cmake -P sources/distro/distro/sdk/linux-wasm.cmake.in
           node --test sources/distro/distro/sdk/cmake-toolchain-test.js
           cmake -S sources/distro/distro/sdk/cmake-example \
