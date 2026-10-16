@@ -453,7 +453,9 @@ shell 支持仍属于用户态软件工作，不能以本次测试修正代替�
 两项新增宿主回归检查脚本语法、fail-fast 首语句和明确的输入值断言，并实际在
 隔离临时目录运行同一二进制管道命令，核对双路输出、文件清理及空 TMPDIR 的失败。
 TypeScript、浏览器打包、相关宿主检查通过；它们不替代真实 Linux/Wasm 执行。
-主仓库轻量 CI 已接入该回归。以下三项固定 `189a7a7`，结果待确认：
+主仓库轻量 CI 已接入该回归。以下三项固定 `189a7a7`，现均已失败；Node 和
+Firefox 日志确认前三组通过，shell 仍以状态 1 退出且无具体 stderr，下一处失败
+尚未唯一定位，不能把去掉 nounset 误写成整个 shell 场景已经修复：
 
 - [修正后 Node](https://github.com/HighCWu/distro/actions/runs/38963628226)
 - [修正后 Chromium](https://github.com/HighCWu/distro/actions/runs/38963636320)
@@ -482,6 +484,32 @@ TypeScript、JS 语法、浏览器打包和 10 项相关宿主回归通过。其
 - [公开网络 Node](https://github.com/HighCWu/distro/actions/runs/38964197663)
 - [公开网络 Chromium](https://github.com/HighCWu/distro/actions/runs/38964203587)
 - [公开网络 Firefox](https://github.com/HighCWu/distro/actions/runs/38964210907)
+
+其中 Firefox 已失败在前置 shell 场景，HTTP 用例尚未执行；不能记作 HTTP 本身
+失败或通过。Node、Chromium 尚待结果。
+
+#### run() 的异常清理和定向 shell 诊断
+
+distro `8045aad` 修正公开 `run()`：原实现直接收集 status、双路输出和 stdin EOF，
+没有 dispose 路径。现在将原收集逻辑提取为内部模块，成功和异常都等待 child.close，
+非零退出仍返回 RunResult；仅清理失败则报告该错误，主错误与清理错误同时出现则
+用标准 AggregateError 保留两者并设置 cause。没有依赖仍在提案阶段的运行时特性。
+
+六项新增宿主回归在原收集逻辑均失败，修正后通过，涵盖二进制输出、EOF、非零
+退出、输出失败后先清理、status/输入失败，以及双重错误。与双位宽关闭回归共
+14 项通过，再加共享命令回归共 16 项通过；TypeScript 和浏览器打包通过。
+真实公开 shell 语料增加运行中命令取消：先以 rename 原子发布就绪标记，再取消，
+要求原取消原因并成功执行下一条命令；不是 spawn 前直接拒绝的假覆盖。
+
+由于 shell 修正批次仍在无标签断言处失败，`ad0186a` 为每条既有检查增加精确失败
+标签和值，不删除断言、不启用全局会话 trace。宿主验证错误 cwd 会以指定标签
+失败。当前优先启动定向 Node 和 wasm32 集成，待定位后再铺开新的浏览器复验，
+避免在同一未定位失败上重复扩展矩阵；已有任务没有取消。
+
+- [带标签的公开 Node / run 清理](https://github.com/HighCWu/distro/actions/runs/38965682439)
+- [run 清理后的 wasm32 集成](https://github.com/HighCWu/distro/actions/runs/38965689912)
+
+两项均固定 `ad0186a`，结果待确认。宿主回归不是实际 Wasm 执行完成的证明。
 
 #### SDK 子进程关闭与回收顺序
 
