@@ -106,5 +106,26 @@ distro提交`3dc2f8eaf09da646f875c1fe96c4fac56698c080`扩展上述MIT测试，�
 
 宿主严格语法和执行pass、轻量ABI及仓库元数据检查通过。扩展后的Node
 [wasm32](https://github.com/HighCWu/distro/actions/runs/37770600646)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/37770606285)已触发，结果待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/37770606285)均已通过延迟取消扩展。
 宿主验证不作为Wasm运行证据，亦尚未新增浏览器执行记录。
+
+## 多等待者取消后的广播
+
+distro提交`a532b65faafefdbe3b5e89fb2e449b20421ae69a`继续扩展同一MIT测试和
+默认内核双核检查。realtime和monotonic各4轮，每轮4个工作线程使用超长截止时间
+等待同一条件变量。所有predicate、计数和握手均由同一ERRORCHECK互斥锁保护。
+
+主线程等待4个ready通知并重新持锁，随后取消第一个工作线程。先解锁、join并
+确认PTHREAD_CANCELED及一次cleanup，再设置release并broadcast。其余3个线程
+必须正常返回各自join结果，wake计数为3，cleanup计数仍为1。循环复用条件变量，
+最后继续执行原有短超时及对象销毁检查。
+
+这是“完成一个取消后再广播”的顺序行为验证，不涵盖取消与broadcast同时发生、
+唤醒公平性或内核队列排列。ready握手证明等待者释放过锁，不证明均已进入内核
+futex队列；不把长截止时间下的正常唤醒当作实际等待多年或完整futex语义的证据。
+没有修改Linux、musl实现、公开UAPI或生产配置。
+
+宿主严格C语法、执行pass、轻量ABI及仓库元数据检查通过。公开Node
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38844561358)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38844566099)已触发，结果待确认。
+尚未为该扩展执行浏览器检查。
