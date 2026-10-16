@@ -148,8 +148,11 @@ BusyBox 源码与材料流式归档，并另给最终安装、strip 后的 `bin/
 也不是离线重建环境或 SBOM。正式发布还需匹配的 distro checkout/flake.lock、完整
 依赖审计和长期源码获取渠道。导出器自有代码采用 MIT，BusyBox 继续遵循 GPL-2.0-only。
 
-首批实际检查固定 `cb275c7`，结果待确认；后续 `6585871` 仅修正材料导出脚本的
-shfmt 空白格式，已更新固定版本，宿主归档回归重新通过：
+首批实际检查固定 `cb275c7`，三项均失败；已核对 wasm64 源码任务日志，失败在
+格式门禁的 `package.nix` 和 shell 空白处理，未进入目标构建。`6585871` 修正脚本
+格式，`0314774` 规范化 Nix 元数据并使后续格式门禁输出实际 diff，宿主归档回归
+重新通过。已针对新固定版本提交双位宽归档与 wasm64 smoke 复验，结果待确认。
+以下保留首批失败记录，不作为归档已通过的证据：
 
 - [wasm64 源码归档](https://github.com/HighCWu/distro/actions/runs/38968663096)
 - [wasm32 源码归档](https://github.com/HighCWu/distro/actions/runs/38968669994)
