@@ -60,6 +60,9 @@ jobs:
         run: |
           python3 -m venv "$RUNNER_TEMP/sdk-meson"
           "$RUNNER_TEMP/sdk-meson/bin/pip" install --disable-pip-version-check meson==1.10.0
+          meson_site=$("$RUNNER_TEMP/sdk-meson/bin/python" -c 'import pathlib, mesonbuild; print(pathlib.Path(mesonbuild.__file__).parent.parent)')
+          patch -d "$meson_site" -p1 < sources/distro/distro/sdk/meson-wasm-archive-groups.patch
+          "$RUNNER_TEMP/sdk-meson/bin/python" sources/distro/distro/sdk/meson-archive-test.py
           SDK_TEST_MESON="$RUNNER_TEMP/sdk-meson/bin/meson" \
             node --test sources/distro/distro/sdk/meson-consumer-test.js
       - name: Check documentation and source pins
