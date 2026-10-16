@@ -4,8 +4,8 @@
 
 目标是在已有 wasm64 内核、SDK 和浏览器用户程序路径上，继续提供匹配位宽的
 进程、文件、挂载及网络 API。当前 `@lowland/guest` 公开启动路径仍使用 wasm32；
-内部原生 wasm64 会话、文件与进程请求链已在 Node 和 Chromium 的最小启动检查中
-运行通过；Firefox、生产启动镜像和完整发行版仍需分别验证。
+内部原生 wasm64 会话、文件与进程请求链已在 Node 最小启动检查和 Chromium 的
+生产入口/根切换检查中运行通过；Firefox、GPT 磁盘启动和完整发行版仍需分别验证。
 保持 `CONFIG_MMU=n` 和真实线性内存指针，不引入内核 softmmu。
 
 ## ABI 前置工作
@@ -219,7 +219,11 @@ Node 检查成功作为浏览器证据。浏览器挂载只读块设备，并在
 [生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38954969112) 固定
 `6b59bdc`；[生产 Chromium](https://github.com/HighCWu/distro/actions/runs/38955273955)
 和[基线 Firefox](https://github.com/HighCWu/distro/actions/runs/38955281226) 固定
-`498dbce`，均已启动、结果待确认。后两项因触发时的远端版本，不包含 `14755d0`
+`498dbce`。生产 Firefox 已失败，基线 Firefox 仍待确认。生产 Chromium 已通过：
+日志确认全部八组断言完成（含真实根切换、高层文件与进程 API），机器正常关闭，
+浏览器测试共 1 项通过，报告门禁明确确认零跳过、零重试。这是真实浏览器的生产
+入口证据，但仍使用 initramfs 启动 agent，不证明下节 GPT 磁盘启动或完整发行版通过。
+后两项因触发时的远端版本，不包含 `14755d0`
 的诊断改进；不取消已有运行，也不将它们当作新诊断已经验证。
 
 distro `14755d0` 将拒绝断言的原始错误名称和消息写入外层错误，同时保留 cause，
@@ -283,7 +287,7 @@ gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
 2. 定位 Firefox 就绪后的等待问题，验证生产入口的根切换；已通过的 Chromium
-   和 Node 最小外壳不代替 Firefox、生产镜像或后续改动的验证。
+   生产入口和 Node 最小外壳不代替 Firefox、GPT 磁盘启动或后续改动的验证。
 3. 验证原生 GPT 磁盘启动，再接入高层镜像选择，保持现有 wasm32 会话兼容性。
 4. 构建匹配位宽的完整启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
    wasm64 SDK 不等于整个发行版 scope 已转换为 wasm64。
