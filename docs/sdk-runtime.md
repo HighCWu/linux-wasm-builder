@@ -94,6 +94,42 @@ sdk-wasm64-check-cxx-runtime。这是实际编译器/运行验证，与假编译
 [wasm64](https://github.com/HighCWu/distro/actions/runs/38860568150)已触发，结果待确认。
 尚未在本机实际进入Nix开发shell或验证浏览器执行。
 
+## CMake交叉编译入口
+
+distro提交`8df4a96dd2e931fc71d618c9a79a7471e6ae2605`在两个SDK中安装
+`share/cmake/linux-wasm.cmake`，开发shell同时导出WASM_CMAKE_TOOLCHAIN_FILE。
+工具链文件选择对应profile的C/C++包装器、LLVM ar/ranlib和sysroot，设置Linux
+目标及wasm32/wasm64处理器。构建工具从宿主查找，目标库、头文件和包限制到目标
+root路径，避免静默混入宿主库。当前仅提供静态目标库。
+
+进入上一节的sdk或sdk-wasm64 shell后，在主仓库目录执行：
+
+```sh
+cmake -S sources/distro/distro/sdk/cmake-example -B build-sdk -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$WASM_CMAKE_TOOLCHAIN_FILE" -DCMAKE_BUILD_TYPE=Release
+cmake --build build-sdk
+```
+
+不同profile应使用不同build目录，不能复用含另一工具链的CMake cache。示例产物为
+`build-sdk/sdk-example.wasm`；它是目标Linux/Wasm程序，不可当作本机ELF直接执行。
+
+示例是独立的CMake项目：将C函数编译为静态archive，再由C++程序通过extern C
+调用，并在线程中使用vector，join后核验结果。CMakeLists选择C11/C++17，使用
+Threads::Threads，不手工传递内部平台链接参数；示例目标显式设置.wasm后缀。
+
+CMAKE_TRY_COMPILE_TARGET_TYPE为STATIC_LIBRARY：配置探针不在宿主执行Wasm。
+这不表示任意依赖项目的try_run探针已经解决，也不应将静态编译探针通过当作某函数
+运行可用的证据。响应文件、动态库及任意CMake第三方包兼容性仍不在本轮承诺范围。
+
+本地宿主CMake/Ninja配置、C archive与C++构建、执行pass，以及工具链模板语法
+检查通过；轻量CI重复这些检查而不下载LLVM。宿主构建没有使用Wasm工具链，不计
+作交叉编译通过。实际双位宽消费检查使用安装在SDK中的工具链文件配置和构建示例，
+随后在对应默认内核双核环境执行，CI名称为sdk-check-cmake-runtime和
+sdk-wasm64-check-cmake-runtime。
+公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38860955154)及
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38860960964)已触发，结果待确认。
+这轮不修改Linux、musl或LLVM实现，没有新增浏览器执行记录。
+
 ## 验证状态
 
 宿主g++ C++17严格编译及执行通过，Nix语法格式化和仓库元数据检查通过。本地没有
