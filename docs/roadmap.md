@@ -71,6 +71,10 @@
 
 退出条件：发布的 SDK 可脱离仓库内部脚本构建第三方程序。
 
+当前已加入独立的双位宽C++运行检查，覆盖容器、RAII异常清理、std::thread与TLS；
+运行结果和复现命令见[SDK运行验证](sdk-runtime.md)。检查已加入不等于发布SDK已完成。
+各子系统的CI构建期间继续推进无依赖的工作，避免把单项测试扩展变成整条路线的串行门槛。
+
 ## P3：存储、文件系统与设备
 
 - 稳定 virtio block、console、entropy、fs、net和vsock。
