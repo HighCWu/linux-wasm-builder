@@ -390,7 +390,9 @@ musl pin。hash 由[公开预取](https://github.com/HighCWu/linux-wasm-builder/
 env.memory、无自定义 memory，且声明上限与平台一致；3 项宿主回归通过，包括
 双位宽接受和非法输入拒绝。这项结构检查不等于运行成功，也不保证宿主能分配上限。
 
-以下四项均固定 `fc6e24a`，已启动，运行结果待确认：
+以下四项均固定 `fc6e24a`。其中两个 wasm32 检查已通过，日志均确认实际
+`::vm-test::pass`；BusyBox 构建日志另确认共享 wasm32 env.memory 和 4 GiB 声明
+上限。两个 wasm64 检查仍在运行，不能用 wasm32 的成功代替：
 
 - [wasm64 BusyBox smoke](https://github.com/HighCWu/distro/actions/runs/38960354491)
 - [wasm32 BusyBox smoke](https://github.com/HighCWu/distro/actions/runs/38960361134)
