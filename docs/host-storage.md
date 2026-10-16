@@ -109,7 +109,10 @@ JavaScript 浮点数限制截断，省略纳秒视为 0，atime/mtime 的 `now` 
 宿主回归覆盖三个字段各五种非法纳秒、修改前拒绝、负秒、大于 2^53 的秒及输入
 对象隔离；Chromium/Firefox 独立存储套件扩为 14 项，
 [38929166175](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38929166175)
-固定 distro `c8ce624`，真实浏览器结果待 CI 验证。
+固定 distro `c8ce624`，已在 Chromium/Firefox 均成功。每种浏览器的强制报告门禁
+要求恰好 14 项指定用例执行通过、零跳过和零重试，包含真实 OPFS 上非法时间戳
+与截短/权限修改组合请求被拒绝、原文件字节与合成元数据保留，以及负秒和宽秒
+精度保留。它仍不启动 Linux，不替代内核挂载或跨适配器验证。
 
 BrowserFS 在读取文件或创建写流前检查完整 I/O 范围：偏移和长度必须非负且能由
 JavaScript 安全整数精确表示，结束位置也不得溢出。无效范围返回 EINVAL，而不是
