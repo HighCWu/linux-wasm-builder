@@ -61,6 +61,14 @@ jobs:
         run: node --test sources/distro/distro/vm-test/runtime-smoke-test.js
       - name: Check network listener readiness and timeout handling
         run: node --test sources/distro/packages/linux-guest/tests/helpers.test.ts
+      - name: Check network fixture short I/O and interruption handling
+        run: |
+          cc -Wall -Wextra -Werror sources/distro/distro/guest-tests/network-io-test.c \
+            -o "$RUNNER_TEMP/network-io-test"
+          "$RUNNER_TEMP/network-io-test"
+          network_test_status=0
+          "$RUNNER_TEMP/network-io-test" zero || network_test_status=$?
+          test "$network_test_status" -eq 1
       - name: Check OPFS initialization ownership and failure cleanup
         run: node --test sources/distro/apps/site/opfs-storage.test.js
       - name: Check all kernel host tests without building Linux or LLVM
