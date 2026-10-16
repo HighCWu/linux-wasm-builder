@@ -110,10 +110,11 @@ v4/wasm32 握手超时；正确 wasm64 公开插件的成功不证明该拒绝�
 进程与 loopback 网络检查，而不是复用 wasm32 loader。首项安装系统 smoke
 完成编译和 ext4 根盘挂载，但在 switch_root 的文件系统类型检查处失败。
 已发现 musl 将 LP64 的双参数 statfs 声明成三参数 statfs64；按位宽修正后更新
-pin，并补双位宽文件系统统计运行断言。修正后的 wasm32 BusyBox smoke 和独立
-C 运行检查均已通过，日志确认实际完成标记；wasm64 两项仍待结果。链接产物的
-位宽、共享 memory 和上限检查另有
-3 项轻量回归通过。默认 scope 仍为 wasm32，不宣称浏览器或完整发行版已迁移。
+pin，并补双位宽文件系统统计运行断言。修正后的 wasm32/wasm64 BusyBox smoke
+和独立 C 运行检查共四项均已通过，日志确认实际完成标记；链接产物位宽、共享
+memory 和上限检查另有 3 项轻量回归通过。`50e37e4` 进一步将原生 BusyBox
+安装进公开插件的测试根盘，在 Node 和两个浏览器检查 shell、管道、命令替换与
+子进程生命周期，结果待确认。默认 scope 仍为 wasm32，不宣称完整发行版已迁移。
 
 Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
 toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界MAP_FIXED、

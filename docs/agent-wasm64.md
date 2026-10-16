@@ -390,9 +390,10 @@ musl pin。hash 由[公开预取](https://github.com/HighCWu/linux-wasm-builder/
 env.memory、无自定义 memory，且声明上限与平台一致；3 项宿主回归通过，包括
 双位宽接受和非法输入拒绝。这项结构检查不等于运行成功，也不保证宿主能分配上限。
 
-以下四项均固定 `fc6e24a`。其中两个 wasm32 检查已通过，日志均确认实际
-`::vm-test::pass`；BusyBox 构建日志另确认共享 wasm32 env.memory 和 4 GiB 声明
-上限。两个 wasm64 检查仍在运行，不能用 wasm32 的成功代替：
+以下四项均固定 `fc6e24a`，现已全部通过，日志均确认实际 `::vm-test::pass`。
+BusyBox 构建日志分别确认共享 wasm32/wasm64 env.memory，声明上限为 4/16 GiB；
+声明上限不代表宿主实际能分配该容量。wasm64 安装系统已完成原先失败的根切换和
+完整 smoke，新增文件系统统计断言也在两个位宽实际完成：
 
 - [wasm64 BusyBox smoke](https://github.com/HighCWu/distro/actions/runs/38960354491)
 - [wasm32 BusyBox smoke](https://github.com/HighCWu/distro/actions/runs/38960361134)
@@ -400,6 +401,30 @@ env.memory、无自定义 memory，且声明上限与平台一致；3 项宿主�
 - [wasm32 C 运行回归](https://github.com/HighCWu/distro/actions/runs/38960373351)
 
 ### 后续验证
+
+#### 公开插件接入原生 shell
+
+distro `50e37e4` 增加 `guest-agent-check-public-userland-wasm64` 和对应的
+Chromium/Firefox 检查。通过 wasm64 包构造器把 BusyBox 安装到独立系统根盘，
+与原有原生测试程序共同组成版本匹配的用户态；不改变默认 wasm32 scope 或镜像。
+三宿主共享语料和真实根盘/引导盘资产，不依赖其它检查成功的结果。
+
+新增第四组断言从公开 `run()` 启动 `/bin/sh`，检查 cwd、带空格 argv/env、
+管道、命令替换、文件复制/读取/删除、非零子进程退出和后台子进程 wait。要求精确
+stdout、空 stderr、成功状态、四组断言完成和机器关闭；不存在 shell 时直接失败，
+不退回单个 C 程序，也不传外部 initramfs、手工启动参数或会话 trace 标志。
+
+TypeScript、浏览器共享语料打包、JS 与 shell 语法检查通过，7 项相关宿主断言及
+二进制契约测试通过。以下三项均固定 `50e37e4`，已启动，运行结果待确认：
+
+- [公开原生 shell Node](https://github.com/HighCWu/distro/actions/runs/38961589917)
+- [公开原生 shell Chromium](https://github.com/HighCWu/distro/actions/runs/38961598074)
+- [公开原生 shell Firefox](https://github.com/HighCWu/distro/actions/runs/38961604793)
+
+BusyBox 保持 GPL-2.0-only，自有构建/测试代码采用 MIT。这里的测试根盘不等于
+完整发行版或正式发布，分发时仍需履行组件各自的许可与对应源码义务。
+
+#### 错误身份的会话资源顺序
 
 distro `f0ef828` 收紧会话资源创建顺序：先验证握手身份，再创建子进程回收线程和
 lane worker 属性。不匹配 ABI 的拒绝路径保持单线程退出，不再为无请求可执行的
@@ -412,7 +437,7 @@ GCC/Clang 的真实 socketpair 握手及资源顺序测试通过，覆盖错误 
 清理回归及生产入口严格语法检查也通过；不能据此声称 Firefox 已修复。
 
 以下三项固定 `f0ef828`，均默认不启用阶段日志，结果待确认；前一批 libc/BusyBox
-任务仍在运行，没有被重启或取消：
+任务保持独立运行并已全部通过，没有被重启或取消：
 
 - [生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38960838496)
 - [生产 Chromium](https://github.com/HighCWu/distro/actions/runs/38960845879)
