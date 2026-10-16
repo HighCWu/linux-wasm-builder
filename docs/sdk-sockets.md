@@ -49,7 +49,10 @@ distro `5d6e68d` 的原生 GCC/Clang 严格编译及各 5 次运行通过；Wasm
 检查已完成 Nix 检查发现及求值，正在执行重型构建/运行，结果待确认。
 这两项固定上述早期提交，不包含后续 UDP 或 EPIPE 扩展，不能以其结果替代新版
 验证。distro `655cca5` 的 GCC/Clang 各 5 次原生运行及 Wasm 条件分支宿主语法检查
-也已通过；另触发 wasm64 SDK 和 Firefox 检查，目标运行结果仍待确认。
+也已通过；
+[wasm64 SDK](https://github.com/HighCWu/distro/actions/runs/38930386326) 和
+[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38930389544)
+检查均已完成 Nix 检查发现及求值，正在执行重型构建/运行，目标结果仍待确认。
 
 ## 边界
 
