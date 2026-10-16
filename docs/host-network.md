@@ -119,3 +119,18 @@ distro `f1db621` 同时新增 `linux-guest-package-check-tests-networking` 定�
 并通过与 CI 相同版本 nixfmt 1.4.0 的本地检查，已重新发起验证。不能将先前失败
 表述为 IPv4 校验回归或实际 Linux 网络通过。该检查不替代 wasm64 或浏览器网络
 端到端检查。
+
+格式修正后的
+[38937054341](https://github.com/HighCWu/distro/actions/runs/38937054341)
+已实际执行：7 个子场景中 6 项通过，跨实例通信场景失败于测试辅助函数
+`collect(server.stdout)`，报 `Response body object should not be disturbed or locked`。
+此前读取过就绪消息的流即使释放了 reader，也不能再次作为 Response BodyInit；
+此时尚未执行跨实例客户端通信断言，不能把该失败判为 IP 校验或 TCP 传输故障，
+也不能把跨实例通信记为通过。
+
+distro `73332d7` 将测试辅助函数改为通过 reader 收集剩余内容，完成或失败时
+释放锁，并复制各块以兼容重复使用的 Buffer。新增 5 项加原有就绪检查共 9 项
+宿主回归及类型检查通过，覆盖部分读取后继续收集、空剩余内容、缓冲区复用、
+原始读取错误及已锁流拒绝；没有修改生产网络实现或放宽通信断言。
+[38940328074](https://github.com/HighCWu/distro/actions/runs/38940328074)
+已在该提交重跑同一 Linux 网络检查，结果待确认。
