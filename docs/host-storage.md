@@ -129,6 +129,13 @@ WebKit 或所有浏览器版本已验证。
 这是已修复 memory64 远程绑定的版本；不把先前失败版本算作持久化成功，也不扩大
 为浏览器进程重启、配额回收或崩溃恢复保证。
 
+原生 wasm64 SQLite 应用根盘也已通过同样的真实 OPFS 页面重载路径：
+[Chromium](https://github.com/HighCWu/distro/actions/runs/38977528723) 固定 `041b82c`，
+[Firefox](https://github.com/HighCWu/distro/actions/runs/38977872640) 固定 `02ce485`。
+实际日志各确认两项通过、零跳过/重试，包括安装的 CLI 提交/回滚并同步，关闭后
+刷新页面、只重开原盘并禁止模板下载，以只读 CLI 检查完整性及精确整数/BLOB。
+使用 DELETE/FULL，不支持 WAL；这仍不证明浏览器进程重启或崩溃/断电恢复。
+
 站点 `site-live` 用例现还安装 SQLite，在已安装系统的 ext4 根目录中以 DELETE
 journal / FULL synchronous 提交包含超出 JavaScript 精确整数范围的整数及 BLOB
 的事务，另执行一次更新后回滚。显式同步后重载页面，以新的 Linux 实例通过 SQLite
