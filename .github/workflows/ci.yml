@@ -44,6 +44,17 @@ jobs:
               -o "$RUNNER_TEMP/sdk-runtime-cxx-host"
             timeout 30s "$RUNNER_TEMP/sdk-runtime-cxx-host"
           done
+      - name: Check SQLite runtime fixture on the build host
+        # Fixture validation only; actual target builds use pinned SQLite 3.51.0.
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libsqlite3-dev
+          for compiler in gcc clang; do
+            "$compiler" -O2 -pthread -Wall -Wextra -Werror \
+              sources/distro/distro/sdk/sqlite-example.c -lsqlite3 \
+              -o "$RUNNER_TEMP/sdk-sqlite-host"
+            timeout 30s "$RUNNER_TEMP/sdk-sqlite-host"
+          done
       - name: Check SDK CMake integration on the build host
         run: |
           cmake -P sources/distro/distro/sdk/linux-wasm.cmake.in
