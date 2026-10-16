@@ -5,7 +5,7 @@ import { checkReport } from "./check-report.mjs";
 
 function fixture() {
   return {
-    stats: { expected: 8, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 9, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -20,6 +20,7 @@ function fixture() {
               "enforces upload budgets only when browser buffering is required",
               "cancels incomplete browser uploads without sending a response",
               "aborts failed BrowserFS mutations and preserves committed OPFS bytes",
+              "BrowserFS synchronization waits for the real OPFS write commit",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -30,7 +31,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the eight successful lifecycle cases", () => {
+test("accepts exactly the nine successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {

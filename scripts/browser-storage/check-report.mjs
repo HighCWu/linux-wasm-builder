@@ -14,6 +14,7 @@ export function checkReport(report) {
     "enforces upload budgets only when browser buffering is required",
     "cancels incomplete browser uploads without sending a response",
     "aborts failed BrowserFS mutations and preserves committed OPFS bytes",
+    "BrowserFS synchronization waits for the real OPFS write commit",
   ];
   const specs = [];
   function visit(suite) {
@@ -33,7 +34,7 @@ export function checkReport(report) {
     assert.equal(test.results.length, 1, "retries are not allowed");
     assert.equal(test.results[0].status, "passed");
   }
-  assert.equal(report.stats.expected, 8, "storage and HTTP lifecycle tests must pass");
+  assert.equal(report.stats.expected, 9, "storage and HTTP lifecycle tests must pass");
   assert.equal(report.stats.skipped, 0, "missing OPFS support must not produce a green check");
   assert.equal(report.stats.unexpected, 0, "lifecycle checks must not fail");
   assert.equal(report.stats.flaky, 0, "lifecycle checks must pass without retries");
@@ -41,5 +42,5 @@ export function checkReport(report) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   checkReport(JSON.parse(readFileSync(process.argv[2], "utf8")));
-  console.log("Confirmed eight executed storage/HTTP lifecycle tests, no skips or retries");
+  console.log("Confirmed nine executed storage/HTTP lifecycle tests, no skips or retries");
 }
