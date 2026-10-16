@@ -29,7 +29,10 @@ jobs:
         with:
           node-version: '24'
       - name: Check SDK compiler argument contract
-        run: node --test sources/distro/distro/sdk/wrapper-test.js
+        run: |
+          clang --version
+          node --test sources/distro/distro/sdk/wrapper-test.js \
+            sources/distro/distro/sdk/config-driver-test.js
       - name: Check SDK CMake example on the build host
         run: |
           cmake -P sources/distro/distro/sdk/linux-wasm.cmake.in
