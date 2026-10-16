@@ -534,7 +534,8 @@ npm 资产。构建命令及挂载方式见源码 `packages/linux-guest/README.m
 DNS 配置、测试程序缺席、随包许可证、文件写入/原生 BusyBox cat 的二进制往返、
 基本 shell pwd 和机器关闭。TypeScript 与 17 项相关宿主回归通过；
 [实际启动检查](https://github.com/HighCWu/distro/actions/runs/38966392888)固定 `1f6f85a`，
-已提交公开 CI，结果待确认。它不替代复杂 shell、浏览器、网络或完整发行版验证，
+现已成功；实际日志确认最小系统完成标记、1 项通过、零失败、零跳过。
+它不替代复杂 shell、浏览器、网络或后续根盘版本的验证，
 也不是配套源码与发布清单已经齐全的正式发行。
 
 后续 distro `0bb77e7` 为该独立 wasm64 根盘增加 `/etc/passwd`、`/etc/group` 的

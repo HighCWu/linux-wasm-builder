@@ -131,6 +131,30 @@ API 确认存在对应提交的约 250 MiB 源码 artifact；仍只保留 3 天�
 rootfs中的 BusyBox及其他 copyleft组件也必须单独处理，不能因为它们位于磁盘镜像
 中而忽略。
 
+### BusyBox 构建材料与选定源码
+
+distro `aa33c39` 为双位宽 BusyBox 增加独立 `buildMaterials` 输出，保存最终配置、
+原始许可证、配方、ABI 检查器及源码/运行库/编译器/内核头文件的 Nix 输入身份；
+默认仅安装 `out`，不把这些构建材料复制进根盘。`sourceBundle` 将实际选定的
+BusyBox 源码与材料流式归档，并另给最终安装、strip 后的 `bin/busybox` 生成校验和。
+配置缺失或材料校验失败时拒绝导出，显式补丁列表非空时也拒绝导出，避免静默遗漏。
+
+源码及材料的宿主测试通过，涵盖重复归档字节一致、特殊目录名、源码链接/硬链接、
+配置缺失和材料篡改；该结果不是目标 BusyBox 构建或 Nix 多输出打包已通过的证据。
+`busybox[-wasm64]-check-source-bundle` 另核对实际安装字节、内存 ABI、配置和源码
+许可证，成功后上传保留 3 天的验证 artifact。复现命令与排除项见源码 BusyBox README。
+
+这仍不是完整对应源码交付：归档未含 musl/compiler-rt、编译器及全部 Nix 依赖源码，
+也不是离线重建环境或 SBOM。正式发布还需匹配的 distro checkout/flake.lock、完整
+依赖审计和长期源码获取渠道。导出器自有代码采用 MIT，BusyBox 继续遵循 GPL-2.0-only。
+
+首批实际检查固定 `cb275c7`，结果待确认；后续 `6585871` 仅修正材料导出脚本的
+shfmt 空白格式，已更新固定版本，宿主归档回归重新通过：
+
+- [wasm64 源码归档](https://github.com/HighCWu/distro/actions/runs/38968663096)
+- [wasm32 源码归档](https://github.com/HighCWu/distro/actions/runs/38968669994)
+- [wasm64 安装 smoke](https://github.com/HighCWu/distro/actions/runs/38968677130)
+
 ## 洁净实现政策
 
 参考其他软件 MMU实现时：
