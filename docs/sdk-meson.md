@@ -103,6 +103,10 @@ postPatch 字段；包含循环归档样例的 `d70882a` 已启动
 已针对 `a7d45554607e6e7185524f5d35b47208acf4a6a6` 启动
 [新版 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38895454756)，包含
 binutils 修复、原生静态库生成器、双向依赖隔离和 C++ ABI 配置修复。
+该任务已因相同 GNU 归档组参数失败；其缓存保存步骤还暴露出 primary-key 输出为空，
+没有成功保存编译依赖。保存步骤现显式使用与恢复阶段一致的键。
+包含 Meson 补丁、循环归档回归、Nix 空值修复及缓存键修复的 `6f168e6` 已启动
+[新 wasm64 验证](https://github.com/HighCWu/distro/actions/runs/38903118046)。
 新版两项任务均尚未取得运行通过证据，不能把旧任务失败解释成 Wasm 网络或内核故障。
 这些检查不是完整构建矩阵，也不意味着任意第三方 Meson 项目均兼容；后者仍需
 逐项验证。
