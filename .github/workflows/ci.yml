@@ -104,6 +104,9 @@ jobs:
       - name: Check native agent browser assertions and shared suite packaging
         run: |
           node --test sources/distro/packages/browser-tests/agent-assertions.test.js
+          for source in agent-app.js agent-tests/agent-check.js agent-tests/agent.spec.js agent-tests/agent-production.spec.js; do
+            node --check "sources/distro/packages/browser-tests/$source"
+          done
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/agent-wasm64-suite.ts \
             --bundle --platform=browser --format=esm --target=es2022 \
             --external:@lowland/kernel --external:@lowland/bytes \
