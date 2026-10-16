@@ -59,6 +59,8 @@ jobs:
         run: python3 -B scripts/test_source_manifest.py
       - name: Check browser user-runtime completion and lifecycle
         run: node --test sources/distro/distro/vm-test/runtime-smoke-test.js
+      - name: Check network listener readiness and timeout handling
+        run: node --test sources/distro/packages/linux-guest/tests/helpers.test.ts
       - name: Check OPFS initialization ownership and failure cleanup
         run: node --test sources/distro/apps/site/opfs-storage.test.js
       - name: Check all kernel host tests without building Linux or LLVM
