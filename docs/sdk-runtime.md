@@ -299,6 +299,14 @@ nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-sqlite-runtime'
 runtime 测试，不允许跳过或重试；新增 SQLite 浏览器结果尚待验证。这里仍只测试
 临时 Linux 文件系统，未连接 OPFS 磁盘，不证明页面重新加载后的数据库持久性。
 
+后续用例增加跨进程写锁检查：父进程持有 `BEGIN IMMEDIATE` 事务，通过
+`posix_spawnp` 独立执行同一程序的锁探测模式，要求第二个进程获得 `SQLITE_BUSY`。
+父进程回滚释放锁后，再次启动的进程必须能够提交新记录，父进程随后读回并核对
+记录数和总和。子进程不输出测试通过标记，只有父进程核验退出状态与数据后才允许
+整项通过。此扩展已通过宿主 GCC/Clang 及固定 SQLite 3.51.0 静态库运行；上述旧
+wasm64 成功记录不含这一扩展，其目标结果仍待验证。它也不覆盖任意多进程并发、
+WAL 或崩溃恢复。
+
 ## 使用SDK构建上游zlib
 
 SDK新增真实第三方库消费检查：复用`distro/zlib/package.nix`固定的zlib 1.3.1源码及
