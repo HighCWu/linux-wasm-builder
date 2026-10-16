@@ -423,6 +423,16 @@ C++17严格编译和执行通过；上面两个已启动任务不包含这项后
 计数器存活至线程结束，不以未同步轮询判断结果。GCC/Clang 宿主严格编译及运行通过，
 浏览器用例要求对应阶段标记；上述旧提交均不覆盖此扩展，Wasm 结果仍待验证。
 
+包含 TLS 析构的 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/38907748752)
+（distro `7c5cc50`）已确认在链接时失败，尚未执行用户程序：libc++abi 强引用了 musl
+未实现的 `__cxa_thread_atexit_impl`。原因是运行库的 CMake 使用 STATIC_LIBRARY
+try-compile，`check_library_exists` 没有真正链接可执行程序，因此误报符号存在。
+运行库现显式配置 `LIBCXXABI_HAS_CXA_THREAD_ATEXIT_IMPL=OFF`，选择 libc++abi
+上游已有的 pthread TSD 析构队列回退，不在应用中伪造符号或忽略链接错误。
+宿主回归重现了缺失符号的静态库探测误报，并验证显式关闭生效；这不是目标运行
+证据，修正后的双位宽 C++ 链接、TLS 析构及条件变量仍需定向 CI 验证。回退对主
+线程析构顺序及动态卸载存在上游已说明的限制，不能据此声称完整 C++ 生命周期兼容。
+
 再后续样例增加 `std::mutex` / `std::condition_variable` 双向交接，验证工作线程
 等待任务、主线程等待完成，以及锁保护下的结果可见性。等待使用谓词并有 10 秒
 故障上限，不依赖固定 sleep 或未同步轮询；宿主 GCC/Clang 通过。当前已启动的

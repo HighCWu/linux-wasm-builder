@@ -101,12 +101,18 @@ SDK 现安装 `share/linux-wasm-sdk/licenses/`，并由 `wasm-linux-sdk-info` �
 `paths.licenseTexts` 字段提供位置。材料包括实际选中的 musl COPYRIGHT、Linux
 COPYING/完整 LICENSES 目录，以及工具链和运行库对应 LLVM 子项目的 LICENSE.TXT，
 另附 SDK 自有代码的 MIT 文本。原始文件不改写，SHA256SUMS 可在该目录核验。
-`sources.json` 记录源码输入的 Nix store basename，而非保留完整源码树的运行依赖。
+`sources.json` 以 `hashParts` 和 `name` 记录源码 store 身份：先连接两个 hash 片段，
+再附加连字符及名称即可还原 basename。不能直接保留裸 store hash，因为 Nix 同样
+会把它扫描为引用。材料构建设置 `allowedReferences = []`，由 Nix 拒绝意外的运行
+引用；SDK profile 检查还会对安装后的许可目录执行 SHA256SUMS 核验。
 来源通过所选 sysroot/工具链传递，不硬编码成与 wasm64 或 override 无关的默认源码。
 
 独立 `sdk-check-licenses` / `sdk-wasm64-check-licenses` 检查只构建许可材料，不要求
 编译 LLVM/Linux；仍需获取固定源码。缺失或空的许可文件会失败。宿主故障注入测试
-验证复制原文、缺失/空文件拒绝及校验和发现篡改；真实固定源码材料的 CI 结果待确认。
+验证复制原文、缺失/空文件拒绝及校验和发现篡改。
+[首轮固定源码 CI](https://github.com/HighCWu/distro/actions/runs/38916863482)已通过，
+对应 distro `2aac5a0`；它不包含后来加入的拆分来源 hash、零引用约束及安装校验，
+这些后续约束仍需另行验证。
 
 这是部分许可材料包，不是完整 SBOM、依赖许可清单、合规结论或 GPL 对应源码包。
 宿主动态依赖、Meson、附加库及各源文件自身的声明仍须单独审计，不能据此宣布 SDK
