@@ -101,7 +101,9 @@ Firefox 检查中通过；首次 Chromium 任务固定在更早提交，不包�
 新增定向检查名为`browser-tests-check-runtime-wasm32-chromium`和
 `browser-tests-check-runtime-wasm32-firefox`；wasm64保留原有
 `browser-tests-check-memory64-chromium`/`browser-tests-check-memory64-firefox`名称。
-wasm32新入口尚未执行重型检查，不替代已有发行版启动及uname回归。
+wasm32 Firefox 已针对 distro `c9f7083aae0c8ddf5b622a8b883418f57988a42f` 启动
+[定向检查](https://github.com/HighCWu/distro/actions/runs/38908463360)，包含当前 C/C++
+运行用例、RTTI 和工作线程 TLS 析构扩展，结果待确认；不替代已有发行版启动及 uname 回归。
 
 上述双位宽套件现还包括 C++ 容器、RAII、类型化异常、跨线程 exception_ptr 生命周期
 与线程/TLS 检查。distro `80528ae` 的
@@ -111,7 +113,12 @@ wasm32新入口尚未执行重型检查，不替代已有发行版启动及uname
 
 站点现会在缺少跨源隔离时显示 COOP/COEP 配置提示并停止，且检查早于 Service Worker
 注册/注销及 OPFS 访问。实际页面启动代码已在本地模拟 Chromium/Firefox 分支验证，
-并加入 `site-live` 浏览器回归；后者尚待运行，不代表整个站点浏览器检查已通过。
+并加入 `site-live` 浏览器回归。
+[定向检查](https://github.com/HighCWu/distro/actions/runs/38898909579)的实际构建与
+浏览器测试步骤已成功：Chromium 三项测试全部通过，分别覆盖缺少跨源隔离时提前
+停止、空白持久磁盘初始化启动，以及存储不可用时回退 live-only。整个工作流失败
+是后续旧版缓存保存缺少 `primary-key`，不是站点测试失败；不据此宣称崩溃恢复、
+长期持久化可靠性或整个浏览器矩阵已获验证。
 
 ## P3：存储、文件系统与设备
 
