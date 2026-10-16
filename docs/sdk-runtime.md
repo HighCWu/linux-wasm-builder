@@ -227,6 +227,41 @@ SDK的cmake-runtime检查已改为执行这条两阶段消费流程，产物仍�
 运行。此前已触发的CI固定在旧提交，不包含本节变更；本轮没有追加重型任务，也没有
 Linux、musl、LLVM或浏览器实现变更。示例验证构建接口，不代表任意第三方库已兼容。
 
+## 使用SDK构建上游zlib
+
+SDK新增真实第三方库消费检查：复用`distro/zlib/package.nix`固定的zlib 1.3.1源码及
+fetchzip校验值，通过SDK的CC、AR、RANLIB运行上游configure --static、make及install。
+随后独立的`zlib-example`项目使用FindPkgConfig导入安装后的zlib.pc，通过SDK CMake
+工具链构建程序。没有复用发行版已经编译好的zlib库，也没有修改zlib源码。
+
+程序核验头文件与库的版本一致，执行8 KiB数据的压缩/解压并逐字节比较，最后破坏
+校验和并要求返回Z_DATA_ERROR。此检查覆盖静态库消费、内存分配与zlib内存压缩接口；
+不覆盖gz文件接口、所有压缩参数或性能指标。项目新增测试和集成代码采用MIT，zlib
+本身继续遵循上游zlib许可证。
+
+在对应SDK shell中，准备解包的固定zlib源码后可复现构建：
+
+```sh
+mkdir -p build-sdk-zlib
+SDK_TEST_ZLIB_SOURCE=/absolute/path/to/zlib-1.3.1 \
+  SDK_TEST_CMAKE_TOOLCHAIN="$WASM_CMAKE_TOOLCHAIN_FILE" \
+  SDK_TEST_PKG_CONFIG="$PKG_CONFIG" \
+  SDK_TEST_OUTPUT_DIRECTORY="$PWD/build-sdk-zlib" \
+  node --test sources/distro/distro/sdk/zlib-consumer-test.js
+```
+
+该命令需要宿主Node和Make，产物为`build-sdk-zlib/sdk-zlib.wasm`。脚本在临时目录
+构建和安装依赖，使用显式目标元数据路径及CMake staging前缀，保留产物后清理临时
+构建目录；不会修改输入源码。目标程序须在Linux/Wasm运行，构建脚本不在宿主执行它。
+
+本地使用同一上游版本完成configure/Make、安装、CMake消费和宿主程序运行。目标检查
+名称为`sdk-check-zlib-runtime`和`sdk-wasm64-check-zlib-runtime`，使用各自默认内核
+及raw initramfs；Node宿主收到程序pass才算运行成功。固定distro提交
+`90e0fdb3d2ad298f481de84e4ac8195280b97782`的公开
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38865687673)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38865697512)已通过检查发现阶段并
+开始构建，运行结果待确认；尚未新增浏览器验证。
+
 ## 验证状态
 
 宿主g++ C++17严格编译及执行通过，Nix语法格式化和仓库元数据检查通过。本地没有
