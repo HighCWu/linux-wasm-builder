@@ -41,6 +41,7 @@ jobs:
           cp scripts/browser-storage/browser-fs.spec.js "$suite/tests/"
           cp scripts/browser-storage/browser-fs-rename.spec.js "$suite/tests/"
           cp scripts/browser-storage/browser-fs-range.spec.js "$suite/tests/"
+          cp scripts/browser-storage/network-lifecycle.spec.js "$suite/tests/"
           npm install --prefix "$suite" --no-audit --no-fund
           "$suite/node_modules/.bin/esbuild" sources/distro/apps/site/opfs-disk-worker.js \
             --bundle --format=esm \
@@ -55,6 +56,12 @@ jobs:
             --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$suite/browser-fs.js"
+          "$suite/node_modules/.bin/esbuild" scripts/browser-storage/network-api.ts \
+            --bundle --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/index.ts" \
+            --alias:@lowland/kernel/plugin="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/plugin.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$suite/network-api.js"
       - name: Install browser
         run: '"$RUNNER_TEMP/browser-storage/node_modules/.bin/playwright" install --with-deps ${{ matrix.browser }}'
       - name: Verify real OPFS initialization failure recovery
@@ -63,7 +70,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_NAME=storage-report.json \
             ./node_modules/.bin/playwright test --project=${{ matrix.browser }} --forbid-only \
               --reporter=line,json \
-              --grep '(invalid disk capacity preserves OPFS data and releases its lock|flushes virtio writes through the real OPFS worker|cancels pending Fetch response reads on disconnect|releases disconnected Fetch callbacks and cancels late responses|forwards fragmented POST bodies through browser Request|enforces upload budgets only when browser buffering is required|cancels incomplete browser uploads without sending a response|aborts failed BrowserFS mutations and preserves committed OPFS bytes|BrowserFS synchronization waits for the real OPFS write commit|BrowserFS rename preserves pending source writes and open handles|BrowserFS rejects unsafe I/O ranges without changing OPFS data|BrowserFS serializes append writes and honors current open flags|BrowserFS serializes exclusive creates with namespace mutations|BrowserFS rejects invalid timestamps before changing OPFS data or metadata)$'
+              --grep '(invalid disk capacity preserves OPFS data and releases its lock|flushes virtio writes through the real OPFS worker|cancels pending Fetch response reads on disconnect|releases disconnected Fetch callbacks and cancels late responses|forwards fragmented POST bodies through browser Request|enforces upload budgets only when browser buffering is required|cancels incomplete browser uploads without sending a response|aborts failed BrowserFS mutations and preserves committed OPFS bytes|BrowserFS synchronization waits for the real OPFS write commit|BrowserFS rename preserves pending source writes and open handles|BrowserFS rejects unsafe I/O ranges without changing OPFS data|BrowserFS serializes append writes and honors current open flags|BrowserFS serializes exclusive creates with namespace mutations|BrowserFS rejects invalid timestamps before changing OPFS data or metadata|UDP write failure releases the private network flow and pending read)$'
           node "$GITHUB_WORKSPACE/scripts/browser-storage/check-report.mjs" storage-report.json
       - uses: actions/upload-artifact@v4
         if: failure()
