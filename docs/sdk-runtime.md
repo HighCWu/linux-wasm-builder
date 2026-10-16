@@ -286,7 +286,18 @@ nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-sqlite-runtime'
 ```
 
 本机已用 SQLite 3.51.0 源码及上述宏配置完成静态构建与用例运行；这只验证用例和
-构建配方，不代表 Wasm 目标已通过。目标构建与运行结果须以对应 CI 为准。
+构建配方，不能单独证明 Wasm 目标通过。随后 distro
+`ad366f026ffae099156ef721579d42d2e6766160` 的
+[wasm64 定向 CI](https://github.com/HighCWu/distro/actions/runs/38914592060)
+已完整成功：默认 Linux 内核在 Node 中启动 `/init`，日志确认内存绑定/回滚、文件
+提交/回滚/重新打开/完整性两阶段均通过，并输出用户程序 `::vm-test::pass`。
+[wasm32 定向 CI](https://github.com/HighCWu/distro/actions/runs/38914591743)
+仍待确认，不能用 wasm64 结果替代。
+
+真实浏览器 runtime 套件也已接入相同 SDK 产物，作为独立 initramfs 启动，并要求
+上述两阶段及最终通过标记。每种位宽的 Chromium/Firefox 门禁现要求精确执行五项
+runtime 测试，不允许跳过或重试；新增 SQLite 浏览器结果尚待验证。这里仍只测试
+临时 Linux 文件系统，未连接 OPFS 磁盘，不证明页面重新加载后的数据库持久性。
 
 ## 使用SDK构建上游zlib
 
