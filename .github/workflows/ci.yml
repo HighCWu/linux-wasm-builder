@@ -84,7 +84,15 @@ jobs:
       - name: Check OPFS initialization ownership and failure cleanup
         run: node --test sources/distro/apps/site/opfs-storage.test.js
       - name: Check Fetch response lifecycle without booting Linux
-        run: node --test sources/distro/packages/linux-guest/tests/host-fetch-lifecycle.test.ts sources/distro/packages/linux-guest/tests/browser-fs-ownership.test.ts
+        run: node --test sources/distro/packages/linux-guest/tests/host-fetch-lifecycle.test.ts
+      - name: Check browser filesystem without installed workspace packages
+        run: |
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/browser-fs-ownership.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/browser-fs.test.mjs"
+          node --test "$RUNNER_TEMP/browser-fs.test.mjs"
       - name: Check browser lifecycle report gate
         run: node --test scripts/browser-storage/check-report.test.mjs sources/distro/distro/npm/browser-report-check.test.mjs
       - name: Check targeted Nix cache key consistency
