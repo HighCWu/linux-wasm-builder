@@ -80,8 +80,13 @@ toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界M
 pthread/TLS及信号检查，只有完整用户程序通过标记才算成功。宿主控制流回归已覆盖
 失败、panic、提前关闭和启动超时后的迟到实例清理；它们不等于浏览器运行通过。
 首次[Chromium定向验证](https://github.com/HighCWu/distro/actions/runs/38883890314)
-使用distro提交`e200a282e51b9b357826a135036045ae5ae17812`，结果待确认；Firefox
-共用同一入口，但尚未启动本次升级后的定向验证。
+使用distro提交`e200a282e51b9b357826a135036045ae5ae17812`，已于2026-10-16通过：
+日志确认实际执行1项Memory64 musl用户程序测试，并要求完整`::vm-test::pass`标记。
+它不包含后续加载器和宿主修复，不代表当前提交完整浏览器矩阵已通过。
+Firefox已针对`680ccfd94a1223c33f13ee6fd1f9dcb6cb83ef1c`启动
+[定向验证](https://github.com/HighCWu/distro/actions/runs/38893749018)，包含下述加载器
+恢复场景及之后的宿主修复，结果待确认。该任务还将验证定向构建的依赖缓存保存，
+缓存行为本身不构成程序运行通过的证据。
 
 浏览器宿主加载器已支持失败后再次启动，以及非标准Wasm MIME的字节编译回退。
 新增浏览器场景在同一页面先注入HTTP 503，再用application/octet-stream返回内核，
