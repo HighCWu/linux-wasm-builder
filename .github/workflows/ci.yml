@@ -33,6 +33,7 @@ jobs:
           clang --version
           node --test sources/distro/distro/sdk/wrapper-test.js \
             sources/distro/distro/sdk/config-driver-test.js \
+            sources/distro/distro/sdk/exception-codegen-test.js \
             sources/distro/distro/sdk/pkg-config-test.js
       - name: Check SDK CMake example on the build host
         run: |
