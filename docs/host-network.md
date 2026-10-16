@@ -68,6 +68,9 @@ distro `3cb5e73` 修复 TCP 外部关闭后空闲 `writer.closed` 一直等待�
 测试直接连接网卡传输层，不增加公开 SDK 接口；这仍是 Node 宿主适配器测试，
 不启动 Linux，不证明浏览器网络、完整 TCP 重传或互联网互通。主仓库轻量 CI
 新增独立打包入口，确保适配器和传输层使用同一份内核 JavaScript 模块。
+该入口已在公开轻量
+[38938749362](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38938749362)
+通过，对应主仓库 `dde145f`；不替代后续 Linux 集成检查。
 
 ## 临时端口分配
 

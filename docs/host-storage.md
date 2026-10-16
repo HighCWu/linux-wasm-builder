@@ -124,8 +124,15 @@ virtio-fs 挂载 NodeFS；不以直接调用后端方法代替内核路径。
 
 定向公开 CI 入口为 `linux-guest-package-check-tests-node-filesystem`，与完整集成套件共用
 构建环境、类型检查及 300 秒外层看门狗，但只执行这个挂载测试文件。本地只运行
-类型检查与上述 17 项宿主回归；真实 Wasm 运行结果待 CI 确认。当前使用 wasm32
-系统和 agent，不据此宣称 wasm64、浏览器 OPFS 或硬链接的完整挂载语义通过。
+类型检查与上述 17 项宿主回归通过；真实 Wasm
+[38935003554](https://github.com/HighCWu/distro/actions/runs/38935003554)
+已执行，四个子场景中双向读写通过，其余三项失败：自身重命名前后的 inode 编号
+不一致（6 与 8）；替换与 unlink/recreate 场景均在打开文件的 `stat()` 路径报
+ENOENT，栈指向通过 `/proc/self/fd/N` 调用的 `fstatat64`。这不是构建失败，
+也不能据此判定旧描述符的数据读写本身失败，因为测试尚未执行到后续读写断言。
+后续需分别检查 FUSE 节点回收/重查的 inode 身份和真正基于描述符的元数据查询，
+保留原有断言后重跑。当前使用 wasm32 系统和 agent，不据此宣称 wasm64、浏览器
+OPFS 或硬链接的完整挂载语义通过。
 自身重命名可能由 Linux VFS 提前处理，后端修复仍由直接回归独立验证。
 
 BrowserFS 的显式 atime/mtime/ctime 现会在截短及任何元数据修改之前校验纳秒字段：
