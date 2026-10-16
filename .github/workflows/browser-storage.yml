@@ -37,11 +37,7 @@ jobs:
           cp scripts/browser-storage/package.json scripts/browser-storage/index.html "$suite/"
           cp sources/distro/packages/browser-tests/server.js sources/distro/packages/browser-tests/playwright.config.js "$suite/"
           cp sources/distro/packages/browser-tests/tests/opfs-disk.spec.js "$suite/tests/"
-          cp scripts/browser-storage/host-http.spec.js "$suite/tests/"
-          cp scripts/browser-storage/browser-fs.spec.js "$suite/tests/"
-          cp scripts/browser-storage/browser-fs-rename.spec.js "$suite/tests/"
-          cp scripts/browser-storage/browser-fs-range.spec.js "$suite/tests/"
-          cp scripts/browser-storage/network-lifecycle.spec.js "$suite/tests/"
+          cp scripts/browser-storage/*.spec.js "$suite/tests/"
           npm install --prefix "$suite" --no-audit --no-fund
           "$suite/node_modules/.bin/esbuild" sources/distro/apps/site/opfs-disk-worker.js \
             --bundle --format=esm \

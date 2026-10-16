@@ -1,7 +1,16 @@
 // SPDX-License-Identifier: MIT
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { checkReport } from "./check-report.mjs";
+
+test("browser workflow stages every local spec, including newly added cases", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/browser-storage.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /cp scripts\/browser-storage\/\*\.spec\.js "\$suite\/tests\/"/);
+});
 
 function fixture() {
   return {
