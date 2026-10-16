@@ -462,6 +462,12 @@ wasm64 公开用户态已接入对应断言，执行结果待 CI。宿主缓冲�
 共 85 项及类型/浏览器语料打包通过，真实 wasm32/wasm64 用例已接入；不宣称
 原子复制、不可变快照、失败回滚或真实 rename 压力验证，不改变内核/UAPI。
 
+`09e1ea8` 拒绝 Linux C 字符串参数中的 NUL，返回 TypeError 而不是静默截断路径
+或 mount 参数；保留合法 Unicode/字面字符，不宣称路径隔离或多步骤 API 事务。
+双位宽表驱动测试覆盖 16 类参数和三种 NUL 位置、零请求及后续正常 I/O，相关
+共 87 项和类型/语料打包通过。真实 wasm32/wasm64 写入、删除和重命名的数据
+保留断言已加入，需独立目标验收，不能引用旧版本成功结果代替。
+
 - 稳定 `@lowland/kernel`、`@lowland/guest`和高层facade边界。
 - npm包的Node/browser条件导出和package-relative assets。
 - 源码联合构建与预编译runtime使用相同版本协议。

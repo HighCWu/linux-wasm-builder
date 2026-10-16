@@ -855,6 +855,22 @@ wasm32 文件集成及共享 wasm64 公开文件用例增加普通复制和 syml
 [wasm64 文件 API 验收](https://github.com/HighCWu/distro/actions/runs/38981543950)
 固定 `df2c4cc`，已启动；不重启原有运行中的用户态/wasm32 任务。
 
+#### Linux C 字符串参数不再静默截断
+
+distro `09e1ea8` 在发送 syscall 前拒绝路径、symlink target 和 mount 字符串中的
+NUL，返回 TypeError；避免写入/删除 `name\0suffix` 实际操作 `name` 的早期简化行为。
+合法 Unicode、空格、换行及 shell 元字符仍按原样 UTF-8 发送。它不做路径归一化、
+访问隔离，也不使多步骤文件 API 具有事务性；不改变内核、UAPI 或 spawn 协议。
+
+原实现双位宽各复现一项缺少拒绝的失败；修正后 16 类 C 字符串参数及首部/中间/
+末尾 NUL 的两项表驱动测试均通过，并检查零 syscall 发送及后续合法请求。相关
+七文件共 87 项通过，TypeScript 与浏览器语料打包通过。wasm32 文件集成和共享
+wasm64 文件用例增加拒绝写入/删除/重命名后原内容与路径保持不变的断言，目标
+执行仍需新版本验收；前面已运行的旧版本 CI 不包含这些断言。
+[Firefox 公开用户态验收](https://github.com/HighCWu/distro/actions/runs/38981915149)
+固定 `09e1ea8`，已启动，同时包含本轮路径、前轮复制及 stdin 语义；原有 Chromium、
+Node 文件 API 和 wasm32 检查继续独立运行，没有因新版本提交被取消或重启。
+
 #### 排队进程取消
 
 distro `9e042d7` 修正 SDK `exec()` 的进程槽等待：原实现达到 8 个活动子进程后，
