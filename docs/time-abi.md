@@ -83,6 +83,26 @@ raw initramfs，不开启文件映射实验，也不修改内核、musl、公开
 
 ## 线程条件变量的time64截止时间
 
+### SDK 与浏览器验证入口
+
+distro `0316709` 将同一 MIT `thread-time-abi.c` 接入 SDK，使用
+`wasm-linux-cc -pthread` 构建，不再仅依靠底层测试程序包。双位宽定向入口为
+`sdk-check-thread-time-runtime` 和 `sdk-wasm64-check-thread-time-runtime`，均使用
+默认内核、双核和 raw initramfs，不启用实验性映射功能。
+
+Chromium/Firefox 双位宽运行套件复用 SDK 产物，强制用例清单由 7 项增至 8 项。
+新增用例要求完整的条件变量最终阶段、用户控制台通过标记及成功机器关闭；覆盖范围
+沿用下文的长截止时间、取消、广播、超时与锁所有权测试，不扩大为完整 futex 保证。
+
+已启动 [wasm64 SDK 定向检查](https://github.com/HighCWu/distro/actions/runs/38943652523)
+和 [Chromium wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38943658455)，
+结果待确认。此前 7 项 Firefox 通过记录不包含新增 pthread 用例。
+本地 GCC/Clang 对定时器与线程两份源码的严格构建及最终标记检查共 4 项通过，
+连同运行关闭协议与报告门禁共 22 项轻量检查通过；宿主限时终止约定与上一节相同，
+不能替代 Wasm 或浏览器运行结果。
+
+### 原始 initramfs 检查范围
+
 distro提交`41c37ec078b0da87c7b887f946f1e1be4561c70f`新增MIT
 `distro/basic-init/tests/thread-time-abi.c`，通过默认内核双核raw initramfs检查
 `mmap-benchmark-check-thread-time`和`mmap-benchmark-wasm64-check-thread-time`执行。

@@ -284,7 +284,7 @@ distro `6f28004` 为该场景增加测试专用文件操作追踪，失败时输
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
 | CPU | 单CPU、SMP |
-| 用户ABI | wasm32、后续wasm64 |
+| 用户ABI | wasm64为主、wasm32兼容 |
 | 文件系统 | EROFS、ext4、OverlayFS、OPFS/host share |
 | 网络 | 无网络、运行实例私网、宿主代理 |
 | 程序 | 微测试、kselftests/LTP、真实应用 |
