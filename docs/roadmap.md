@@ -74,7 +74,7 @@
 当前已加入独立的双位宽C++运行检查，覆盖容器、RAII异常清理、std::thread与TLS；
 运行结果和复现命令见[SDK运行验证](sdk-runtime.md)。检查已加入不等于发布SDK已完成。
 wasm64 的容器、RAII 异常清理、线程及 TLS 已在默认双核 Linux 内核上运行通过
-（distro `ba7bf7f`）；跨线程保留异常对象的后续扩展及浏览器 C++ 仍需另行验证。
+（distro `ba7bf7f`）；跨线程保留异常对象和浏览器 C++ 的后续结果见下文及 SDK 运行记录。
 各子系统的CI构建期间继续推进无依赖的工作，避免把单项测试扩展变成整条路线的串行门槛。
 
 Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
@@ -108,7 +108,10 @@ wasm32 Firefox 已针对 distro `c9f7083aae0c8ddf5b622a8b883418f57988a42f` 启�
 上述双位宽套件现还包括 C++ 容器、RAII、类型化异常、跨线程 exception_ptr 生命周期
 与线程/TLS 检查。distro `80528ae` 的
 [Chromium wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38896599293)
-正在验证该入口，不能提前计为通过。后续 `49ae22a` 将结果协议限定到用户控制台，
+实际构建与浏览器测试步骤已成功，四项测试全部通过，包含 C 用户程序、C++ 容器、
+RAII、跨线程保留异常清理与线程/TLS，以及加载器恢复场景。整个工作流失败是后续
+旧缓存保存缺少 `primary-key`。此提交尚不包含 RTTI、TLS 析构或条件变量扩展。
+后续 `49ae22a` 将结果协议限定到用户控制台，
 启动控制台仍检测 panic，但不再接受其通过标记；此后续修复不在该运行内。
 
 站点现会在缺少跨源隔离时显示 COOP/COEP 配置提示并停止，且检查早于 Service Worker
