@@ -145,6 +145,7 @@ jobs:
       - name: Check standalone wasm64 embedding example without booting Linux
         run: |
           node --test sources/distro/apps/wasm64-example/server.test.js sources/distro/apps/wasm64-example/browser-support.test.js
+          node --test sources/distro/apps/wasm64-example/integrity.test.js
           node --check sources/distro/apps/wasm64-example/app.js
           node --check sources/distro/apps/wasm64-example/server.mjs
           node --check sources/distro/packages/browser-tests/agent-tests/wasm64-example.spec.js
