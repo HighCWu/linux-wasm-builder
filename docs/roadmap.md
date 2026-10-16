@@ -101,6 +101,16 @@ Firefox已针对`680ccfd94a1223c33f13ee6fd1f9dcb6cb83ef1c`启动
 `browser-tests-check-memory64-chromium`/`browser-tests-check-memory64-firefox`名称。
 wasm32新入口尚未执行重型检查，不替代已有发行版启动及uname回归。
 
+上述双位宽套件现还包括 C++ 容器、RAII、类型化异常、跨线程 exception_ptr 生命周期
+与线程/TLS 检查。distro `80528ae` 的
+[Chromium wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38896599293)
+正在验证该入口，不能提前计为通过。后续 `49ae22a` 将结果协议限定到用户控制台，
+启动控制台仍检测 panic，但不再接受其通过标记；此后续修复不在该运行内。
+
+站点现会在缺少跨源隔离时显示 COOP/COEP 配置提示并停止，且检查早于 Service Worker
+注册/注销及 OPFS 访问。实际页面启动代码已在本地模拟 Chromium/Firefox 分支验证，
+并加入 `site-live` 浏览器回归；后者尚待运行，不代表整个站点浏览器检查已通过。
+
 ## P3：存储、文件系统与设备
 
 当前块设备接入契约、错误边界及 OPFS 持久性限制见[宿主块存储说明](host-storage.md)。
