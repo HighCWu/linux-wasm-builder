@@ -77,6 +77,12 @@ wasm64 的容器、RAII 异常清理、线程及 TLS 已在默认双核 Linux �
 （distro `ba7bf7f`）；跨线程保留异常对象和浏览器 C++ 的后续结果见下文及 SDK 运行记录。
 各子系统的CI构建期间继续推进无依赖的工作，避免把单项测试扩展变成整条路线的串行门槛。
 
+当前 Chromium wasm64 运行套件已实际通过全部 8 项，包括 C/C++、SDK SQLite、
+socket、time64 定时器和 pthread 等待/取消/广播，以及加载失败后的恢复；
+[定向记录](https://github.com/HighCWu/distro/actions/runs/38943658455)固定 distro
+`0316709`，报告门禁确认零跳过、零重试。该结果不等于 wasm64 高层 agent 或
+完整发行版矩阵通过；agent 的 syscall wire ABI 目前仍为 wasm32。
+
 Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
 toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界MAP_FIXED、
 pthread/TLS及信号检查，只有完整用户程序通过标记才算成功。宿主控制流回归已覆盖
