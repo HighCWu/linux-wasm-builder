@@ -79,10 +79,11 @@ Worker/MessagePort 始终由调用方拥有。取消不终止端点、不撤销�
 五项 helper 宿主回归与原 storage 回归共 18 项通过，覆盖发送/连接错误、超时、
 预取消/等待中取消、就绪后取消、设备关闭失败及无效截止参数。专用双浏览器套件
 增加真实 Worker、DataCloneError、静默 Worker 超时、已有 OPFS 字节保持及关闭后
-重开场景，严格门禁现要求 21 项、零跳过/重试；该新增浏览器场景仍待 CI。
+重开场景，严格门禁现要求 21 项、零跳过/重试。
 它不启动 Linux，不等于整站安装/引导或异常中断时的 ext4 恢复验收。
 [本次双浏览器检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38976752959)
-固定主仓库 `3aceed1`、distro `ad839be`，已启动，实际结果待确认。
+固定主仓库 `3aceed1`、distro `ad839be`，现已成功；实际日志确认 Chromium 与
+Firefox 各执行 21 项并通过，均零跳过/重试，包括新增的磁盘启动取消与字节保持场景。
 
 现有站点适配器在专用 Worker 中使用同步访问句柄，循环处理短读写，并将设备
 `flush()` 对应到句柄 `flush()`。关闭时即使刷新抛错，也会尝试关闭句柄。
