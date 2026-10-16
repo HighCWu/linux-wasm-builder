@@ -101,8 +101,9 @@ jobs:
         run: node --test sources/distro/distro/vm-test/runtime-smoke-test.js
       - name: Check network readiness, timeout handling and remaining output collection
         run: node --test sources/distro/packages/linux-guest/tests/helpers.test.ts
-      - name: Check native agent browser assertions and shared suite packaging
+      - name: Check userland memory ABI and agent browser packaging
         run: |
+          node --test sources/distro/distro/busybox/check-binary.test.mjs
           node --test sources/distro/packages/browser-tests/agent-assertions.test.js
           for source in agent-app.js agent-public-app.js agent-tests/agent-check.js agent-tests/agent.spec.js agent-tests/agent-production.spec.js agent-tests/agent-public.spec.js; do
             node --check "sources/distro/packages/browser-tests/$source"
