@@ -2,7 +2,7 @@
 
 目标是让用 SDK 构建的软件使用标准 Linux socket 接口，而不是要求程序改用
 JavaScript 网络 API。当前新增验证先隔离内核、musl 和 SDK ABI：在同一 Linux
-运行实例内运行 Unix stream socketpair 及 IPv4 TCP 回环，不依赖外部服务器、
+运行实例内运行 Unix stream socketpair 及 IPv4 TCP/UDP 回环，不依赖外部服务器、
 virtio-net、宿主代理或浏览器 Fetch。
 
 ## 共用用例
@@ -15,7 +15,12 @@ wasm32/wasm64 SDK 分别构建，覆盖：
 - `epoll_event.data.u64` 保留 `9007199254740993`，不经 JavaScript 浮点数转换。
 - 包含 NUL、高位字节的双向数据，允许短读/短写，处理 EINTR 和暂时不可读写。
 - `shutdown(SHUT_WR)`、EPOLLRDHUP 和 EOF；半关闭后反方向仍能发送与接收。
+- 对已半关闭的发送方向使用 MSG_NOSIGNAL，要求 EPIPE 而不终止进程。
 - TCP 非阻塞 connect、poll 可写、`SO_ERROR`、内核分配端口与 `accept4`。
+- UDP `sendmsg` 双 iovec、`recvmsg` 的源地址和返回长度；MSG_PEEK 不消费消息，
+  MSG_TRUNC 报告原数据报长度，后续完整接收仍保留原字节。
+- UDP 零长度数据报后紧跟普通数据报：必须分别读取，零长度不是 EOF，也不吞掉
+  后一条记录，队列排空后 poll 不再报告可读。
 
 裸 initramfs 中的测试仅把自身 Linux 实例的 `lo` 接口置为 UP。原生宿主运行不
 执行接口配置，只使用已有回环网络及内核分配的临时端口，不需要 root 权限。
@@ -42,10 +47,13 @@ distro `5d6e68d` 的原生 GCC/Clang 严格编译及各 5 次运行通过；Wasm
 [SDK wasm32](https://github.com/HighCWu/distro/actions/runs/38929881855) 与
 [Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38929879587)
 检查已完成 Nix 检查发现及求值，正在执行重型构建/运行，结果待确认。
+这两项固定上述早期提交，不包含后续 UDP 或 EPIPE 扩展，不能以其结果替代新版
+验证。distro `655cca5` 的 GCC/Clang 各 5 次原生运行及 Wasm 条件分支宿主语法检查
+也已通过；另触发 wasm64 SDK 和 Firefox 检查，目标运行结果仍待确认。
 
 ## 边界
 
-本用例不证明 UDP、DNS、外部 TCP、TLS、监听端口转发、跨实例网络或全部 epoll
+本用例不证明外部 UDP、DNS、外部 TCP、TLS、监听端口转发、跨实例网络或全部 epoll
 边沿触发/单次触发语义。浏览器对任意原始网络连接仍有安全限制；外部网络路径
 必须单独验证，见[宿主 HTTP 说明](host-http.md)。也不将一个运行实例内的回环通信
 表述为浏览器已获得任意互联网 socket 能力。
