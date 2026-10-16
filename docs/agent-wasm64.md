@@ -647,7 +647,13 @@ amalgamation 和上游 CLI shell，不链接 wasm32 readline/ncurses。构建检
 的拒绝；TypeScript、脚本语法及浏览器打包通过。目标 CLI 编译和运行仍待公开 CI，
 先验证 Node，确认实际构建后再铺开浏览器，避免重复未定位的构建失败。
 首项 [SQLite 应用根盘 Node](https://github.com/HighCWu/distro/actions/runs/38972726337)
-固定含说明的 `5f57f58`，待实际结果。
+固定含说明的 `5f57f58`，实际失败于打包：CLI 已完成编译及 wasm64 共享内存 ABI
+检查，但 Nix 检出产物引用 SQLite 源码 store 路径，尚未运行 Linux 事务语料。
+`d9d2d68` 改为复制未修改的编译输入，并以相对路径编译静态库和 shell，保留空
+`allowedReferences` 门禁；不以放开依赖引用来绕过失败。修正仍需目标构建和运行复验。
+[修正后 Node 复验](https://github.com/HighCWu/distro/actions/runs/38974540733)
+固定 `ffbdfb6`，结果待确认；旧开发消费者检查仍保持运行，不取消或用其旧源码结果
+替代本次修正验收。
 
 后续 `aab1a2b` 将同一 SQLite 编译为独立 `dev` 输出中的静态库与头文件，CLI 链接
 该库；默认只安装 `out`，不向运行根盘加入开发文件。pkg-config 元数据使用安装位置
@@ -658,6 +664,22 @@ pkg-config 编译既有 SQLite 消费程序，不重新编译 amalgamation；实
 固定含说明的 `77cf33c` 已启动
 [SQLite 安装后开发消费者](https://github.com/HighCWu/distro/actions/runs/38973494702)，
 结果待确认。
+
+#### 独立浏览器嵌入示例
+
+`a0ba6b4` 新增 `wasm64-example`，只打包匹配内核、原生 agent 引导盘及最小可写
+ext4 根盘，不构建完整站点，也不安装测试程序。页面通过公开 API 启停 Linux，
+运行原生 `uname`，写入有界 UTF-8 文本并由原生 `cat` 读回。每次启动重新获取根盘，
+停止或刷新丢失写入；这不是 OPFS，内存块 flush 也不承诺持久化。
+
+本地服务器的隔离响应头、MIME、HEAD、路径/符号链接逃逸及缺失文件处理检查通过，
+脚本语法与浏览器打包通过；这些不等于 Linux 浏览器执行通过。
+[首项 Chromium 检查](https://github.com/HighCWu/distro/actions/runs/38974364050)
+固定 `57f627b`，验证实际页面控件、精确 UTF-8 往返、停止重启、旧文件不存在及
+命令失败后仍可继续使用。Firefox 检查已定义，待初次构建结果后再开展。
+构建/运行、内存寿命、NOMMU 隔离限制及组件许可说明见
+[示例 README](../sources/distro/apps/wasm64-example/README.md)。这只是开发者入口，
+不是完整发行版、持久化存储或稳定 SDK 发布已经完成的声明。
 
 #### 排队进程取消
 
