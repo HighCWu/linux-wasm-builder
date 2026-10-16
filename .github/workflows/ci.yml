@@ -196,7 +196,11 @@ jobs:
             --bundle --platform=node --format=esm \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/syscalls-abi.test.mjs"
-          node --test "$RUNNER_TEMP/session-handshake.test.mjs" "$RUNNER_TEMP/syscalls-abi.test.mjs"
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/client-abi.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/client-abi.test.mjs"
+          node --test "$RUNNER_TEMP/session-handshake.test.mjs" "$RUNNER_TEMP/syscalls-abi.test.mjs" "$RUNNER_TEMP/client-abi.test.mjs"
           for compiler in gcc clang; do
             "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror -fsyntax-only \
               -include sources/distro/distro/guest-agent/native-wasm64.h \
