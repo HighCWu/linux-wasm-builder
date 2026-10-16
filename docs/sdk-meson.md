@@ -43,6 +43,11 @@ CC/CXX环境变量设为不可用路径，依赖cross file和CC_FOR_BUILD/CXX_FO
 均不执行目标程序，防止将“只编译成功”误报为接口可用。这些断言也包含在下面的
 目标检查中；宿主通过不代表Wasm链接器已通过同样的检查。
 
+依赖发现测试还向宿主PKG_CONFIG_PATH/PKG_CONFIG_LIBDIR注入同名错误元数据和
+仅宿主可见的依赖，要求Meson通过SDK包装器选择WASM_PKG_CONFIG_PATH中的目标
+元数据，并拒绝宿主专有依赖。本地反例绕过包装器后必须因误选宿主元数据而失败。
+这验证的是pkg-config查询边界，不代表任意项目手写的绝对库路径也会被隔离。
+
 目标检查`sdk-check-meson-runtime`及`sdk-wasm64-check-meson-runtime`已加入SDK，
 使用安装后的cross file构建程序并在对应默认内核双核环境运行。当前尚未触发这两项
 重型任务，既有C++等CI继续运行。对任意第三方Meson项目的兼容性仍需逐项验证。
