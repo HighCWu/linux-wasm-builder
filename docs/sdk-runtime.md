@@ -141,7 +141,8 @@ try_run仍需要目标运行环境或项目提供经过验证的结果；编译�
 随后在对应默认内核双核环境执行，CI名称为sdk-check-cmake-runtime和
 sdk-wasm64-check-cmake-runtime。
 公开Node [wasm64](https://github.com/HighCWu/distro/actions/runs/38860960964)已通过；
-[wasm32](https://github.com/HighCWu/distro/actions/runs/38860955154)结果待确认。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38860955154)也已通过；对应
+`sdk-check-cmake-runtime` 的 Build isolated check 和整个工作流均成功。
 这轮不修改Linux、musl或LLVM实现，没有新增浏览器执行记录。
 
 ## 由Clang管理响应文件和链接阶段
@@ -172,7 +173,8 @@ C源文件，经嵌套响应文件传递-c/-Werror及带空格路径，检查编
   [wasm64](https://github.com/HighCWu/distro/actions/runs/38861607869)均在用户程序运行时
   失败，编译和链接已完成；异常生成修正见下文。
 - CMake强制响应文件：[wasm32](https://github.com/HighCWu/distro/actions/runs/38861614651)、
-  [wasm64](https://github.com/HighCWu/distro/actions/runs/38861620256)已通过，wasm32结果待确认。
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/38861620256)均已通过；wasm32
+  对应 `e2cafe9c925f5382af42c4ad29902d6e059d4af3`，不是后续 SDK 元数据或异常扩展的验证。
 
 支持当前Clang的响应文件语法，不等于支持任意编译器或构建系统；没有修改内核、
 musl、公开UAPI或浏览器配置。SDK仍依赖Nix store，不是可重定位发行包。
@@ -343,6 +345,9 @@ C++17严格编译和执行通过；上面两个已启动任务不包含这项后
 `dynamic_cast` 回到完整派生对象及另一基类，检查消息、成员值与恰好一次派生析构。
 此用例覆盖基础 catch 之外的类型匹配和指针调整；宿主 C++17 严格编译及运行通过，
 浏览器套件也要求其阶段标记。上面的已启动运行不包含此新增用例，Wasm 结果仍待验证。
+包含此扩展的 [wasm64 SDK 检查](https://github.com/HighCWu/distro/actions/runs/38903701981)
+对应 `6f168e675e65379c559ee8b719d739a0b7067c04`，当前仍在 Build isolated check
+阶段；它不包含后来增加的 `wasm-linux-sdk-info` 安装入口。
 
 ### 先前异常生成问题
 
@@ -366,7 +371,9 @@ C++异常tag和catch处理仍存在。旧配置会失败，修正后通过；SDK
 修正后的distro提交`ee6a09e980dfe8fda4602ad2d291c68d3c995e5c`已触发
 [wasm32](https://github.com/HighCWu/distro/actions/runs/38873696135)及
 [wasm64](https://github.com/HighCWu/distro/actions/runs/38873703134)直接SDK运行检查，
-结果待确认。这会重建对应C++运行库；已有旧配置的通过记录不能覆盖本次变更。
+两项均已结束且失败，失败步骤为 Build isolated check，不能作为异常支持通过的证据。
+这些是后续 WebAssembly C++ ABI 修复之前的历史运行；ABI 修复后的通过记录及
+跨线程异常用例的覆盖范围见上文，不能将不同提交的结果相互替代。
 
 ## 验证状态
 
