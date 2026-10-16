@@ -7,6 +7,18 @@ wasm32/wasm64-unknown-linux-musl目标、musl及LLVM的compiler-rt、libc++、li
 和libunwind。独立测试代码采用MIT；这些依赖仍遵循各自上游许可证，不因测试采用
 MIT而被重新许可。使用者可按自身代码与实际依赖的许可证开发和发布软件。
 
+## 识别当前 SDK 配置
+
+在相应 SDK shell 中运行 `wasm-linux-sdk-info` 可输出 JSON 配置记录；同一内容随包
+安装在 `share/linux-wasm-sdk/profile.json`。记录包含目标位宽、triple、编译/链接默认
+参数、C++ 配置原文，以及工具链、sysroot、编译配置和修正版 Meson 的 Nix store 路径。
+排查问题或归档构建时，应同时保存此记录与应用自身的构建参数。
+
+`schemaVersion` 只表示 JSON 格式版本，不是 Linux/Wasm ABI 版本。此记录不是 SBOM、
+源码清单或兼容性认证，也不能检测用户手动覆盖参数或混入的第三方库。特别是 C++ ABI
+配置变更后仍须重建依赖，不能仅凭目标位宽相同就混用旧产物。该新增安装入口的 Nix
+集成验证仍待包含它的后续构建；已运行的旧提交不覆盖此入口。
+
 ## 为什么需要独立启动检查
 
 既有toolchain-smoke会编译并验证C/C++ Wasm模块；已有C用户程序启动检查。但
