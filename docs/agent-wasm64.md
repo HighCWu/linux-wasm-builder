@@ -195,8 +195,36 @@ distro `5cea709` 修正传输连接成功后握手读写仍可能无限等待的
 后续 `85fcbb9` 简化架构检查的求值表达式以避免冗余括号参与格式修正，
 没有禁用格式门禁或更改架构断言。固定该提交的
 [Firefox 重跑](https://github.com/HighCWu/distro/actions/runs/38953856289) 和
-[生产入口重跑](https://github.com/HighCWu/distro/actions/runs/38953864071) 已启动，
-结果待确认；两项均包含握手超时和新增阶段日志。
+[生产入口重跑](https://github.com/HighCWu/distro/actions/runs/38953864071) 已分别结束，
+两项均包含握手超时和新增阶段日志。Firefox 在首个旧版 v3 拒绝检查中约 3 秒后
+收到不符合 ProtocolError 的错误，随后 machine.closed 正常完成；不是机器关闭卡住。
+当前日志只显示断言外层错误，尚不能区分连接与握手超时，不据此归因浏览器引擎。
+生产入口重跑已通过：日志确认真实入口输出就绪行、根标记与 EROFS 根挂载、
+proc/sys/devpts、旧 initramfs 脱离，以及原有六组文件/进程/会话清理断言全部完成。
+七组用例加外层共 8 项通过，零失败、零跳过。这固定 `85fcbb9`，不包含下述
+后续高层客户端断言，不代表完整发行版或生产浏览器矩阵通过。
+
+### 生产入口的浏览器矩阵
+
+distro `6b59bdc` 新增 `browser-tests-check-agent-production-wasm64-chromium/firefox`。
+两项直接使用生产 Node 检查暴露的 initramfs 和带标签 EROFS 根盘，而不依赖
+Node 检查成功作为浏览器证据。浏览器挂载只读块设备，并在同一共享语料中要求
+根切换检查和全部七组文件/进程用例（含高层客户端）。基线浏览器检查仍使用
+最小外壳，不混用入口或资产。下载失败直接报错，不退回外壳或另一位宽。
+
+两种模式复用浏览器断言外壳，但分别要求精确的七组或八组完成名称和 machine.closed；
+报告门禁仍要求一个通过的测试、零跳过、零重试。新增 JS 的语法、共享套件类型、
+浏览器打包、3 项断言适配器回归与 Nix 格式检查通过；这些不是浏览器运行证明。
+
+[生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38954969112) 固定
+`6b59bdc`；[生产 Chromium](https://github.com/HighCWu/distro/actions/runs/38955273955)
+和[基线 Firefox](https://github.com/HighCWu/distro/actions/runs/38955281226) 固定
+`498dbce`，均已启动、结果待确认。后两项因触发时的远端版本，不包含 `14755d0`
+的诊断改进；不取消已有运行，也不将它们当作新诊断已经验证。
+
+distro `14755d0` 将拒绝断言的原始错误名称和消息写入外层错误，同时保留 cause，
+避免浏览器测试序列化时丢失内层错误。新增回归区分连接与握手超时，两者都必须
+导致身份断言失败；4 项断言适配器回归通过。该变更只补诊断，不宣称修复 Firefox。
 
 ## 后续接入顺序
 
