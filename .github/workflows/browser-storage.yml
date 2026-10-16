@@ -1,0 +1,50 @@
+name: Browser storage lifecycle
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-storage-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  opfs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      - run: git submodule update --init --depth 1 sources/distro
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Prepare isolated browser suite without Linux or LLVM
+        run: |
+          suite="$RUNNER_TEMP/browser-storage"
+          mkdir -p "$suite/tests"
+          cp scripts/browser-storage/package.json scripts/browser-storage/index.html "$suite/"
+          cp sources/distro/packages/browser-tests/server.js sources/distro/packages/browser-tests/playwright.config.js "$suite/"
+          cp sources/distro/packages/browser-tests/tests/opfs-disk.spec.js "$suite/tests/"
+          npm install --prefix "$suite" --no-audit --no-fund
+          "$suite/node_modules/.bin/esbuild" sources/distro/apps/site/opfs-disk-worker.js \
+            --bundle --format=esm \
+            --alias:@lowland/kernel/virtio/block.js="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/block.ts" \
+            --alias:@lowland/kernel/virtio/remote.js="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/remote.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$suite/opfs-disk-worker.js"
+      - name: Install Chromium
+        run: '"$RUNNER_TEMP/browser-storage/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Verify real OPFS initialization failure recovery
+        run: |
+          cd "$RUNNER_TEMP/browser-storage"
+          ./node_modules/.bin/playwright test --project=chromium --forbid-only \
+            --grep '^invalid disk capacity preserves OPFS data and releases its lock$'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-storage-results
+          path: ${{ runner.temp }}/browser-storage/test-results
