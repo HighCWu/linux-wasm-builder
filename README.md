@@ -98,6 +98,12 @@ npx --yes --package=typescript@5.9.3 -c 'bash scripts/check_kernel_host.sh'
 
 ## 当前状态
 
+可运行 `python3 -B scripts/source_manifest.py` 导出当前提交固定的源码仓库和 commit，
+或用 `--revision COMMIT` 指定已有提交。该命令读取 Git 对象，不需要初始化 Linux、
+LLVM 等子模块，也不会把未提交修改混入清单。它只是源码 pin 的溯源记录，不是
+二进制 SBOM、完整传递依赖清单或 GPL 对应源码包；正式构建来源仍须通过
+`scripts/check_repository.py` 校验与 distro 的 pin 一致。
+
 项目已经建立可复现基线和跨组件测试矩阵。wasm32仍是默认profile；实验性wasm64路径
 已经在Node 24、Chromium和Firefox中执行最小musl用户程序，下一步继续扩大线程、TLS、
 信号、映射、SDK和真实软件包覆盖。各子系统按路线图独立推进，不能从单项smoke测试
