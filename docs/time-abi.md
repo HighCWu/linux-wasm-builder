@@ -148,6 +148,6 @@ broadcast后cancel。两种时钟、每种顺序各4轮，每轮4个等待者。
 新增pthread_testcancel来强行让取消获胜，也没有修改Linux、musl或生产配置。
 
 宿主严格C语法、执行pass、轻量ABI和仓库元数据检查通过。公开Node
-[wasm32](https://github.com/HighCWu/distro/actions/runs/38859233374)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/38859238903)已触发，结果待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38859238903)已通过；
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38859233374)仍在运行，结果待确认。
 没有新增浏览器执行记录。
