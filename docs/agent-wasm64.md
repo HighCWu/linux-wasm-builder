@@ -921,6 +921,10 @@ write。它不是硬内存配额：单块大小、上游队列和忽略 write Pr
 - [流模式程序导入 Chromium](https://github.com/HighCWu/distro/actions/runs/38982729601)
 - [流模式 wasm32 集成](https://github.com/HighCWu/distro/actions/runs/38982775556)
 
+Chromium `38982729601` 已成功，实际日志确认 111 个 bundle 文件 SHA-256 校验及
+精确页面用例 1 项通过，零跳过/重试，包含 streaming 模式文本/前缀消费及原有控件。
+wasm32 集成仍在运行；此版本不含后续二进制文件输入或整机意外退出恢复修正。
+
 #### 本地二进制文件 stdin
 
 distro `efa2f0d` 将独立示例的 streaming stdin 接到真实文件选择器。用户明确选择
@@ -942,7 +946,20 @@ File.stream 逐块 pipeTo stdin；空文件发送 EOF。前缀消费者的 EPIPE
 `d70d423` 只修正该测试的链式调用排版，不改变断言；本地固定版本 oxfmt 检查和
 36 项相关测试通过。主仓库轻量 CI 也加入同版本的示例/页面测试格式检查。
 [修正后的 Firefox 验收](https://github.com/HighCWu/distro/actions/runs/38983716460)
-固定 `d70d423`，正在运行；不取消仍在执行的旧版 streaming Chromium/wasm32 任务。
+固定 `d70d423`，正在运行；旧版 streaming Chromium 已成功，wasm32 任务继续运行。
+
+#### 整机自行退出后的页面恢复
+
+distro `9f6353f` 修正整机在应用或命令等待中自行退出时的页面状态：原实现清掉
+session，却保留 busy，旧操作不返回就无法重新启动。现在 machine.closed 确认后
+失效旧操作的界面所有权、解除 busy 并取消旧应用；正常关闭显示 stopped，失败保留
+错误。主动 Stop 仍走原路径，等待整机与控制台清理后才允许重启。
+三项新增宿主回归在原实现全部失败，修正后相关共 39 项通过；覆盖正常/失败关闭、
+悬挂应用/命令、旧输出/错误不能污染新实例，也不能清掉新应用的取消控制器。
+格式检查和页面打包通过。该故障注入来自宿主模拟，不是浏览器内核崩溃恢复的证明；
+后续 Chromium 页面回归仅验证真实 bundle 的已有操作路径，不能替代故障注入。
+[新版 Chromium 回归](https://github.com/HighCWu/distro/actions/runs/38983901705)
+固定 `9f6353f`，正在运行，包含二进制文件输入与恢复修正，不重启已有 Firefox 任务。
 
 #### 排队进程取消
 
