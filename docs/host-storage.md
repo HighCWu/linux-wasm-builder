@@ -157,9 +157,18 @@ distro `d9021e7` 修正 JavaScript virtio-fs 设备的节点编号分配：FORGE
 现已结束：双向读写及 self-rename 通过，但 replacement 与 unlink/recreate 场景仍在
 直接 `fstat64` 上返回 ENOENT，尚未执行后续旧描述符内容断言。上游 FUSE 的
 `fuse_getattr` 经 `fuse_update_get_attr(..., NULL, ...)` 发出不带 FH 的 GETATTR，
-而 NodeFS 对已脱离命名空间的节点仅支持显式 handle 属性查询；下一步需补齐节点级
-属性查询对仍打开 inode 的支持，不能把先前修复记为完整集成通过。这两项修复均为 MIT 自有实现，
+而当时的 NodeFS 对已脱离命名空间的节点仅支持显式 handle 属性查询；因此不能把
+先前修复记为完整集成通过。这两项修复均为 MIT 自有实现，
 没有修改 Linux 内核或新增 UAPI，也不解决 NodeFS 动态 F_SETFL 的既有限制。
+
+distro `5144ef6` 补齐不带 FH 的节点属性查询：节点记录自己的仍打开宿主描述符，
+删除或替换后通过这些描述符查询原 inode，而不是重新解析旧路径。release 与该查询
+在同一操作队列中协调，关闭后移除描述符；最后一个描述符关闭后，脱离命名空间的
+节点再次返回 ENOENT，不能借此重新打开旧文件。仍不提供跨宿主进程的命名空间隔离。
+新增回归在修复前复现 ENOENT，修复后 18 项 NodeFS 后端测试、同套独立打包测试及
+类型检查通过，覆盖 unlink/recreate 和替换后两个打开描述符逐一关闭的行为。
+原有四项 Linux 挂载断言保持不变，已启动
+[定向重跑](https://github.com/HighCWu/distro/actions/runs/38944517538)，结果待确认。
 
 BrowserFS 的显式 atime/mtime/ctime 现会在截短及任何元数据修改之前校验纳秒字段：
 必须为 `[0, 1000000000)` 内的整数，否则返回 EINVAL，原文件字节和元数据不变。

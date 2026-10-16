@@ -94,9 +94,12 @@ Chromium/Firefox 双位宽运行套件复用 SDK 产物，强制用例清单由 
 新增用例要求完整的条件变量最终阶段、用户控制台通过标记及成功机器关闭；覆盖范围
 沿用下文的长截止时间、取消、广播、超时与锁所有权测试，不扩大为完整 futex 保证。
 
-已启动 [wasm64 SDK 定向检查](https://github.com/HighCWu/distro/actions/runs/38943652523)
-和 [Chromium wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38943658455)，
-结果待确认。此前 7 项 Firefox 通过记录不包含新增 pthread 用例。
+[wasm64 SDK 定向检查](https://github.com/HighCWu/distro/actions/runs/38943652523)
+已通过，固定 distro `0316709`：实际运行日志包含完整条件变量最终阶段与
+`::vm-test::pass`，目标检查和整个工作流均成功。
+[Chromium wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38943658455)
+已启动，结果待确认；不能据此声明浏览器 pthread 检查通过。此前 7 项 Firefox
+通过记录也不包含新增 pthread 用例。
 本地 GCC/Clang 对定时器与线程两份源码的严格构建及最终标记检查共 4 项通过，
 连同运行关闭协议与报告门禁共 22 项轻量检查通过；宿主限时终止约定与上一节相同，
 不能替代 Wasm 或浏览器运行结果。
