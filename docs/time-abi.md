@@ -58,6 +58,25 @@ timerfd到期及ready-fd等待用例。
 [wasm64](https://github.com/HighCWu/distro/actions/runs/37712315836)均已通过。
 尚未为该用例执行浏览器检查；既有浏览器用例不计为此测试的通过记录。
 
+## SDK 与真实浏览器接入
+
+distro `a177370` 复用上述 MIT `time-abi.c`，通过 SDK 的 `wasm-linux-cc`
+分别构建 wasm32/wasm64 程序，而不是新增一份内容相近的测试。新增定向检查入口
+为 `sdk-check-time-runtime` 与 `sdk-wasm64-check-time-runtime`，使用默认内核与
+raw initramfs，不开启文件映射实验，也不修改内核、musl、公开 UAPI 或许可证边界。
+
+双位宽的 Chromium/Firefox 运行套件增加同一程序，必须看到完整时间 ABI 阶段、
+最终通过标记及成功机器关闭。强制指定用例清单由 6 项增至 7 项；缺失、跳过或
+重试均不能作为通过。wasm64 SDK 和 Firefox 定向 CI 已发起，结果待确认；历史
+Node 通过记录和其他浏览器测试均不替代这个新路径的验证。
+
+新增 2 项宿主回归通过 GCC/Clang 严格构建同一源码，并核对完整阶段及通过标记。
+共享测试框架在标记后保持 sched_yield，因此宿主进程由 3 秒限时强制结束；必须
+同时核对标记、无失败记录及预期终止方式，超时本身不算成功。这些只验证测试
+源码，不证明 Wasm time64 可用。另有 22 项运行协议、关闭生命周期和浏览器报告
+门禁宿主回归通过。仍不修改系统时钟、不实际等待多年，也不增加时钟跳变、
+任意阻塞等待的 EINTR/SA_RESTART 或完整浏览器定时精度的保证。
+
 ## 线程条件变量的time64截止时间
 
 distro提交`41c37ec078b0da87c7b887f946f1e1be4561c70f`新增MIT
