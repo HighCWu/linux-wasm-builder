@@ -509,7 +509,19 @@ distro `8045aad` 修正公开 `run()`：原实现直接收集 status、双路输
 - [带标签的公开 Node / run 清理](https://github.com/HighCWu/distro/actions/runs/38965682439)
 - [run 清理后的 wasm32 集成](https://github.com/HighCWu/distro/actions/runs/38965689912)
 
-两项均固定 `ad0186a`，结果待确认。宿主回归不是实际 Wasm 执行完成的证明。
+两项均固定 `ad0186a`。Node 已失败，实际日志定位到 `child-status [0]`：前三组公开
+API 用例通过，shell 在保存子进程退出状态处失败，第五组 256 KiB + 17 字节的
+二进制管道也已通过。wasm32 结果仍待确认。
+
+固定 BusyBox hush 源码 `shell/hush.c` 的 `run_list()` 在跳过失败条件的 THEN 分支
+时执行 `G.last_exitcode = rcode = EXIT_SUCCESS`，因此进入 ELSE 才保存 `$?` 会得到 0。
+distro `f62f9d1` 改为 `command || status=$?` 立即保存，仍严格要求退出状态为 7，
+没有修改内核、libc 或 BusyBox 源码。新增宿主测试也要求退出 0 或 23 时该断言失败；
+共 18 项相关宿主回归、TypeScript 和浏览器打包通过。这是兼容已固定的 hush 行为，
+不宣称完整 POSIX shell 语义，也尚未证明取消检查及整个 shell 场景实际通过。
+
+[定向 Node shell/管道/HTTP 复验](https://github.com/HighCWu/distro/actions/runs/38967861065)
+固定 `82bd0d4`，先验证包含 shell 前置检查的六组完整语料，再决定浏览器网络复验。
 
 #### 不含测试程序的最小系统根盘
 
@@ -532,6 +544,16 @@ UID/GID 0 名称记录，以及 `/etc/mtab → /proc/mounts`。通用根盘模�
 TypeScript 检查和 17 项相关宿主回归通过，新增目标断言仍待公开 CI 验证。
 [扩展后的实际根盘检查](https://github.com/HighCWu/distro/actions/runs/38967110788)
 固定 `55ead4c`，与前一批最小根盘和 shell 诊断任务独立运行。
+
+distro `65310ff` 将实际最小根盘的四组语料提取为 Node/浏览器共享实现，新增
+Chromium 和 Firefox 定向检查：身份及挂载表、许可证及无测试程序、BusyBox 二进制
+往返、基本 shell cwd。浏览器要求完整四组名称、机器关闭、精确外层用例及零跳过、
+零重试；不以 Node 成功替代浏览器结果。TypeScript、浏览器打包及 4 项浏览器断言
+适配器宿主测试通过，以下三项均固定 `78ce491`，实际结果仍待确认：
+
+- [最小根盘 Node](https://github.com/HighCWu/distro/actions/runs/38967783538)
+- [最小根盘 Chromium](https://github.com/HighCWu/distro/actions/runs/38967769877)
+- [最小根盘 Firefox](https://github.com/HighCWu/distro/actions/runs/38967777005)
 
 #### SDK 子进程关闭与回收顺序
 
