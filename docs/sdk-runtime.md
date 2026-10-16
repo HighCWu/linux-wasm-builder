@@ -90,7 +90,8 @@ SDK。既有clang/clang++仍可直接使用；SDK包装器使用独立名称，�
 同一运行用例，再链接、启动，检查名为sdk-check-cxx-runtime及
 sdk-wasm64-check-cxx-runtime。这是实际编译器/运行验证，与假编译器契约测试分开。
 公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38860562604)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/38860568150)已触发，结果待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38860568150)均失败；后续诊断及
+异常生成修正见下文“C++异常处理生成”。
 尚未在本机实际进入Nix开发shell或验证浏览器执行。
 
 ## CMake交叉编译入口
@@ -127,8 +128,8 @@ try_run仍需要目标运行环境或项目提供经过验证的结果；编译�
 作交叉编译通过。实际双位宽消费检查使用安装在SDK中的工具链文件配置和构建示例，
 随后在对应默认内核双核环境执行，CI名称为sdk-check-cmake-runtime和
 sdk-wasm64-check-cmake-runtime。
-公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38860955154)及
-[wasm64](https://github.com/HighCWu/distro/actions/runs/38860960964)已触发，结果待确认。
+公开Node [wasm64](https://github.com/HighCWu/distro/actions/runs/38860960964)已通过；
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38860955154)结果待确认。
 这轮不修改Linux、musl或LLVM实现，没有新增浏览器执行记录。
 
 ## 由Clang管理响应文件和链接阶段
@@ -153,12 +154,13 @@ C源文件，经嵌套响应文件传递-c/-Werror及带空格路径，检查编
 `-DCMAKE_NINJA_FORCE_RESPONSE_FILE=ON`，覆盖实际Wasm编译、归档和链接的响应文件
 消费，随后仍需默认内核输出运行pass。
 
-更新后的公开CI已触发，结果待确认：
+该版本公开CI的结果：
 
 - SDK直接消费：[wasm32](https://github.com/HighCWu/distro/actions/runs/38861602519)、
-  [wasm64](https://github.com/HighCWu/distro/actions/runs/38861607869)。
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/38861607869)均在用户程序运行时
+  失败，编译和链接已完成；异常生成修正见下文。
 - CMake强制响应文件：[wasm32](https://github.com/HighCWu/distro/actions/runs/38861614651)、
-  [wasm64](https://github.com/HighCWu/distro/actions/runs/38861620256)。
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/38861620256)已通过，wasm32结果待确认。
 
 支持当前Clang的响应文件语法，不等于支持任意编译器或构建系统；没有修改内核、
 musl、公开UAPI或浏览器配置。SDK仍依赖Nix store，不是可重定位发行包。
@@ -282,13 +284,38 @@ CheckFunctionExists只归档对象文件，不核验符号是否能够链接。�
 - CMake已安装依赖及符号探测：[wasm32](https://github.com/HighCWu/distro/actions/runs/38866467060)、
   [wasm64](https://github.com/HighCWu/distro/actions/runs/38866472989)。
 
-这些任务的目标运行结果待确认，不以本地宿主回归代替Wasm证据。
+其中wasm32 zlib已在默认内核通过压缩、解压及损坏数据检查。其余三项结果待确认。
+
+## C++异常处理生成
+
+双位宽直接SDK消费检查均已完成编译、链接并启动用户程序，但在运行期间有
+WebAssembly.Exception逃出用户模块，导致init退出。早期C++运行检查同样失败；
+成功的CMake线程示例不包含主动抛出异常，不能替代异常路径的验证。
+
+检查固定Clang源码及实际Wasm汇编发现，原配置只有-mexception-handling和已有的
+SjLj选项，没有启用C++异常处理的-wasm-enable-eh转换。简单try/catch及RAII探针
+在旧配置下生成的Wasm没有C++异常tag和catch处理代码。
+
+现将clang++.cfg及LLVM运行库的C/C++编译选项统一为-fwasm-exceptions，由Clang
+开启完整的Wasm异常生成；运行库汇编输入仍保留指令特性选项。没有修改LLVM源码或
+Linux内核，也没有移除或放宽原异常运行用例。
+
+新增MIT无标准库头文件的代码生成探针，在本地Clang 22上覆盖wasm32/wasm64，验证
+C++异常tag和catch处理仍存在。旧配置会失败，修正后通过；SDK CI使用固定fork
+编译器及安装后的clang++.cfg执行同一检查。完整异常、RAII、线程和TLS运行结果
+仍须以修正后的目标CI为准。
+
+修正后的distro提交`ee6a09e980dfe8fda4602ad2d291c68d3c995e5c`已触发
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38873696135)及
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38873703134)直接SDK运行检查，
+结果待确认。这会重建对应C++运行库；已有旧配置的通过记录不能覆盖本次变更。
 
 ## 验证状态
 
 宿主g++ C++17严格编译及执行通过，Nix语法格式化和仓库元数据检查通过。本地没有
 构建Linux或LLVM。公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38859969295)
-及[wasm64](https://github.com/HighCWu/distro/actions/runs/38859974701)已触发，结果待确认。
+及[wasm64](https://github.com/HighCWu/distro/actions/runs/38859974701)均失败，见上述
+C++异常生成诊断。后续修复尚待完整目标运行确认。
 尚未执行本用例的浏览器检查，既有C程序浏览器结果不计为本用例通过。
 
 本轮独立于[线程等待回归](time-abi.md)继续推进。CI运行期间可开展不依赖其结果的

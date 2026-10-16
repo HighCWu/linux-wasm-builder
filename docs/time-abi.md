@@ -149,5 +149,5 @@ broadcast后cancel。两种时钟、每种顺序各4轮，每轮4个等待者。
 
 宿主严格C语法、执行pass、轻量ABI和仓库元数据检查通过。公开Node
 [wasm64](https://github.com/HighCWu/distro/actions/runs/38859238903)已通过；
-[wasm32](https://github.com/HighCWu/distro/actions/runs/38859233374)仍在运行，结果待确认。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38859233374)也已通过。
 没有新增浏览器执行记录。
