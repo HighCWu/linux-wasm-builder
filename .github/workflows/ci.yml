@@ -98,6 +98,15 @@ jobs:
         run: node --test sources/distro/distro/vm-test/runtime-smoke-test.js
       - name: Check network listener readiness and timeout handling
         run: node --test sources/distro/packages/linux-guest/tests/helpers.test.ts
+      - name: Check UDP stream failure cleanup without booting Linux
+        run: |
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/network-lifecycle.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/index.ts" \
+            --alias:@lowland/kernel/plugin="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/plugin.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/network-lifecycle.test.mjs"
+          node --test "$RUNNER_TEMP/network-lifecycle.test.mjs"
       - name: Check network fixture short I/O and interruption handling
         run: |
           cc -Wall -Wextra -Werror sources/distro/distro/guest-tests/network-io-test.c \
