@@ -18,9 +18,10 @@ CORS、浏览器网络策略或目标服务的访问控制。调用方必须显�
 请求体先检测浏览器是否真正支持流式 `Request`，不依赖 User-Agent。支持时继续流式
 传输；不支持时先收集正文再创建 Request，默认最多 16 MiB，可通过
 `maxBufferedRequestBytes` 调整为非负安全整数。超限返回 413，不调用 Fetch 回调。
-该限制只作用于缓冲回退；缓冲过程中有分块存储和最终拼接的内存开销，峰值不等于
-正文上限。回退修复源于 Firefox 将 ReadableStream 静默字符串化的问题，修复后的
-真实浏览器结果仍待新的检查确认，旧 Chromium 通过不能替代 Firefox 验证。
+该限制只作用于缓冲回退。收集器使用按需倍增、容量不超过正文上限的连续缓冲区，
+不为每个输入分块保留对象；空分块不增加存储。扩容与最终裁剪仍可能暂时持有两份
+缓冲区，浏览器 Request 也可能复制正文，因此正文上限不是进程内存上限。
+回退修复源于 Firefox 将 ReadableStream 静默字符串化的问题。
 
 ## 取消与所有权
 
@@ -51,3 +52,10 @@ CORS、浏览器网络策略或目标服务的访问控制。调用方必须显�
 [38900735579](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38900735579)
 通过 Chromium/Firefox 验证（distro `ccdb575`）。每种浏览器执行两个网络用例与
 两个 OPFS 用例，四项指定测试全部通过，无跳过或重试；同样不包含外部服务器访问。
+
+上传回退修复已在
+[38905246137](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38905246137)
+通过 Chromium/Firefox 验证（distro `b27e97c`），每种浏览器五项指定测试全部通过。
+新增用例验证分片输入的定长和 chunked POST 经浏览器 Request 后正文仍为原始字节，
+使用自定义 Fetch 回调，不包含外部网络或 Linux 程序执行。后续连续缓冲区优化另行
+验证；该历史结果不覆盖后续实现变更。
