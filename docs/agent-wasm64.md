@@ -587,7 +587,8 @@ Node、Chromium、Firefox 复用两组检查：第一实例通过公开文件 AP
 构建和检查命令见源码两份 README。
 
 以下三项均固定含说明的 `a5886c1`。两浏览器现已成功，实际日志各确认两组内部
-完成名称、外层 1 项通过及严格门禁零跳过/重试；Node 仍在运行。这些结果只覆盖
+完成名称、外层 1 项通过及严格门禁零跳过/重试；Node 也已成功，实际日志确认
+两组加外层共 3 项通过、零失败/跳过。这些结果只覆盖
 内存块保留，不含后续 OPFS 页面刷新用例：
 
 - [可写根盘 Node](https://github.com/HighCWu/distro/actions/runs/38970897242)
@@ -611,6 +612,27 @@ worker 使用匹配 wasm64 的内核包单独打包，不因本检查构建整�
 
 - [OPFS 刷新 Chromium](https://github.com/HighCWu/distro/actions/runs/38971471509)
 - [OPFS 刷新 Firefox](https://github.com/HighCWu/distro/actions/runs/38971477439)
+
+#### 独立 SQLite 应用根盘
+
+distro `8af0f0d` 增加 `sqlite3-wasm64`，直接用 wasm64 SDK 编译既有固定 SQLite
+amalgamation 和上游 CLI shell，不链接 wasm32 readline/ncurses。构建检查最终
+二进制共享 wasm64 `env.memory` 与 16 GiB 声明上限，安装原上游 public-domain
+声明和静态链接 musl、compiler-rt 许可文本。自有 recipe/tests 为 MIT，不重新许可
+第三方组件，也不据此称完整发行合规已完成。
+
+`nativeWasm64.rootfsSqliteExt4` 为单独的 64 MiB 应用根盘，安装 BusyBox 和 SQLite，
+不向默认最小根盘加入应用。显式 Node/Chromium/Firefox 检查共享两组：原生 CLI
+以 DELETE journal/FULL synchronous 提交精确 64 位整数及 BLOB，再更新后回滚；
+同步并关闭后，新 Linux 实例只复用块字节，以只读 CLI 核对 integrity、行数和字段。
+要求零 stderr、成功退出及写入阶段块 flush；浏览器还要求两组名称、关闭及严格报告。
+此处不测试 OPFS、WAL、崩溃恢复或任意软件包的完整 wasm64 可用性。
+
+六项宿主 SQLite 命令回归通过，含正常读回及缺失、损坏、错误整数/BLOB、额外记录
+的拒绝；TypeScript、脚本语法及浏览器打包通过。目标 CLI 编译和运行仍待公开 CI，
+先验证 Node，确认实际构建后再铺开浏览器，避免重复未定位的构建失败。
+首项 [SQLite 应用根盘 Node](https://github.com/HighCWu/distro/actions/runs/38972726337)
+固定含说明的 `5f57f58`，待实际结果。
 
 #### 排队进程取消
 

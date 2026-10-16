@@ -168,6 +168,17 @@ API 确认存在对应提交、未过期的 3,169,074 字节 artifact，仍只�
 同样成功，实际日志包含 `::vm-test::pass`。这些结果不代表完整发行依赖、长期源码
 发布或发行合规已完成；临时 artifact 仍只保留 3 天。
 
+### 原生 wasm64 SQLite 应用包
+
+distro `8af0f0d` 的 `sqlite3-wasm64` 使用既有固定 SQLite 源码，保留上游
+public-domain 声明（随包原始 `sqlite3.h`），并安装所链接 musl 和 compiler-rt
+许可文本。APK 元数据明确组合 SQLite blessing、MIT 及 Apache-2.0 WITH LLVM-exception，
+不把 MIT 构建脚本的声明当作 SQLite 或链接组件的重新许可。
+
+独立 SQLite ext4 根盘仍包含 GPL-2.0-only BusyBox；镜像不是单一 MIT 作品，分发者
+须继续分别履行各组件义务。此包不会将内核实现链接进 SQLite 或其他用户程序。
+随包声明和定向检查不等于完整发行依赖清单、对应源码交付或法律合规认证。
+
 ## 洁净实现政策
 
 参考其他软件 MMU实现时：
