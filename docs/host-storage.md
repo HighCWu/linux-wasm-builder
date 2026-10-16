@@ -41,10 +41,14 @@ distro `f39ce86` 修正磁盘 worker 打开文件后的初始化清理：`fstatS
 六项宿主回归通过，覆盖初始化两条失败路径、只读回退、短读写循环及零进展停止、
 同步/关闭错误顺序，以及真实文件写入、同步、关闭和重开读回。修改文件的独立严格
 类型检查通过；本地完整 runner 检查缺少既有 `@lowland/guest/node` 构建声明，不记为
-通过。完整打包与 Linux runner 集成另由 `runner-check-tests` 在公开 CI 验证。
+通过。完整打包与 Linux runner 集成另由 `runner-package-check-tests` 在公开 CI 验证。
 这里没有增加镜像独占锁、优雅关机或浏览器 OPFS 保证，也未改变默认内核位宽。
-固定含说明的 `e98997d` 已启动
-[runner 完整集成](https://github.com/HighCWu/distro/actions/runs/38971955883)，结果待确认。
+固定含说明的 `e98997d` 的
+[首批 runner 检查](https://github.com/HighCWu/distro/actions/runs/38971955883)
+在计划阶段因误传 `runner-check-tests` 而失败，未进入目标构建或运行；正确名称包含
+`package` 层级。这不作为运行成功或失败的证据。
+修正后的 [runner 完整集成](https://github.com/HighCWu/distro/actions/runs/38972111174)
+固定 `49fa77b`，计划阶段已成功，正在构建与运行。
 
 ## 浏览器 OPFS
 

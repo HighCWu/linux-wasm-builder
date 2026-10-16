@@ -586,7 +586,9 @@ Node、Chromium、Firefox 复用两组检查：第一实例通过公开文件 AP
 耐久性或优雅关机。宿主负责保存 backing；`flush` 必须等待其约定的同步完成。
 构建和检查命令见源码两份 README。
 
-以下三项均固定含说明的 `a5886c1`，计划阶段已成功，实际运行仍在进行：
+以下三项均固定含说明的 `a5886c1`。两浏览器现已成功，实际日志各确认两组内部
+完成名称、外层 1 项通过及严格门禁零跳过/重试；Node 仍在运行。这些结果只覆盖
+内存块保留，不含后续 OPFS 页面刷新用例：
 
 - [可写根盘 Node](https://github.com/HighCWu/distro/actions/runs/38970897242)
 - [可写根盘 Chromium](https://github.com/HighCWu/distro/actions/runs/38970903981)
