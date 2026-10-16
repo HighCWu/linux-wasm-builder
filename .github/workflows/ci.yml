@@ -35,7 +35,16 @@ jobs:
             sources/distro/distro/sdk/config-driver-test.js \
             sources/distro/distro/sdk/exception-codegen-test.js \
             sources/distro/distro/sdk/pkg-config-test.js
-      - name: Check SDK CMake example on the build host
+      - name: Check C++ runtime fixture with host GCC and Clang
+        # Host execution catches fixture regressions; it is not Wasm ABI evidence.
+        run: |
+          for compiler in g++ clang++; do
+            "$compiler" -std=c++17 -O2 -pthread -Wall -Wextra -Werror \
+              sources/distro/distro/toolchain-smoke/runtime-cxx.cc \
+              -o "$RUNNER_TEMP/sdk-runtime-cxx-host"
+            timeout 30s "$RUNNER_TEMP/sdk-runtime-cxx-host"
+          done
+      - name: Check SDK CMake integration on the build host
         run: |
           cmake -P sources/distro/distro/sdk/linux-wasm.cmake.in
           node --test sources/distro/distro/sdk/cmake-toolchain-test.js
