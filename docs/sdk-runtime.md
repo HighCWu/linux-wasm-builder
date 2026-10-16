@@ -305,12 +305,17 @@ unknown-unknown目标，安装后的SDK检查使用实际Linux target。此ABI�
 C++库及应用，不能混用旧的Itanium ABI产物。完整运行结果仍以定向CI为准：
 [wasm32](https://github.com/HighCWu/distro/actions/runs/38887844197)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/38887850625)，提交
-`ba7bf7faf3460c4a7613451efe23101ddf491bb6`，当前待验证。
+`ba7bf7faf3460c4a7613451efe23101ddf491bb6`。wasm64 已于2026-10-16通过：
+日志确认默认内核以双核启动 `/init`，输出容器、RAII异常清理、线程与TLS验证完成，
+并产生 `::vm-test::pass`。此前 `__cxa_end_catch` 的函数签名陷阱未再出现。
+wasm32 仍在运行；此结果不证明浏览器 C++、跨模块异常或后续扩展已通过。
 
 后续运行样例另加入std::exception_ptr生命周期检查：离开原catch后保留异常，在另一
 线程重抛并按原类型捕获，join后释放最后一个引用，要求异常对象恰好析构一次。宿主
 C++17严格编译和执行通过；上面两个已启动任务不包含这项后续扩展，其目标运行结果
 仍待另行验证。阶段日志区分普通catch清理与跨线程异常清理，便于定位后续陷阱。
+已针对 `b8b4557d078951ad0d1670967dd71c51248add3b` 启动包含此扩展的
+[wasm64 定向检查](https://github.com/HighCWu/distro/actions/runs/38895974365)，结果待确认。
 
 ### 先前异常生成问题
 
