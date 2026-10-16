@@ -262,6 +262,7 @@ jobs:
             --bundle --platform=node --format=esm \
             --outfile="$RUNNER_TEMP/agent-image.test.mjs"
           node --test "$RUNNER_TEMP/session-handshake.test.mjs" "$RUNNER_TEMP/syscalls-abi.test.mjs" "$RUNNER_TEMP/client-abi.test.mjs" "$RUNNER_TEMP/agent-image.test.mjs"
+          node --test sources/distro/packages/linux-guest/tests/exec-file-descriptors.test.ts
           for compiler in gcc clang; do
             "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror -fsyntax-only \
               -include sources/distro/distro/guest-agent/native-wasm64.h \
