@@ -30,6 +30,13 @@ jobs:
           node-version: '24'
       - name: Check SDK compiler argument contract
         run: node --test sources/distro/distro/sdk/wrapper-test.js
+      - name: Check SDK CMake example on the build host
+        run: |
+          cmake -P sources/distro/distro/sdk/linux-wasm.cmake.in
+          cmake -S sources/distro/distro/sdk/cmake-example \
+            -B "$RUNNER_TEMP/sdk-cmake" -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$RUNNER_TEMP/sdk-cmake"
+          "$RUNNER_TEMP/sdk-cmake/sdk-example"
       - name: Check documentation and source pins
         run: python3 scripts/check_repository.py
       - name: Check paired benchmark summaries
