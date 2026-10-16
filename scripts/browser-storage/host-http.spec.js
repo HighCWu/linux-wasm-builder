@@ -90,9 +90,11 @@ test("enforces upload budgets only when browser buffering is required", async ({
             return new Response("accepted", { status: 201 });
           },
         });
+        const rejectBeforeUpload = !streaming && !chunked && limit < 5;
         const wire = new TextEncoder().encode(
           "POST / HTTP/1.1\r\nHost: example.test\r\n" +
           (chunked ? "Transfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n"
+            : rejectBeforeUpload ? "Content-Length: 5\r\nExpect: 100-continue\r\n\r\n"
             : "Content-Length: 5\r\n\r\nhello"),
         );
         let offset = 0;
