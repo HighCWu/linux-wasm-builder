@@ -90,6 +90,12 @@ SDK 现通过同一修正版 Meson 供两个开发 shell 和目标检查使用�
 GNU 的分组重扫参数。补丁保留 Meson 的 Apache-2.0 许可，独立集成与回归测试为 MIT。
 回归直接调用 Meson 参数生成器，原版失败、修正版双位宽通过，并验证原生架构仍分组；
 宿主完整生成器/静态库/消费程序检查通过。目标 Wasm 链接及运行仍须新 CI 确认。
+
+后续消费样例增加 A→B→A 中另一对象的循环归档依赖，并实际调用结果。宿主 Meson
+消费检查通过；同一组 C 源文件用本机 Clang 22 的 wasm32/wasm64 unknown-unknown
+目标无归档组链接，在 Node 中均返回 42。此无 libc 探针证明 wasm-ld 的惰性归档解析，
+不替代 Linux/Wasm SDK 检查。新样例不在已启动的
+[修复验证](https://github.com/HighCWu/distro/actions/runs/38901721763)内，后续需另行验证。
 旧 wasm64 任务现已因同样缺少宿主归档器而失败，未进入目标运行。
 已针对 `a7d45554607e6e7185524f5d35b47208acf4a6a6` 启动
 [新版 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38895454756)，包含
