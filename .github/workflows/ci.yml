@@ -140,6 +140,17 @@ jobs:
           done
           node --test sources/distro/packages/browser-tests/agent-persistent-root.test.js
           node --test sources/distro/packages/runner/tests/disk-storage.test.ts
+      - name: Check standalone wasm64 embedding example without booting Linux
+        run: |
+          node --test sources/distro/apps/wasm64-example/server.test.js
+          node --check sources/distro/apps/wasm64-example/app.js
+          node --check sources/distro/apps/wasm64-example/server.mjs
+          node --check sources/distro/packages/browser-tests/agent-tests/wasm64-example.spec.js
+          npx --yes esbuild@0.25.12 sources/distro/apps/wasm64-example/app.js \
+            --bundle --platform=browser --format=esm --target=es2022 \
+            --alias:@lowland/guest=./sources/distro/packages/linux-guest/src/index.ts \
+            --external:@lowland/kernel --external:@lowland/kernel/plugin --external:@lowland/bytes \
+            --outfile="$RUNNER_TEMP/wasm64-example.js"
       - name: Check complete ephemeral port allocation and exhaustion
         run: node --test sources/distro/packages/linux-guest/tests/network-ports.test.ts
       - name: Check UDP stream failure cleanup without booting Linux
