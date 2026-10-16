@@ -375,6 +375,8 @@ wasm32 站点证据当作新原生 CLI、wasm64 应用根盘已通过。
 不依赖整个站点或测试程序。服务器宿主检查、脚本语法及打包通过，真实页面运行
 已提交首项 Chromium CI，结果待确认。此示例每次启动使用新内存根盘，不是 OPFS
 或发布完成的持久化发行版；仍需浏览器验收、版本兼容及发布材料。
+`6d9fdb0` 补齐镜像下载前的真实共享 memory64 能力诊断，五项宿主探测回归通过；
+不将单页内存分配成功等同于整台 Linux 可用。新增缺少 COEP 的页面回归待浏览器验收。
 
 - 稳定 `@lowland/kernel`、`@lowland/guest`和高层facade边界。
 - npm包的Node/browser条件导出和package-relative assets。
