@@ -52,7 +52,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_NAME=storage-report.json \
             ./node_modules/.bin/playwright test --project=${{ matrix.browser }} --forbid-only \
               --reporter=line,json \
-              --grep 'invalid disk capacity preserves OPFS data and releases its lock$'
+              --grep '(invalid disk capacity preserves OPFS data and releases its lock|flushes virtio writes through the real OPFS worker)$'
           node "$GITHUB_WORKSPACE/scripts/browser-storage/check-report.mjs" storage-report.json
       - uses: actions/upload-artifact@v4
         if: failure()
