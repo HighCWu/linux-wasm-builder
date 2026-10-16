@@ -48,6 +48,13 @@ CC/CXX环境变量设为不可用路径，依赖cross file和CC_FOR_BUILD/CXX_FO
 元数据，并拒绝宿主专有依赖。本地反例绕过包装器后必须因误选宿主元数据而失败。
 这验证的是pkg-config查询边界，不代表任意项目手写的绝对库路径也会被隔离。
 
+集成测试还用Meson构建并安装两个独立静态库，再通过目标pkg-config将它们链接到
+示例程序中。主库依赖辅助库，后者仅由Libs.private传递；删除这项元数据后，新的
+构建目录必须在链接时因缺少sdk_helper而失败。本地正反例均通过，目标检查复用
+相同流程。手动构建基础示例默认不需要这两个库；安装后可用
+`-Dinstalled_answer=true`启用，并将WASM_PKG_CONFIG_PATH指向其lib/pkgconfig目录。
+若安装前缀为sysroot外的绝对路径，还需设置WASM_PKG_CONFIG_SYSROOT_DIR=/。
+
 目标检查`sdk-check-meson-runtime`及`sdk-wasm64-check-meson-runtime`已加入SDK，
 使用安装后的cross file构建程序并在对应默认内核双核环境运行。当前尚未触发这两项
 重型任务，既有C++等CI继续运行。对任意第三方Meson项目的兼容性仍需逐项验证。
