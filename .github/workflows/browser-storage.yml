@@ -2,6 +2,10 @@ name: Browser storage lifecycle
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/browser-storage.yml'
+      - 'scripts/browser-storage/**'
 
 permissions:
   contents: read
