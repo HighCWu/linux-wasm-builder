@@ -101,6 +101,13 @@ jobs:
         run: node --test sources/distro/distro/vm-test/runtime-smoke-test.js
       - name: Check network readiness, timeout handling and remaining output collection
         run: node --test sources/distro/packages/linux-guest/tests/helpers.test.ts
+      - name: Check native agent browser assertions and shared suite packaging
+        run: |
+          node --test sources/distro/packages/browser-tests/agent-assertions.test.js
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/agent-wasm64-suite.ts \
+            --bundle --platform=browser --format=esm --target=es2022 \
+            --external:@lowland/kernel --external:@lowland/bytes \
+            --outfile="$RUNNER_TEMP/agent-browser-suite.js"
       - name: Check complete ephemeral port allocation and exhaustion
         run: node --test sources/distro/packages/linux-guest/tests/network-ports.test.ts
       - name: Check UDP stream failure cleanup without booting Linux
