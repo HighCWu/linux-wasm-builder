@@ -102,10 +102,12 @@ Chromium/Firefox 双位宽运行套件复用 SDK 产物，强制用例清单由 
 用例，报告门禁确认零跳过、零重试，目标检查及整个工作流成功。这不证明 wasm32
 SDK 或 Firefox 的新增 pthread 用例通过；此前 7 项 Firefox 记录不包含该用例。
 后续固定 distro `46c4c1a` 的
-[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38945053613) 与
-[wasm32 SDK](https://github.com/HighCWu/distro/actions/runs/38945061713)
-定向检查已启动，两者结果待确认；该提交仅在 `5144ef6` 基础上更正文档，
-没有改动线程测试源码或运行断言。
+[wasm32 SDK](https://github.com/HighCWu/distro/actions/runs/38945061713) 也已通过：
+实际运行日志包含两种时钟的分组取消/广播阶段、完整最终阶段及 `::vm-test::pass`，
+目标检查和整个工作流成功。
+[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38945053613)
+定向检查已启动，结果待确认；该提交仅在 `5144ef6` 基础上更正文档，没有改动
+线程测试源码或运行断言。
 本地 GCC/Clang 对定时器与线程两份源码的严格构建及最终标记检查共 4 项通过，
 连同运行关闭协议与报告门禁共 22 项轻量检查通过；宿主限时终止约定与上一节相同，
 不能替代 Wasm 或浏览器运行结果。
