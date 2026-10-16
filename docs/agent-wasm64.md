@@ -243,8 +243,40 @@ distro `5965a37` 让内部 `create_guest_client(vsock, { abi: "wasm64" })` 将 A
 truncate、删除、超过 4 GiB 的 seek，以及通过 exec 启动原生用户程序并核对退出码。
 原有六组未删减，浏览器要求精确的七组完成名称；生产模式另含根切换检查。
 [新增 Node 运行检查](https://github.com/HighCWu/distro/actions/runs/38954442131)
-固定 `268c761`（实现与文档），已启动、结果待确认。仍在运行的 `85fcbb9`
-Firefox/生产检查不包含这组新增断言，不应混记为高层 API 已获验证。
+固定 `268c761`（实现与文档），已通过。日志确认新增高层文件/进程用例实际完成，
+七组加外层共 8 项通过，零失败、零跳过。`85fcbb9` 的 Firefox/生产检查不包含
+这组新增断言；本次成功仍限于 Node 最小外壳，不能证明生产或浏览器高层 API 已通过。
+
+### 原生引导磁盘
+
+distro `e97db21` 抽出 `image.mkGptDisk`，保留原 wasm32 agent 的分区起点、尺寸
+计算、固定 GUID 和 `sgdisk --verify`，新增分区标签检查。原 wasm32 镜像改为调用
+该共享构造器，格式和标签不变；其实际行为仍需下述集成回归确认。
+
+distro `c6ff369` 在 `guest-agent.nativeWasm64.bootDisk` 打包 GPT 包裹的 EROFS
+引导文件系统，分区和文件系统标签均为 `LOWLAND_AGENT`。其中 `/init` 是真实
+LP64 agent 二进制，不经 wasm32 shell/BusyBox。文件系统使用显式 wasm64 软件包
+元数据，保留 musl、compiler-rt 与 agent 的许可声明，并准备只读引导阶段的挂载点。
+这不是完整系统根盘，也未切换公开 `guestAgent()` 的 wasm32 默认镜像。
+
+新增 `guest-agent-check-boot-disk-wasm64` 不传入外部 initramfs，而以
+`root=PARTLABEL=LOWLAND_AGENT rootfstype=erofs ro rootwait init=/init` 启动。
+系统根盘故意排在 agent 磁盘前面，要求 Linux 按 GPT 标签寻找引导根，然后由
+真实 agent 切换到 `LOWLAND_ROOT`；继续执行根切换和全部七组文件/进程断言。
+测试外壳禁止同时传入 initramfs 和引导磁盘，避免绕过被测启动路径。
+
+```sh
+nix build .#legacyPackages.x86_64-linux.guest-agent.nativeWasm64.bootDisk -L
+gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
+  -f heavy-check=guest-agent-check-boot-disk-wasm64
+```
+
+类型检查、浏览器共享语料打包/语法检查、4 项浏览器断言适配器回归及 Nix 格式
+检查通过。固定 `c6ff369` 的[磁盘启动检查](https://github.com/HighCWu/distro/actions/runs/38955898504)、
+[wasm32 完整集成回归](https://github.com/HighCWu/distro/actions/runs/38955905288) 和
+[带完整错误诊断的生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38955911495)
+已启动、结果待确认。编译、实际磁盘构建及启动在公开 CI 执行，不以本地类型或
+格式检查替代启动证据；旧版浏览器任务保留，不因运行较久而重启或取消。
 
 ### 下一步
 
@@ -252,7 +284,7 @@ Firefox/生产检查不包含这组新增断言，不应混记为高层 API 已�
    头文件与描述不一致时，以真实目标 ABI 为准修正。
 2. 定位 Firefox 就绪后的等待问题，验证生产入口的根切换；已通过的 Chromium
    和 Node 最小外壳不代替 Firefox、生产镜像或后续改动的验证。
-3. 在运行验证基础上接入高层镜像选择，保持现有 wasm32 会话兼容性。
+3. 验证原生 GPT 磁盘启动，再接入高层镜像选择，保持现有 wasm32 会话兼容性。
 4. 构建匹配位宽的完整启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
    wasm64 SDK 不等于整个发行版 scope 已转换为 wasm64。
 5. 在 Node 和真实 Chromium/Firefox 验证启动、进程/标准流、metadata、大 offset、
