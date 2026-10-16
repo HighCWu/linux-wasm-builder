@@ -18,6 +18,7 @@ export function checkReport(report) {
     "BrowserFS rename preserves pending source writes and open handles",
     "BrowserFS rejects unsafe I/O ranges without changing OPFS data",
     "BrowserFS serializes append writes and honors current open flags",
+    "BrowserFS serializes exclusive creates with namespace mutations",
   ];
   const specs = [];
   function visit(suite) {
@@ -37,7 +38,7 @@ export function checkReport(report) {
     assert.equal(test.results.length, 1, "retries are not allowed");
     assert.equal(test.results[0].status, "passed");
   }
-  assert.equal(report.stats.expected, 12, "storage and HTTP lifecycle tests must pass");
+  assert.equal(report.stats.expected, 13, "storage and HTTP lifecycle tests must pass");
   assert.equal(report.stats.skipped, 0, "missing OPFS support must not produce a green check");
   assert.equal(report.stats.unexpected, 0, "lifecycle checks must not fail");
   assert.equal(report.stats.flaky, 0, "lifecycle checks must pass without retries");
@@ -45,5 +46,5 @@ export function checkReport(report) {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   checkReport(JSON.parse(readFileSync(process.argv[2], "utf8")));
-  console.log("Confirmed twelve executed storage/HTTP lifecycle tests, no skips or retries");
+  console.log("Confirmed thirteen executed storage/HTTP lifecycle tests, no skips or retries");
 }

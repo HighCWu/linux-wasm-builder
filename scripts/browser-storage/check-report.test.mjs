@@ -5,7 +5,7 @@ import { checkReport } from "./check-report.mjs";
 
 function fixture() {
   return {
-    stats: { expected: 12, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 13, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -24,6 +24,7 @@ function fixture() {
               "BrowserFS rename preserves pending source writes and open handles",
               "BrowserFS rejects unsafe I/O ranges without changing OPFS data",
               "BrowserFS serializes append writes and honors current open flags",
+              "BrowserFS serializes exclusive creates with namespace mutations",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -34,7 +35,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the twelve successful lifecycle cases", () => {
+test("accepts exactly the thirteen successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {
