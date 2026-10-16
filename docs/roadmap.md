@@ -382,6 +382,8 @@ wasm32 站点证据当作新原生 CLI、wasm64 应用根盘已通过。
 `aa363a4` 再将说明和完整静态目录校验器随包安装，支持复制后离线核对内核、镜像、
 脚本与文本，搬移/损坏检测及 Nix result 链接入口回归通过。真实新版本打包待 CI，
 不把校验和当成来源签名、完整许可清单或 SDK 可重定位证明。
+首项 Chromium 示例 CI 失败于 Nix 输入只包含单独入口文件而缺少相邻 SDK 模块，
+尚未启动浏览器。`fdbc82c` 改为传入完整源码目录；隔离目录打包通过，实际复验待 CI。
 
 - 稳定 `@lowland/kernel`、`@lowland/guest`和高层facade边界。
 - npm包的Node/browser条件导出和package-relative assets。

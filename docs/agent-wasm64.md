@@ -683,7 +683,13 @@ ext4 根盘，不构建完整站点，也不安装测试程序。页面通过公
 脚本语法与浏览器打包通过；这些不等于 Linux 浏览器执行通过。
 [首项 Chromium 检查](https://github.com/HighCWu/distro/actions/runs/38974364050)
 固定 `57f627b`，验证实际页面控件、精确 UTF-8 往返、停止重启、旧文件不存在及
-命令失败后仍可继续使用。Firefox 检查已定义，待初次构建结果后再开展。
+命令失败后仍可继续使用。实际此批失败于 esbuild 打包，未启动浏览器：Nix 将
+`index.ts` 单独复制为 store 文件，导致同目录的 `abi.ts`、`agent.ts` 等依赖缺失。
+`fdbc82c` 改为插值完整 SDK 源码目录再指定入口，隔离复制目录后的宿主打包通过；
+新版本仍需真实 Nix/浏览器复验。后续 Firefox 任务保持原版本运行，不取消或用它
+代表修正版本已经通过。
+[修正输入后的 Chromium 复验](https://github.com/HighCWu/distro/actions/runs/38975768124)
+固定 `fdbc82c`，包含完整目录校验器，已启动，结果待确认。
 构建/运行、内存寿命、NOMMU 隔离限制及组件许可说明见
 [示例 README](../sources/distro/apps/wasm64-example/README.md)。这只是开发者入口，
 不是完整发行版、持久化存储或稳定 SDK 发布已经完成的声明。
