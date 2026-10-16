@@ -189,6 +189,44 @@ include/lib路径经sysroot重定位，静态私有依赖保留，share目录和
 在Wasm中的编译或运行。本轮没有追加重型构建；前述已触发的Wasm运行检查继续
 验证各自固定提交，不包含本次新增的pkg-config集成。
 
+## 单独安装静态依赖再构建程序
+
+`dependency-example`是独立的C静态库项目，安装公开头文件、sdk-answer和sdk-helper
+两个archive及sdk-answer.pc。sdk-answer调用sdk-helper，后者只列在Libs.private。
+`cmake-example`增加可选的SDK_USE_INSTALLED_ANSWER模式，通过FindPkgConfig导入
+目标，而不是把依赖源码再次加入程序构建。默认模式仍保留原来的自包含示例。
+
+在sdk或sdk-wasm64 shell中，可以把目标依赖安装到独立前缀：
+
+```sh
+cmake -S sources/distro/distro/sdk/dependency-example -B build-dependency -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$WASM_CMAKE_TOOLCHAIN_FILE" \
+  -DCMAKE_INSTALL_PREFIX="$PWD/sdk-dependency"
+cmake --build build-dependency
+cmake --install build-dependency
+export WASM_PKG_CONFIG_PATH="$PWD/sdk-dependency/lib/pkgconfig"
+export WASM_PKG_CONFIG_SYSROOT_DIR=/
+cmake -S sources/distro/distro/sdk/cmake-example -B build-consumer -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$WASM_CMAKE_TOOLCHAIN_FILE" \
+  -DCMAKE_STAGING_PREFIX="$PWD/sdk-dependency" -DSDK_USE_INSTALLED_ANSWER=ON
+cmake --build build-consumer
+```
+
+这里.pc使用安装前缀的绝对路径。WASM_PKG_CONFIG_SYSROOT_DIR=/显式禁止再为这些
+路径添加SDK sysroot；CMAKE_STAGING_PREFIX声明这处目标库目录不应被CMake再次
+重定位到SDK sysroot。编译器本身的sysroot没有改变。该覆盖适合所有目标依赖均以
+真实绝对路径安装的场景，不适合混用需要sysroot重定位的.pc文件。完成后应unset
+这两个WASM_PKG_CONFIG变量，或在独立shell中操作；不同位宽不得共享依赖或构建目录。
+默认不设置覆盖时，仍按上一节的SDK sysroot进行重定位，也不继承宿主PKG_CONFIG_PATH。
+
+本地集成测试实际执行配置、构建、安装、独立消费及宿主运行，并覆盖强制响应文件；
+删去Libs.private后要求链接失败且报告sdk_helper，避免仅验证查询输出。与既有测试
+合计16项通过，新增流程纳入轻量CI。宿主通过不计为Wasm通过。
+
+SDK的cmake-runtime检查已改为执行这条两阶段消费流程，产物仍需在对应默认内核
+运行。此前已触发的CI固定在旧提交，不包含本节变更；本轮没有追加重型任务，也没有
+Linux、musl、LLVM或浏览器实现变更。示例验证构建接口，不代表任意第三方库已兼容。
+
 ## 验证状态
 
 宿主g++ C++17严格编译及执行通过，Nix语法格式化和仓库元数据检查通过。本地没有
