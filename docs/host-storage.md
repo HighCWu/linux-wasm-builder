@@ -108,7 +108,10 @@ BrowserFS 的 `O_APPEND` 写入在当前节点的修改队列内读取已提交�
 原子追加，也不表示全部 Linux 打开标志均已支持。
 宿主单元测试覆盖并发追加、普通定位写和追加标志切换，另通过真实 virtqueue
 请求检查 WRITE 当前标志的转发；真实 Chromium/Firefox 的同类 OPFS 回归已加入
-浏览器套件，需以对应 CI 结果确认，不将宿主测试等同于 Linux 挂载端到端验证。
+浏览器套件。
+[38921224883](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38921224883)
+已在 Chromium/Firefox 均通过：日志确认各 12 项指定用例实际执行、零跳过、零重试，
+包含追加和当前标志切换，固定 distro `6b6d4e7`。它不等同于 Linux 挂载端到端验证。
 
 BrowserFS 的 `flush` / `fsync` 会加入当前节点的修改队列，等待先前排队的写入和
 截短操作结束；写流的 `close` 完成前不能提前确认同步成功。该排序约束覆盖通过
