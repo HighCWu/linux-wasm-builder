@@ -1,6 +1,76 @@
 // SPDX-License-Identifier: MIT
 import { expect, test } from "@playwright/test";
 
+test("BrowserFS rejects invalid timestamps before changing OPFS data or metadata", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { BrowserFS } = await import("/browser-fs.js");
+    const root = await navigator.storage.getDirectory();
+    const name = `browser-fs-time-${crypto.randomUUID()}`;
+    const directory = await root.getDirectoryHandle(name, { create: true });
+    try {
+      const fs = new BrowserFS(directory);
+      const { node, handle } = await fs.create(fs.root, "data", 2, {
+        mode: 0o600,
+        uid: 1,
+        gid: 2,
+      });
+      await fs.write(node, handle, 0n, new TextEncoder().encode("original"));
+      const timestamp = { seconds: -1n, nanoseconds: 500_000_000 };
+      await fs.setattr(node, { atime: timestamp, mtime: timestamp, ctime: timestamp });
+      const snapshot = async () => {
+        const attrs = await fs.getattr(node);
+        return JSON.stringify(attrs, (_, value) =>
+          typeof value === "bigint" ? String(value) : value,
+        );
+      };
+      const before = await snapshot();
+      timestamp.nanoseconds = -1;
+      let unchanged = (await snapshot()) === before;
+      const errors = [];
+      for (const field of ["atime", "mtime", "ctime"]) {
+        for (const nanoseconds of [-1, 1_000_000_000, 0.5, NaN, Infinity]) {
+          try {
+            await fs.setattr(node, {
+              size: 0n,
+              mode: 0o777,
+              uid: 99,
+              gid: 99,
+              [field]: { seconds: 1n, nanoseconds },
+            });
+            errors.push("accepted");
+          } catch (error) {
+            errors.push(error.errno);
+          }
+          unchanged &&= (await snapshot()) === before;
+        }
+      }
+      const wide = { seconds: 9_007_199_254_740_993n };
+      await fs.setattr(node, { atime: wide, mtime: wide, ctime: wide });
+      const attrs = await fs.getattr(node);
+      const widePreserved = ["atime", "mtime", "ctime"].every(
+        (field) => attrs[field].seconds === wide.seconds && attrs[field].nanoseconds === 0,
+      );
+      return {
+        errors,
+        unchanged,
+        widePreserved,
+        contents: await (await (await directory.getFileHandle("data")).getFile()).text(),
+      };
+    } finally {
+      await root.removeEntry(name, { recursive: true });
+    }
+  });
+  expect(result).toEqual({
+    errors: Array(15).fill(22),
+    unchanged: true,
+    widePreserved: true,
+    contents: "original",
+  });
+});
+
 test("BrowserFS serializes exclusive creates with namespace mutations", async ({ page }) => {
   await page.goto("/");
   const result = await page.evaluate(async () => {
