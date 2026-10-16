@@ -7,9 +7,11 @@ test("forwards fragmented POST bodies through browser Request", async ({ page })
   const results = await page.evaluate(async () => {
     const { hostFetchNetwork } = await import("/host-http.js");
     const outcomes = [];
-    for (const [framing, payload] of [
-      ["Content-Length: 5", "hello"],
-      ["Transfer-Encoding: chunked", "2\r\nhe\r\n3\r\nllo\r\n0\r\n\r\n"],
+    for (const [framing, payload, reused] of [
+      ["Content-Length: 5", "hello", false],
+      ["Transfer-Encoding: chunked", "2\r\nhe\r\n3\r\nllo\r\n0\r\n\r\n", false],
+      ["Content-Length: 5", "hello", true],
+      ["Transfer-Encoding: chunked", "2\r\nhe\r\n3\r\nllo\r\n0\r\n\r\n", true],
     ]) {
       let received;
       const network = hostFetchNetwork({
@@ -21,12 +23,25 @@ test("forwards fragmented POST bodies through browser Request", async ({ page })
       const bytes = new TextEncoder().encode(
         `POST /submit HTTP/1.1\r\nHost: example.test\r\n${framing}\r\n\r\n${payload}`,
       );
-      const readable = new ReadableStream({
-        start(controller) {
-          for (let i = 0; i < bytes.length; i += 3) controller.enqueue(bytes.slice(i, i + 3));
-          controller.close();
+      let offset = 0;
+      const slab = new Uint8Array(3);
+      const readable = new ReadableStream(
+        {
+          pull(controller) {
+            if (offset === bytes.length) {
+              controller.close();
+              return;
+            }
+            const piece = bytes.subarray(offset, offset + 3);
+            offset += piece.length;
+            if (reused) {
+              slab.set(piece);
+              controller.enqueue(slab.subarray(0, piece.length));
+            } else controller.enqueue(piece.slice());
+          },
         },
-      });
+        { highWaterMark: 0 },
+      );
       let output = "";
       const decoder = new TextDecoder();
       const writable = new WritableStream({
@@ -44,7 +59,7 @@ test("forwards fragmented POST bodies through browser Request", async ({ page })
     }
     return outcomes;
   });
-  expect(results).toHaveLength(2);
+  expect(results).toHaveLength(4);
   for (const result of results) {
     expect(result.received).toEqual({
       method: "POST",
@@ -93,9 +108,11 @@ test("enforces upload budgets only when browser buffering is required", async ({
         const rejectBeforeUpload = !streaming && !chunked && limit < 5;
         const wire = new TextEncoder().encode(
           "POST / HTTP/1.1\r\nHost: example.test\r\n" +
-          (chunked ? "Transfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n"
-            : rejectBeforeUpload ? "Content-Length: 5\r\nExpect: 100-continue\r\n\r\n"
-            : "Content-Length: 5\r\n\r\nhello"),
+            (chunked
+              ? "Transfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n"
+              : rejectBeforeUpload
+                ? "Content-Length: 5\r\nExpect: 100-continue\r\n\r\n"
+                : "Content-Length: 5\r\n\r\nhello"),
         );
         let offset = 0;
         const readable = new ReadableStream({
@@ -103,11 +120,15 @@ test("enforces upload budgets only when browser buffering is required", async ({
             if (offset < wire.length) controller.enqueue(wire.slice(offset, ++offset));
             // Leave the connection open: body framing, not EOF, must finish it.
           },
-          cancel() { cancelled++; },
+          cancel() {
+            cancelled++;
+          },
         });
         let output = "";
         const writable = new WritableStream({
-          write(chunk) { output += new TextDecoder().decode(chunk); },
+          write(chunk) {
+            output += new TextDecoder().decode(chunk);
+          },
         });
         await network.connectTcp({
           target: { hostname: "198.18.0.1", port: 80 },
@@ -115,8 +136,14 @@ test("enforces upload budgets only when browser buffering is required", async ({
           readable,
           writable,
         });
-        outcomes.push({ limit, calls, received, output, cancelled,
-          locks: [readable.locked, writable.locked] });
+        outcomes.push({
+          limit,
+          calls,
+          received,
+          output,
+          cancelled,
+          locks: [readable.locked, writable.locked],
+        });
       }
     }
     return { streaming, outcomes };
@@ -141,25 +168,43 @@ test("cancels incomplete browser uploads without sending a response", async ({ p
       const abort = new AbortController();
       const reason = new Error("upload disconnected");
       let waiting;
-      const ready = new Promise((resolve) => { waiting = resolve; });
+      const ready = new Promise((resolve) => {
+        waiting = resolve;
+      });
       let sent = false;
       let cancelled = 0;
       let sameReason = false;
-      const readable = new ReadableStream({
-        pull(controller) {
-          if (sent) { waiting(); return; }
-          sent = true;
-          controller.enqueue(new TextEncoder().encode(
-            "POST / HTTP/1.1\r\nHost: example.test\r\n" +
-            (chunked ? "Transfer-Encoding: chunked\r\n\r\n5\r\nhe"
-              : "Content-Length: 5\r\n\r\nhe"),
-          ));
+      const readable = new ReadableStream(
+        {
+          pull(controller) {
+            if (sent) {
+              waiting();
+              return;
+            }
+            sent = true;
+            controller.enqueue(
+              new TextEncoder().encode(
+                "POST / HTTP/1.1\r\nHost: example.test\r\n" +
+                  (chunked
+                    ? "Transfer-Encoding: chunked\r\n\r\n5\r\nhe"
+                    : "Content-Length: 5\r\n\r\nhe"),
+              ),
+            );
+          },
+          cancel(value) {
+            cancelled++;
+            sameReason = value === reason;
+          },
         },
-        cancel(value) { cancelled++; sameReason = value === reason; },
-      }, { highWaterMark: 0 });
+        { highWaterMark: 0 },
+      );
       let writes = 0;
       let completedUploads = 0;
-      const writable = new WritableStream({ write() { writes++; } });
+      const writable = new WritableStream({
+        write() {
+          writes++;
+        },
+      });
       const network = hostFetchNetwork({
         async fetch(request) {
           await request.text();
@@ -167,25 +212,41 @@ test("cancels incomplete browser uploads without sending a response", async ({ p
           return new Response("unexpected");
         },
       });
-      const handled = Promise.resolve(network.connectTcp({
-        target: { hostname: "198.18.0.1", port: 80 },
-        signal: abort.signal,
-        readable,
-        writable,
-      })).then(() => false, (error) => error === reason);
+      const handled = Promise.resolve(
+        network.connectTcp({
+          target: { hostname: "198.18.0.1", port: 80 },
+          signal: abort.signal,
+          readable,
+          writable,
+        }),
+      ).then(
+        () => false,
+        (error) => error === reason,
+      );
       await ready;
       abort.abort(reason);
       const rejectedWithReason = await handled;
-      outcomes.push({ rejectedWithReason, cancelled, sameReason, writes,
-        completedUploads, locks: [readable.locked, writable.locked] });
+      outcomes.push({
+        rejectedWithReason,
+        cancelled,
+        sameReason,
+        writes,
+        completedUploads,
+        locks: [readable.locked, writable.locked],
+      });
     }
     return outcomes;
   });
   expect(results).toHaveLength(2);
-  for (const result of results) expect(result).toEqual({
-    rejectedWithReason: true, cancelled: 1, sameReason: true,
-    writes: 0, completedUploads: 0, locks: [false, false],
-  });
+  for (const result of results)
+    expect(result).toEqual({
+      rejectedWithReason: true,
+      cancelled: 1,
+      sameReason: true,
+      writes: 0,
+      completedUploads: 0,
+      locks: [false, false],
+    });
 });
 
 for (const pendingCallback of [false, true]) {
