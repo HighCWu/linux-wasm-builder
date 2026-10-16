@@ -349,9 +349,15 @@ Meson项目可使用安装后的cross file及显式构建机工具，见[Meson�
 
 宿主g++ C++17严格编译及执行通过，Nix语法格式化和仓库元数据检查通过。本地没有
 构建Linux或LLVM。公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38859969295)
-及[wasm64](https://github.com/HighCWu/distro/actions/runs/38859974701)均失败，见上述
-C++异常生成诊断。后续修复尚待完整目标运行确认。
-尚未执行本用例的浏览器检查，既有C程序浏览器结果不计为本用例通过。
+及[wasm64](https://github.com/HighCWu/distro/actions/runs/38859974701)早期检查均失败，见上述
+C++异常生成诊断。后续 wasm64 ABI 修复已在 Node 中运行通过，具体提交及覆盖边界见上文；
+新增的跨线程异常生命周期检查仍待目标运行确认。
+
+浏览器运行套件现为两个位宽分别构建 C++ initramfs，使用匹配的内核和工具链。
+Chromium/Firefox 的 memory64 及 runtime-wasm32 检查均保留原 C 用例，并新增 C++
+容器、类型化 catch、RAII、跨线程 exception_ptr 清理及线程/TLS 用例。测试必须收到
+各阶段日志和最终通过标记，内核启动成功不计为用户程序通过。复用现有超时、失败检测
+及机器关闭逻辑。浏览器执行结果仍待 CI 验证，既有 C 程序结果不能替代本用例。
 
 本轮独立于[线程等待回归](time-abi.md)继续推进。CI运行期间可开展不依赖其结果的
 文档、代码审计和SDK任务；依赖运行结论的支持声明及修复决策，仍需等待对应证据。
