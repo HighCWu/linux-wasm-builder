@@ -70,12 +70,22 @@ _Static_assert(__NR_utimensat == 88, "native/time32 utimensat number");
 #endif
 _Static_assert(__NR_fstat == 80, "native fstat number");
 _Static_assert(__NR_newfstatat == 79, "native fstatat number");
+#if defined(__NR_statfs64) || defined(__NR_fstatfs64)
+#error three-argument statfs64 names leaked into the native two-argument ABI
+#endif
+_Static_assert(__NR_statfs == 43, "native statfs number");
+_Static_assert(__NR_fstatfs == 44, "native fstatfs number");
 #else
 #if defined(__NR_fstat) || defined(__NR_newfstatat)
 #error native stat syscall names leaked into the 32-bit profile
 #endif
 _Static_assert(__NR_fstat64 == 80, "stat64 number");
 _Static_assert(__NR_fstatat64 == 79, "fstatat64 number");
+#if defined(__NR_statfs) || defined(__NR_fstatfs)
+#error native two-argument statfs names leaked into the 32-bit profile
+#endif
+_Static_assert(__NR_statfs64 == 43, "statfs64 number");
+_Static_assert(__NR_fstatfs64 == 44, "fstatfs64 number");
 _Static_assert(__NR_clock_gettime64 == 403, "time64 clock number");
 _Static_assert(__NR_utimensat_time64 == 412, "time64 utimensat number");
 _Static_assert(__NR_ppoll_time64 == 414, "time64 ppoll number");
