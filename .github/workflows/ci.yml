@@ -192,11 +192,16 @@ jobs:
           node --test "$RUNNER_TEMP/session-handshake.test.mjs" "$RUNNER_TEMP/syscalls-abi.test.mjs"
           for compiler in gcc clang; do
             "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror -fsyntax-only \
-              sources/distro/distro/guest-agent/runtime-init.c
+              sources/distro/distro/guest-agent/runtime-init.c \
+              sources/distro/distro/guest-agent/runtime-child.c
             "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror \
               sources/distro/distro/guest-agent/handshake-test.c \
               -o "$RUNNER_TEMP/agent-handshake-host"
             timeout 10s "$RUNNER_TEMP/agent-handshake-host"
+            "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror \
+              sources/distro/distro/guest-agent/session-cleanup-test.c \
+              -o "$RUNNER_TEMP/agent-cleanup-host"
+            timeout --kill-after=2 15 "$RUNNER_TEMP/agent-cleanup-host"
           done
       - name: Check browser lifecycle report gate
         run: node --test scripts/browser-storage/check-report.test.mjs sources/distro/distro/npm/browser-report-check.test.mjs
