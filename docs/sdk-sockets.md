@@ -38,8 +38,10 @@ nix build ./sources/distro#browser-tests-check-memory64-chromium
 
 distro `5d6e68d` 的原生 GCC/Clang 严格编译及各 5 次运行通过；Wasm 条件分支也
 通过宿主语法检查。15 项运行协议/关闭生命周期宿主回归通过。这些仅验证测试源码
-和运行器，不是 Wasm 目标支持的证据；真实 SDK wasm32 与 Chromium wasm64 检查
-已触发，结果待确认。
+和运行器，不是 Wasm 目标支持的证据。
+[SDK wasm32](https://github.com/HighCWu/distro/actions/runs/38929881855) 与
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38929879587)
+检查已完成 Nix 检查发现及求值，正在执行重型构建/运行，结果待确认。
 
 ## 边界
 
