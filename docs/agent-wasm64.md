@@ -73,6 +73,32 @@ wasm32 保留拆分参数与 104 字节结构；wasm64 使用原生参数与 128
 两种参数布局、带偏移视图、errno、整数精度与 Date 正负边界。它们验证的是宿主
 编码和解码，不能代替真实 wasm64 Linux 上的 agent syscall 运行。
 
+## 最小原生运行检查
+
+distro `165bdfd` 新增 `guest-agent-check-runtime-wasm64` 重型检查：用 wasm64 SDK
+编译 `runtime-init.c`，以最小 initramfs 在 wasm64 内核中启动。测试外壳包含并调用
+现有 agent 的 session worker；v4 校验、clone 后启动线程、vsock lane 与 syscall
+执行器均为真实实现，没有复制另一套协议或在宿主模拟 syscall。
+
+测试要求原生 executor 拒绝 v3 和显式 wasm32 身份，然后用 v4/wasm64 建立会话。
+文件回归包含超过 4 GiB 的 seek、负相对 offset、非法负绝对 offset 的 EINVAL、
+小文件 truncate/read/stat，以及 unlink/recreate 后原描述符的内容与 inode 分离。
+两个并发 stat 请求也经过独立 lane。大 offset 检查只移动文件位置，不分配大文件，
+不能作为大文件容量、内存分配或超过 4 GiB truncate 支持的证明。
+
+GCC/Clang 的本地语法检查、TypeScript 检查和 Nix 格式检查通过；目标编译及实际
+运行交给[公开 CI](https://github.com/HighCWu/distro/actions/runs/38949325409)，
+固定上述提交，结果待确认。检查不属于默认 wasm32 测试自动发现范围，必须显式运行：
+
+```sh
+gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
+  -f heavy-check=guest-agent-check-runtime-wasm64
+```
+
+该外壳不执行生产环境的 root discovery/pivot，不启动用户子程序，不安装 wasm32
+BusyBox，也不依赖完整 wasm64 rootfs。即使本项通过，也只证明 Node 上的最小
+agent 请求链；生产镜像、进程/标准流、浏览器及高层公开镜像选择仍需分别验证。
+
 ## 后续接入顺序
 
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
