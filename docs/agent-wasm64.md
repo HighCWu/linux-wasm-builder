@@ -57,7 +57,9 @@ socket pair 执行真实 C 握手，包括拒绝 native LP64 的 v3、错误 ABI
 [目标编译](https://github.com/HighCWu/distro/actions/runs/38947236148) 已通过，
 日志确认构建 `linux-agent-abi-wasm64`，包括 v4 agent C 与 ABI 静态断言。
 [默认 wasm32 完整 agent 集成检查](https://github.com/HighCWu/distro/actions/runs/38947242982)
-仍在运行；两项均固定 distro `943aae8`，不包含下述后续 syscall 改动。
+已通过，日志确认默认混合套件（宿主回归与启动 Linux 的集成用例）共 210 项，
+零失败、零跳过。两项均固定 distro `943aae8`，不包含下述后续 syscall 改动，
+不能用这次成功证明后续提交已回归通过。
 
 ## 按会话选择 syscall 布局
 
@@ -88,16 +90,50 @@ distro `165bdfd` 新增 `guest-agent-check-runtime-wasm64` 重型检查：用 wa
 
 GCC/Clang 的本地语法检查、TypeScript 检查和 Nix 格式检查通过；目标编译及实际
 运行交给[公开 CI](https://github.com/HighCWu/distro/actions/runs/38949325409)，
-固定上述提交，结果待确认。检查不属于默认 wasm32 测试自动发现范围，必须显式运行：
+固定上述提交。首次运行失败：目标程序已成功编译，日志确认 wasm64 内核启动并执行
+`/init`，且输出 `agent-wasm64-runtime: ready`，但宿主仍在就绪等待阶段超时，尚未
+进入握手或文件断言。不能把它记为 agent 请求链通过。检查不属于默认 wasm32
+测试自动发现范围，必须显式运行：
 
 ```sh
 gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
   -f heavy-check=guest-agent-check-runtime-wasm64
 ```
 
-该外壳不执行生产环境的 root discovery/pivot，不启动用户子程序，不安装 wasm32
+该提交的外壳不执行生产环境的 root discovery/pivot，不启动用户子程序，不安装 wasm32
 BusyBox，也不依赖完整 wasm64 rootfs。即使本项通过，也只证明 Node 上的最小
 agent 请求链；生产镜像、进程/标准流、浏览器及高层公开镜像选择仍需分别验证。
+
+## 进程与标准流增量
+
+distro `c6d1980` 在同一最小检查中加入由 wasm64 SDK 编译的用户程序，不依赖 shell。
+新增用例经现有 spawn/reap 与 `ChildProcess` 路径检查 PATH、argv、cwd、环境变量、
+含 NUL 的 128 KiB + 17 字节标准流往返、独立 stderr、EOF、退出码 23 及 SIGTERM。
+最后断开仍有运行程序的会话，重新连接后要求原 PID 的信号探测返回 ESRCH。
+这些仍是待运行验证的断言，不是已经取得的 wasm64 进程支持证明。
+
+生产 agent 原有 kill/reap 逻辑提取为共享 `cleanup_session_descendants`，生产入口与
+最小测试外壳均调用它，行为保持按原 session 进程组清理。新增宿主 Linux 进程回归
+在 GCC/Clang 下均通过：收养的同组后代被杀死并回收，无关进程保留，重复清理空组
+成功。真实 C 握手回归、用户程序的宿主二进制流冒烟及 TypeScript 检查也通过；
+这些宿主证据不能替代 Wasm 执行。已结束的 wasm32 基线之后，另行对该提交启动
+[默认集成回归](https://github.com/HighCWu/distro/actions/runs/38950090520)，结果待确认。
+原有 wasm64 文件检查已经失败结束，不冒称包含本增量。
+
+共享清理函数不新增跨 session、主动脱离原进程组的程序或浏览器崩溃后的清理保证。
+生产 root pivot、完整 wasm64 用户态及真实浏览器执行仍不在这项最小检查范围内。
+
+### 控制台就绪识别修正
+
+distro `243a96d` 移除严格查找 `ready` 后紧跟 LF 的方式，改为复用已有 boot harness
+的 `LineDecoder` 和 `writeConsoleLines`：接受 LF/CRLF，支持 UTF-8 与行的任意分块，
+每个控制台流独立解码；只有完整、精确的 ready 行触发就绪，不将 EOF 残片视为成功。
+就绪后的 syscall/进程断言没有删除或降级。新增 3 项回归与原有 helpers/protocol
+测试合计 16 项通过，TypeScript 检查通过。
+
+[wasm64 定向重跑](https://github.com/HighCWu/distro/actions/runs/38950484007) 固定该提交，
+包含上述进程与标准流增量，结果待确认。此修正针对已观察到的“输出 ready 后宿主
+仍超时”边界；必须由重跑确认，不能仅凭宿主行解析测试推断后续握手或 syscall 成功。
 
 ## 后续接入顺序
 
