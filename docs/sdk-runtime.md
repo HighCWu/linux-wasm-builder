@@ -399,6 +399,30 @@ CheckFunctionExists只归档对象文件，不核验符号是否能够链接。�
 
 ## C++异常处理生成
 
+### 标准 `try_table` 应用生成试验
+
+原生 wasm64 OPFS 的 Firefox 实际运行日志报告旧式 Wasm `try` 指令已弃用，
+建议改为标准 `try_table`。该批运行本身成功，不能把警告记为运行失败，也不能
+仅关闭警告而声称已迁移。当前固定 LLVM 提交 `137009e264eb` 的
+`llvm/test/CodeGen/WebAssembly/exception.ll` 明确覆盖
+`-wasm-use-legacy-eh=false` 和 wasm64。
+
+distro `cc72990` 增加 `sdk-check-cxx-modern-eh-runtime` 与
+`sdk-wasm64-check-cxx-modern-eh-runtime`，复用完整 `runtime-cxx.cc`，不缩减为
+只抛出一个整数的样例。通过公开 SDK 为应用显式添加
+`-mllvm -wasm-use-legacy-eh=false`，先检查实际汇编包含 `try_table`、引用捕获及
+C++ tag，且不混入旧式 try/catch/rethrow/delegate；再独立编译、链接当前已安装
+C++ 运行库，核验最终模块共享内存位宽/上限，双核启动 Linux 并要求完整完成标记。
+这包含 RAII、跨线程 exception_ptr、继承异常/RTTI、线程/TLS 等既有语料。
+
+三项宿主门禁回归通过，验证缺失处理器、缺失 tag、混入旧指令等情况均被拒绝。
+这不是 LLVM 实际代码生成或目标运行证据；首项目标检查先由 wasm64 公开 CI 执行。
+[首项 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38975246019)
+固定 `cc72990`，结果待确认。
+未切换默认配置或重建运行库/内核，最终程序仍可能含运行库的旧 EH 指令，浏览器
+警告也可能继续存在。通过此检查也不等于全新 EH 运行库、内核 SjLj、浏览器执行
+及 wasm32 均已迁移；这些必须分别验证后才能决定默认策略。
+
 ### 析构函数ABI后续修复
 
 修正异常生成选项后的wasm64任务

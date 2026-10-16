@@ -48,7 +48,9 @@ distro `f39ce86` 修正磁盘 worker 打开文件后的初始化清理：`fstatS
 在计划阶段因误传 `runner-check-tests` 而失败，未进入目标构建或运行；正确名称包含
 `package` 层级。这不作为运行成功或失败的证据。
 修正后的 [runner 完整集成](https://github.com/HighCWu/distro/actions/runs/38972111174)
-固定 `49fa77b`，计划阶段已成功，正在构建与运行。
+固定 `49fa77b`，现已通过：实际日志确认 15 项、零失败/跳过，包含新增六项磁盘
+宿主回归，以及打包 runner 的文件磁盘持久化、控制台、panic/poweroff 和宿主共享
+目录集成。这不是 wasm64 或浏览器运行器的验收，未改变上述隔离与耐久性边界。
 
 ## 浏览器 OPFS
 
@@ -87,6 +89,14 @@ WebKit 或所有浏览器版本已验证。
 这些行为不等于已经证明断电安全、跨标签页并发写安全或跨版本镜像兼容性。
 当前接入应保持单一存储所有者，等待机器正常关闭，并保留重要数据的外部备份。
 浏览器终止 Worker、页面崩溃及操作系统断电仍需要专门的恢复测试。
+
+原生 wasm64 Linux ext4 的正常同步后页面刷新路径，现已在固定 `329b5ab` 的
+[Chromium](https://github.com/HighCWu/distro/actions/runs/38973378922) 与
+[Firefox](https://github.com/HighCWu/distro/actions/runs/38973384933) 中通过。
+实际日志各确认 2 项及严格门禁零跳过/重试：内存块保留，以及写入/同步并关闭后
+刷新页面、只按原 OPFS 名重开、禁止重取模板，再核对文件字节/元信息和原生 `cat`。
+这是已修复 memory64 远程绑定的版本；不把先前失败版本算作持久化成功，也不扩大
+为浏览器进程重启、配额回收或崩溃恢复保证。
 
 站点 `site-live` 用例现还安装 SQLite，在已安装系统的 ext4 根目录中以 DELETE
 journal / FULL synchronous 提交包含超出 JavaScript 精确整数范围的整数及 BLOB

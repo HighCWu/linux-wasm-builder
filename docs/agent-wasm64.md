@@ -628,6 +628,12 @@ i64 的同一异常，修改后通过。全部 130 项内核宿主测试、隔�
 - [位宽修复后 Chromium](https://github.com/HighCWu/distro/actions/runs/38973378922)
 - [位宽修复后 Firefox](https://github.com/HighCWu/distro/actions/runs/38973384933)
 
+上述两项现已通过。实际日志各确认 2 项通过，严格门禁确认零跳过/重试；第二项
+实际执行 OPFS 写入、同步、关闭、页面刷新后只按文件名重开，并禁止重取根盘模板，
+核对文件数据/元信息和原生 `cat`。这证明正常同步后的页面刷新路径，不证明浏览器
+进程重启、崩溃恢复或断电耐久性。Firefox 另报告旧式 Wasm `try` 指令弃用警告，
+没有导致本批失败；后续标准异常指令验证单独进行，不篡改本批兼容性证据。
+
 #### 独立 SQLite 应用根盘
 
 distro `8af0f0d` 增加 `sqlite3-wasm64`，直接用 wasm64 SDK 编译既有固定 SQLite
@@ -663,7 +669,8 @@ pkg-config 编译既有 SQLite 消费程序，不重新编译 amalgamation；实
 目标多输出构建、链接及运行仍待独立开发检查。构建和使用命令见源码 SQLite README。
 固定含说明的 `77cf33c` 已启动
 [SQLite 安装后开发消费者](https://github.com/HighCWu/distro/actions/runs/38973494702)，
-结果待确认。
+旧版开发消费者检查现同样失败于源码 store 路径引用门禁，未运行消费者；其日志
+也确认 CLI 编译及 wasm64 ABI 检查已完成。它不否定或证明 `d9d2d68` 修正结果。
 
 #### 独立浏览器嵌入示例
 
@@ -687,6 +694,8 @@ BigInt grow API，不保证整台 Linux 的内存资源足够。五项探测宿�
 检查通过，打包/语法通过。页面语料另加移除 COEP 后的错误提示及零镜像请求检查，
 再恢复正常页面启动 Linux；这部分尚待新版本浏览器 CI，不能由上方 `57f627b`
 的旧版本检查证明，也不能以宿主引擎结果代替。
+新版本 [Firefox 示例检查](https://github.com/HighCWu/distro/actions/runs/38974957280)
+固定 `4e3cbd9`，包含能力诊断回归，已启动，结果待确认。
 
 #### 排队进程取消
 
