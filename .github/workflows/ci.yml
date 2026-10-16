@@ -56,6 +56,9 @@ jobs:
               -o "$RUNNER_TEMP/sdk-socket-host"
             timeout 30s "$RUNNER_TEMP/sdk-socket-host"
           done
+      - name: Check time64 runtime fixture on the build host
+        # The shared raw-initramfs fixture stays alive after its final marker.
+        run: node --test sources/distro/distro/sdk/time-consumer-test.js
       - name: Check SQLite runtime fixture on the build host
         # Fixture validation only; actual target builds use pinned SQLite 3.51.0.
         run: |
