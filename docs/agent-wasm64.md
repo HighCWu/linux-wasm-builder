@@ -938,7 +938,11 @@ File.stream 逐块 pipeTo stdin；空文件发送 EOF。前缀消费者的 EPIPE
 结果，不能把旧 c58929a 文本或 552ea27 流模式结果当作文件输入证明。C 宿主语料
 检查已纳入主仓库轻量 CI，不在本地构建 Linux 或 LLVM。
 [二进制文件输入 Firefox 验收](https://github.com/HighCWu/distro/actions/runs/38983286763)
-固定 `efa2f0d`，已启动；不取消仍在执行的旧版 streaming Chromium/wasm32 任务。
+固定 `efa2f0d`，在 treefmt 格式门禁失败，未执行浏览器用例，不能据此判断运行语义。
+`d70d423` 只修正该测试的链式调用排版，不改变断言；本地固定版本 oxfmt 检查和
+36 项相关测试通过。主仓库轻量 CI 也加入同版本的示例/页面测试格式检查。
+[修正后的 Firefox 验收](https://github.com/HighCWu/distro/actions/runs/38983716460)
+固定 `d70d423`，正在运行；不取消仍在执行的旧版 streaming Chromium/wasm32 任务。
 
 #### 排队进程取消
 
