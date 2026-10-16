@@ -28,11 +28,12 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Check SDK compiler argument contract
+      - name: Check SDK compiler and dependency discovery contracts
         run: |
           clang --version
           node --test sources/distro/distro/sdk/wrapper-test.js \
-            sources/distro/distro/sdk/config-driver-test.js
+            sources/distro/distro/sdk/config-driver-test.js \
+            sources/distro/distro/sdk/pkg-config-test.js
       - name: Check SDK CMake example on the build host
         run: |
           cmake -P sources/distro/distro/sdk/linux-wasm.cmake.in
