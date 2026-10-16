@@ -121,7 +121,9 @@ tar。源码链接目标保留，归档排序、时间、所有者和 gzip 头�
 校验和及所选源码 COPYING、实际配置的字节。成功后 CI 上传保留 3 天的源码验证
 artifact，关闭二次压缩；它不是长期源码托管。distro `61d552a` 的
 [wasm64 源码归档检查](https://github.com/HighCWu/distro/actions/runs/38928012549)
-正在运行，真实完整 Linux 源码打包与 artifact 上传尚未验证。
+已成功：实际 Nix 归档检查、收集和 artifact 上传均通过，整个工作流成功。
+API 确认存在对应提交的约 250 MiB 源码 artifact；仍只保留 3 天，不替代正式
+发行所需的长期源码获取渠道，也不代表 wasm32 或完整发行的对应源码已获验证。
 源码包不包含完整 distro/LLVM/Nix 依赖和可独立离线重建环境；显式 `patches` 非空时
 拒绝导出，避免静默遗漏补丁。其他自定义 hook/override 仍需发行者审查，这不是任意
 修改后的最终构建工作树快照，也不代表完整发行的 GPL 义务已经满足。
