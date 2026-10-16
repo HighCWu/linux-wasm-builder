@@ -46,6 +46,54 @@ nix build './sources/distro#checks.x86_64-linux.toolchain-smoke-wasm64-check-cxx
 后续SDK工作应逐步形成脱离仓库内部脚本的第三方构建与发布流程；本轮并不宣称
 可重定位SDK、独立安装包或真实第三方应用已经交付。
 
+## 双位宽开发入口
+
+distro提交`58398eee42b99df1756578fee5d695cf79fcc67d`提供MIT的SDK包装器及
+开发shell。原有default shell保持不变；新增sdk（wasm32）及sdk-wasm64，明确导出
+CC、CXX、AR、RANLIB与sysroot。它们是交叉编译环境，不将宿主程序当作目标程序运行。
+
+从主仓库进入所需profile：
+
+```sh
+nix develop './sources/distro#sdk'
+# 或使用64位profile：
+nix develop './sources/distro#sdk-wasm64'
+```
+
+进入shell后，可直接通过公共编译入口分离编译、链接示例，不需要复制内部Nix参数：
+
+```sh
+"$CXX" -std=c++17 -O2 -pthread -c sources/distro/distro/toolchain-smoke/runtime-cxx.cc -o runtime.o
+"$CXX" -pthread runtime.o -o runtime.wasm
+```
+
+编译入口名为wasm-linux-cc和wasm-linux-c++，SDK分别使用对应profile的Clang、
+sysroot及平台flags。普通Makefile可消费CC/CXX/AR/RANLIB；不保证任意构建系统的
+交叉探测自动正确，尤其不能在配置阶段直接执行生成的Wasm程序。
+
+包装器在-c/-S/-E/-M/-MM/-fsyntax-only和常见查询模式省略可执行文件链接参数，
+链接时追加共享线性内存、allocator导出等已有平台参数；保留用户参数及带空格路径。
+暂不支持@response-file并明确报错，避免因隐藏-c而误判阶段。它不是完整Clang
+driver替代品；也不应通过额外target/sysroot参数混用另一个profile。
+
+SDK产物可分别构建：
+
+```sh
+nix build './sources/distro#sdk'
+nix build './sources/distro#sdk-wasm64'
+```
+
+这些产物仍引用Nix store中的工具链和sysroot，不可把单独复制bin目录视为可搬移
+SDK。既有clang/clang++仍可直接使用；SDK包装器使用独立名称，不覆盖编译器本身。
+
+13项本地Node契约测试检查参数传递，根仓库轻量CI也执行它们，不需要下载LLVM或
+构建内核。两种profile还各有默认内核双核C++消费检查：通过SDK以-Werror分离编译
+同一运行用例，再链接、启动，检查名为sdk-check-cxx-runtime及
+sdk-wasm64-check-cxx-runtime。这是实际编译器/运行验证，与假编译器契约测试分开。
+公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38860562604)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38860568150)已触发，结果待确认。
+尚未在本机实际进入Nix开发shell或验证浏览器执行。
+
 ## 验证状态
 
 宿主g++ C++17严格编译及执行通过，Nix语法格式化和仓库元数据检查通过。本地没有
