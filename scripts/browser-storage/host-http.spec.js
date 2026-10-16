@@ -1,6 +1,62 @@
 // SPDX-License-Identifier: MIT
 import { expect, test } from "@playwright/test";
 
+test("forwards fragmented POST bodies through browser Request", async ({ page }) => {
+  test.setTimeout(30_000);
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const { hostFetchNetwork } = await import("/host-http.js");
+    const outcomes = [];
+    for (const [framing, payload] of [
+      ["Content-Length: 5", "hello"],
+      ["Transfer-Encoding: chunked", "2\r\nhe\r\n3\r\nllo\r\n0\r\n\r\n"],
+    ]) {
+      let received;
+      const network = hostFetchNetwork({
+        async fetch(request) {
+          received = { method: request.method, url: request.url, body: await request.text() };
+          return new Response("accepted", { status: 201 });
+        },
+      });
+      const bytes = new TextEncoder().encode(
+        `POST /submit HTTP/1.1\r\nHost: example.test\r\n${framing}\r\n\r\n${payload}`,
+      );
+      const readable = new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < bytes.length; i += 3) controller.enqueue(bytes.slice(i, i + 3));
+          controller.close();
+        },
+      });
+      let output = "";
+      const decoder = new TextDecoder();
+      const writable = new WritableStream({
+        write(chunk) {
+          output += decoder.decode(chunk, { stream: true });
+        },
+      });
+      await network.connectTcp({
+        target: { hostname: "198.18.0.1", port: 80 },
+        signal: new AbortController().signal,
+        readable,
+        writable,
+      });
+      outcomes.push({ received, output, locks: [readable.locked, writable.locked] });
+    }
+    return outcomes;
+  });
+  expect(results).toHaveLength(2);
+  for (const result of results) {
+    expect(result.received).toEqual({
+      method: "POST",
+      url: "https://example.test/submit",
+      body: "hello",
+    });
+    expect(result.output).toMatch(/^HTTP\/1\.1 201 /);
+    expect(result.output.split("\r\n\r\n")[1]).toBe("accepted");
+    expect(result.locks).toEqual([false, false]);
+  }
+});
+
 for (const pendingCallback of [false, true]) {
   test(
     pendingCallback

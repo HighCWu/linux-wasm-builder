@@ -5,7 +5,7 @@ import { checkReport } from "./check-report.mjs";
 
 function fixture() {
   return {
-    stats: { expected: 4, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 5, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -16,6 +16,7 @@ function fixture() {
               "flushes virtio writes through the real OPFS worker",
               "cancels pending Fetch response reads on disconnect",
               "releases disconnected Fetch callbacks and cancels late responses",
+              "forwards fragmented POST bodies through browser Request",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -26,7 +27,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the four successful lifecycle cases", () => {
+test("accepts exactly the five successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {
