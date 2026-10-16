@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { checkReport } from "./check-report.mjs";
+import { caseFilter, checkReport, lifecycleCases } from "./check-report.mjs";
 
 test("browser workflow stages every local spec, including newly added cases", () => {
   const workflow = readFileSync(
@@ -10,6 +10,20 @@ test("browser workflow stages every local spec, including newly added cases", ()
     "utf8",
   );
   assert.match(workflow, /cp scripts\/browser-storage\/\*\.spec\.js "\$suite\/tests\/"/);
+  assert.match(
+    workflow,
+    /case_filter=\$\(node "\$GITHUB_WORKSPACE\/scripts\/browser-storage\/check-report\.mjs" --grep\)/,
+  );
+  assert.match(workflow, /--grep "\$case_filter"/);
+});
+
+test("browser selection is derived from every required report case", () => {
+  const filter = new RegExp(caseFilter());
+  for (const title of lifecycleCases) {
+    assert.ok(filter.test(`chromium tests/example.spec.js ${title}`), title);
+    assert.equal(filter.test(`chromium tests/example.spec.js ${title} extra`), false);
+  }
+  assert.equal(filter.test("persists a virtio block device through an OPFS worker"), false);
 });
 
 function fixture() {

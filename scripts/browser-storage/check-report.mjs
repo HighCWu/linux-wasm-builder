@@ -4,27 +4,34 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
+export const lifecycleCases = Object.freeze([
+  "invalid disk capacity preserves OPFS data and releases its lock",
+  "flushes virtio writes through the real OPFS worker",
+  "cancels pending Fetch response reads on disconnect",
+  "releases disconnected Fetch callbacks and cancels late responses",
+  "forwards fragmented POST bodies through browser Request",
+  "enforces upload budgets only when browser buffering is required",
+  "cancels incomplete browser uploads without sending a response",
+  "aborts failed BrowserFS mutations and preserves committed OPFS bytes",
+  "BrowserFS synchronization waits for the real OPFS write commit",
+  "BrowserFS rename preserves pending source writes and open handles",
+  "BrowserFS rejects unsafe I/O ranges without changing OPFS data",
+  "BrowserFS serializes append writes and honors current open flags",
+  "BrowserFS serializes exclusive creates with namespace mutations",
+  "BrowserFS rejects invalid timestamps before changing OPFS data or metadata",
+  "UDP write failure releases the private network flow and pending read",
+  "UDP channel close settles idle writers and pending readers",
+  "IPv4 parser validates complete header checksums including options",
+  "BrowserFS unlink waits for pending OPFS mutations and detaches old handles",
+]);
+
+export function caseFilter() {
+  const escaped = lifecycleCases.map((title) => title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  // Playwright matches the full title (project/file/suite/title), not just title.
+  return `(?:${escaped.join("|")})$`;
+}
+
 export function checkReport(report) {
-  const expected = [
-    "invalid disk capacity preserves OPFS data and releases its lock",
-    "flushes virtio writes through the real OPFS worker",
-    "cancels pending Fetch response reads on disconnect",
-    "releases disconnected Fetch callbacks and cancels late responses",
-    "forwards fragmented POST bodies through browser Request",
-    "enforces upload budgets only when browser buffering is required",
-    "cancels incomplete browser uploads without sending a response",
-    "aborts failed BrowserFS mutations and preserves committed OPFS bytes",
-    "BrowserFS synchronization waits for the real OPFS write commit",
-    "BrowserFS rename preserves pending source writes and open handles",
-    "BrowserFS rejects unsafe I/O ranges without changing OPFS data",
-    "BrowserFS serializes append writes and honors current open flags",
-    "BrowserFS serializes exclusive creates with namespace mutations",
-    "BrowserFS rejects invalid timestamps before changing OPFS data or metadata",
-    "UDP write failure releases the private network flow and pending read",
-    "UDP channel close settles idle writers and pending readers",
-    "IPv4 parser validates complete header checksums including options",
-    "BrowserFS unlink waits for pending OPFS mutations and detaches old handles",
-  ];
   const specs = [];
   function visit(suite) {
     specs.push(...(suite.specs ?? []));
@@ -33,7 +40,7 @@ export function checkReport(report) {
   for (const suite of report.suites) visit(suite);
   assert.deepEqual(
     specs.map((spec) => spec.title).sort(),
-    expected.sort(),
+    [...lifecycleCases].sort(),
     "exact lifecycle cases must execute",
   );
   for (const spec of specs) {
@@ -43,13 +50,23 @@ export function checkReport(report) {
     assert.equal(test.results.length, 1, "retries are not allowed");
     assert.equal(test.results[0].status, "passed");
   }
-  assert.equal(report.stats.expected, 18, "storage and network lifecycle tests must pass");
+  assert.equal(
+    report.stats.expected,
+    lifecycleCases.length,
+    "storage and network lifecycle tests must pass",
+  );
   assert.equal(report.stats.skipped, 0, "missing OPFS support must not produce a green check");
   assert.equal(report.stats.unexpected, 0, "lifecycle checks must not fail");
   assert.equal(report.stats.flaky, 0, "lifecycle checks must pass without retries");
   assert.deepEqual(report.errors, [], "browser suite must have no global errors");
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  checkReport(JSON.parse(readFileSync(process.argv[2], "utf8")));
-  console.log("Confirmed eighteen executed storage/network lifecycle tests, no skips or retries");
+  if (process.argv[2] === "--grep") {
+    console.log(caseFilter());
+  } else {
+    checkReport(JSON.parse(readFileSync(process.argv[2], "utf8")));
+    console.log(
+      `Confirmed ${lifecycleCases.length} executed storage/network lifecycle tests, no skips or retries`,
+    );
+  }
 }

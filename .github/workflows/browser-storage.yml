@@ -63,10 +63,11 @@ jobs:
       - name: Verify real OPFS initialization failure recovery
         run: |
           cd "$RUNNER_TEMP/browser-storage"
+          case_filter=$(node "$GITHUB_WORKSPACE/scripts/browser-storage/check-report.mjs" --grep)
           PLAYWRIGHT_JSON_OUTPUT_NAME=storage-report.json \
             ./node_modules/.bin/playwright test --project=${{ matrix.browser }} --forbid-only \
               --reporter=line,json \
-              --grep '(invalid disk capacity preserves OPFS data and releases its lock|flushes virtio writes through the real OPFS worker|cancels pending Fetch response reads on disconnect|releases disconnected Fetch callbacks and cancels late responses|forwards fragmented POST bodies through browser Request|enforces upload budgets only when browser buffering is required|cancels incomplete browser uploads without sending a response|aborts failed BrowserFS mutations and preserves committed OPFS bytes|BrowserFS synchronization waits for the real OPFS write commit|BrowserFS rename preserves pending source writes and open handles|BrowserFS rejects unsafe I/O ranges without changing OPFS data|BrowserFS serializes append writes and honors current open flags|BrowserFS serializes exclusive creates with namespace mutations|BrowserFS rejects invalid timestamps before changing OPFS data or metadata|UDP write failure releases the private network flow and pending read|UDP channel close settles idle writers and pending readers|IPv4 parser validates complete header checksums including options)$'
+              --grep "$case_filter"
           node "$GITHUB_WORKSPACE/scripts/browser-storage/check-report.mjs" storage-report.json
       - uses: actions/upload-artifact@v4
         if: failure()
