@@ -5,7 +5,7 @@ import { checkReport } from "./check-report.mjs";
 
 function fixture() {
   return {
-    stats: { expected: 16, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 17, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -28,6 +28,7 @@ function fixture() {
               "BrowserFS rejects invalid timestamps before changing OPFS data or metadata",
               "UDP write failure releases the private network flow and pending read",
               "UDP channel close settles idle writers and pending readers",
+              "IPv4 parser validates complete header checksums including options",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -38,7 +39,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the sixteen successful lifecycle cases", () => {
+test("accepts exactly the seventeen successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {
