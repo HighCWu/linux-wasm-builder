@@ -459,6 +459,30 @@ TypeScript、浏览器打包、相关宿主检查通过；它们不替代真实 
 - [修正后 Chromium](https://github.com/HighCWu/distro/actions/runs/38963636320)
 - [修正后 Firefox](https://github.com/HighCWu/distro/actions/runs/38963643976)
 
+#### 公开网络插件与原生 HTTP 服务
+
+distro `36578fd` 增加独立的 `public-network-wasm64` 检查和对应浏览器入口，
+复用原生 BusyBox 用户态资产，不依赖 userland 检查的成功产物。先前的三组最小
+公开 API 和五组 userland 检查保持独立，新网络配置共要求六组完成。
+
+网络 attachment 插件刻意放在 agent 之前，验证启动依赖排序和真实 eth0 配置。
+通过公开 `exec()` 启动 BusyBox httpd；读取 `/proc/net/tcp` 确认精确端口处于
+LISTEN 后，从公开 `attachment.connect()` 发起 HTTP 请求，要求 200 与精确正文。
+随后 SIGTERM 终止并回收服务、要求空 stdout/stderr，关闭连接、网络及机器。
+启动失败也关闭网络；错误和超时不改为跳过。
+
+本项不启用 DNS 或外连适配器，禁止意外外连。它验证浏览器/Node 到运行实例的
+私网 Ethernet/TCP，不代表浏览器原始 socket、外网、代理、TLS、DNS 或 UDP 已验证，
+也不替代安装系统的独立回环网络检查。
+
+TypeScript、JS 语法、浏览器打包和 10 项相关宿主回归通过。其中新增 socket
+就绪解析回归拒绝错误端口、已建立连接及仅远端端口匹配。以下三项均固定含文档的
+`1e99e15`，已提交公开 CI，实际执行结果待确认；shell 复验仍独立运行：
+
+- [公开网络 Node](https://github.com/HighCWu/distro/actions/runs/38964197663)
+- [公开网络 Chromium](https://github.com/HighCWu/distro/actions/runs/38964203587)
+- [公开网络 Firefox](https://github.com/HighCWu/distro/actions/runs/38964210907)
+
 #### 错误身份的会话资源顺序
 
 distro `f0ef828` 收紧会话资源创建顺序：先验证握手身份，再创建子进程回收线程和
