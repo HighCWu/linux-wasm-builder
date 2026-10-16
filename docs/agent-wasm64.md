@@ -511,6 +511,23 @@ distro `8045aad` 修正公开 `run()`：原实现直接收集 status、双路输
 
 两项均固定 `ad0186a`，结果待确认。宿主回归不是实际 Wasm 执行完成的证明。
 
+#### 不含测试程序的最小系统根盘
+
+distro `380d21d` 暴露 `guest-agent.nativeWasm64.rootfs`，仅安装匹配的 wasm64
+BusyBox 和最小文件系统配置，使用独立的 wasm64 仓库，不包含 runtime-child 或
+测试标记。它与 `nativeWasm64.bootDisk`、`kernel-wasm64` 配套，不切换默认 wasm32
+npm 资产。构建命令及挂载方式见源码 `packages/linux-guest/README.md`。
+
+独立 `guest-agent-check-minimal-root-wasm64` 通过公开 API 启动该实际根盘，检查
+DNS 配置、测试程序缺席、随包许可证、文件写入/原生 BusyBox cat 的二进制往返、
+基本 shell pwd 和机器关闭。TypeScript 与 17 项相关宿主回归通过；
+[实际启动检查](https://github.com/HighCWu/distro/actions/runs/38966392888)固定 `1f6f85a`，
+已提交公开 CI，结果待确认。它不替代复杂 shell、浏览器、网络或完整发行版验证，
+也不是配套源码与发布清单已经齐全的正式发行。
+
+带标签的 Node 任务 `38965682439` 仍在 Build isolated check 阶段，日志接口暂时
+返回 404；已核对任务仍运行，没有因此重启或取消它。
+
 #### SDK 子进程关闭与回收顺序
 
 distro `6e6047c` 修正实际 SDK 的 `ChildProcess.close()`：原实现仅等待缓冲输入和

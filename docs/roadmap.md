@@ -136,6 +136,8 @@ wasm32 完整集成已提交 CI。该修正不等于 pidfd 或完整进程组生
 `8045aad` 接着修正公开 run() 的成功/异常清理，六项新增宿主回归通过。shell
 修正批次仍失败在无诊断的状态 1，网络 Firefox 也尚未进入 HTTP；`ad0186a` 保留
 断言并增加精确失败标签，先以定向 Node 和 wasm32 集成定位，再补浏览器复验。
+`380d21d` 暴露独立、无测试程序的 wasm64 最小根盘，配套原生 agent 引导盘和
+内核包。真实根盘的公开 API 启动检查已提交 CI；不以测试根盘或类型检查代替验收。
 
 Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
 toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界MAP_FIXED、
