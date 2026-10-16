@@ -83,6 +83,19 @@ sources/
 这些submodule、构建脚本和测试已经纳入仓库；`scripts/check_repository.py`会检查gitlink、
 远端、分支和Nix source pin是否一致。
 
+## 轻量宿主回归
+
+无需构建Linux、LLVM或安装完整工作区依赖，可用Node 24或更新版本运行内核宿主测试：
+
+```sh
+npx --yes --package=typescript@5.9.3 -c 'bash scripts/check_kernel_host.sh'
+```
+
+脚本在独立临时目录编译小型bytes库并运行全部kernel宿主测试，退出时清理临时目录，
+不写入源码目录的node_modules或dist。已有编译器时也可设置KERNEL_HOST_TSC后直接
+运行脚本。此流程已接入轻量CI，覆盖JavaScript宿主、设备和Wasm接口，不替代完整
+源码类型检查、Linux启动或Chromium/Firefox用户态运行验证。
+
 ## 当前状态
 
 项目已经建立可复现基线和跨组件测试矩阵。wasm32仍是默认profile；实验性wasm64路径
