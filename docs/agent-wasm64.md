@@ -322,15 +322,36 @@ GCC/Clang 的真实握手回归与新增日志回归通过，检查默认静默�
 诊断，尚未证明 Firefox 根因已修复。构建和运行继续交由公开 CI，旧版任务不因
 运行较久而重启或取消。
 [带阶段日志的生产 Firefox](https://github.com/HighCWu/distro/actions/runs/38957371982)
-固定 `af5a160`，已启动、结果待确认。
+固定 `af5a160`，已通过：日志确认 v3 和显式 wasm32 握手被拒绝，wasm64 握手
+被接受，根切换及全部七组文件/进程断言完成，机器正常关闭。外层 1 项浏览器
+测试通过，报告门禁确认零跳过、零重试。这是启用阶段日志后的成功结果；日志可能
+影响时序，不能据此确定此前超时的根因或宣称默认关闭日志时的问题已经修复。
+
+### 公开插件浏览器检查
+
+distro `688fdba` 将已通过 Node 的三组公开 API 断言抽成浏览器可复用语料，新增
+`browser-tests-check-agent-public-wasm64-chromium/firefox`。使用公开镜像/ABI
+选择、独立系统根盘和 GPT agent 磁盘，不传外部 initramfs 或手写启动参数，也不
+启用会话阶段日志。根切换与只读根、文件 seek/metadata/truncate、进程退出码及
+argv/env/cwd 均为必须完成的断言；另要求机器关闭和精确报告门禁，不允许跳过、
+重试或退回内部客户端。浏览器 import map 将 kernel 及其 plugin 入口指向同一
+安装包，保留插件身份符号，避免打包另一份符号后无法识别公开插件。
+
+类型检查、共享语料浏览器打包、JavaScript 语法和 4 项断言适配器测试通过。
+以下公开 CI 均固定 `688fdba`，已通过检查发现与 derivation 求值阶段，运行结果
+仍待确认；此前 Node 成功不替代此次共享语料重构后的复验：
+
+- [公开 Chromium](https://github.com/HighCWu/distro/actions/runs/38958330336)
+- [公开 Firefox](https://github.com/HighCWu/distro/actions/runs/38958337096)
+- [公开 Node 复验](https://github.com/HighCWu/distro/actions/runs/38958343918)
 
 ### 下一步
 
 1. 保持目标 ABI 编译检查，并验证新增 v4 代码的目标编译及现有 wasm32 会话回归；
    头文件与描述不一致时，以真实目标 ABI 为准修正。
-2. 定位 Firefox 会话握手问题；已通过的 Chromium 生产入口和 Node 磁盘启动
-   不代替 Firefox 或后续改动的验证。
-3. 将已通过 Node 的公开镜像选择链路接入浏览器验证，并保留 wasm32 回归。
+2. 继续定位 Firefox 会话握手的时序敏感性，补默认关闭日志的生产入口复验；
+   启用日志的成功不作为根因已修复的证明。
+3. 检查新接入的公开镜像选择链路在浏览器和 Node 的结果，并保留 wasm32 回归。
 4. 构建匹配位宽的完整启动镜像和用户态，不混用 wasm32 BusyBox/rootfs。
    wasm64 SDK 不等于整个发行版 scope 已转换为 wasm64。
 5. 在 Node 和真实 Chromium/Firefox 验证启动、进程/标准流、metadata、大 offset、
