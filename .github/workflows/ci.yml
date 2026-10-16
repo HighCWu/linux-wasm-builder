@@ -143,6 +143,12 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/browser-fs.test.mjs"
           node --test "$RUNNER_TEMP/browser-fs.test.mjs"
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/browser-fs-directory.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/browser-fs-directory.test.mjs"
+          node --test "$RUNNER_TEMP/browser-fs-directory.test.mjs"
       - name: Check Node directory sharing without installed workspace packages
         run: |
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/virtio-fs-node.test.ts \

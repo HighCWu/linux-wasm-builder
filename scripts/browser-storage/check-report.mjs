@@ -24,6 +24,7 @@ export const lifecycleCases = Object.freeze([
   "IPv4 parser validates complete header checksums including options",
   "BrowserFS unlink waits for pending OPFS mutations and detaches old handles",
   "BrowserFS replacement waits for target OPFS mutations before publishing",
+  "BrowserFS directory relocation coordinates descendant mutations and queries",
 ]);
 
 export function caseFilter() {
