@@ -422,10 +422,14 @@ C++ 运行库，核验最终模块共享内存位宽/上限，双核启动 Linux
 该 wasm64 检查现已成功：实际日志确认应用汇编的标准处理器门禁、最终共享
 memory64 ABI/16 GiB 声明上限，以及 RAII、跨线程 exception_ptr、继承异常/RTTI、
 TLS 析构、条件变量和完整运行通过标记。它证明新应用生成方式与现有运行库在此
-Node/Linux 路径下互操作，不把 Node 当作浏览器证据；wasm32 另行补验。
+Node/Linux 路径下互操作，不把 Node 当作浏览器证据。
+固定 `ad839be` 的 [wasm32 补验](https://github.com/HighCWu/distro/actions/runs/38976857074)
+也已成功：实际日志确认标准 `try_table` 汇编门禁、共享 memory32 ABI/4 GiB 声明
+上限，以及类型化 catch/RAII、跨线程 exception_ptr、继承异常/RTTI、TLS 析构、
+条件变量和完整运行标记。
 未切换默认配置或重建运行库/内核，最终程序仍可能含运行库的旧 EH 指令，浏览器
 警告也可能继续存在。通过此检查也不等于全新 EH 运行库、内核 SjLj、浏览器执行
-及 wasm32 均已迁移；这些必须分别验证后才能决定默认策略。
+均已迁移；这些必须分别验证后才能决定默认策略。
 
 ### 析构函数ABI后续修复
 

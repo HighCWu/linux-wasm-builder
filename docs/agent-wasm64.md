@@ -672,6 +672,8 @@ Chromium/Firefox 应用根盘检查与修正后的 `sqlite3-wasm64-check-develop
 该批 [Firefox](https://github.com/HighCWu/distro/actions/runs/38976296175) 现已通过：
 实际日志确认两个原生 CLI 阶段及外层浏览器用例成功，
 严格报告零跳过/重试；这是保留内存块的新实例读回，不含后加的 OPFS 页面重载。
+[同批 Chromium](https://github.com/HighCWu/distro/actions/runs/38976294168) 也已通过，
+实际日志确认相同两个 SQL 阶段、外层一项及严格报告，均零跳过/重试。
 [安装后开发消费者](https://github.com/HighCWu/distro/actions/runs/38976314086)
 也已成功；日志确认安装 CLI 和独立消费者的 memory64 ABI，以及消费者实际 Linux
 运行的 `::vm-test::pass` 标记，不再仅是 pkg-config 宿主元数据验证。
@@ -694,6 +696,8 @@ pkg-config 编译既有 SQLite 消费程序，不重新编译 amalgamation；实
 测试最后只删除自己创建的文件。四项宿主编排回归通过，但不能代替实际浏览器运行。
 [新增 OPFS 的 Chromium 检查](https://github.com/HighCWu/distro/actions/runs/38977528723)
 固定 `041b82c`，仍待结果；先前固定 `963a86c` 的任务不含该用例，保持独立运行。
+[新增 OPFS 的 Firefox 检查](https://github.com/HighCWu/distro/actions/runs/38977872640)
+固定 `02ce485`，同样仍待实际结果。
 这里验证正常同步后的页面重载，不承诺浏览器进程重启、物理持久性、WAL 或崩溃恢复。
 
 #### 独立浏览器嵌入示例
