@@ -95,7 +95,10 @@ npm 归档往返和篡改检测。新增独立 `kernel-check-build-materials` /
 Linux 输出中的内核和整套材料，同时核对宿主 MIT 原文及包的名称、版本和许可
 声明。宿主故障注入还验证替换配置并重算校验和、改写 MIT 文本或将包声明改成
 仅 MIT 均会失败；不能只因某份自带校验和通过就认定来源匹配。
-真实 Nix 内核构建与 npm 集成仍需 CI 验证。
+随后 distro `2a21e3a` 的
+[wasm64 npm 材料检查](https://github.com/HighCWu/distro/actions/runs/38926460986)
+已成功：实际目标构建/检查与整个工作流均通过。该检查强制依赖 Linux 材料/profile
+检查，并重新解包真实 npm 包验证字节与声明；它不包含后续完整源码归档功能。
 首轮内核材料检查
 [38925328081](https://github.com/HighCWu/distro/actions/runs/38925328081)
 失败于新 shell 脚本的 treefmt/shfmt 格式门禁，未进入内核编译，不能作为内核功能
@@ -104,6 +107,24 @@ Linux 材料检查，让内核 profile、原始材料和最终 npm 包在同一�
 共享内核构建而不重复安排同一内核的独立作业。
 这些只是构建与许可材料，不包含完整 Linux 源码、全套依赖或所有补丁来源，不代表
 完整 GPL 对应源码包或已履行全部发行义务；公开源码交付仍需继续建设。
+
+另提供独立 `kernel.sourceBundle` / `kernel-wasm64.sourceBundle`：把选中的完整
+Linux 源码输入放入 `linux/`，同一内核的实际配置、原始许可证和构建材料放入
+`build-materials/`，流式生成 `linux-source.tar.gz`，不额外复制源码或生成未压缩
+tar。源码链接目标保留，归档排序、时间、所有者和 gzip 头固定；宿主测试验证相同
+输入生成相同压缩字节、隐藏文件和链接保留、符号链接源码根解析及缺失配置拒绝。
+可用 `nix build ./sources/distro#kernel-wasm64.sourceBundle` 构建，外层 SHA256SUMS
+校验源码归档与说明，内层材料校验和仍描述对应 npm 二进制，不把内核字节重复打入
+源码包。产物设置 Nix 零引用约束，不因生成归档而让运行时继续引用整棵源码。
+
+`kernel[-wasm64]-check-source-bundle` 会执行原内核材料/profile 检查，核验归档
+校验和及所选源码 COPYING、实际配置的字节。成功后 CI 上传保留 3 天的源码验证
+artifact，关闭二次压缩；它不是长期源码托管。distro `61d552a` 的
+[wasm64 源码归档检查](https://github.com/HighCWu/distro/actions/runs/38928012549)
+正在运行，真实完整 Linux 源码打包与 artifact 上传尚未验证。
+源码包不包含完整 distro/LLVM/Nix 依赖和可独立离线重建环境；显式 `patches` 非空时
+拒绝导出，避免静默遗漏补丁。其他自定义 hook/override 仍需发行者审查，这不是任意
+修改后的最终构建工作树快照，也不代表完整发行的 GPL 义务已经满足。
 
 rootfs中的 BusyBox及其他 copyleft组件也必须单独处理，不能因为它们位于磁盘镜像
 中而忽略。

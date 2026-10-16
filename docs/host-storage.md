@@ -131,7 +131,10 @@ BrowserFS 的 create、mkdir、unlink、rmdir、rename 现还共用适配器级�
 这不协调其他适配器/标签页，也不使复制加删除成为原子重命名；查询可观察到中间
 状态，目录后代的并发数据写入仍不在目录复制队列覆盖范围内。
 宿主回归检查并发独占创建、重复 mkdir、删除后重建及失败后的继续执行；真实
-Chromium/Firefox 套件另检查重命名与独占创建的排序及胜出请求的元数据，结果待 CI。
+Chromium/Firefox 套件另检查重命名与独占创建的排序及胜出请求的元数据。
+[38924326220](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38924326220)
+已成功：两种浏览器各实际执行 13 项指定测试，零跳过、零重试，对应 distro
+`0807a1f`；它仍是目录共享适配器验证，不是 Linux 挂载端到端验证。
 
 BrowserFS 的 `flush` / `fsync` 会加入当前节点的修改队列，等待先前排队的写入和
 截短操作结束；写流的 `close` 完成前不能提前确认同步成功。该排序约束覆盖通过
