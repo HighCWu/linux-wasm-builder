@@ -191,6 +191,11 @@ musl、公开UAPI或浏览器配置。SDK仍依赖Nix store，不是可重定位
 
 ## 目标依赖元数据查询
 
+SDK 包装器还清空宿主继承的 `PKG_CONFIG_SYSTEM_INCLUDE_PATH` 和
+`PKG_CONFIG_SYSTEM_LIBRARY_PATH`：这些过滤设置会在查询成功后删除目标必需的
+`-I` / `-L` 参数，不能只隔离 `.pc` 搜索路径。真实 pkg-config 回归测试覆盖这一
+情况，确保目标路径仍保留；这不是对任意第三方 `.pc` 内容的安全审查。
+
 两个SDK shell均提供`wasm-linux-pkg-config`，并将`PKG_CONFIG`指向对应profile的
 包装工具；CMake工具链也默认选择该工具。它在宿主运行pkg-config，但仅查询目标
 sysroot下的`lib/pkgconfig`和`share/pkgconfig`，覆盖继承的PKG_CONFIG_LIBDIR、
