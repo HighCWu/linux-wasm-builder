@@ -105,6 +105,7 @@ jobs:
         run: |
           node --test sources/distro/distro/busybox/check-binary.test.mjs
           node --test sources/distro/packages/browser-tests/agent-assertions.test.js
+          node --test sources/distro/packages/linux-guest/tests/agent-wasm64-userland-commands.test.ts
           for source in agent-app.js agent-public-app.js agent-tests/agent-check.js agent-tests/agent.spec.js agent-tests/agent-production.spec.js agent-tests/agent-public-check.js agent-tests/agent-public.spec.js agent-tests/agent-public-userland.spec.js; do
             node --check "sources/distro/packages/browser-tests/$source"
           done
