@@ -488,6 +488,14 @@ TypeScript、JS 语法、浏览器打包和 10 项相关宿主回归通过。其
 其中 Firefox 已失败在前置 shell 场景，HTTP 用例尚未执行；不能记作 HTTP 本身
 失败或通过。Node、Chromium 尚待结果。
 
+后续修正版本 `0314774` 的浏览器公开网络复验现均成功，实际日志分别确认六组
+完成名称与外层 1 项通过：包含根盘切换、文件 API、run 状态、shell/子进程生命周期、
+二进制管道和附加 NIC 上的原生 HTTP。它们不包含后续 `9e042d7` 的满槽排队取消
+或 `accdea0` 的 ext4 根盘检查，也不代表外网、DNS/TLS 或整个发行系统已验证：
+
+- [公开网络 Chromium 复验](https://github.com/HighCWu/distro/actions/runs/38969301422)
+- [公开网络 Firefox 复验](https://github.com/HighCWu/distro/actions/runs/38969306941)
+
 #### run() 的异常清理和定向 shell 诊断
 
 distro `8045aad` 修正公开 `run()`：原实现直接收集 status、双路输出和 stdin EOF，
@@ -561,6 +569,28 @@ Chromium 和 Firefox 定向检查：身份及挂载表、许可证及无测试�
 - [最小根盘 Node](https://github.com/HighCWu/distro/actions/runs/38967783538)
 - [最小根盘 Chromium](https://github.com/HighCWu/distro/actions/runs/38967769877)
 - [最小根盘 Firefox](https://github.com/HighCWu/distro/actions/runs/38967777005)
+
+#### 可选可写 ext4 系统根盘
+
+distro `accdea0` 增加 `guest-agent.nativeWasm64.rootfsExt4`，使用匹配的 wasm64
+BusyBox 和同一原生启动盘，提供显式 64 MiB ext4 根盘。默认 EROFS 根盘、wasm32
+资产及 NOMMU 地址模型不变；不增加内核 softmmu，也不使用临时 overlay 冒充持久化。
+
+Node、Chromium、Firefox 复用两组检查：第一实例通过公开文件 API 写入 65,553 字节
+二进制、同步、rename、chmod，再运行原生 `/bin/sync`，要求观察到块写入和 flush；
+关闭后第二实例只复用保留的块字节，核对内容、大小、权限和原生 `cat` 输出。
+浏览器要求完整两组名称、机器关闭及零跳过/重试。TypeScript、浏览器脚本语法和
+共享语料打包已通过；实际 ext4 启动与跨实例读回仍待公开 CI 确认。
+
+此处只测试宿主内存中的块字节保留，不代表 OPFS、刷新页面后的存储、物理介质
+耐久性或优雅关机。宿主负责保存 backing；`flush` 必须等待其约定的同步完成。
+构建和检查命令见源码两份 README。
+
+以下三项均固定含说明的 `a5886c1`，计划阶段已成功，实际运行仍在进行：
+
+- [可写根盘 Node](https://github.com/HighCWu/distro/actions/runs/38970897242)
+- [可写根盘 Chromium](https://github.com/HighCWu/distro/actions/runs/38970903981)
+- [可写根盘 Firefox](https://github.com/HighCWu/distro/actions/runs/38970910899)
 
 #### 排队进程取消
 

@@ -151,7 +151,7 @@ BusyBox 源码与材料流式归档，并另给最终安装、strip 后的 `bin/
 首批实际检查固定 `cb275c7`，三项均失败；已核对 wasm64 源码任务日志，失败在
 格式门禁的 `package.nix` 和 shell 空白处理，未进入目标构建。`6585871` 修正脚本
 格式，`0314774` 规范化 Nix 元数据并使后续格式门禁输出实际 diff，宿主归档回归
-重新通过。已针对新固定版本提交双位宽归档与 wasm64 smoke 复验，结果待确认。
+重新通过。针对新固定版本的双位宽归档与 wasm64 smoke 复验现均成功。
 以下保留首批失败记录，不作为归档已通过的证据：
 
 - [wasm64 源码归档](https://github.com/HighCWu/distro/actions/runs/38968663096)
@@ -161,7 +161,12 @@ BusyBox 源码与材料流式归档，并另给最终安装、strip 后的 `bin/
 修正后的[wasm32 源码归档检查](https://github.com/HighCWu/distro/actions/runs/38969210975)
 固定 `0314774`，现已成功：实际目标检查、源码收集和 artifact 上传步骤均通过。
 API 确认存在对应提交、未过期的 3,169,074 字节 artifact，仍只保留 3 天。
-该结果不代表 wasm64、完整发行依赖或长期源码发布已验证；相关检查继续独立运行。
+同版本的 [wasm64 源码归档](https://github.com/HighCWu/distro/actions/runs/38969203487)
+也已成功，日志确认配置、源码包和最终二进制校验和通过，并确认共享 wasm64
+`env.memory` 的 16 GiB 声明上限；API 确认对应未过期 artifact 为 3,169,075 字节。
+[wasm64 安装 smoke](https://github.com/HighCWu/distro/actions/runs/38969217828)
+同样成功，实际日志包含 `::vm-test::pass`。这些结果不代表完整发行依赖、长期源码
+发布或发行合规已完成；临时 artifact 仍只保留 3 天。
 
 ## 洁净实现政策
 
