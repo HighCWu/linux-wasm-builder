@@ -47,6 +47,12 @@ jobs:
         run: node --test sources/distro/distro/sdk/installed-consumer-test.js
       - name: Check SDK Autoconf cross configuration on the build host
         run: node --test sources/distro/distro/sdk/autoconf-consumer-test.js
+      - name: Check SDK Meson build-machine generator on the build host
+        run: |
+          python3 -m venv "$RUNNER_TEMP/sdk-meson"
+          "$RUNNER_TEMP/sdk-meson/bin/pip" install --disable-pip-version-check meson==1.10.0
+          SDK_TEST_MESON="$RUNNER_TEMP/sdk-meson/bin/meson" \
+            node --test sources/distro/distro/sdk/meson-consumer-test.js
       - name: Check documentation and source pins
         run: python3 scripts/check_repository.py
       - name: Check paired benchmark summaries
