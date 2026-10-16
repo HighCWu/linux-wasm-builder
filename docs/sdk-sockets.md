@@ -55,11 +55,12 @@ Chromium wasm64 使用强制 6 项浏览器用例门禁，并要求运行及机�
 [Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38930389544)
 前者已成功：实际目标构建/检查与整个工作流通过，包含 UDP 和 EPIPE 扩展。
 Firefox 也已成功：实际目标构建/检查及整个工作流通过，使用同一 6 项强制浏览器
-用例门禁，包含 UDP/EPIPE 扩展及机器关闭判定。尚无包含 UDP 扩展的 wasm32 目标
-通过记录，也不把这些结果外推为完整网络兼容性。
+用例门禁，包含 UDP/EPIPE 扩展及机器关闭判定。这些结果不能外推为完整网络兼容性。
 随后固定 distro `b348651` 的
 [wasm32 UDP 扩展检查](https://github.com/HighCWu/distro/actions/runs/38931636788)
-已启动，结果待确认；不覆盖后续未提交变更或外部网络。
+已成功：实际目标构建/检查及整个工作流通过，包含 UDP/EPIPE 扩展。由此该 socket
+用例在两个 SDK 位宽都有 Node 目标通过记录；浏览器含 UDP 扩展的通过记录目前
+为 wasm64 Firefox，不替代 wasm32 浏览器验证或外部网络测试。
 
 ## 边界
 
