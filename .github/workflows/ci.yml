@@ -47,6 +47,15 @@ jobs:
               -o "$RUNNER_TEMP/sdk-runtime-cxx-host"
             timeout 30s "$RUNNER_TEMP/sdk-runtime-cxx-host"
           done
+      - name: Check socket runtime fixture on the build host
+        # Only the Wasm init configures its own loopback interface.
+        run: |
+          for compiler in gcc clang; do
+            "$compiler" -std=c11 -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/sdk/socket-example.c \
+              -o "$RUNNER_TEMP/sdk-socket-host"
+            timeout 30s "$RUNNER_TEMP/sdk-socket-host"
+          done
       - name: Check SQLite runtime fixture on the build host
         # Fixture validation only; actual target builds use pinned SQLite 3.51.0.
         run: |
