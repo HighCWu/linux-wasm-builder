@@ -809,8 +809,11 @@ Linux UAPI、内核或许可证。这不是 pidfd，无法消除回收尚未被�
 共 26 项通过，TypeScript、独立宿主打包和浏览器语料打包通过。wasm32 真实集成及
 wasm64 公开用户态语料已补上 ESRCH 断言；固定 `50c3439` 的
 [Node 公开用户态验收](https://github.com/HighCWu/distro/actions/runs/38980335627)
-已通过，实际日志确认 6 项通过、零失败/取消/跳过。wasm32 仍待确认；该版本不含
-后加的 stdin 和复制修订，不能把此结果或宿主请求拦截当作真实 PID 复用压力测试。
+已通过，实际日志确认 6 项通过、零失败/取消/跳过。同版本的
+[wasm32 集成](https://github.com/HighCWu/distro/actions/runs/38980337636)也已通过；
+实际日志确认全部 274 项、零失败/取消/跳过，包括已回收句柄发信号拒绝和 buffered
+stdin/fd 复用顺序。该版本不含后加的 stdin、复制和 streaming 修订，不能把这些
+结果或宿主请求拦截当作真实 PID 复用压力测试。
 
 #### 关闭后文件描述符所有权保护
 
@@ -889,6 +892,29 @@ distro `f973002` 在获取 wire lane 前按现有 v3/v4 执行端限制预检 sp
 目标结果仍待新版本 CI，宿主协议模拟不作为真实内核参数上限或恢复压力证明。
 [新版 Node 用户态验收](https://github.com/HighCWu/distro/actions/runs/38982301133)
 固定 `f973002`，已启动；现有 Firefox、Node 文件 API 和 wasm32 任务继续独立运行。
+
+#### 可选背压 stdin
+
+distro `552ea27` 新增公开 `StdinMode` 和 exec 的 `stdinMode: "streaming"`。默认
+buffered 保留先发送输入、后读取输出的旧用法；streaming 的 write 等待 native pipe
+接受，错误在同一次 write 报告，使 pipeTo/顺序 await 向上游传递背压，而不是继续
+累积 SDK 后台输入队列。两输出必须并发消费。已阻塞的注入 write 用 exec signal
+或 child.close 中断；writer.abort 单独调用可能等待 Web Streams 正在执行的 sink
+write。它不是硬内存配额：单块大小、上游队列和忽略 write Promise 的调用仍影响内存。
+
+双位宽新增十三项宿主检查，原实现的六项流模式检查先失败；修正后相关七文件共
+104 项通过，示例相关 28 项、类型检查及浏览器语料打包通过。覆盖 producer 在阻塞
+时不被继续耗尽、两模式兼容、分块快照、同次错误、关闭等待已发送 write、无效模式
+在连接前拒绝。共享 wasm64 二进制 shell 管道现在分别执行两模式，wasm32 并发语料
+也接入 streaming。独立程序导入示例使用 streaming，其 Unicode/前缀过滤器页面用例
+待新版本验收，不能引用旧示例的 c58929a 成功结果替代。
+
+以下定向检查均固定 `552ea27`，已启动；不取消仍在运行的旧版 Node、Firefox 和
+文件 API 验收。它们分别验证真实示例控件和 wasm32 整套集成，不把宿主流模拟
+当作 Linux 管道背压的运行证明：
+
+- [流模式程序导入 Chromium](https://github.com/HighCWu/distro/actions/runs/38982729601)
+- [流模式 wasm32 集成](https://github.com/HighCWu/distro/actions/runs/38982775556)
 
 #### 排队进程取消
 
