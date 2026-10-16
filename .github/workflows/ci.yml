@@ -56,11 +56,9 @@ jobs:
       - name: Check documentation and source pins
         run: python3 scripts/check_repository.py
       - name: Check browser user-runtime completion and lifecycle
+        run: node --test sources/distro/distro/vm-test/runtime-smoke-test.js
+      - name: Check all kernel host tests without building Linux or LLVM
         run: |
-          node --test sources/distro/distro/vm-test/runtime-smoke-test.js \
-            sources/distro/packages/kernel/test/resource-cache.test.ts \
-            sources/distro/packages/kernel/test/web-wasm.test.ts \
-            sources/distro/packages/kernel/test/boot-options.test.ts \
-            sources/distro/packages/kernel/test/worker-start.test.ts
+          npx --yes --package=typescript@5.9.3 -c 'bash scripts/check_kernel_host.sh'
       - name: Check paired benchmark summaries
         run: python3 -B scripts/test_compare_mmap_benchmarks.py
