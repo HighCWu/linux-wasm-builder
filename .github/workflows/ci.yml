@@ -199,6 +199,9 @@ jobs:
           node --test "$RUNNER_TEMP/session-handshake.test.mjs" "$RUNNER_TEMP/syscalls-abi.test.mjs"
           for compiler in gcc clang; do
             "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror -fsyntax-only \
+              -include sources/distro/distro/guest-agent/native-wasm64.h \
+              sources/distro/distro/guest-agent/agent.c
+            "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror -fsyntax-only \
               sources/distro/distro/guest-agent/runtime-init.c \
               sources/distro/distro/guest-agent/runtime-child.c
             "$compiler" -std=c11 -O2 -pthread -Wall -Wextra -Werror \
