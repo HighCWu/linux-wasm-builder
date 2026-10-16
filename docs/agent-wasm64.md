@@ -592,6 +592,24 @@ Node、Chromium、Firefox 复用两组检查：第一实例通过公开文件 AP
 - [可写根盘 Chromium](https://github.com/HighCWu/distro/actions/runs/38970903981)
 - [可写根盘 Firefox](https://github.com/HighCWu/distro/actions/runs/38970910899)
 
+后续 `d72b88d` 从同一语料提取机器启动、写入和读回方法，在浏览器 profile 中增加
+独立 OPFS 刷新用例。初始化唯一测试磁盘，复用现有同步访问 worker，执行同步写入
+后等待机器及设备关闭；刷新页面再打开原文件，不传容量、不重新下载模板，然后
+验证字节、大小、权限及原生 `cat`。仅保留文件名跨页面，且读回阶段明确拦截模板请求。
+worker 使用匹配 wasm64 的内核包单独打包，不因本检查构建整个站点。原内存保留
+用例继续保留，严格报告现在要求两项浏览器测试都成功，不允许跳过或重试。
+
+六项新增宿主编排测试覆盖不重建读回、拒绝覆盖已有磁盘、worker 失败清理、参数
+检查、初始化提交和写入失败中止；与现有相关回归共 34 项通过。TypeScript、脚本
+语法及共享语料打包通过。这些不是实际 OPFS 或 Linux 执行证据，新增浏览器运行
+另行验证，不能用上方旧批次替代。范围只包含正常同步后的页面刷新，不包含浏览器
+进程重启、断电、存储回收、崩溃恢复或优雅 Linux 关机。
+
+新增两项均固定含说明的 `13b0976`，待实际结果：
+
+- [OPFS 刷新 Chromium](https://github.com/HighCWu/distro/actions/runs/38971471509)
+- [OPFS 刷新 Firefox](https://github.com/HighCWu/distro/actions/runs/38971477439)
+
 #### 排队进程取消
 
 distro `9e042d7` 修正 SDK `exec()` 的进程槽等待：原实现达到 8 个活动子进程后，
