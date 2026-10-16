@@ -85,15 +85,17 @@ pthread/TLS及信号检查，只有完整用户程序通过标记才算成功。
 使用distro提交`e200a282e51b9b357826a135036045ae5ae17812`，已于2026-10-16通过：
 日志确认实际执行1项Memory64 musl用户程序测试，并要求完整`::vm-test::pass`标记。
 它不包含后续加载器和宿主修复，不代表当前提交完整浏览器矩阵已通过。
-Firefox已针对`680ccfd94a1223c33f13ee6fd1f9dcb6cb83ef1c`启动
-[定向验证](https://github.com/HighCWu/distro/actions/runs/38893749018)，包含下述加载器
-恢复场景及之后的宿主修复，结果待确认。该任务还将验证定向构建的依赖缓存保存，
-缓存行为本身不构成程序运行通过的证据。
+Firefox针对`680ccfd94a1223c33f13ee6fd1f9dcb6cb83ef1c`的
+[定向验证](https://github.com/HighCWu/distro/actions/runs/38893749018)已完成：
+Build isolated check 成功，日志确认三项测试全部通过，包括无效 CPU 数量提前拒绝、
+Memory64 musl 用户程序运行，以及下述加载器恢复场景。整个工作流失败是后续缓存
+保存步骤缺少 `primary-key`，不是浏览器运行失败；后续提交已修复缓存键传递，但本次
+不能证明缓存保存成功，也不覆盖后续 C++、RTTI 或 TLS 析构扩展。
 
 浏览器宿主加载器已支持失败后再次启动，以及非标准Wasm MIME的字节编译回退。
 新增浏览器场景在同一页面先注入HTTP 503，再用application/octet-stream返回内核，
-要求第二次请求完成上述用户态测试。相关14项宿主回归已通过，但该新场景尚未在
-浏览器执行；上述首次Chromium任务固定在更早提交，不包含这两项加载器修复及场景。
+要求第二次请求完成上述用户态测试。相关14项宿主回归已通过，该新场景也已在上述
+Firefox 检查中通过；首次 Chromium 任务固定在更早提交，不包含这两项修复及场景。
 
 同一用户态与恢复场景现也接入wasm32，使用匹配位宽的内核、工具链程序及initramfs。
 新增定向检查名为`browser-tests-check-runtime-wasm32-chromium`和
