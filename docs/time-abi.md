@@ -127,5 +127,27 @@ futex队列；不把长截止时间下的正常唤醒当作实际等待多年或
 
 宿主严格C语法、执行pass、轻量ABI及仓库元数据检查通过。公开Node
 [wasm32](https://github.com/HighCWu/distro/actions/runs/38844561358)和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/38844566099)已触发，结果待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38844566099)均已通过顺序取消后广播用例。
 尚未为该扩展执行浏览器检查。
+
+## 取消请求与广播交错
+
+distro提交`54d15a2ba9e1b8c967c2095a05ec35e96e8c9b50`保留“取消并join之后
+广播”的基线，新增两种请求顺序：同一持锁区间内先cancel后broadcast，以及先
+broadcast后cancel。两种时钟、每种顺序各4轮，每轮4个等待者。release predicate
+在广播前设置；主线程解锁前，等待者无法重新持有该锁并完成返回。
+
+这两种场景不在广播前join取消目标。允许该线程join返回PTHREAD_CANCELED或
+正常fixture指针：libc可能处理取消，也可能消费唤醒并正常完成。其余三个线程
+必须正常返回；cleanup计数必须等于实际取消数（0或1），wake计数必须为4减去
+取消数。保留ERRORCHECK锁所有权检查及对象跨轮复用，输出每种时钟和顺序的目标
+取消/正常完成轮数，不要求一次运行必须观察到两种结果。
+
+这是持锁下发出两种顺序请求后的交错验证，不是两个发送线程在同一时刻操作，也
+没有穷举调度、证明内核队列入队点或验证signal只能唤醒一个等待者的语义。没有
+新增pthread_testcancel来强行让取消获胜，也没有修改Linux、musl或生产配置。
+
+宿主严格C语法、执行pass、轻量ABI和仓库元数据检查通过。公开Node
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38859233374)和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38859238903)已触发，结果待确认。
+没有新增浏览器执行记录。
