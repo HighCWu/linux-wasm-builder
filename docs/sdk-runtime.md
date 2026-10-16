@@ -322,7 +322,10 @@ wasm32 的上述运行现也已通过，日志确认容器、RAII 异常、线�
 C++17严格编译和执行通过；上面两个已启动任务不包含这项后续扩展，其目标运行结果
 仍待另行验证。阶段日志区分普通catch清理与跨线程异常清理，便于定位后续陷阱。
 已针对 `b8b4557d078951ad0d1670967dd71c51248add3b` 启动包含此扩展的
-[wasm64 定向检查](https://github.com/HighCWu/distro/actions/runs/38895974365)，结果待确认。
+[wasm64 定向检查](https://github.com/HighCWu/distro/actions/runs/38895974365)。该运行的
+目标构建及执行步骤已成功，日志逐项确认普通 catch/RAII、跨线程保留异常对象清理及
+最终 `::vm-test::pass`。整个工作流显示失败是其后缓存保存缺少 primary-key，
+不是用户程序失败；缓存配置已另行修复。这一证据仍只覆盖 Node 上的该固定提交。
 
 后续样例再加入多重继承异常检查：按 `std::exception` 基类捕获派生异常，使用
 `dynamic_cast` 回到完整派生对象及另一基类，检查消息、成员值与恰好一次派生析构。
@@ -363,7 +366,7 @@ Meson项目可使用安装后的cross file及显式构建机工具，见[Meson�
 构建Linux或LLVM。公开Node [wasm32](https://github.com/HighCWu/distro/actions/runs/38859969295)
 及[wasm64](https://github.com/HighCWu/distro/actions/runs/38859974701)早期检查均失败，见上述
 C++异常生成诊断。后续 wasm64 ABI 修复已在 Node 中运行通过，具体提交及覆盖边界见上文；
-新增的跨线程异常生命周期检查仍待目标运行确认。
+跨线程异常生命周期检查也已在 wasm64 Node 目标通过，见上文独立步骤与日志证据。
 
 浏览器运行套件现为两个位宽分别构建 C++ initramfs，使用匹配的内核和工具链。
 Chromium/Firefox 的 memory64 及 runtime-wasm32 检查均保留原 C 用例，并新增 C++
