@@ -88,6 +88,12 @@ pthread/TLS及信号检查，只有完整用户程序通过标记才算成功。
 要求第二次请求完成上述用户态测试。相关14项宿主回归已通过，但该新场景尚未在
 浏览器执行；上述首次Chromium任务固定在更早提交，不包含这两项加载器修复及场景。
 
+同一用户态与恢复场景现也接入wasm32，使用匹配位宽的内核、工具链程序及initramfs。
+新增定向检查名为`browser-tests-check-runtime-wasm32-chromium`和
+`browser-tests-check-runtime-wasm32-firefox`；wasm64保留原有
+`browser-tests-check-memory64-chromium`/`browser-tests-check-memory64-firefox`名称。
+wasm32新入口尚未执行重型检查，不替代已有发行版启动及uname回归。
+
 ## P3：存储、文件系统与设备
 
 - 稳定 virtio block、console、entropy、fs、net和vsock。
