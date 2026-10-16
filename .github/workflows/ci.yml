@@ -67,7 +67,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libsqlite3-dev sqlite3
-          node --test sources/distro/packages/browser-tests/site-sqlite.test.js sources/distro/packages/browser-tests/site-fs-trace.test.js
+          node --test sources/distro/packages/browser-tests/site-sqlite.test.js sources/distro/packages/browser-tests/site-fs-trace.test.js sources/distro/packages/linux-guest/tests/agent-wasm64-sqlite-commands.test.ts
           for compiler in gcc clang; do
             "$compiler" -O2 -pthread -Wall -Wextra -Werror \
               sources/distro/distro/sdk/sqlite-example.c -lsqlite3 \
@@ -129,7 +129,9 @@ jobs:
             --bundle --platform=browser --format=esm --target=es2022 \
             --external:@lowland/kernel --external:@lowland/kernel/plugin --external:@lowland/bytes \
             --outfile="$RUNNER_TEMP/agent-public-browser-suite.js"
-          for profile in minimal persistent; do
+          node --check sources/distro/packages/browser-tests/agent-sqlite-root-app.js
+          node --check sources/distro/packages/browser-tests/agent-tests/agent-sqlite-root.spec.js
+          for profile in minimal persistent sqlite; do
             npx --yes esbuild@0.25.12 "sources/distro/packages/linux-guest/tests/agent-wasm64-$profile-root-suite.ts" \
               --bundle --platform=browser --format=esm --target=es2022 \
               --external:@lowland/kernel --external:@lowland/kernel/plugin --external:@lowland/bytes \
