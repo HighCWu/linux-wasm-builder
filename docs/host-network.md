@@ -80,7 +80,12 @@ padding；IP 头部校验不包含正文，也不是 TCP/UDP 校验和验证、�
 通过。这些结果只证明解析器及宿主流回归，不代表完整 IPv4 重组或 Linux 网络验证。
 
 Chromium/Firefox 独立套件新增已知头部与 options 校验场景，强制清单增至 17 项；
-浏览器结果待 CI 确认。测试入口仅在测试 bundle 导出内部解析器，不增加公开 SDK API。
+浏览器结果待 CI 确认。
+[38935879332](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38935879332)
+在两个浏览器各执行了原有 16 项，全部通过，但准备目录漏拷贝新增 IPv4 测试文件，
+17 项报告门禁正确拒绝通过；这不是新增解析器浏览器用例的执行结果。根仓库
+`f332fef` 改为收集全部本地 `*.spec.js`，并增加轻量收集契约检查，重新运行验证。
+测试入口仅在测试 bundle 导出内部解析器，不增加公开 SDK API。
 distro `f1db621` 同时新增 `linux-guest-package-check-tests-networking` 定向公开检查，
 复用原有 Linux 网络程序测试，覆盖 TCP 双向传输和背压、UDP 及最大长度数据报、
 本地宿主桥接和运行实例之间的通信；它用于验证接收校验不会破坏正常 Linux 流量。
