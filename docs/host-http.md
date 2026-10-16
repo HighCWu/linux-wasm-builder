@@ -39,8 +39,12 @@ distro `c7d2641` 的 4 项宿主回归检查普通数组与 Node Buffer 复用�
 消息跨头部/正文的完整性；前三个初始场景在修复前已复现字节或请求行被改写。
 加入已有 HTTP 性质测试及 Fetch 生命周期回归后合计 37 项通过，类型检查通过。
 Chromium/Firefox 的分片 POST 用例扩为独立分块与复用 slab 两种来源，各自覆盖
-定长及 chunked，共核对 4 次真实 Request 转换；浏览器结果待 CI 验证。仍不访问
-外部服务器或运行 Linux 应用，既有上传通过记录不覆盖这项后续修改。
+定长及 chunked，共核对 4 次真实 Request 转换。
+[38933273514](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38933273514)
+已通过 Chromium/Firefox 检查，每种浏览器 16 项指定测试全部通过，无跳过或重试；
+其中分片 POST 用例包含这 4 次转换。对应轻量
+[CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38933273495)也已通过。
+这些用例不访问外部服务器或运行 Linux 应用。
 
 ## 取消与所有权
 
