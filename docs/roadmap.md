@@ -75,6 +75,14 @@
 运行结果和复现命令见[SDK运行验证](sdk-runtime.md)。检查已加入不等于发布SDK已完成。
 各子系统的CI构建期间继续推进无依赖的工作，避免把单项测试扩展变成整条路线的串行门槛。
 
+Memory64浏览器检查已从“看到Linux启动横幅”升级为双核启动musl用户程序，复用
+toolchain-smoke的参数/环境、malloc、匿名mmap与partial munmap、越界MAP_FIXED、
+pthread/TLS及信号检查，只有完整用户程序通过标记才算成功。宿主控制流回归已覆盖
+失败、panic、提前关闭和启动超时后的迟到实例清理；它们不等于浏览器运行通过。
+首次[Chromium定向验证](https://github.com/HighCWu/distro/actions/runs/38883890314)
+使用distro提交`e200a282e51b9b357826a135036045ae5ae17812`，结果待确认；Firefox
+共用同一入口，但尚未启动本次升级后的定向验证。
+
 ## P3：存储、文件系统与设备
 
 - 稳定 virtio block、console、entropy、fs、net和vsock。
