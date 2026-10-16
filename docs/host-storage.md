@@ -119,7 +119,7 @@ distro `b81c1e6` 将原有 Node 目录共享挂载检查扩为四个子场景：
 后重建同名文件时旧描述符仍可读取和截短原 inode。该检查启动真实 Linux，通过
 virtio-fs 挂载 NodeFS；不以直接调用后端方法代替内核路径。
 
-定向公开 CI 入口为 `linux-guest-check-tests-node-filesystem`，与完整集成套件共用
+定向公开 CI 入口为 `linux-guest-package-check-tests-node-filesystem`，与完整集成套件共用
 构建环境、类型检查及 300 秒外层看门狗，但只执行这个挂载测试文件。本地只运行
 类型检查与上述 17 项宿主回归；真实 Wasm 运行结果待 CI 确认。当前使用 wasm32
 系统和 agent，不据此宣称 wasm64、浏览器 OPFS 或硬链接的完整挂载语义通过。
