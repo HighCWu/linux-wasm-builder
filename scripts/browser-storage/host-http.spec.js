@@ -130,6 +130,62 @@ test("enforces upload budgets only when browser buffering is required", async ({
   }
 });
 
+test("cancels incomplete browser uploads without sending a response", async ({ page }) => {
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const { hostFetchNetwork } = await import("/host-http.js");
+    const outcomes = [];
+    for (const chunked of [false, true]) {
+      const abort = new AbortController();
+      const reason = new Error("upload disconnected");
+      let waiting;
+      const ready = new Promise((resolve) => { waiting = resolve; });
+      let sent = false;
+      let cancelled = 0;
+      let sameReason = false;
+      const readable = new ReadableStream({
+        pull(controller) {
+          if (sent) { waiting(); return; }
+          sent = true;
+          controller.enqueue(new TextEncoder().encode(
+            "POST / HTTP/1.1\r\nHost: example.test\r\n" +
+            (chunked ? "Transfer-Encoding: chunked\r\n\r\n5\r\nhe"
+              : "Content-Length: 5\r\n\r\nhe"),
+          ));
+        },
+        cancel(value) { cancelled++; sameReason = value === reason; },
+      }, { highWaterMark: 0 });
+      let writes = 0;
+      let completedUploads = 0;
+      const writable = new WritableStream({ write() { writes++; } });
+      const network = hostFetchNetwork({
+        async fetch(request) {
+          await request.text();
+          completedUploads++;
+          return new Response("unexpected");
+        },
+      });
+      const handled = Promise.resolve(network.connectTcp({
+        target: { hostname: "198.18.0.1", port: 80 },
+        signal: abort.signal,
+        readable,
+        writable,
+      })).then(() => false, (error) => error === reason);
+      await ready;
+      abort.abort(reason);
+      const rejectedWithReason = await handled;
+      outcomes.push({ rejectedWithReason, cancelled, sameReason, writes,
+        completedUploads, locks: [readable.locked, writable.locked] });
+    }
+    return outcomes;
+  });
+  expect(results).toHaveLength(2);
+  for (const result of results) expect(result).toEqual({
+    rejectedWithReason: true, cancelled: 1, sameReason: true,
+    writes: 0, completedUploads: 0, locks: [false, false],
+  });
+});
+
 for (const pendingCallback of [false, true]) {
   test(
     pendingCallback
