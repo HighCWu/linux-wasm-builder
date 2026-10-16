@@ -36,6 +36,8 @@ jobs:
             sources/distro/distro/sdk/config-driver-test.js \
             sources/distro/distro/sdk/exception-codegen-test.js \
             sources/distro/distro/sdk/pkg-config-test.js
+      - name: Check kernel configuration and license material packaging
+        run: node --test sources/distro/distro/linux/build-materials-test.js
       - name: Check C++ runtime fixture with host GCC and Clang
         # Host execution catches fixture regressions; it is not Wasm ABI evidence.
         run: |
