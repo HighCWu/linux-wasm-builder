@@ -45,6 +45,8 @@ jobs:
           "$RUNNER_TEMP/sdk-cmake/sdk-example"
       - name: Check separately installed SDK dependency on the build host
         run: node --test sources/distro/distro/sdk/installed-consumer-test.js
+      - name: Check SDK Autoconf cross configuration on the build host
+        run: node --test sources/distro/distro/sdk/autoconf-consumer-test.js
       - name: Check documentation and source pins
         run: python3 scripts/check_repository.py
       - name: Check paired benchmark summaries
