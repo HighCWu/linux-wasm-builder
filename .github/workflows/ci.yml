@@ -107,6 +107,11 @@ jobs:
           node --test sources/distro/packages/browser-tests/agent-assertions.test.js
           node --test sources/distro/packages/linux-guest/tests/agent-wasm64-userland-commands.test.ts
           node --test sources/distro/packages/linux-guest/tests/agent-wasm64-public-network.test.ts
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/process-close.test.ts \
+            --bundle --platform=node --format=esm --target=node24 \
+            --alias:@lowland/bytes=./sources/distro/packages/bytes/src/index.ts \
+            --outfile="$RUNNER_TEMP/process-close-test.mjs"
+          node --test "$RUNNER_TEMP/process-close-test.mjs"
           for source in agent-app.js agent-public-app.js agent-tests/agent-check.js agent-tests/agent.spec.js agent-tests/agent-production.spec.js agent-tests/agent-public-check.js agent-tests/agent-public.spec.js agent-tests/agent-public-userland.spec.js agent-tests/agent-public-network.spec.js; do
             node --check "sources/distro/packages/browser-tests/$source"
           done
