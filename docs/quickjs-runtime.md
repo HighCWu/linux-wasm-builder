@@ -86,12 +86,16 @@ Chromium、Firefox 均已成功，实际日志确认 QuickJS 用例执行且完�
 后续 `108f20a` 加入两条 Lua 用例，将双位宽浏览器门禁扩为 18 项，同时保留修正
 后的 QuickJS 许可路径（没有额外别名）。固定该版本的
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39062203518) 和
-[Firefox](https://github.com/HighCWu/distro/actions/runs/39062207326) 已通过计划解析、
-进入重型构建，尚待真实浏览器运行结果；旧 16 项成功不能替代此版本验收。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39062207326) 均已失败，实际日志
+确认同一 Lua 开发包路径迁移门禁阻止镜像构建，尚未启动浏览器；旧 16 项成功不能
+替代此版本验收。修正及后续复验见 [Lua 运行记录](lua-runtime.md)。
 
 `5eca882` 后续修正 Node/浏览器运行器在 pass 后漏记控制台失败的问题，强化到
-设备关闭后才最终判定；已提交 wasm64 Node 及完整 18 项双浏览器复验。旧结果
-仍证明上述脚本和 ABI 到达通过点，不用其代替新关闭期判定的实际集成验收。
+设备关闭后才最终判定。固定该提交的
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39062624048) 已成功，
+实际日志确认两个程序 ABI、完整功能阶段及最终 pass；这次运行包含加强后的关闭
+判定。完整 18 项 Chromium 复验因上述 Lua 依赖构建失败，尚未进入浏览器，不能
+把 Node 成功扩大为浏览器验收。
 
 ## 许可证材料
 

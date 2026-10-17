@@ -160,7 +160,12 @@ distro `108f20a` 为 wasm32/wasm64 浏览器套件各增加两个用例，精确
 固定 `108f20a` 的 wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39062203518) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39062207326) 完整 18 项检查
-已通过计划解析、进入公开 CI 重型构建，尚待目标构建和实际运行结果；wasm32
+均已失败，实际日志确认 Lua 开发包因上述迁移路径错误被拒绝，尚未进入浏览器。
+固定 `5eca882` 的 Chromium 严格运行器复验也在同一依赖处失败，并非关闭期运行
+失败。`35f9e21` 包含开发包修正；固定后续 `25d3789` 的
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39063499422) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39063502379) 完整套件复验均已
+通过计划及派生解析，进入公开重型检查，实际结果仍待验收。wasm32
 已接线，当前尚未提交本轮浏览器重型检查。新套件同时使用
 修正后的 QuickJS `/share/licenses` 检查，不沿用先前镜像的额外许可别名。
 

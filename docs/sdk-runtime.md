@@ -593,7 +593,11 @@ distro `5eca882` 进一步修正“先 pass、后失败”的误报：先前已�
 [wasm64 QuickJS Node](https://github.com/HighCWu/distro/actions/runs/39062624048)、
 完整 18 项 [Chromium](https://github.com/HighCWu/distro/actions/runs/39062627383) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39062630667) 复验均通过计划
-解析，正在公开 CI 重型检查，尚待实际结果。
+解析。Node 已成功，实际日志确认 qjs/qjsc ABI 门禁、完整语言/进程/Worker/计时器/
+字节码阶段及最终 pass，证明该实际目标检查包含新的关闭期判定。
+Chromium 已失败于 Lua 开发包路径迁移门禁，未进入浏览器；不能据此认为关闭期
+运行失败或已验证。`35f9e21` 修正该开发包问题，含修正版本的双浏览器复验已另行
+提交，仍需实际结果。
 
 本轮独立于[线程等待回归](time-abi.md)继续推进。CI运行期间可开展不依赖其结果的
 文档、代码审计和SDK任务；依赖运行结论的支持声明及修复决策，仍需等待对应证据。
