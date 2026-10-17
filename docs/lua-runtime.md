@@ -61,7 +61,44 @@ Lua 5.4.8 源码原生构建，下载归档 SHA-256 与官方目录公布的
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39061569694) 目标复验已提交，
 尚待实际结果，未取消仍在运行的旧检查。
 本轮尚未接入 Lua 的真实浏览器用例。现有静态库和头文件
-安装保持不变，不据此宣称已验证任意 C 嵌入式消费者、动态模块或完整开发包重定位。
+在下述后续提交中拆为独立开发输出，不据此宣称已验证动态模块或任意应用。
+
+## 安装后的 C 开发路径
+
+distro `a4a8c76` 将两种位宽的头文件和 `liblua.a` 移入独立 `dev` 输出，提供相对
+`${pcfiledir}` 的 `lib/pkgconfig/lua.pc`，并复制原始许可证材料。默认安装只选 `out`，
+不把开发归档装进运行根盘。原先使用 `${lua}/include` 或 `${lua}/lib` 的构建应改用
+`lua.dev`；wasm64 使用 `lua-wasm64.dev`，不能混用另一位宽的归档。
+
+```sh
+nix build './sources/distro#lua-wasm64.dev' --out-link result-lua-dev
+export WASM_PKG_CONFIG_PATH="$PWD/result-lua-dev/lib/pkgconfig"
+export WASM_PKG_CONFIG_SYSROOT_DIR=/
+wasm-linux-cc app.c $(wasm-linux-pkg-config --cflags --libs lua) -o app.wasm
+```
+
+上例应使用匹配的 wasm64 SDK。`wasm-linux-pkg-config` 强制查询静态依赖，元数据
+包含 `-lm`。普通 `.lua` 模块搜索路径仍为 `/usr/share/lua/5.4`；开发文件搬移不改变
+用户程序内的 Lua 模块布局，不启用 dlopen 或第三方共享模块。
+
+新增 `sdk/lua-example.c` 是 MIT C 消费者：创建 Lua 状态，注册带上下文指针的
+C 闭包及返回错误对象的 C 函数，通过脚本检查64位整数精度、受保护调用、跨 C/Lua
+错误传播时的资源清理、协程恢复，再由 C 读回精确结果。目标开发检查先复制已安装
+`dev` 到新前缀，仅使用该前缀的头文件和归档构建这个程序，不重编 Lua 源码；随后
+校验消费者的 Wasm ABI 并启动 Linux 检查完整完成标记。
+
+```sh
+nix build './sources/distro#checks.x86_64-linux.lua-wasm64-check-development'
+nix build './sources/distro#checks.x86_64-linux.lua-check-development'
+```
+
+两项新增宿主检查验证元数据搬移/删除后禁止宿主回退，并实际以 GCC、Clang 链接
+复制的原生 Lua 头文件/归档后执行同一 C 消费者；连同语言和许可布局共 6 项通过。
+这不证明 Wasm 归档、目标回调签名或 SjLj。固定 `a4a8c76` 的
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39061875688) 和
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39061878991) 开发检查均通过
+计划解析，正在公开 Actions 重型构建，尚待真实目标编译和运行结果；此前解释器
+检查不包含此次多输出变更。
 
 ## 许可证材料
 

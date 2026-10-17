@@ -71,8 +71,10 @@ distro `92830ef` 为 wasm32/wasm64 浏览器运行套件增加 QuickJS，精确�
 本轮相关轻量检查合计 25 项通过，包含共享运行器的失败与关闭路径；它们不证明
 真实浏览器运行成功。固定 `92830ef` 已提交 wasm64 的
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39060951193) 和
-[Firefox](https://github.com/HighCWu/distro/actions/runs/39060954362) 公开检查，
-计划解析已通过，尚待目标构建和完整 16 项实际运行结论；它们仍使用带别名的旧
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39060954362) 公开检查。
+Chromium、Firefox 均已成功，实际日志确认 QuickJS 用例执行且完整 16 项通过；
+精确 JSON 报告门禁确认零漏跑、零跳过和零重试。
+它们仍使用带别名的旧
 `92830ef`，即使成功也不能验证后续许可布局修正。wasm32 已接线，尚未提交本轮
 浏览器重型检查。Node 入口仍是安装系统检查；浏览器入口是可丢弃的内存根盘，
 二者均不作为 OPFS 持久化、包管理安装验证等价性或完整发行版迁移成功的证据。
