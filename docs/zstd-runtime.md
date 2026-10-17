@@ -62,9 +62,18 @@ distro `910c438` 增加 `zstd-check-file` / `zstd-wasm64-check-file` 聚合检�
 callPackage 外层的 `.override`。`910c438` 改用 `.overrideAttrs`；首轮未运行应用，
 不能当作映射成功或失败证据。修正后的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39025307814) 和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39025311008) 均已通过计划检查，
-进入重型构建/运行，最终结果仍待确认。标准候选入口自身的重跑状态见
-[候选文档](file-mmap-candidate.md)。所有重型构建均在公开 Actions 进行。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39025311008) 均已成功。
+已核对两个 heavy job 的实际日志，均包含五个强制映射尺寸、131073 字节超限拒绝、
+普通/可变来源拒绝和候选最终 pass；默认配置还包含 malloc/read、六个尺寸拒绝及最终 pass。
+因此可以确认该有界候选在 Node 承载的真实 Wasm/Linux CLI 上工作，不是宿主 mock
+或应用 malloc fallback 的结果；默认发布配置仍不开放文件映射。
+标准入口自身的结果见[候选文档](file-mmap-candidate.md)。所有重型构建均在公开 Actions 进行。
+
+distro `0d473c2` 进一步增加双位宽 Chromium/Firefox 的候选验收：直接复用同一
+字典盘、CLI 和 shell initramfs，不在页面 JavaScript 重写压缩/映射逻辑。
+每个浏览器检查须实际通过标准 mmap 和 Zstd 两项测试，并校验五个尺寸和来源/容量拒绝
+完成标记；精确报告门禁拒绝额外/缺失测试、跳过、预期失败和重试。
+浏览器结果尚待公开 CI，不能把上述 Node 成功推广为浏览器成功。
 
 ## 字典加载与文件映射边界
 

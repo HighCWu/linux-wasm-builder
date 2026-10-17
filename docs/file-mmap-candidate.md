@@ -2,7 +2,7 @@
 
 # 标准文件 mmap 候选入口
 
-Linux `8bd657d` 新增默认关闭的 `CONFIG_WASM_FILE_MMAP`。这是待验证的候选配置，
+Linux `8bd657d` 新增默认关闭的 `CONFIG_WASM_FILE_MMAP`。这是已通过 Node 双位宽检查的候选配置，
 不是默认发行版/SDK 已开放文件映射的声明，不引入 softmmu 或新的应用 syscall。
 仍使用 `CONFIG_MMU=n` 和 direct pointer；应用走标准 `mmap/mmap2/munmap`。
 固定源码哈希由[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39016327047)
@@ -76,10 +76,10 @@ VFS/LSM、32 位机器 ABI、Wasm 原子或内核执行；候选内核公开构�
 3. 默认内核加初始化导出：不能仅因模块有导出就放行文件映射。
 4. 原私有测试内核的预算/生命周期回归：共用读取实现不得破坏已有拒绝/回滚路径。
 
-实际 Wasm 目标结果待公开 CI，不将宿主 shim 或旧版回归记为候选成功。原 EROFS
+实际 Node 承载的 Wasm 目标结果见下文，不将宿主 shim 或旧版回归记为候选成功。原 EROFS
 压力语料改为两个并发最大请求，以匹配八页在途预算；预算耗尽仍由独立屏障语料检查，
-不是允许四个最大请求超配。真实设备高并发背压、浏览器、性能及原 Zstd 的强制字典
-映射仍须后续单独验收，默认发行配置不会因本轮候选自动开放。
+不是允许四个最大请求超配。真实设备高并发背压、浏览器和性能仍须后续单独验收；
+原 Zstd 的强制字典映射已完成 Node 双位宽检查，默认发行配置不会因候选自动开放。
 
 distro `4b06c21` 固定该内核及上述集成。首轮
 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39016551516) 和
@@ -90,11 +90,23 @@ distro `4b06c21` 固定该内核及上述集成。首轮
 返回指针和实际/预期 errno 诊断；本机 Linux 也验证 O_PATH mmap 返回 EBADF，
 但这不能替代候选内核的重跑结果。
 [wasm32 重跑](https://github.com/HighCWu/distro/actions/runs/39024983496) 和
-[wasm64 重跑](https://github.com/HighCWu/distro/actions/runs/39024986125) 已通过计划检查，
-实际构建/运行结果待确认。只有整个聚合及真实日志通过后，才能确认拒绝和正向入口。
+[wasm64 重跑](https://github.com/HighCWu/distro/actions/runs/39024986125) 均已成功。
+实际 heavy job 日志确认四组各自的通过标记：候选 RO/RW 内容/offset/EOF/独立性、
+默认内核拒绝、旧模块拒绝、预算/生命周期回归。该结果只适用于认证来源和有界复制范围，
+不扩展到普通文件系统、完整 NOMMU mmap、浏览器或性能结论。
 
-下一步已增加[Zstandard 强制字典映射验收](zstd-runtime.md)：只在测试变体导出初始化能力，
-默认发行包和内核准入保持不变。该验收与标准入口重跑独立进行，尚不构成候选可用证明。
+[Zstandard 强制字典映射验收](zstd-runtime.md)也已通过 Node 双位宽及实际日志检查：
+只在测试变体导出初始化能力，默认发行包和内核准入保持不变。
+distro `0d473c2` 将同一标准程序和 Zstd 工作负载接入双位宽 Chromium/Firefox。
+浏览器使用候选内核，不是原私有测试 syscall 内核；只加载标准程序或真实 CLI 的
+initramfs，以及认证/普通两个同内容磁盘。每组须执行标准入口和 Zstd 两项测试，
+检查详细阶段标记、无失败/页面异常和机器关闭，并通过精确测试名、零跳过/重试报告门禁。
+本地新增八项编排替身检查已通过，不证明浏览器执行；公开浏览器结果仍待确认。
+四组检查均已通过计划检查并进入实际构建/运行：
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39047346035)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39047350401)、
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39047353874)、
+[wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39047357984)。
 
 Linux 实现改动遵循 GPL-2.0；独立测试、宿主和集成修改、文档采用 MIT，其他组件
 保持原协议。不把内核实现代码链接进用户程序。
