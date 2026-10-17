@@ -131,3 +131,14 @@ shell代码由configure加载，应只选择适用于当前profile的文件。�
 
 [simplified-site32]: https://github.com/HighCWu/distro/actions/runs/39077443337
 [simplified-site64]: https://github.com/HighCWu/distro/actions/runs/39077438216
+
+该版 wasm32 复验随后通过格式门禁，但未进入 SDK 编译：固定内核源码下载在
+codeload 与 github archive 两个官方入口均遭遇 HTTP 429，内置重试耗尽。
+实际日志已核对；这是源码获取失败，不是路径校验或目标程序运行失败。
+继续保留固定 revision、内容 hash 和许可材料依赖，不以删掉材料收集绕过失败；
+旧任务自然结束后才启动当前版本复验，wasm64 仍在运行。
+
+固定 `417d8d0` 的 [wasm32 获取失败后复验][site32-fetch-recheck]已通过计划解析，
+进入重型检查；此提交保留相同的 SDK 路径修复及源码获取校验，不预告运行结果。
+
+[site32-fetch-recheck]: https://github.com/HighCWu/distro/actions/runs/39078075931

@@ -181,12 +181,22 @@ musl 修复和安装布局门禁；均通过计划解析并进入构建，当时
 TLS、subprocess 与 multiprocessing 检查通过后才能到达该标记。
 这不包含后续归档应用、启动异常修正或匿名映射专用检查，也不替代 wasm64 验收。
 
+同版 wasm64 完整检查随后也成功，独立日志确认 `Python ABI` 的 64 位指针、
+size_t、long 与 sysconfig，以及相同安装布局门禁和最终 pass。至此固定
+`91480f7` 的完整解释器原有功能语料获得双位宽 Node 驱动运行证据；后续新增
+应用、启动异常语料、映射专用检查和浏览器仍分别验收。
+
 `3356d3f` 补齐映射测试根盘的证书依赖，不移除 OpenSSL 或放宽安装失败检查。
 新增回归逐一检查两个 Python 安装集合包含所需包，并核对 OpenSSL 实际依赖声明。
 Python 七项本机检查全部通过，格式与源码 pin 检查通过；这些检查不运行目标 Python。
 旧 wasm32 映射任务自然失败后才启动[该版复验][certificate-recheck]；仍在运行的其他检查保持不变。
 
 [certificate-recheck]: https://github.com/HighCWu/distro/actions/runs/39076355206
+
+固定 `3356d3f` 的该次 wasm32 映射复验已成功，实际日志确认目标 32 位 ABI、
+安装布局、私有匿名字节与缓冲区生命周期、flush 的 ENOSYS、默认共享/文件映射
+拒绝，最终输出 pass。旧 `91480f7` 的 wasm64 映射检查也已自然失败，日志确认
+同为证书依赖缺失，尚未启动 Linux；不拿 wasm32 结果替代 wasm64。
 
 ## 纯 Python 应用分发验收
 
@@ -228,3 +238,49 @@ errno、原程序名和类型与普通 Linux subprocess 一致。本机同时运
 计划解析已通过；仍保留正在运行的 wasm64 与映射检查。
 
 [format-recheck]: https://github.com/HighCWu/distro/actions/runs/39077432857
+
+## 独立浏览器验收
+
+`417d8d0` 为双位宽各注册 Chromium/Firefox 的独立 Python 检查：
+`browser-tests-check-python-wasm32-chromium`、`browser-tests-check-python-wasm32-firefox`、
+`browser-tests-check-python-wasm64-chromium`、`browser-tests-check-python-wasm64-firefox`。
+每项严格要求完整解释器和私有匿名映射两条用例，零跳过、零重试；不改动已有的
+libcurl 等 21 项运行套件，也不以 Node 结果代替浏览器报告。
+
+运行器只新增暴露原 Node 检查的 initramfs 与磁盘输入，不以 Node 检查输出作为
+浏览器成功证据。浏览器直接复用相同的完整已安装 ext4 根盘、原脚本与匹配位宽
+内核；每次启动重新加载为可写内存磁盘，不是另造简化解释器或临时替换用户态。
+完整检查继续包括 TLS、进程、多进程、搬移的压缩应用与启动错误语料；映射检查
+保留默认内核的不支持边界。页面核对实际 ABI 位宽、布局、各阶段与最终 pass，
+还必须等待整机关闭成功，不能只凭启动日志通过。
+
+相关整组 57 项本机检查通过，包含根盘读写隔离、镜像缺失时不启动、阶段缺失、
+错误位宽、失败标记和报告缺失用例反例。格式与源码 pin 检查通过。它们仅验证
+编排与门禁，不实际启动浏览器；新浏览器验收仍须公开 CI 运行。
+内存磁盘的 flush 仅完成内存层操作，不证明 OPFS 持久化或断电恢复；Python 的
+Readline 等实际依赖许可证和原始许可材料保持不变。
+
+固定 `417d8d0` 的 [wasm64 Chromium 首轮][python-browser64-chromium]与
+[wasm64 映射修正版][python-mmap64-repair]均已通过计划及派生解析并进入重型检查；
+尚无实际浏览器或新版 wasm64 映射运行结论。
+
+[python-browser64-chromium]: https://github.com/HighCWu/distro/actions/runs/39077864542
+[python-mmap64-repair]: https://github.com/HighCWu/distro/actions/runs/39077861545
+
+同版其余三项浏览器检查也已通过计划及派生解析并进入重型检查，全部实际结果
+仍待验收：
+
+| 位宽 | Chromium | Firefox |
+| --- | --- | --- |
+| wasm64 | [两项验收][python-browser64-chromium] | [两项验收][python-browser64-firefox] |
+| wasm32 | [两项验收][python-browser32-chromium] | [两项验收][python-browser32-firefox] |
+
+[python-browser64-firefox]: https://github.com/HighCWu/distro/actions/runs/39077925776
+[python-browser32-chromium]: https://github.com/HighCWu/distro/actions/runs/39077928522
+[python-browser32-firefox]: https://github.com/HighCWu/distro/actions/runs/39077930733
+
+旧 `91480f7` 完整解释器检查确认成功结束后，固定 `417d8d0` 的
+[wasm64 完整解释器复验][python64-current-full]也已启动，以补验后续归档应用与
+启动错误语料；不替换仍在运行的 wasm32 完整检查。
+
+[python64-current-full]: https://github.com/HighCWu/distro/actions/runs/39078081460
