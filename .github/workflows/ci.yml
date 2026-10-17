@@ -77,7 +77,9 @@ jobs:
         run: node --test sources/distro/distro/sdk/filesystem-test.js
       - name: Check shared QuickJS fixture and explicit wasm64 scope
         # Syntax and wiring only; target language execution stays in public Nix CI.
-        run: node --test sources/distro/distro/quickjs/language-contract.test.js
+        run: |
+          node --test sources/distro/distro/quickjs/language-contract.test.js \
+            sources/distro/distro/vm-test/license-layout-test.js
       - name: Check socket runtime fixture on the build host
         # Only the Wasm init configures its own loopback interface.
         run: |
