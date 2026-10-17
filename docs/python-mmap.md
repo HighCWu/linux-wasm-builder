@@ -129,3 +129,31 @@ CPython；固定 `1870d56` 的三项重型检查不包含本次新门禁，不�
 正反例执行。这是加入新布局门禁前的宿主证据，不代表目标 CPython 或布局已通过。
 
 [python-host-ci]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39074757317
+
+## 首次实际构建失败与 msync 符号恢复
+
+固定 `d4fafc8` 的[首次 wasm32 映射检查][target-check]已失败结束。实际日志确认
+上游启用了 `mmap` 模块，但编译 `Modules/mmapmodule.c` 的 `flush` 方法时找不到
+`msync` 声明。当前 musl 虽安装了 `sys/mman.h`，仍对 Wasm 同时隐藏该声明和
+包装源码，不能把“头文件存在”等同于该模块所需接口完整。没有进入 Python
+安装、导入、映射运行或 ABI 验证，也不是映射运行语义失败。
+
+musl `4776ccd0` 仅恢复上游 `msync` 声明与原有 cancellation-point 系统调用
+转发函数；保留 musl 的 MIT 许可，不改变 Linux。默认内核没有实现这项写回
+调用，应返回 `ENOSYS`，不是加入无条件成功的空实现。distro `0d71aef` 固定新
+musl 来源及解包哈希，并要求真实 Python 私有匿名映射的 `flush()` 报 `ENOSYS`，
+且失败后已有字节不变。内核和实验文件映射配置保持不变。
+
+新增两项轻量检查覆盖 wasm32/wasm64 公共声明语法，以及 GCC/Clang 编译实际
+musl 包装源码的调用转发。后者重命名公共符号，避免缺失包装时意外调用宿主
+libc；模拟 syscall 返回失败和成功，验证指针、原生 size_t、flags 与返回值，
+并不证明目标 syscall 已成功运行。原整数头文件检查和 Python 六项轻量检查
+同时通过。哈希计算先对旧已固定树复核一致，再计算新提交的 NAR 哈希；实际
+fetch、目标链接和运行仍须修正后的公开 CI 验收。
+
+旧映射任务终态后才重新触发 `python-check-mmap`，新版本同时包含安装布局门禁。
+其他仍在运行的目标任务不取消、不重启，其旧版本结果也不能替代这两项新增验证。
+固定 `0d71aef` 的[修正后 wasm32 映射复验][msync-recheck]已通过计划和派生解析，
+进入隔离构建；尚未确认新的目标链接、安装布局或运行断言通过。
+
+[msync-recheck]: https://github.com/HighCWu/distro/actions/runs/39075438707

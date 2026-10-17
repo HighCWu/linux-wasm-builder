@@ -229,3 +229,17 @@ Linux 运行检查，而不是直接从构建目录复制二进制。本轮没�
 [cmake64-latest]: https://github.com/HighCWu/distro/actions/runs/39074340872
 [direct32-latest]: https://github.com/HighCWu/distro/actions/runs/39074343687
 [cmake32-latest]: https://github.com/HighCWu/distro/actions/runs/39074346654
+
+## 首个实际开发应用运行通过
+
+固定 `d4fafc8` 的[wasm64 直接入口][direct64-latest]已成功。实际日志确认安装的
+开发库被链接成真正 wasm64 共享内存模块，内存声明上限为 16 GiB；随后 Linux
+内逐阶段通过二进制文件回调与正常退出、显式 CA TLS 1.3、默认 CA、错误显式 CA
+不能被正确默认信任掩盖、错误主机名拒绝，以及完整完成标记和最终 pass。
+内存上限检查不是实际可分配 16 GiB 的保证。
+
+这仅证明这个固定版本的直接构建入口在 Node 驱动的 Linux 中通过，不替代
+CMake 安装入口、wasm32、浏览器或后续 musl 版本。其余原四项检查继续各自运行。
+wasm64 的 Chromium/Firefox 21 项复验使用只指向同一 `d4fafc8` 的验证分支
+`codex/libcurl-browser21-d4fafc8`，不改变开发分支、内核或编译参数，也不混入
+尚未验收的 musl `msync` 恢复。浏览器结果仍需独立日志与严格报告确认。
