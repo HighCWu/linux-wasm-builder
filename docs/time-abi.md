@@ -43,8 +43,10 @@ distro `134ab6e` 将同一 SDK 程序接入 Chromium/Firefox 的双位宽运行�
 通过；这些不是 Linux 或浏览器运行证据。固定 `134ab6e` 的新版 wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39056127769) 已成功，实际日志
 确认 14 项通过，精确报告门禁确认零跳过、零重试；新增信号量用例要求完整输出阶段、
-pass 和无 fail，并等待整机关闭。[Firefox](https://github.com/HighCWu/distro/actions/runs/39056131271)
-仍在运行，尚不宣称通过；之前文件映射或 robust mutex 的浏览器记录不能替代它。
+pass 和无 fail，并等待整机关闭。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39056131271) 也已成功：实际日志
+同样确认全部 14 项与严格报告门禁通过，零跳过、零重试。两者固定 `134ab6e`，
+不覆盖后续 virtio-fs 错误清理修改，不能扩大为完整 POSIX 信号量支持。
 本次只增加 MIT 测试集成，不修改默认内核配置、musl、执行 ABI 或许可证边界。
 
 builder `2c38d43` 的
