@@ -155,13 +155,15 @@ fetch、目标链接和运行仍须修正后的公开 CI 验收。
 旧映射任务终态后才重新触发 `python-check-mmap`，新版本同时包含安装布局门禁。
 其他仍在运行的目标任务不取消、不重启，其旧版本结果也不能替代这两项新增验证。
 固定 `0d71aef` 的[修正后 wasm32 映射复验][msync-recheck]已通过计划和派生解析，
-进入隔离构建；尚未确认新的目标链接、安装布局或运行断言通过。
+实际完成 Python 构建与安装，越过原 `msync` 编译错误；随后在测试根盘组装失败：
+OpenSSL 声明依赖 `ca-certificates`，映射测试的安装集合却漏了该包。尚未启动
+Linux，不能据此宣称安装布局或运行断言通过。
 
 [msync-recheck]: https://github.com/HighCWu/distro/actions/runs/39075438707
 
 旧 `1870d56` 三项检查确认自然失败后，固定 `91480f7` 启动了对应复验，包含
 musl 修复和安装布局门禁；均已通过计划解析并进入构建，尚无目标运行结论。
-原 `0d71aef` 的 wasm32 映射复验仍保留，不另行重复启动。
+当时仍在运行的 `0d71aef` wasm32 映射复验没有被取消，其最终结果见上文。
 
 | 修正后目标检查 | 公开任务 |
 | --- | --- |
@@ -172,3 +174,10 @@ musl 修复和安装布局门禁；均已通过计划解析并进入构建，尚
 [python64-full-recheck]: https://github.com/HighCWu/distro/actions/runs/39076153816
 [python64-mmap-recheck]: https://github.com/HighCWu/distro/actions/runs/39076156858
 [python32-full-recheck]: https://github.com/HighCWu/distro/actions/runs/39076159576
+
+`3356d3f` 补齐映射测试根盘的证书依赖，不移除 OpenSSL 或放宽安装失败检查。
+新增回归逐一检查两个 Python 安装集合包含所需包，并核对 OpenSSL 实际依赖声明。
+Python 七项本机检查全部通过，格式与源码 pin 检查通过；这些检查不运行目标 Python。
+旧 wasm32 映射任务自然失败后才启动[该版复验][certificate-recheck]；仍在运行的其他检查保持不变。
+
+[certificate-recheck]: https://github.com/HighCWu/distro/actions/runs/39076355206
