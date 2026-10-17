@@ -166,6 +166,21 @@ jobs:
               -o "$RUNNER_TEMP/mmap-file-lifetime-$compiler"
             timeout 30s "$RUNNER_TEMP/mmap-file-lifetime-$compiler"
           done
+      - name: Check file-copy benchmark workload and evidence parser
+        run: |
+          python3 -B scripts/test_summarize_file_copy_benchmark.py
+          for compiler in gcc clang; do
+            "$compiler" -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/basic-init/tests/mmap-file-benchmark-host.c \
+              -o "$RUNNER_TEMP/file-copy-benchmark-$compiler"
+            timeout 30s "$RUNNER_TEMP/file-copy-benchmark-$compiler" > "$RUNNER_TEMP/file-copy-host.log"
+            test "$(rg -c '^file-copy-bench,' "$RUNNER_TEMP/file-copy-host.log")" -eq 20
+            status=0
+            python3 -B scripts/summarize_file_copy_benchmark.py --bits 64 \
+              < "$RUNNER_TEMP/file-copy-host.log" > /dev/null 2> "$RUNNER_TEMP/file-copy-error.log" || status=$?
+            test "$status" -eq 2
+            rg 'host-only or failed run' "$RUNNER_TEMP/file-copy-error.log"
+          done
       - name: Check standalone wasm64 embedding example without booting Linux
         run: |
           npx --yes oxfmt@0.59.0 --check \
