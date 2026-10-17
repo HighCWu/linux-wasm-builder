@@ -5,6 +5,9 @@
 状态：设计与拒绝回归阶段，尚未开放文件映射。当前主线仅支持已公布的direct anonymous
 子集。本计划不修改Linux UAPI，不引入softmmu，也不声称存在页保护或缺页机制。
 
+下一阶段的准入门槛、真实软件选择与验收顺序见
+[文件 mmap 就绪度](file-mmap-readiness.md)。现有实验不能直接替代标准文件 mmap。
+
 ## 首批范围
 
 优先研究普通、可定位读取、内容和长度不可变的文件，以eager read形成私有direct副本。

@@ -540,7 +540,8 @@ C++异常tag和catch处理仍存在。旧配置会失败，修正后通过；SDK
 此边界已用于修正 [futex 信号测试](signal-waits.md)，固定 `73d0a65` 的 Node 双位宽及
 Chromium/Firefox wasm64 已验证通过；固定 `5a54912` 的基础 futex/waitv Node 双位宽
 也已独立通过。固定 `95f8012` 的 [robust mutex 线程退出恢复](robust-mutex.md) 在 Node
-双位宽通过；`4db1fcc` 新增两组浏览器检查，13 项套件待确认，不据此宣称进程崩溃时的
+双位宽通过；`4db1fcc` 新增两组浏览器检查，Chromium/Firefox wasm64 各 13 项通过，
+精确报告门禁确认零跳过、零重试（链接见 robust mutex 记录），不据此宣称进程崩溃时的
 内核 robust list 清理已验证。
 
 Autoconf项目可使用SDK的`wasm-linux-configure`入口，使用方式、配置探测及验证

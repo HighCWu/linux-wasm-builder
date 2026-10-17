@@ -59,4 +59,6 @@ fail。既有总超时继续覆盖运行与整机关闭，关闭失败不能被�
 宿主契约测试验证取对归档、下载失败会拒绝、缺少完成阶段或 pass 会拒绝、混入 fail
 会拒绝，以及报告中的真实用例名称和 Nix 精确清单完全一致。
 相关浏览器断言/报告门禁/关闭生命周期宿主检查共 23 项通过；Chromium、Firefox 的
-新版 wasm64 13 项目标验收仍待公开 CI 确认，不用旧版 11 项结果替代。
+新版 wasm64 验收均已成功：[Chromium](https://github.com/HighCWu/distro/actions/runs/39008215057)
+与 [Firefox](https://github.com/HighCWu/distro/actions/runs/39008218961) 日志各确认 13 项通过，
+精确报告门禁确认零跳过、零重试；此结果不扩大上述语义覆盖边界。

@@ -80,7 +80,8 @@ Firefox 因源码 429 未执行。`73d0a65` 修正 fixture 的原始 syscall 机
 通过；双位宽 Node 也已核对完整恢复阶段与 pass。
 `4db1fcc` 把基础 futex/waitv 与 robust mutex 的相同 SDK 产物接入浏览器，精确报告门禁
 从 11 项扩到 13 项。相关断言/报告/关闭生命周期宿主 23 项通过；新版 Chromium/Firefox
-wasm64 验收待 CI 确认，不将正常 pthread 退出泛化为内核独立 robust list 崩溃清理。
+wasm64 验收各 13 项通过，精确报告门禁确认零跳过、零重试（链接见 robust mutex 文档），
+不将正常 pthread 退出泛化为内核独立 robust list 崩溃清理。
 不声称完成标准 fork 或完整信号语义。
 具体边界见[信号等待验证](signal-waits.md)。
 
@@ -362,6 +363,11 @@ distro `6f28004` 为该场景增加测试专用文件操作追踪，失败时输
 专项约束见[direct-memory.md](direct-memory.md)。
 
 ### P5.3 标准映射与fork完善
+
+下一阶段以[文件 mmap 就绪度](file-mmap-readiness.md)整理生产准入门槛，选择原生
+Zstandard 字典加载作为应用目标。新增六种边界尺寸的 malloc/read 成功及强制映射
+拒绝语料，宿主 10 项通过；扩展目标验收待 CI。先解决权限、不可变来源、预算和
+执行能力协商，不因实验复制链已跑通就直接开放标准文件 mmap。
 
 - 已建立16/64/256映射、0/25/50%空洞和1/2/4线程的wasm32采样基准，保留原始样本与
   汇总脚本；数据见[mmap-benchmark.md](mmap-benchmark.md)。已实现重复backing扫描去重，
