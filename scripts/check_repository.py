@@ -55,9 +55,13 @@ def gitlink(name: str) -> str:
 
 def fetch_github_fields(path: Path) -> dict[str, str]:
     text = path.read_text(encoding="utf-8")
-    block = re.search(r"src\s*\?\s*pkgs\.fetchFromGitHub\s*\{(.*?)\n\s*\},", text, re.DOTALL)
+    block = re.search(
+        r"src\s*\?\s*(?:pkgs\.fetchFromGitHub|import\s+\./fetch-source\.nix)\s*\{(.*?)\n\s*\},",
+        text,
+        re.DOTALL,
+    )
     if block is None:
-        raise ValueError(f"cannot find src fetchFromGitHub block in {path.relative_to(ROOT)}")
+        raise ValueError(f"cannot find pinned GitHub src block in {path.relative_to(ROOT)}")
 
     fields = dict(re.findall(r'\b(owner|repo|rev)\s*=\s*"([^"]+)"\s*;', block.group(1)))
     missing = {"owner", "repo", "rev"} - fields.keys()

@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   repository:
@@ -100,7 +100,9 @@ jobs:
           SDK_TEST_MESON="$RUNNER_TEMP/sdk-meson/bin/meson" \
             node --test sources/distro/distro/sdk/meson-consumer-test.js
       - name: Check documentation and source pins
-        run: python3 scripts/check_repository.py
+        run: |
+          python3 scripts/check_repository.py
+          python3 -B scripts/test_repository_source_pins.py
       - name: Check SDK spawn bounds against the native parser
         run: python3 -B scripts/test_agent_spawn_contract.py
       - name: Check musl integer constants and format macros without building libc
