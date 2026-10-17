@@ -143,7 +143,9 @@ jobs:
       - name: Check standard Wasm exception assembly gate on the build host
         run: node --test sources/distro/distro/sdk/check-modern-eh.test.js
       - name: Check SDK Autoconf cross configuration on the build host
-        run: node --test sources/distro/distro/sdk/autoconf-consumer-test.js
+        run: |
+          node --test sources/distro/distro/sdk/autoconf-consumer-test.js \
+            sources/distro/distro/sdk/site-policy-test.js
       - name: Check SDK Meson build-machine generator on the build host
         run: |
           python3 -m venv "$RUNNER_TEMP/sdk-meson"
