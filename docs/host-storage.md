@@ -183,6 +183,15 @@ Windows 或缺少 O_DIRECTORY 的宿主继续使用逻辑目录句柄以保留�
 [轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39059835848) 已通过
 较早的目录同步宿主测试，不包含此排队检查；最新集成仍需独立 CI 结果。
 
+builder `da0e074` 另增 `scripts/tests/nodefs-device-lifecycle.test.ts`，通过真实共享
+Wasm memory/virtqueue 的 OPENDIR 打开两个 Node 目录句柄，再关闭设备，检查每个
+原生描述符 stat 均返回 EBADF。另一场景在第一次实际关闭后注入 EIO，要求关闭错误
+传播且第二个描述符仍被关闭，不能因前项错误跳过后续回收。两项本地检查通过，
+并接入[公开轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39060316611)，
+目前仍在排队。不依赖本地 Linux/LLVM 构建，也不导出内核宿主私有测试入口
+作为公开包 API。这是原生资源与桥接验证，仍不替代 Linux 挂载、崩溃或真实宿主
+关闭失败后资源状态的证明。
+
 代码和测试为 MIT，不修改 Linux、执行 ABI 或默认配置。此能力只提交宿主文件系统
 提供的目录同步请求，不证明断电恢复、文件内容与命名操作组成事务或跨文件系统
 持久性；BrowserFS 的便携 API 没有对应物理刷盘接口，不能套用此 Node 结果。
