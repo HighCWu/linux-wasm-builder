@@ -131,6 +131,28 @@ builder `cce8d5b` 将相同场景接入 Chromium/Firefox，精确清单增至 25
 并发目录修改的一致性保证，也没有量化吞吐/时延收益。浏览器用例使用真实共享
 memory/virtqueue 和可控后端，不启动 Linux、不使用 OPFS。实现和测试均为 MIT。
 
+### 复用目录枚举已知的类型
+
+distro `2f484d1` 为 `FSDirectoryEntry` 增加可选 `type`：file、directory、symlink、
+fifo、character、block 或 socket。READDIR 可直接把它编码为 Linux d_type，省去
+每个普通条目的额外 getattr；未提供时仍按原路径查询，不要求已有自定义后端迁移。
+非法类型返回 EIO。NodeFS 使用原生 Dirent 类型（未知类型仍回退），BrowserFS 使用
+FileSystemHandle.kind；符号链接保留链接类型，不把目标类型当成该条目类型。
+`.`、`..` 仍使用已有属性路径。这不替代 stat、权限检查或其他请求的元数据查询。
+
+新增同步/异步类型回归在原版本均检出多余 getattr；修改后 210 项内核宿主测试、
+19 项 NodeFS、31 项 BrowserFS（含目录与所有权）回归及内核源码/测试严格类型检查
+通过。测试验证旧后端回退、文件类型编码、已知类型无需子文件 stat、错误类型拒绝、
+迭代器关闭，以及 Node 普通文件、目录、有效/悬空符号链接的枚举类型。
+这证明减少了相应查询，不构成端到端吞吐或时延收益的测量。
+
+builder `c430927` 扩展流式目录浏览器用例，并增加真实 OPFS 文件/目录类型检查，
+强制清单增至 26 项，8 项报告门禁回归通过；
+[Chromium/Firefox 公开检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39059416775)
+正在进行，旧版 25 项成功不替代此次结果。可控后端的 virtqueue 用例和真实 OPFS
+适配器用例分别验证桥接与类型来源，不启动 Linux 或证明完整挂载端到端行为。
+改动均为 MIT，不改内核、UAPI、默认配置或许可边界。
+
 ## 回调与失败
 
 `read(offset, target)` 和可选的 `write(offset, data)` 可以返回数值或 Promise，
