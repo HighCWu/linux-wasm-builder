@@ -39,13 +39,23 @@ node --test sources/distro/distro/sdk/time-consumer-test.js
 `sdk-wasm64-check-signal-waits-runtime`，双位宽入口均使用两个 CPU。
 浏览器共用同一 SDK 程序，严格用例名为
 `runs SDK ppoll and pselect signal-mask handoff through Linux`，加入现有 wasm32/wasm64
-runtime suite。固定 `26c0fab` 的四项检查均已通过任务规划并进入实际重型 job，
-运行结果仍待 CI：
+runtime suite。固定 `26c0fab` 的四项检查均已实际运行失败，日志一致报告
+`wait did not restore the exact original signal mask`：
 
 - [Node wasm32](https://github.com/HighCWu/distro/actions/runs/38990752055)
 - [Node wasm64](https://github.com/HighCWu/distro/actions/runs/38990750888)
 - [Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38990753997)
 - [Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38990752836)
+
+根因在架构同步 handler：原实现保存 `current->blocked`，此时 ppoll/pselect 已安装
+临时掩码；`signal_setup_done` 又会清除 restore_sigmask 标志，因此返回后遗失原掩码。
+Linux `e81f9ad0e` 改为在该标志清除前复制 `*sigmask_to_save()`，与上游其他架构保存
+信号帧返回掩码的选择一致。handler 执行期间仍使用临时掩码加 sa_mask/自身信号，
+返回后再恢复等待之前的掩码；不改变 syscall 重启分类，也不放宽回归断言。
+distro `de12442` 已接入该内核，公开
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38993986456)
+成功并提供固定 revision 的解包哈希。使用新内核的四路目标复验已提交；源码分析和
+宿主 fixture 通过都不是目标运行成功的替代证据。
 
 这些重复用例不是对任意并行交错的形式证明；有限超时允许把丢失唤醒暴露为失败，
 并没有使无限等待的正确性自动成立。本轮没有验证内部多次重挂等待是否保留同一

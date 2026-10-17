@@ -50,7 +50,8 @@
 
 `26c0fab` 补入 ppoll/pselect 的 pending/并发信号掩码交接、EINTR、超时与就绪 fd
 断言，复用双位宽 SDK 和浏览器运行入口。新 fixture 的 GCC/Clang 宿主验证通过，
-实际 Wasm 验收已提交；未修改内核语义，也不声称覆盖部分 I/O、wait 回收或 fork。
+实际 Wasm 四路验收均暴露等待后信号掩码未恢复的问题；Linux `e81f9ad0e` 修正返回
+掩码选择，distro `de12442` 已接入并提交复验。不声称覆盖部分 I/O、wait 回收或 fork。
 具体边界见[信号等待验证](signal-waits.md)。
 
 - 启动、异常和panic报告。
@@ -69,7 +70,8 @@
 原生用户态新增 `73cf891` 的 `zstd-wasm64`，尝试恢复双位宽 Zstandard 的上游 POSIX
 字典 mmap 路径，并修正 MAP_FAILED 检查。共享安装系统语料新增映射字典、二进制
 文件/管道及许可文本断言，宿主 3 项检查通过，但实际双位宽 Wasm 均失败在映射字典。
-默认生产内核仍拒绝文件 mmap，不能把专用测试路径当作已开放能力；此接入尚未完成。
+默认生产内核仍拒绝文件 mmap，不能把专用测试路径当作已开放能力。
+`fa3eaa7` 改验 malloc/read 字典及强制映射拒绝，宿主 7 项通过，双位宽目标复验已提交。
 范围和证据边界见 [Zstandard 运行记录](zstd-runtime.md)。
 
 - 稳定 `wasm32-unknown-linux-musl` target和sysroot。

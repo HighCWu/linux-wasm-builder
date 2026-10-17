@@ -1,13 +1,14 @@
 <!-- SPDX-License-Identifier: MIT -->
 
-# 原生 Zstandard：双位宽构建与文件映射
+# 原生 Zstandard：双位宽构建与字典加载
 
 状态更正：固定 `73cf891` 的 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38987437765)
 和 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/38987438669) 均已失败，
 不能作为可用包或字典映射的通过证明。wasm64 实际日志明确为字典压缩时 error 34 /
 Invalid argument，随后触发运行失败标记。生产内核 mmap wrapper 仍拒绝文件映射；
-专用文件映射测试路径不能等同于默认配置已开放该能力。下面记录的是接入尝试与目标，
-其中“当前平台已经提供私有文件映射”的原判断不成立，需修正集成后再验收。
+专用文件映射测试路径不能等同于默认配置已开放该能力。
+`fa3eaa7` 已修正此错误验收假设，改为验证 malloc/read 字典与明确拒绝强制文件映射；
+新版双位宽运行已提交 CI，尚不能宣称通过。
 
 distro `73cf891` 增加显式 `zstd-wasm64`，默认 `zstd` 仍为 wasm32。
 两者复用固定的 Zstandard 1.5.6 源码、静态 CLI 构建与同一安装系统运行语料。
@@ -15,15 +16,17 @@ wasm64 覆盖 stdenv、BusyBox、musl、compiler-rt、platform 和测试镜像�
 不将 wasm32 二进制装进 wasm64 根盘。暂不启用 Zstandard 多线程压缩，也不发布
 开发用 libzstd 头文件/静态库；本次交付对象是 CLI。
 
-## 恢复上游文件映射路径
+## 字典加载与文件映射边界
 
-原补丁因早期 Wasm musl 不声明 mmap/munmap，强制字典使用 malloc fallback。
-该次接入尝试不再排除 `__wasm__` 的 POSIX 字典路径，但默认生产配置并不支持该请求。
-仅保留对上游失败检查的修正：mmap 失败应比较 `MAP_FAILED`，不能比较 NULL。
-`--mmap-dict` 显式进入该路径，`--no-mmap-dict` 仍保留原始 malloc 路径。
+普通字典默认使用上游 malloc/read 路径，`--no-mmap-dict` 也显式选择该路径，
+无需恢复早期排除所有 Wasm POSIX 映射代码的补丁。当前仅保留失败检查修正：
+mmap 失败应比较 `MAP_FAILED`，不能比较 NULL。
+`--mmap-dict` 仍发起真实文件映射请求，默认生产内核返回 EINVAL，Zstandard 报错退出；
+不能静默改为 malloc 再把它称作映射成功。
 
-这使用真实 linear-memory 指针和现有 NOMMU 文件映射，不引入 softmmu，
-不承诺原生硬件 MMU 的按需分页、只读保护或零拷贝性能。
+此修正没有开放内核文件映射、不引入 softmmu，也不承诺按需分页、只读保护或零拷贝。
+大字典 patch-from 模式可能自动选择映射；本轮不将其列为已支持场景，必要时应显式
+指定 `--no-mmap-dict` 并确保有足够线性内存。
 
 ## 检查与证据边界
 
@@ -31,12 +34,16 @@ wasm64 覆盖 stdenv、BusyBox、musl、compiler-rt、platform 和测试镜像�
 双位宽安装系统语料检查：
 
 - 普通文件压缩/解压逐字节往返，以及截断压缩流必须失败。
-- 映射字典压缩和解压，以及同一压缩数据由 malloc 字典解压。
+- 默认与显式 malloc 字典交叉压缩/解压，逐字节比较。
+- 强制映射压缩与解压均须退出 34、报告 Invalid argument，且不输出数据。
 - 超过 1 MiB、含 NUL 和非 UTF-8 尾部的二进制文件与管道往返。
 - 安装后的 Zstandard、musl、compiler-rt 许可证文本非空。
 
 公开 Actions 的检查名为 `zstd-check-roundtrip` 和 `zstd-wasm64-check-roundtrip`；
-两项新版均已运行失败，实际字典路径没有通过。它们在 Node 承载的真实 Linux
+旧 `73cf891` 两项均失败，新 `fa3eaa7` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/38993962502) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38993963650) 已进入重型 job，待验证。
+它们在 Node 承载的真实 Linux
 安装系统运行，不是浏览器 Zstandard 工作负载验收。
 
 轻量宿主检查可运行：
@@ -45,9 +52,11 @@ wasm64 覆盖 stdenv、BusyBox、musl、compiler-rt、platform 和测试镜像�
 node --test sources/distro/distro/zstd/roundtrip-host.test.js
 ```
 
-需要宿主 Node 和支持 `--mmap-dict` 的 Zstandard CLI。三项检查已通过，验证共享
-工作负载及故障断言；宿主 CLI 不来自本项目工具链，测试中的许可文件是编排 fixture，
-不能作为 Wasm 映射 ABI、目标失败分支或发布许可完整性的证明。
+需要宿主 Node 和 Zstandard CLI。七项检查已通过，验证共享工作负载及故障断言，
+包括普通字典失败、错误映射退出码/诊断、静默 fallback、拒绝后输出和损坏流。
+宿主真实执行普通字典及二进制/管道往返，仅模拟强制映射拒绝，因为宿主支持文件映射。
+宿主 CLI 不来自本项目工具链，许可文件是编排 fixture，不能作为 Wasm 映射 ABI、
+目标失败分支或发布许可完整性的证明。
 补丁已对上游固定版本的 fileio.c 验证无 fuzz 应用。
 
 ## 浏览器使用方向
