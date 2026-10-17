@@ -961,6 +961,25 @@ session，却保留 busy，旧操作不返回就无法重新启动。现在 mach
 [新版 Chromium 回归](https://github.com/HighCWu/distro/actions/runs/38983901705)
 固定 `9f6353f`，正在运行，包含二进制文件输入与恢复修正，不重启已有 Firefox 任务。
 
+#### SDK 文件描述符的 exec 边界
+
+distro `8e95e65` 为 `fs.open()` 和 `writeFile()` 的 open 标志补上 `O_CLOEXEC`，
+`writeTextFile()` 同样受益。原来启动器的 posix_spawn 只显式调整标准管道，这些
+SDK 文件句柄没有 close-on-exec，可能被随后启动的原生程序意外继承。标志在 open
+时原子设置，不采用与并发 spawn 存在竞态的后续 fcntl；append/createNew 等选项
+不变。它不修改应用自己打开文件的 Linux 语义，也不构成 NOMMU 程序隔离边界。
+
+八项双位宽协议回归在原实现全部失败，修正后通过；相关宿主共 113 项通过，类型、
+格式和浏览器打包通过。新原生语料同时保留 SDK 打开文件和等待输入的 writeFile，
+运行 shell 检查 `/proc/self/fd` 中没有这两个路径，并确认原 SDK 句柄仍可读取。
+探针本身在宿主用显式继承的真实 fd 验证：两种路径位置都能检出泄漏，无继承时
+通过；这不是 Linux/Wasm 运行结果。`7be1215` 仅让探针工具经 PATH 查找，避免
+宿主 Nix 测试依赖 `/bin/readlink` 和 `/bin/sh` 的布局，目标程序仍使用 `/bin/sh`。
+
+[原生 wasm64 Node 验收](https://github.com/HighCWu/distro/actions/runs/38984209153)
+固定 `8e95e65`，正在运行；它不包含后续探针 PATH 调整。wasm32 集成已接入同一
+语料，但当前 `552ea27` 的旧任务不包含此修正；待旧任务结束后再补验新版本。
+
 #### 排队进程取消
 
 distro `9e042d7` 修正 SDK `exec()` 的进程槽等待：原实现达到 8 个活动子进程后，
