@@ -952,6 +952,15 @@ File.stream 逐块 pipeTo stdin；空文件发送 EOF。前缀消费者的 EPIPE
 `PRIu64` 展开为 `%lu`，与 wasm64 `uint64_t` 的 `unsigned long long` 不匹配。
 旧版 streaming Chromium 与 wasm32 集成已成功；此失败不是文件流运行失败。
 
+后续固定 `40c84bd` 的 Firefox `38984908577` 现已成功：实际日志确认 111 个 bundle
+文件 SHA-256 校验、精确页面用例 1 项通过，零跳过/重试。用例包含真实程序/输入
+文件选择器、512 KiB+17 已知二进制模式逐字节验证、前缀消费者、空文件，以及原有
+Unicode 文本、退出 37、取消与 Stop/重启。它不包含后续文件流清理、整块排队、
+严格 chunk 类型或 BYOB 修正，也不是不可信程序隔离或超大文件硬配额的证明。
+固定 `4ebeb62` 的 Chromium `38985255807` 也已成功，实际日志确认同样的 111 个
+文件校验及精确页面用例 1 项通过，零跳过/重试。两浏览器有各自确切版本的文件
+输入证明，不等于最新 SDK 各错误路径或 BYOB 均已在浏览器验收。
+
 #### 整机自行退出后的页面恢复
 
 distro `9f6353f` 修正整机在应用或命令等待中自行退出时的页面状态：原实现清掉
@@ -1014,7 +1023,8 @@ distro `4ebeb62` 修正 FsFile.readable/writable 的失败路径：底层 pull/w
 句柄关闭、原文件内容不变。旧版原生验收不包含该提交；固定 `f6de3c6` 的新版本
 已提交双位宽验收，不将协议模拟当作原生运行证明。
 [新版 Chromium 示例回归](https://github.com/HighCWu/distro/actions/runs/38985255807)
-固定 `4ebeb62`，正在运行，包含 musl 宏修正及新 SDK 的页面操作；示例回归本身
+固定 `4ebeb62`，已成功，实际日志确认 111 个文件校验、精确页面用例 1 项通过，
+零跳过/重试，包含 musl 宏修正及该版 SDK 的页面操作；示例回归本身
 不执行上面的原生 EBADF/EISDIR 语料，也不是文件流失败路径的运行证明。
 
 #### 文件流整块排队
@@ -1068,8 +1078,25 @@ scanf 与常量类型：修复前 wasm32、wasm64 均失败，修复后三种目
 [公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38984793474) 已成功，
 distro `40c84bd` 已接入确切 revision/hash，元数据与源码 manifest 检查通过。
 [新版 Firefox 验收](https://github.com/HighCWu/distro/actions/runs/38984908577)
-固定 `40c84bd`，正在运行，包含上述 SDK 写入修正与 musl 宏修正。旧版 Chromium
-已独立结束，日志确认同一编译问题；新版 Chromium 固定 `4ebeb62` 另行验收。
+固定 `40c84bd`，已成功并核对实际日志，包含上述 SDK 写入修正与 musl 宏修正。
+该页面用例证明了使用 PRIu64 的 SDK C 语料实际编译/运行，不覆盖全部整数宏的
+运行时矩阵。旧版 Chromium
+已独立结束，日志确认同一编译问题；新版 Chromium 固定 `4ebeb62` 也已实际通过。
+
+#### BYOB 文件读取的 EOF
+
+distro `c28c3d8` 修正 FsFile.readable 的字节流结束：controller.close 本身不会
+完成已有的 BYOB read，空文件或最后一段读完后可能永久等不到 done。现在在文件
+关闭成功后先关闭流，再对待完成 BYOB 请求 respond(0)；默认 reader 没有此请求
+则保持原路径，不绕过 fd 清理。当前仍使用有界临时缓冲，并非零拷贝承诺。
+四项双位宽宿主回归在原实现均卡到测试截止，修正后相关共 173 项通过，验证空
+文件和超过一 syscall 的非空文件完整字节、EOF 完成及单次关闭；类型、格式和
+浏览器打包通过。双位宽原生文件语料加入非空及空文件的 BYOB 读取，带截止避免
+回归挂住整个运行套件。旧 `f6de3c6` 任务不包含此修正或前面的严格输入类型校验。
+
+[新版 Firefox 原生公开 API 验收](https://github.com/HighCWu/distro/actions/runs/38986292732)
+固定 `c28c3d8`，正在运行，包含最新文件预检、字节类型、流清理/排队、BYOB 与
+userland fd 继承语料；不是已经完成的独立示例页面用例，也不能提前记为通过。
 
 #### 排队进程取消
 
