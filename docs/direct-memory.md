@@ -89,8 +89,10 @@ live mapping解除后释放整个malloc backing，不形成永久地址保留。
 
 ## 4. 文件映射准入条件
 
-当前实现不接受文件映射。后续实现必须从可验证的`MAP_PRIVATE`子集开始，并满足以下
-约束：
+默认配置不接受文件映射。默认关闭的[标准候选](file-mmap-candidate.md)已在 Node
+双位宽通过认证不可变来源的有界私有复制及真实 Zstd 验收。固定双位宽浏览器和标准
+发布后生命周期也已通过；初始性能仍有明显开销，不意味着默认发行版或 SDK 已开放该能力。
+文件实现必须从可验证的`MAP_PRIVATE`子集开始，并满足以下约束：
 
 - 异步读取完成且目标direct区间重新校验成功后，才能一次性发布映射；读取、分配或
   校验失败必须向发起线程返回标准错误，不能留下半完成区间或无限等待；
@@ -112,7 +114,8 @@ live mapping解除后释放整个malloc backing，不形成永久地址保留。
 接入前需单独验证两项当前anonymous测试无法证明的边界：
 
 - offset单位：wasm32 musl通过`SYS_mmap2`传入以4096字节为单位的offset，wasm64
-  `SYS_mmap`传入字节offset。当前arch wrapper直接拒绝非零末参数，v2只验证过offset=0；
+  `SYS_mmap`传入字节offset。默认匿名arch wrapper仍拒绝非零末参数；候选文件路径已
+  在内核归一化并用标准 libc/raw 非零 offset 验证，v2匿名路径不因此获得文件语义；
   参数名`pgoff`不能作为已完成单位转换的证据。文件路径必须明确归一化的位置、文件
   offset的宽度和溢出处理，区分4096字节syscall单位与当前64 KiB映射页。测试应包含
   同一非零文件offset的libc/raw路径、非页对齐拒绝与可表示范围边界。

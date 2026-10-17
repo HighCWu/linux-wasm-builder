@@ -78,8 +78,8 @@ VFS/LSM、32 位机器 ABI、Wasm 原子或内核执行；候选内核公开构�
 
 实际 Node 承载的 Wasm 目标结果见下文，不将宿主 shim 或旧版回归记为候选成功。原 EROFS
 压力语料改为两个并发最大请求，以匹配八页在途预算；预算耗尽仍由独立屏障语料检查，
-不是允许四个最大请求超配。真实设备高并发背压、浏览器和性能仍须后续单独验收；
-原 Zstd 的强制字典映射已完成 Node 双位宽检查，默认发行配置不会因候选自动开放。
+不是允许四个最大请求超配。浏览器、标准发布后生命周期和初始性能结果见下文；
+真实设备高并发背压、重复压力和性能开销分解仍须继续，默认发行配置不会因候选自动开放。
 
 distro `4b06c21` 固定该内核及上述集成。首轮
 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39016551516) 和
@@ -93,7 +93,7 @@ distro `4b06c21` 固定该内核及上述集成。首轮
 [wasm64 重跑](https://github.com/HighCWu/distro/actions/runs/39024986125) 均已成功。
 实际 heavy job 日志确认四组各自的通过标记：候选 RO/RW 内容/offset/EOF/独立性、
 默认内核拒绝、旧模块拒绝、预算/生命周期回归。该结果只适用于认证来源和有界复制范围，
-不扩展到普通文件系统、完整 NOMMU mmap、浏览器或性能结论。
+不扩展到普通文件系统或完整 NOMMU mmap；浏览器和初始性能证据分别见下文。
 
 [Zstandard 强制字典映射验收](zstd-runtime.md)也已通过 Node 双位宽及实际日志检查：
 只在测试变体导出初始化能力，默认发行包和内核准入保持不变。
@@ -101,12 +101,14 @@ distro `0d473c2` 将同一标准程序和 Zstd 工作负载接入双位宽 Chrom
 浏览器使用候选内核，不是原私有测试 syscall 内核；只加载标准程序或真实 CLI 的
 initramfs，以及认证/普通两个同内容磁盘。每组须执行标准入口和 Zstd 两项测试，
 检查详细阶段标记、无失败/页面异常和机器关闭，并通过精确测试名、零跳过/重试报告门禁。
-本地新增八项编排替身检查已通过，不证明浏览器执行；公开浏览器结果仍待确认。
-四组检查均已通过计划检查并进入实际构建/运行：
+本地新增八项编排替身检查已通过，不证明浏览器执行。下列四组公开检查均已成功：
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39047346035)、
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39047350401)、
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39047353874)、
 [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39047357984)。
+实际 heavy job 日志均确认标准映射阶段、Zstd 五个尺寸、容量与来源拒绝以及两个 pass，
+各 `2 passed`，精确报告门禁确认零跳过、零重试。实际浏览器为 Chromium 149.0.7827.55
+和 Firefox 151.0；这是固定 Playwright 构建的结果，不泛化为所有浏览器版本。
 
 ## 标准入口生命周期扩展
 
@@ -126,9 +128,19 @@ GCC/Clang 编译并运行共享 helper 的宿主检查已通过。宿主将文�
 64 KiB 块，避免本机 4 KiB EOF fault，并以 unlink 代替卸载；不伪装目标证据。
 Wasm [wasm32](https://github.com/HighCWu/distro/actions/runs/39047747728) 与
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39047751959) 已通过计划检查并进入
-重型构建/运行，最终结果待确认。这不是完整 fork 返回上下文恢复、任意多线程
+实际运行，两项均已成功，日志确认四个生命周期阶段和最终 pass。
+这不是完整 fork 返回上下文恢复、任意多线程
 fork、安全隔离、确定性在途 VFS/设备取消或严格内存泄漏/额度检查；SIGKILL 发生在
 映射已经发布之后，不能把此结果扩展为读取期间退出安全。
+
+## 初始性能诊断
+
+distro `2706fb9` 新增[配对性能检查](file-mmap-performance.md)，在同一认证来源上
+比较标准文件 mmap 主动复制和 malloc/pread，分别记录 64/128 KiB 的五对批次。
+首轮双位宽目标已通过，实际数据经严格解析器校验并保留溯源；当前 mmap 在本轮比
+malloc/pread 慢约 4.3–9.4 倍，尚不能归因于单个环节。
+宿主原生 mmap 不代表本平台主动复制，解析器明确拒绝宿主输出。
+没有速度门槛，也没有据此改变默认配置。生命周期和浏览器任务不因此取消或重启。
 
 Linux 实现改动遵循 GPL-2.0；独立测试、宿主和集成修改、文档采用 MIT，其他组件
 保持原协议。不把内核实现代码链接进用户程序。

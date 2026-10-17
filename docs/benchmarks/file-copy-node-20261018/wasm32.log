@@ -1,0 +1,22 @@
+2026-10-17T16:26:07.6052079Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,65536,1,64,8395000,25984
+2026-10-17T16:26:07.6068558Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,65536,1,64,1160000,25984
+2026-10-17T16:26:07.6084608Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,65536,2,64,1225000,25984
+2026-10-17T16:26:07.6164784Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,65536,2,64,7460000,25984
+2026-10-17T16:26:07.6248175Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,65536,3,64,7695000,25984
+2026-10-17T16:26:07.6268751Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,65536,3,64,1505000,25984
+2026-10-17T16:26:07.6283574Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,65536,4,64,1065000,25984
+2026-10-17T16:26:07.6381829Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,65536,4,64,7635000,25984
+2026-10-17T16:26:07.6509826Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,65536,5,64,9295000,25984
+2026-10-17T16:26:07.6537230Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,65536,5,64,2265000,25984
+2026-10-17T16:26:07.6653616Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,131072,1,64,10235000,37248
+2026-10-17T16:26:07.6666916Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,131072,1,64,1035000,37248
+2026-10-17T16:26:07.6679723Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,131072,2,64,895000,37248
+2026-10-17T16:26:07.6768936Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,131072,2,64,8375000,37248
+2026-10-17T16:26:07.6867544Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,131072,3,64,9290000,37248
+2026-10-17T16:26:07.6880914Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,131072,3,64,995000,37248
+2026-10-17T16:26:07.6893401Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,131072,4,64,880000,37248
+2026-10-17T16:26:07.6982656Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,131072,4,64,8295000,37248
+2026-10-17T16:26:07.7065334Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,mmap,131072,5,64,7855000,37248
+2026-10-17T16:26:07.7079761Z vm-test-mmap-file-benchmark-wasm32> file-copy-bench,32,pread,131072,5,64,1100000,37248
+2026-10-17T16:26:07.7100012Z vm-test-mmap-file-benchmark-wasm32> file mmap: warm paired copy benchmark completed; no speed threshold
+2026-10-17T16:26:07.7103602Z vm-test-mmap-file-benchmark-wasm32> ::vm-test::pass
