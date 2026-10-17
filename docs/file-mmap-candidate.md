@@ -108,5 +108,27 @@ initramfs，以及认证/普通两个同内容磁盘。每组须执行标准入�
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39047353874)、
 [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39047357984)。
 
+## 标准入口生命周期扩展
+
+distro `4133e3b` 新增 `mmap-benchmark[-wasm64]-check-file-lifetime`，使用候选内核、
+认证 EROFS 和有初始化导出的普通 pthread C 程序，只调用标准 mmap/munmap 等接口，
+不调用原私有实验 syscall 或资源统计槽。目标检查包含：
+
+- 在创建线程之前，各运行八次正常退出和 SIGKILL 的私有 `clone(callback, SIGCHLD)`。
+  子回调读取继承的 RO/RW 映射、修改 RW、unmap、重新打开来源并完成一次新映射。
+  父任务等待明确发布标记再 kill/reap；随后核验自身映射不变并可重新映射。
+- 两个同步线程各八轮最大长度映射，所有副本创建/检查后才独立修改并 unmap；
+  检查彼此不别名和原 fd 位置、文件字节不变。不声称确定性重叠了设备读取。
+- 关闭最后一个来源 fd，真正卸载快照挂载后仍可读取副本；部分 unmap 后其余页仍在，
+  新匿名映射清零且不污染保留部分，最终正常解除全部映射。
+
+GCC/Clang 编译并运行共享 helper 的宿主检查已通过。宿主将文件填充到完整三个
+64 KiB 块，避免本机 4 KiB EOF fault，并以 unlink 代替卸载；不伪装目标证据。
+Wasm [wasm32](https://github.com/HighCWu/distro/actions/runs/39047747728) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39047751959) 已通过计划检查并进入
+重型构建/运行，最终结果待确认。这不是完整 fork 返回上下文恢复、任意多线程
+fork、安全隔离、确定性在途 VFS/设备取消或严格内存泄漏/额度检查；SIGKILL 发生在
+映射已经发布之后，不能把此结果扩展为读取期间退出安全。
+
 Linux 实现改动遵循 GPL-2.0；独立测试、宿主和集成修改、文档采用 MIT，其他组件
 保持原协议。不把内核实现代码链接进用户程序。
