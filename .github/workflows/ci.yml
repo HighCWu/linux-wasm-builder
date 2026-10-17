@@ -114,7 +114,8 @@ jobs:
         # Native execution validates the fixture, not target SjLj or the Wasm ABI.
         run: |
           node --test sources/distro/distro/lua/language-host.test.js \
-            sources/distro/distro/lua/development-host.test.js
+            sources/distro/distro/lua/development-host.test.js \
+            sources/distro/distro/lua/application-host.test.js
       - name: Check SDK CMake integration on the build host
         run: |
           node --test sources/distro/distro/llvm-runtimes/cxa-thread-atexit-test.js
