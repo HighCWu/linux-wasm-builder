@@ -946,7 +946,9 @@ File.stream 逐块 pipeTo stdin；空文件发送 EOF。前缀消费者的 EPIPE
 `d70d423` 只修正该测试的链式调用排版，不改变断言；本地固定版本 oxfmt 检查和
 36 项相关测试通过。主仓库轻量 CI 也加入同版本的示例/页面测试格式检查。
 [修正后的 Firefox 验收](https://github.com/HighCWu/distro/actions/runs/38983716460)
-固定 `d70d423`，正在运行；旧版 streaming Chromium 已成功，wasm32 任务继续运行。
+固定 `d70d423`，格式门禁通过，但在 SDK 编译 C 语料时失败，尚未执行浏览器用例：
+`PRIu64` 展开为 `%lu`，与 wasm64 `uint64_t` 的 `unsigned long long` 不匹配。
+旧版 streaming Chromium 已成功，wasm32 任务继续运行；此失败不是文件流运行失败。
 
 #### 整机自行退出后的页面恢复
 
@@ -979,6 +981,35 @@ SDK 文件句柄没有 close-on-exec，可能被随后启动的原生程序意�
 [原生 wasm64 Node 验收](https://github.com/HighCWu/distro/actions/runs/38984209153)
 固定 `8e95e65`，正在运行；它不包含后续探针 PATH 调整。wasm32 集成已接入同一
 语料，但当前 `552ea27` 的旧任务不包含此修正；待旧任务结束后再补验新版本。
+
+#### 文件写入的输入锁预检
+
+distro `ee3b617` 在连接/打开目标文件前获取输入流 reader，避免先 O_TRUNC 再因
+输入已锁定而报错、丢失原文件。已取消信号也在连接前拒绝；连接/打开失败或连接
+期间取消时释放 reader，不读取或取消尚未使用的来源。打开成功后的来源错误与
+取消仍关闭 fd、取消来源并释放锁；这不是写入开始后的原子替换或失败回滚。
+
+新增 14 项双位宽宿主检查，其中锁冲突及预取消的四项在原实现失败，其余保证
+前移锁定后失败路径不泄漏；相关共 127 项通过，类型/格式/浏览器打包通过。
+wasm32 与共享 wasm64 文件语料加入原文件不变、新文件不创建、释放锁后重试成功
+的断言。[原生 wasm64 验收](https://github.com/HighCWu/distro/actions/runs/38984568589)
+固定 `ee3b617`，正在运行，不含后续 musl 头文件修正。
+
+#### musl 整数宏与 Wasm 类型一致性
+
+musl `f4ffd5e5` 修正上述 C 语料编译暴露的公共头文件问题：Wasm 两种位宽均用
+long long 定义 int64_t/intmax_t，却不能据指针宽度为 64 位就推断成 long；intptr_t
+在两种位宽均为 long，也不能在 wasm32 使用普通 int 的格式。现在 Wasm PRI/SCN
+64/LEAST64/FAST64/MAX 宏使用 ll，PTR 使用 l；64/MAX 常量后缀也保持 long long。
+不修改 typedef、结构体布局或调用 ABI，不用测试中的强转/关闭警告掩盖问题。
+新增轻量编译门禁直接使用生成的 musl 公共头文件，以严格格式诊断检查 printf、
+scanf 与常量类型：修复前 wasm32、wasm64 均失败，修复后三种目标（含 x86_64
+对照）通过。这是头文件编译证据，不是 libc 或浏览器运行结果。
+[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38984793474) 已成功，
+distro `40c84bd` 已接入确切 revision/hash，元数据与源码 manifest 检查通过。
+[新版 Firefox 验收](https://github.com/HighCWu/distro/actions/runs/38984908577)
+固定 `40c84bd`，正在运行，包含上述 SDK 写入修正与 musl 宏修正。旧版 Chromium
+仍独立运行，不因预期遇到相同编译问题就中断或覆盖其结果。
 
 #### 排队进程取消
 
