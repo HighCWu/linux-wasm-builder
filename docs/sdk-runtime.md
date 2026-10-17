@@ -2,6 +2,10 @@
 
 # C/C++ SDK运行验证
 
+新增独立的 [`std::filesystem` 消费验证](sdk-filesystem.md)覆盖普通文件、链接、
+目录、time64 元数据与 C++ 错误接口；其目标和浏览器验证状态单独记录，不扩大下文
+既有容器/线程检查的历史覆盖范围。
+
 SDK支持属于Linux/Wasm主路线，不依赖私有文件映射实验。当前工具链使用
 wasm32/wasm64-unknown-linux-musl目标、musl及LLVM的compiler-rt、libc++、libc++abi
 和libunwind。独立测试代码采用MIT；这些依赖仍遵循各自上游许可证，不因测试采用
