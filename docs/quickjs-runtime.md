@@ -57,7 +57,10 @@ distro `d06effa` 修正脚本路径，移除浏览器镜像里掩盖此问题的
 共享运行器及浏览器接线）合计 29 项通过。固定 `d06effa` 已提交修正后的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39061447730) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39061451084) Node 复验，
-均通过计划解析、进入重型检查，尚待实际目标结果。
+均通过计划解析。wasm64 已成功，实际日志确认 qjs/qjsc 的共享 memory64 ABI
+门禁通过，随后输出完整 `QuickJS: language, file I/O, spawn, Worker, timers and
+bytecode generation verified` 阶段及最终 pass，验证修正后的安装系统路径确实可用。
+wasm32 仍待实际目标结果，不把 wasm64 成功扩大为其运行证据。
 
 ## 浏览器验证接入
 
@@ -78,6 +81,12 @@ Chromium、Firefox 均已成功，实际日志确认 QuickJS 用例执行且完�
 `92830ef`，即使成功也不能验证后续许可布局修正。wasm32 已接线，尚未提交本轮
 浏览器重型检查。Node 入口仍是安装系统检查；浏览器入口是可丢弃的内存根盘，
 二者均不作为 OPFS 持久化、包管理安装验证等价性或完整发行版迁移成功的证据。
+
+后续 `108f20a` 加入两条 Lua 用例，将双位宽浏览器门禁扩为 18 项，同时保留修正
+后的 QuickJS 许可路径（没有额外别名）。固定该版本的
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39062203518) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39062207326) 已通过计划解析、
+进入重型构建，尚待真实浏览器运行结果；旧 16 项成功不能替代此版本验收。
 
 ## 许可证材料
 

@@ -60,8 +60,8 @@ Lua 5.4.8 源码原生构建，下载归档 SHA-256 与官方目录公布的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39061566007) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39061569694) 目标复验已提交，
 尚待实际结果，未取消仍在运行的旧检查。
-本轮尚未接入 Lua 的真实浏览器用例。现有静态库和头文件
-在下述后续提交中拆为独立开发输出，不据此宣称已验证动态模块或任意应用。
+现有静态库和头文件在下述后续提交中拆为独立开发输出，浏览器用例也已接线但
+尚待实际验收；不据此宣称已验证动态模块或任意应用。
 
 ## 安装后的 C 开发路径
 
@@ -99,6 +99,32 @@ nix build './sources/distro#checks.x86_64-linux.lua-check-development'
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39061878991) 开发检查均通过
 计划解析，正在公开 Actions 重型构建，尚待真实目标编译和运行结果；此前解释器
 检查不包含此次多输出变更。
+
+## 浏览器共享用例
+
+distro `108f20a` 为 wasm32/wasm64 浏览器套件各增加两个用例，精确报告门禁
+从 16 项扩为 18 项：
+
+- 解释器：使用原始 `language-test.sh`、对应位宽的运行包和 BusyBox；与安装系统
+  检查共用唯一一份模块夹具，不额外添加许可路径别名或重写脚本断言。
+- C 嵌入：与 Node 开发检查使用同一个从搬移后的安装头文件/归档构建的程序，
+  不在浏览器路径中换成重新编译 Lua 源码的简化程序。
+
+两条路径分别要求完整阶段标记、最终 pass 且没有 fail，并复用用户控制台协议、
+启动/关闭看门狗。轻量负向检查验证下载错误、缺失阶段或 pass、混入 fail 和报告
+漏跑均被拒绝。相关 33 项本地轻量检查通过（含原生 Lua 语料、GCC/Clang C 消费者、
+许可布局与共享运行器）；这些不是目标浏览器执行证据。
+
+固定 `108f20a` 的 wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39062203518) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39062207326) 完整 18 项检查
+已通过计划解析、进入公开 CI 重型构建，尚待目标构建和实际运行结果；wasm32
+已接线，当前尚未提交本轮浏览器重型检查。新套件同时使用
+修正后的 QuickJS `/share/licenses` 检查，不沿用先前镜像的额外许可别名。
+
+解释器浏览器根盘为可丢弃 initramfs，不是安装系统的 ext4 根盘；C 消费者根盘只
+包含编译后的用户程序。两者不证明软件包安装、OPFS 持久化、完整根盘升级或浏览器
+进程重启恢复；这些仍应由各自的实际检查验收。
 
 ## 许可证材料
 
