@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: MIT
 """Guard the targeted cache's restore/save key contract without a Nix build."""
+import json
+import os
 import re
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -26,7 +32,8 @@ def check_keys(workflow):
         raise ValueError("targeted restore and save must use the same nonempty key")
     if not keys[0].startswith("nix-targeted-") or "outputs.primary-key" in keys[0]:
         raise ValueError("targeted keys must not rely on the restore action's empty output")
-    for component in ("runner.os", "wasm64", "hashFiles(", "flake.lock"):
+    for component in ("runner.os", "wasm64", "hashFiles(", "flake.lock",
+                      "distro/linux/package.nix", "distro/linux/fetch-source.nix"):
         if component not in keys[0]:
             raise ValueError(f"cache key is missing {component}")
     expressions = re.findall(r"\$\{\{\s*(.*?)\s*\}\}", heavy)
@@ -50,6 +57,11 @@ class CacheContract(unittest.TestCase):
         with self.assertRaises(ValueError):
             check_keys(self.workflow.replace("nix-targeted-v1-", "nix-targeted-v2-", 1))
 
+    def test_kernel_pin_and_fetch_recipe_must_invalidate_the_primary_key(self):
+        for name in ("distro/linux/package.nix", "distro/linux/fetch-source.nix"):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                check_keys(self.workflow.replace(", '" + name + "'", ""))
+
     def test_action_output_rejected(self):
         broken = re.sub(r"primary-key: nix-targeted-.*", "primary-key: ${{ steps.heavy-cache.outputs.primary-key }}", self.workflow)
         with self.assertRaises(ValueError):
@@ -64,6 +76,10 @@ class CacheContract(unittest.TestCase):
             "browser-tests-check-memory64-firefox": "wasm64",
             "browser-tests-check-runtime-wasm32-chromium": "wasm32",
             "browser-tests-check-runtime-wasm32-firefox": "wasm32",
+            "browser-tests-check-python-wasm64-chromium": "wasm64",
+            "browser-tests-check-python-wasm64-firefox": "wasm64",
+            "browser-tests-check-python-wasm32-chromium": "wasm32",
+            "browser-tests-check-python-wasm32-firefox": "wasm32",
             "curl-wasm64-check-development": "wasm64",
             "curl-check-development": "wasm32",
             "browser-tests-check-agent-production-wasm64-chromium": "wasm64",
@@ -87,6 +103,74 @@ class CacheContract(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             check_keys(broken)
+
+    def run_retention(self, present, bits):
+        # Execute the actual workflow shell with fake store commands, not a
+        # second implementation of the readiness policy or a local Nix build.
+        block = self.workflow.split("id: retained\n", 1)[1]
+        body = block.split("        run: |\n", 1)[1].split("\n      - name:", 1)[0]
+        script = textwrap.dedent(body)
+        with tempfile.TemporaryDirectory(prefix="wasm-cache-contract-") as directory:
+            root = Path(directory)
+            fake = root / "nix"
+            fake.write_text("#!" + sys.executable + "\n" + textwrap.dedent('''
+                import json, os, sys
+                with open(os.environ["TEST_LOG"], "a") as log:
+                    log.write(json.dumps([os.path.basename(sys.argv[0]), *sys.argv[1:]]) + "\\n")
+                if os.path.basename(sys.argv[0]) == "nix-store":
+                    sys.exit(0)
+                if sys.argv[1] == "eval":
+                    name = sys.argv[-1].removeprefix(".#").removesuffix(".outPath")
+                    print("/nix/store/" + name)
+                elif sys.argv[1] == "path-info":
+                    name = os.path.basename(sys.argv[2])
+                    sys.exit(0 if name in json.loads(os.environ["TEST_PRESENT"]) else 1)
+                else:
+                    raise AssertionError("retention must not build or fetch: " + repr(sys.argv))
+            '''))
+            fake.chmod(0o755)
+            (root / "nix-store").symlink_to(fake)
+            output = root / "output"
+            log = root / "commands"
+            result = subprocess.run(
+                ["bash", "-euo", "pipefail", "-c", script],
+                env={**os.environ, "PATH": str(root) + os.pathsep + os.environ["PATH"],
+                     "WASM64_CHECK": "true" if bits == 64 else "false",
+                     "RUNNER_TEMP": str(root), "GITHUB_OUTPUT": str(output),
+                     "TEST_LOG": str(log), "TEST_PRESENT": json.dumps(present)},
+                capture_output=True, text=True, timeout=10,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            commands = [json.loads(line) for line in log.read_text().splitlines()]
+            return output.read_text() if output.exists() else "", commands
+
+    def test_retention_keeps_matching_fixed_source_and_completed_outputs(self):
+        for bits in (32, 64):
+            suffix = "-wasm64" if bits == 64 else ""
+            packages = ["llvm-toolchain-unwrapped", "llvm-toolchain" + suffix,
+                        "linux" + suffix, "linux" + suffix + ".src"]
+            with self.subTest(bits=bits):
+                output, commands = self.run_retention(packages, bits)
+                self.assertEqual(output, "ready=true\n")
+                roots = [call[-1] for call in commands if call[0] == "nix-store"]
+                self.assertCountEqual(roots, ["/nix/store/" + name for name in packages])
+                self.assertTrue(all(call[1] in ("eval", "path-info")
+                                    for call in commands if call[0] == "nix"))
+
+    def test_partial_cache_cannot_claim_primary_key_readiness(self):
+        for present in (["llvm-toolchain-unwrapped", "linux"], ["linux.src"], []):
+            with self.subTest(present=present):
+                output, commands = self.run_retention(present, 32)
+                self.assertEqual(output, "")
+                rooted = [call[-1] for call in commands if call[0] == "nix-store"]
+                self.assertCountEqual(rooted, ["/nix/store/" + name for name in present])
+
+    def test_failed_kernel_build_can_retain_source_without_building_missing_outputs(self):
+        present = ["llvm-toolchain-unwrapped", "linux-wasm64.src"]
+        output, commands = self.run_retention(present, 64)
+        self.assertEqual(output, "ready=true\n")
+        rooted = [call[-1] for call in commands if call[0] == "nix-store"]
+        self.assertCountEqual(rooted, ["/nix/store/" + name for name in present])
 
 
 if __name__ == "__main__":
