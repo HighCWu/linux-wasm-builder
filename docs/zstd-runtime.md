@@ -24,9 +24,11 @@ Zstandard 被选为[文件 mmap 就绪度阶段](file-mmap-readiness.md)的真�
 `b662d58` 新增安装系统边界语料覆盖 64 KiB 和 128 KiB 两侧共六种字典尺寸；普通/read 路径
 必须成功，可变文件的强制 mmap 仍须明确拒绝，不把应用回退算作文件映射成功。
 扩展后的宿主 10 项检查已通过，包含边界加载失败和只在边界静默映射成功的反向控制；
-新增 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39009756964) 与
-[wasm64 检查](https://github.com/HighCWu/distro/actions/runs/39009753274) 已通过计划检查并进入
-实际构建/运行，结果待确认。原先成功的 `79bd2b3` 不包含本次扩展。
+[wasm64 检查](https://github.com/HighCWu/distro/actions/runs/39009756964) 已成功，日志确认
+六种边界尺寸及最终 pass。[首次 wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39009753274)
+失败在源码下载 HTTP 429，并未运行应用；[重试](https://github.com/HighCWu/distro/actions/runs/39010264830)
+结果待确认。此前记录的两条运行链接位宽标注反了，此处已按实际 heavy job 名称更正。
+原先成功的 `79bd2b3` 不包含本次扩展。
 生产内核与 libc 不变，不承诺已支持原 Zstd 的 PROT_READ 文件映射。
 
 ## 字典加载与文件映射边界
