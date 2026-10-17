@@ -124,6 +124,24 @@ jobs:
         run: |
           node --test sources/distro/distro/python/mmap-host.test.js \
             sources/distro/distro/python/width-host.test.js
+      - name: Package the pure-Python application example
+        # No interpreter, kernel or target compiler is bundled or built here.
+        run: |
+          bundle="$RUNNER_TEMP/python-application-example"
+          mkdir -p "$bundle/source"
+          cp -R sources/distro/distro/python/example "$bundle/source/example"
+          cp sources/distro/distro/python/build-example.py "$bundle/source/build-example.py"
+          cp sources/distro/distro/python/example/LICENSE "$bundle/LICENSE"
+          python3 -B "$bundle/source/build-example.py" "$bundle/application.pyz"
+          python3 -B sources/distro/distro/python/application-test.py --example "$bundle/application.pyz"
+          python3 -B scripts/source_manifest.py > "$bundle/source-pins.json"
+      - name: Upload the pure-Python application example
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-application-example-${{ github.sha }}
+          path: ${{ runner.temp }}/python-application-example/
+          if-no-files-found: error
+          retention-days: 7
       - name: Check curl verified HTTPS over native Linux TCP
         # Native CLI versions validate the fixture, not the Wasm build or browser transport.
         run: |
