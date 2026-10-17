@@ -121,7 +121,9 @@ jobs:
         run: node --test sources/distro/distro/openssl/tests/handshake-host.test.js
       - name: Check Python anonymous mapping fixture on the build host
         # Native execution checks the workload, not the target kernel boundaries.
-        run: node --test sources/distro/distro/python/mmap-host.test.js
+        run: |
+          node --test sources/distro/distro/python/mmap-host.test.js \
+            sources/distro/distro/python/width-host.test.js
       - name: Check curl verified HTTPS over native Linux TCP
         # Native CLI versions validate the fixture, not the Wasm build or browser transport.
         run: |
