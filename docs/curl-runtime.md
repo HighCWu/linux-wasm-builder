@@ -13,7 +13,8 @@ curl 使用静态 OpenSSL 后端，zlib 支持内容编码；现有 file/明文 
 不启用共享库、线程 DNS resolver、HTTP/2/3 或未提供的额外协议依赖。当前配置
 默认读取发行版证书包 `/etc/ssl/cert.pem`，不把构建机或 Nix store 路径编入默认
 信任配置；可用 `--cacert /path/to/ca.pem` 显式覆盖。此前 `907f64d`/`aa28e76`
-仍无默认 CA 路径，仅验证了显式指定 CA 的请求。新默认配置尚需单独目标验收，
+仍无默认 CA 路径，仅验证了显式指定 CA 的请求。新默认配置的双位宽 Linux 检查
+已通过，浏览器检查另行验收；
 不应使用 `--insecure` 来代替正确的信任配置。
 
 新 `https` 检查在 Linux 内生成临时 EC 证书，运行单连接 OpenSSL `s_server`，
@@ -45,7 +46,7 @@ nix build './sources/distro#checks.x86_64-linux.curl-check-https'
 ```
 
 现有 `curl-check-transfers` 和新增覆盖层的 `curl-wasm64-check-transfers` 保留独立的
-file/HTTP 用例；不因为 HTTPS 检查接线就宣称新 wasm64 file/HTTP 检查已经运行。
+file/HTTP 用例；后续 `81e776d` 的 wasm64 file/HTTP 也已实际通过，记录见下文。
 新增浏览器接线见下文；OpenSSL 内存 BIO 的浏览器用例不能代替 curl 的 TCP/TLS。
 
 ```sh
@@ -84,16 +85,20 @@ TCP/TLS 已验收。固定 `ecd3c1f`（功能 `907f64d` 加许可夹具格式整
 相关 44 项本地检查通过。真实宿主 curl/OpenSSL 执行信任选择，并拒绝关闭验证、
 忽略默认信任、接受错误默认/显式 CA、忽略显式覆盖、接受错误主机名及缺失默认包
 仍成功等 7 个破坏变体。宿主测试使用临时证书包副本和 `CURL_CA_BUNDLE`，
-不修改宿主系统信任库，也不声称验证了目标编译出的默认路径；该路径仍由公开
+不修改宿主系统信任库，也不声称验证了目标编译出的默认路径；该路径另由公开
 Wasm CI 验收。此变更不增加外网传输、DNS、证书吊销或完整生产 TLS 策略支持。
 
 固定 `81e776d` 的新
 [wasm64 HTTPS](https://github.com/HighCWu/distro/actions/runs/39066090311)、
 [wasm32 HTTPS](https://github.com/HighCWu/distro/actions/runs/39066093854) 与
 [wasm64 file/HTTP](https://github.com/HighCWu/distro/actions/runs/39066097410)
-公开检查均已通过计划及派生解析，重型任务已启动或排队，实际结果待验收。
-固定 `aa28e76` 的四项浏览器任务仍使用旧显式 CA 脚本；新默认 CA 阶段虽已纳入
-共享浏览器断言，但尚未提交此版本的浏览器重型检查。
+公开检查均已成功，实际日志确认双位宽默认信任的全部阶段及恢复、最终 pass；
+wasm64 file/HTTP 检查也完成了真实目标构建和 Linux 运行。
+固定 `aa28e76` 的四项浏览器任务仍使用旧显式 CA 脚本，不能证明新默认阶段。
+固定 `81e776d` 的新 wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39067035351) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39067038837) 已另行提交并通过
+计划及派生解析，实际浏览器结果待验收；此版未提交 wasm32 浏览器重型检查。
 
 ## 浏览器共享用例
 
@@ -106,14 +111,15 @@ Playwright 要求可信 TLS 1.3 成功、不受信任证书拒绝、错误主机
 阶段及最终 pass 全部出现，且不含 fail；每个阶段缺失、仅 pass、混入 fail、
 下载失败与报告漏项均由负向回归拒绝。沿用双 CPU、熵设备及最终关闭期判定。
 相关原生 TLS、依赖/许可、浏览器接线与运行器共 44 项本地检查通过，不等于
-Wasm 或浏览器运行通过。已提交双位宽 Chromium/Firefox 四项新检查，均需实际
-构建与运行验收，不将某一组合成功扩大为整个矩阵完成。
+Wasm 或浏览器运行通过。后续公开 CI 的运行证据另列如下。
 
-四项公开任务均已通过计划、进入重型检查：wasm64
+固定 `aa28e76` 的四项公开任务均已成功：wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39065145729)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39065148975)，wasm32
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39065212445)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39065216582)。
+实际日志确认 curl 用例执行，各自完整 20 项通过，严格报告零跳过/重试。
+这四项仍只包含旧显式 CA 脚本，不自动覆盖 `81e776d` 的新增默认信任阶段。
 
 主仓库固定 `00e8946` 的
 [轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39064449263)
@@ -130,4 +136,5 @@ curl 保留上游 curl 许可证，zlib、OpenSSL、musl 和 compiler-rt 保持�
 包原样携带 curl COPYING、包含原始许可的 zlib.h、OpenSSL LICENSE.txt、musl
 COPYRIGHT 和 compiler-rt LICENSE.TXT；新增自有集成/测试采用 MIT 并携带文本。
 不将依赖改为 MIT，也不改变 Linux 内核的相应源码义务。这些材料不是完整发布
-合规审计，亦不声称已提供可重定位的 libcurl SDK 开发包。
+合规审计。后续独立开发包及普通 C 应用的接入、验证与限制见
+[libcurl 开发记录](libcurl-development.md)，不把 CLI 成功当成库接口已经验收。
