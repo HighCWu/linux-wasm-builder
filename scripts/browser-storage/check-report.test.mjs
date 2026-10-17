@@ -28,7 +28,7 @@ test("browser selection is derived from every required report case", () => {
 
 function fixture() {
   return {
-    stats: { expected: 21, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 22, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -56,6 +56,7 @@ function fixture() {
               "BrowserFS unlink waits for pending OPFS mutations and detaches old handles",
               "BrowserFS replacement waits for target OPFS mutations before publishing",
               "BrowserFS directory relocation coordinates descendant mutations and queries",
+              "virtio-fs shutdown drains current work without publishing or dispatching queued requests",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -66,7 +67,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the twenty-one successful lifecycle cases", () => {
+test("accepts exactly the twenty-two successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {

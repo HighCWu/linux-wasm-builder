@@ -59,6 +59,10 @@ jobs:
             --alias:@lowland/kernel/plugin="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/plugin.ts" \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$suite/network-api.js"
+          "$suite/node_modules/.bin/esbuild" scripts/browser-storage/filesystem-api.ts \
+            --bundle --format=esm \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$suite/filesystem-api.js"
       - name: Install browser
         run: '"$RUNNER_TEMP/browser-storage/node_modules/.bin/playwright" install --with-deps ${{ matrix.browser }}'
       - name: Verify real OPFS initialization failure recovery
