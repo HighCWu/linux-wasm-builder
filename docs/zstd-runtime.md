@@ -10,7 +10,7 @@ Invalid argument，随后触发运行失败标记。生产内核 mmap wrapper �
 `fa3eaa7` 已修正此错误验收假设，改为验证 malloc/read 字典与明确拒绝强制文件映射；
 该轮双位宽均已通过前置字典断言，但随后失败在二进制语料生成，仍不能宣称包通过。
 根盘切换时卸载了启动 devtmpfs，测试没有重新挂载便读取 `/dev/zero`；`79bd2b3`
-补上显式设备挂载并保留 dd 的错误输出，新双位宽验收已提交。
+补上显式设备挂载并保留 dd 的错误输出，新双位宽验收均已通过并核对实际日志。
 
 distro `73cf891` 增加显式 `zstd-wasm64`，默认 `zstd` 仍为 wasm32。
 两者复用固定的 Zstandard 1.5.6 源码、静态 CLI 构建与同一安装系统运行语料。
@@ -49,6 +49,13 @@ mmap 失败应比较 `MAP_FAILED`，不能比较 NULL。
 它们在 Node 承载的真实 Linux
 安装系统运行，不是浏览器 Zstandard 工作负载验收。
 
+固定 `79bd2b3` 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/38995246467)
+与 [wasm64](https://github.com/HighCWu/distro/actions/runs/38995247423) 均成功，实际日志
+包含 `zstd: malloc dictionaries verified; forced file mapping rejected` 和最终 pass 标记，
+说明上述默认字典、显式 malloc 字典、映射拒绝、二进制文件/管道、损坏流及许可证
+断言全部执行完成。实际 CLI 共享 env.memory 和位宽检查也通过，wasm32 上限 4 GiB，
+wasm64 声明上限 16 GiB；这不是对应容量已全部分配的证明。
+
 轻量宿主检查可运行：
 
 ```console
@@ -66,7 +73,7 @@ node --test sources/distro/distro/zstd/roundtrip-host.test.js
 
 ## 浏览器使用方向
 
-待原生检查通过后，可从公开 CI 构建 `.#zstd-wasm64`，将静态 `bin/zstd` 命名为
+原生 Node 检查已通过，可从公开 CI 构建 `.#zstd-wasm64`，将静态 `bin/zstd` 命名为
 `zstd.wasm`，通过独立示例的程序选择器导入。使用文件 stdin 和参数
 `["-q", "-f", "-o", "/root/result.zst"]` 可以把输入压缩到临时 Linux 文件，再用
 下载控件取回；输出下载仍受示例的 16 MiB 上限约束。此流程尚未专门完成浏览器验收，

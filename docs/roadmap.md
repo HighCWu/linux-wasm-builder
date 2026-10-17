@@ -54,7 +54,10 @@
 掩码选择，distro `de12442` 的双位宽 Node 与 wasm64 Firefox 已核实通过；Chromium
 未执行到测试，因源码下载 HTTP 429 失败。
 `e9b8308` 新增部分 pipe I/O、显式后缀重试及 wait 单次回收回归，宿主 8 项通过，
-目标 Wasm 待验；不声称完成标准 fork 或完整信号语义。
+目标 wasm64 在源码下载阶段遭遇 HTTP 429，wasm32 仍在构建。
+`7968bc9` 进一步补入 sigsuspend 与 handler 专有 sa_mask 的隔离/恢复检查，主交接
+增至 192 次，整组宿主 8 项通过，新双位宽等待验收已提交。
+不声称完成标准 fork 或完整信号语义。
 具体边界见[信号等待验证](signal-waits.md)。
 
 - 启动、异常和panic报告。
@@ -75,7 +78,8 @@
 文件/管道及许可文本断言，宿主 3 项检查通过，但实际双位宽 Wasm 均失败在映射字典。
 默认生产内核仍拒绝文件 mmap，不能把专用测试路径当作已开放能力。
 `fa3eaa7` 改验 malloc/read 字典及强制映射拒绝，目标均越过字典断言后失败在语料生成。
-`79bd2b3` 补挂测试所需 devtmpfs，宿主 8 项通过，新双位宽目标复验已提交。
+`79bd2b3` 补挂测试所需 devtmpfs，宿主 8 项通过；新双位宽目标复验均已成功，实际
+日志确认字典边界与最终 pass 标记。这是 Node 安装系统验收，不等于浏览器 Zstd 验收。
 范围和证据边界见 [Zstandard 运行记录](zstd-runtime.md)。
 
 - 稳定 `wasm32-unknown-linux-musl` target和sysroot。

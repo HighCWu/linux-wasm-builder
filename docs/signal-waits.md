@@ -84,8 +84,29 @@ distro `de12442` 已接入该内核，公开
 `runs SDK partial pipe I/O and interrupted child reaping through Linux`。
 新 fixture 的 GCC/Clang 宿主检查通过；合并既有 time、thread-time、signal-waits，
 宿主检查共 8 项通过。目标 Wasm 验收尚待确认，不把宿主 callback clone 当作 Wasm
-克隆或标准 fork 的通过证据。固定 `e9b8308` 的双位宽 Node 检查已提交；旧版本浏览器
-任务仍保持运行，不取消或重启，也不能将其结果用作新增 I/O fixture 的通过证据。
+克隆或标准 fork 的通过证据。固定 `e9b8308` 的
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/38995516047) 已因 Linux 源码下载
+HTTP 429 失败，尚未编译/执行 I/O fixture，不能称为 I/O 语义失败。
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/38995515156) 仍在构建。
+旧版本浏览器任务仍保持运行，不取消或重启，也不能将其结果用作新增 I/O fixture
+的通过证据。
+
+## sigsuspend 与 handler 专有掩码
+
+distro `7968bc9` 将同一等待 fixture 扩至 sigsuspend：普通和 SA_RESTART handler
+各验证 pending/并发两种交接，每种 16 轮，三接口的主交接共 192 次。
+sigsuspend 必须调用 handler、返回 EINTR，并恢复等待前完整掩码；它没有 timeout
+参数，丢失唤醒由外层 watchdog 判为失败，不假装具有内部超时。
+
+三个接口还统一验证 handler 的 sa_mask：SIGTERM 在原等待掩码和临时掩码中均解除
+阻塞，只由 sa_mask 在 handler 期间阻塞，返回后必须恢复为解除阻塞。
+同时保留 SIGUSR1 自身阻塞、SIGUSR2 始终阻塞和完整原掩码比较。
+超时、调用者 timespec 不变及可读 fd 检查仍只适用于 ppoll/pselect。
+
+同一 SDK fixture 已同步双位宽 Node 和浏览器入口；浏览器严格用例名更新为
+`runs SDK ppoll, pselect and sigsuspend signal-mask handoff through Linux`。
+宿主 GCC/Clang 含新路径的整组 8 项通过。新版双位宽等待检查已提交 CI，结果待确认；
+旧版本的 9 项浏览器通过不覆盖 sigsuspend 或新 sa_mask 断言。本轮没有修改内核/libc。
 
 这些重复用例不是对任意并行交错的形式证明；有限超时允许把丢失唤醒暴露为失败，
 并没有使无限等待的正确性自动成立。本轮没有验证内部多次重挂等待是否保留同一
