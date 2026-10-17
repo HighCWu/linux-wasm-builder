@@ -81,10 +81,20 @@ VFS/LSM、32 位机器 ABI、Wasm 原子或内核执行；候选内核公开构�
 不是允许四个最大请求超配。真实设备高并发背压、浏览器、性能及原 Zstd 的强制字典
 映射仍须后续单独验收，默认发行配置不会因本轮候选自动开放。
 
-distro `4b06c21` 固定该内核及上述集成。新版
+distro `4b06c21` 固定该内核及上述集成。首轮
 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39016551516) 和
-[wasm64 检查](https://github.com/HighCWu/distro/actions/runs/39016555063) 均已通过计划检查，
-进入实际构建/运行，最终结果待确认。
+[wasm64 检查](https://github.com/HighCWu/distro/actions/runs/39016555063) 均已失败，
+实际日志确认已进入候选程序，在标准文件 mmap 拒绝断言失败，不能记为通过。
+检查源码发现 `O_PATH` 预期错误：上游 `fget()` 排除此类 fd，返回 EBADF，而不是
+后续 FMODE_READ 检查的 EACCES。distro `cbd0d89` 修正此断言并增加失败参数、
+返回指针和实际/预期 errno 诊断；本机 Linux 也验证 O_PATH mmap 返回 EBADF，
+但这不能替代候选内核的重跑结果。
+[wasm32 重跑](https://github.com/HighCWu/distro/actions/runs/39024983496) 和
+[wasm64 重跑](https://github.com/HighCWu/distro/actions/runs/39024986125) 已通过计划检查，
+实际构建/运行结果待确认。只有整个聚合及真实日志通过后，才能确认拒绝和正向入口。
+
+下一步已增加[Zstandard 强制字典映射验收](zstd-runtime.md)：只在测试变体导出初始化能力，
+默认发行包和内核准入保持不变。该验收与标准入口重跑独立进行，尚不构成候选可用证明。
 
 Linux 实现改动遵循 GPL-2.0；独立测试、宿主和集成修改、文档采用 MIT，其他组件
 保持原协议。不把内核实现代码链接进用户程序。

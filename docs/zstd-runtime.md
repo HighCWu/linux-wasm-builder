@@ -32,6 +32,40 @@ Zstandard 被选为[文件 mmap 就绪度阶段](file-mmap-readiness.md)的真�
 原先成功的 `79bd2b3` 不包含本次扩展。
 生产内核与 libc 不变，不承诺已支持原 Zstd 的 PROT_READ 文件映射。
 
+### 认证不可变字典候选验收
+
+distro `910c438` 增加 `zstd-check-file` / `zstd-wasm64-check-file` 聚合检查，
+不更改默认 `zstd` / `zstd-wasm64` 的链接导出、默认内核或 SDK。测试变体仅通过
+`overrideAttrs` 添加 `-Wl,--export=__wasm_mmap_init_v1`；保留原 Zstandard 源码和
+现有 MAP_FAILED 检查补丁，不将 PROT_READ 改成 RW，不替换应用 syscall 或解引用。
+
+聚合包含两种真实 Linux/Wasm 执行环境：
+
+- 候选内核、原始 initramfs 中的 CLI/BusyBox，以及两个内容相同的 EROFS 字典盘。
+  只有第一个盘是认证私有快照；第二个虽只读且内容相同，也必须拒绝映射。
+- 默认内核和带初始化导出的 CLI，重新运行完整普通/read 字典及映射拒绝基线。
+  不能仅因增加链接导出就改变默认准入。
+
+候选工作负载对 65535、65536、65537、131071、131072 字节字典，分别强制 mmap
+压缩和解压，并与 malloc/read 交叉解码逐字节比较。131073 字节须报 ENOMEM；
+普通只读盘和可变 initramfs 文件须报 EOPNOTSUPP，超限时先报 ENOMEM。
+拒绝请求的压缩/解压均须退出 34、匹配 musl 诊断且不输出数据。既有默认基线还
+要求默认内核返回 EINVAL，防止上游强制路径静默 fallback 后被当成映射成功。
+这仍是有界主动复制，不是零拷贝、按需分页或可强制执行的只读保护。
+
+新增 11 项宿主检查，加上原基线共 21 项已通过。正向操作使用本机原生 Zstandard
+真实 mmap，认证来源、容量拒绝和挂载由受控 fixture 模拟；反向控制覆盖压缩/解压
+失败、交叉解码损坏、错误退出码/诊断、拒绝后输出，以及仅放行超限可变来源。
+它们不证明本项目 Wasm CLI、执行 ABI、VFS 来源认证或内核准入已可用。
+
+首次双位宽 CI（distro `7cd56aa`）均止于 Nix 计划检查：内部 finalPackage 没有
+callPackage 外层的 `.override`。`910c438` 改用 `.overrideAttrs`；首轮未运行应用，
+不能当作映射成功或失败证据。修正后的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39025307814) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39025311008) 均已通过计划检查，
+进入重型构建/运行，最终结果仍待确认。标准候选入口自身的重跑状态见
+[候选文档](file-mmap-candidate.md)。所有重型构建均在公开 Actions 进行。
+
 ## 字典加载与文件映射边界
 
 普通字典默认使用上游 malloc/read 路径，`--no-mmap-dict` 也显式选择该路径，
@@ -76,7 +110,7 @@ wasm64 声明上限 16 GiB；这不是对应容量已全部分配的证明。
 node --test sources/distro/distro/zstd/roundtrip-host.test.js
 ```
 
-需要宿主 Node 和 Zstandard CLI。八项检查已通过，验证共享工作负载及故障断言，
+需要宿主 Node 和 Zstandard CLI。原基线十项检查已通过，验证共享工作负载及故障断言，
 包括普通字典失败、错误映射退出码/诊断、静默 fallback、拒绝后输出和损坏流。
 宿主真实执行普通字典及二进制/管道往返，模拟强制映射拒绝，因为宿主支持文件映射。
 宿主 mount 由受控 fixture 截获，不会挂载或覆盖开发机器的 `/dev`，另验设备准备失败
