@@ -384,3 +384,12 @@ stdout/stderr 写入和 SIGTERM 处置，再通过专用管道告知父进程就
 
 旧版 Firefox 成功结束后才启动固定 `95ad6e5` 的 wasm64 Firefox 复验，用于运行
 最新完整语料及示例。不取消或重复启动其它正在运行的检查，也不预告新版结果。
+
+固定 `47cc982` 的 [wasm32 完整检查][python32-resource-cleanup]现已成功，实际
+Linux 日志核对了 32 位 ABI、布局、搬移归档、PATH 异常，以及连续 64 次启动
+失败后的父进程 fd、FD_CLOEXEC 和无残留子进程断言，最后输出 `::vm-test::pass`。
+这首次提供该连续失败清理语料的 Wasm 运行证据，不覆盖后续 fd 耗尽、超时/终止
+或发布示例。旧任务自然成功结束后才启动固定 `7b8b4ec` 的 wasm32 完整复验，
+以运行全部最新语料并验收多输出采集；不替换其它仍在运行的浏览器检查。
+
+[python32-resource-cleanup]: https://github.com/HighCWu/distro/actions/runs/39078913478
