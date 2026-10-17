@@ -5,7 +5,7 @@
 这组独立 MIT 用户态用例（distro `95f8012`）使用标准 pthread 接口，检查 process-private、ERRORCHECK、
 robust mutex 的所有权状态迁移；不改变 Linux、musl 或执行 ABI。
 
-每种场景重复 4 次，所有者线程已经 join 后才开始后续恢复，不用 sleep 假定线程已退出：
+原有四种场景各重复 4 次，所有者线程已经 join 后才开始后续恢复，不用 sleep 假定线程已退出：
 
 - 持锁线程正常返回而不解锁；下一名所有者必须取得锁并收到 `EOWNERDEAD`。
   调用 `pthread_mutex_consistent` 后解锁，另一个线程应能成功取得并释放同一把锁。
@@ -46,6 +46,33 @@ musl 的正常 pthread 退出路径会在用户态处理 process-private robust 
 syscall、进程被杀、process-shared、PI、robust pending 窗口、死亡前已经排队的等待者、
 异步取消、应用数据自动恢复或任意并发交错。ERRORCHECK 对象成功解锁只验证当前
 所有者可操作，不替代对其他线程错误解锁的完整负向测试。
+
+## 并发竞争后的所有者退出（待目标验证）
+
+distro `c184e08` 追加四轮并发恢复，每轮一名所有者和四名竞争者，仍只使用标准
+pthread 接口。所有者先持有 robust mutex；四名竞争者分别用 trylock 明确取得
+`EBUSY`，再通过独立 mutex/condition-variable 通知已观察到活跃所有者，并尝试
+有界 timedlock。所有者必须等四份通知后才带锁退出，不靠 sleep 推断重叠。
+
+验收要求恰好一名竞争者取得 `EOWNERDEAD` 并调用 consistent，其余竞争者随后
+正常取得锁；四次受保护更新必须全部完成，每个 join 结果及对象销毁都须成功。
+协调等待和竞争锁使用十秒期限，外层目标 watchdog 仍保留；超时不是通过证据。
+新增阶段在原完成标记之前输出：
+
+```text
+robust mutex: four contending threads serialize one owner-dead repair verified
+```
+
+GCC/Clang 的相同程序均通过，宿主整组仍为 12 项；除了原有反向控制，还分别删去
+并发修复调用，必须明确报告 `contending waiter did not acquire repaired mutex`，
+不能只观察到挂起。浏览器现有 robust mutex 测试额外要求新阶段，未增加或跳过用例。
+双位宽 SDK 目标已提交公开 CI，尚待实际阶段与 pass 日志；旧版本 Node/浏览器通过
+记录不包含此新增场景。
+
+这里证明每个竞争者确实观察到活跃所有者并参与恢复，但通知与 timedlock 之间仍有
+调度窗口，不能证明所有线程在所有者死亡前已进入内核 futex 队列。不扩大为 kernel
+robust-list 崩溃清理、任意排队交错、PI、共享进程或异步取消的保证。
+本轮只增加 MIT 验收语料，不修改 musl、Linux、默认配置或执行 ABI。
 
 ## 浏览器接入
 
