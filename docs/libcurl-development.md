@@ -86,7 +86,9 @@ Playwright 要求二进制文件回调/正常退出、显式 CA TLS 1.3、默认
 固定 `c66e1a6` 的
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39070094997) 和
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39070098304) 开发包检查均已通过
-计划及派生解析并进入隔离构建，目标构建和运行尚待验收。为避免重复提交已知失败，
+计划及派生解析并进入隔离构建。双位宽实际日志确认整组路径校验已通过，随后
+改写从 Nix store 复制的只读 `libcrypto.pc` 时因 `EACCES` 失败，仍未进入 C 消费者
+编译和运行。为避免重复提交已知失败，
 新的四路浏览器 21 项矩阵暂待双位宽开发包验收，不沿用旧 20 项结果。
 
 相关原生 TLS、元数据、共享接线、报告和关闭期运行器共 52 项本地检查通过，
@@ -106,3 +108,43 @@ Linux 内核实现代码；分发静态应用时仍需保留相应依赖声明�
 会把 memory64 浏览器检查分到 wasm32 缓存；此修正不改变编译目标，也不把缓存
 命中当作运行证据。主仓库六项轻量回归覆盖真实检查名及分类不一致的反向控制；
 尚不声称测得构建提速。
+
+## 标准 CMake 消费入口
+
+`ea9c186` 的开发安装还提供与 `fetch.c` 同目录的 MIT `CMakeLists.txt`，通过
+`find_package(PkgConfig)` 和 `PkgConfig::LIBCURL` 获取依赖，不手写链接库列表。
+使用匹配 SDK 的 `share/cmake/linux-wasm.cmake`，并将 `CMAKE_STAGING_PREFIX`
+显式指向复制后的开发安装，允许该目录位于 libc sysroot 之外，不开启宿主搜索。
+完整命令随开发安装的示例 README 发布；改变 SDK 或依赖安装后应使用新构建目录。
+
+新增独立的 `curl-check-development-cmake` 与
+`curl-wasm64-check-development-cmake`。目标检查复制、改名开发安装后，从安装的
+CMake 项目构建并检查真实 Wasm ABI；再使用同一个 Linux 初始化脚本验证文件
+字节、正常退出与 TLS 信任边界。另用新 CMake 构建目录确认缺失 `libcrypto.pc`
+会失败，不能用成功配置留下的缓存或宿主库补齐。原直接编译器入口保持不变，
+浏览器 21 项仍使用该直接入口，不自动证明 CMake 入口通过。
+
+原生 CMake 夹具使用 GCC/Clang、真实宿主 libcurl 和隔离元数据，检查搬移后的
+已安装项目、二进制文件回调、正常退出及私有元数据缺失时失败。宿主 libcurl
+可能是动态库，该夹具不要求宿主的整套静态开发依赖，也不替代目标静态图和
+Wasm 运行证据。新增目标入口的公开构建与运行结果仍待验收。
+
+包含上述 CMake 正反例的原生 TLS、元数据、浏览器接线、报告及运行器相关整组
+54 项本地检查已通过，不能据此宣称目标 CMake 或浏览器通过。主仓库固定
+`0ad781c` 的[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39070284929)
+也已成功，实际日志确认冗余斜杠回归、真实 GCC/Clang libcurl C 示例及六项缓存
+分类检查执行；该 CI 使用 CMake 入口加入前的源码，不作为新增入口的证据。
+
+针对上述只读副本失败，`1905bb6` 的开发包配方改为以明确的 `0644` 模式安装 `.pc` 副本，
+不修改原 Nix store 文件，也不放宽路径校验。新增原生回归直接执行配方里的
+安装命令，输入文件设为 `0444`，验证副本可搬移改写且源文件模式和内容不变。
+目标编译及运行仍需修正后的公开 CI 验收。
+包括只读输入回归在内的相关本地整组现为 55 项，全部通过。
+
+固定 `1905bb6` 的下列四项公开检查均已通过计划和派生解析、进入重型任务，
+真实目标构建和运行仍待验收；新浏览器 21 项矩阵尚未触发。
+
+| 位宽 | 直接 SDK 编译 | CMake 编译 |
+| --- | --- | --- |
+| wasm64 | [开发包检查](https://github.com/HighCWu/distro/actions/runs/39071343031) | [CMake 检查](https://github.com/HighCWu/distro/actions/runs/39071346024) |
+| wasm32 | [开发包检查](https://github.com/HighCWu/distro/actions/runs/39071375313) | [CMake 检查](https://github.com/HighCWu/distro/actions/runs/39071378730) |
