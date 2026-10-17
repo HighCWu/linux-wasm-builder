@@ -47,6 +47,10 @@ pass 和无 fail，并等待整机关闭。
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39056131271) 也已成功：实际日志
 同样确认全部 14 项与严格报告门禁通过，零跳过、零重试。两者固定 `134ab6e`，
 不覆盖后续 virtio-fs 错误清理修改，不能扩大为完整 POSIX 信号量支持。
+固定 distro `68870f4` 的新版完整 14 项 wasm32 浏览器套件也已调度：
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39057459951) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39057463430)。两者包含信号量
+期限回归，目前仍待实际结果，不能以 wasm64 成功替代。
 本次只增加 MIT 测试集成，不修改默认内核配置、musl、执行 ABI 或许可证边界。
 
 builder `2c38d43` 的
