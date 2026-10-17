@@ -142,3 +142,8 @@ codeload 与 github archive 两个官方入口均遭遇 HTTP 429，内置重试�
 进入重型检查；此提交保留相同的 SDK 路径修复及源码获取校验，不预告运行结果。
 
 [site32-fetch-recheck]: https://github.com/HighCWu/distro/actions/runs/39078075931
+
+上述两项后续验收现已成功，均已核对实际重型日志：固定 `2bec3ff` 的 wasm64
+和固定 `417d8d0` 的 wasm32 都完成真实 Autoconf 回归，1 项通过、零失败/跳过，
+并在 Linux 内输出分配验证标记和 `::vm-test::pass`。因此路径校验与共享站点
+策略已有双位宽目标运行证据；此前 HTTP 429 仍记录为获取失败，不改写其结论。
