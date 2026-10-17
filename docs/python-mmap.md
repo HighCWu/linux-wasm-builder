@@ -335,3 +335,34 @@ Firefox、wasm32、OPFS 持久化或最新版资源清理已通过。
 新版已启动 wasm64 Chromium 公开复验；仍在运行的 `47cc982` wasm32 完整检查
 不含此项后续耗尽语料。尚无新版实际目标/浏览器结论，也不证明并发 fd 打开、
 信号中断、全系统文件表耗尽或内存不足时的全部清理行为。
+
+固定 `417d8d0` 的 [wasm32 Chromium][python-browser32-chromium]和
+[wasm32 Firefox][python-browser32-firefox]也已成功，均已核对重型日志：精确执行
+完整解释器/搬移应用与私有匿名 mmap 两条用例，各 2 项通过、零跳过/重试。
+该版页面核对 32 位 ABI、布局、对应阶段及最终 pass；这些证据仍不包含后续
+连续启动失败、fd 耗尽或下面的超时/终止语料。
+
+## 子进程超时、终止与回收
+
+`fa9c5d0` 增加独立的 `process-lifecycle-test.py`，由同一双位宽完整解释器根盘
+安装并执行，保留原有应用、线程、多进程、TLS 与映射验收。子进程先完成二进制
+stdout/stderr 写入和 SIGTERM 处置，再通过专用管道告知父进程就绪，不用启动
+延迟猜测子进程是否已运行。
+
+父进程分别要求 wait 和 communicate 对仍运行的子进程报告 TimeoutExpired；
+异常携带原样二进制输出，超时本身不能杀死子进程。随后检验默认 SIGTERM 终止，
+以及明确忽略 SIGTERM 后仍超时、再由 SIGKILL 终止两条路径。重试 communicate
+必须返回完整且没有重复的输出，两种负信号退出码必须准确；重复 wait 稳定，
+直接 waitpid 必须报告已无该子进程。失败路径也主动终止并回收子进程、关闭流。
+
+原生检查另注入一次真实 communicate 结果重复，字节断言必须拒绝。相关整组
+58 项本机检查通过、零跳过，Nix/JS/Shell 格式与 pin 检查通过；宿主原生进程
+后端不能代替 Wasm 的信号、等待与管道实现证据。浏览器完整用例强制核对新增
+阶段，缺失阶段的报告被反例拒绝。新版 [wasm32 Firefox 公开复验][python32-lifecycle]
+已通过计划及派生解析并进入重型检查，正在
+运行的 `8a189fe` wasm64 Chromium 不含此项后续语料，不重启或取消该任务。
+
+这些短超时只用于确定仍运行的就绪子进程不会被错误回收，不是性能指标；本项
+不证明信号处理器重入、整个进程组终止、并发取消或任意信号负载的兼容性。
+
+[python32-lifecycle]: https://github.com/HighCWu/distro/actions/runs/39079272845
