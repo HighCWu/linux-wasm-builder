@@ -154,8 +154,8 @@ jobs:
       - name: Check Zstandard workload assertions with the host CLI
         # No target build here; real wasm32/wasm64 execution remains in public CI.
         run: |
-          npx --yes oxfmt@0.59.0 --check sources/distro/distro/zstd/roundtrip-host.test.js
-          node --test sources/distro/distro/zstd/roundtrip-host.test.js
+          npx --yes oxfmt@0.59.0 --check sources/distro/distro/zstd/*-host.test.js
+          node --test sources/distro/distro/zstd/*-host.test.js
       - name: Check standalone wasm64 embedding example without booting Linux
         run: |
           npx --yes oxfmt@0.59.0 --check \
