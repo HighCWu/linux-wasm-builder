@@ -45,8 +45,22 @@ node --test sources/distro/distro/sdk/filesystem-test.js
 ```
 
 GCC/Clang 两项宿主检查已经通过，核对完整阶段、正常退出和临时目录清理；这些
-使用宿主 C++ 运行库，不证明 Wasm 的 libc++、musl 或内核已通过。双位宽 SDK
-公开检查已调度，尚待实际目标结果。当前还没有此程序的真实浏览器运行证据。
+使用宿主 C++ 运行库，不证明 Wasm 的 libc++、musl 或内核已通过。固定 `52b6003` 的
+[wasm32 SDK](https://github.com/HighCWu/distro/actions/runs/39057897448) 和
+[wasm64 SDK](https://github.com/HighCWu/distro/actions/runs/39057893423) 已启动，
+尚待实际目标结果。
+
+## 浏览器集成
+
+distro `e733bfb` 将相同 SDK 产物通过独立 `runtime-filesystem.cpio` 接入浏览器
+运行套件，按位宽选择 SDK 和内核。既有共用运行器负责启动、结果与整机关闭，新增
+用例要求完整文件系统阶段、用户控制台 pass 且无 fail。精确报告清单从 14 项增至
+15 项，缺失、跳过或重试均不能作为通过。
+
+新增宿主契约验证归档请求、下载失败传播，以及缺少完成阶段/通过标记或混入失败
+记录必须拒绝。连同报告门禁和共享关闭生命周期共 39 项宿主检查通过。wasm64
+Chromium/Firefox 新版公开检查已调度，目前尚无这份程序的真实浏览器成功证据。
+此前 14 项套件不包含此程序；独立宿主检查也不能替代 Linux 在浏览器中的实际运行。
 
 测试只验证默认内核中的临时文件系统，不挂载 NodeFS/BrowserFS，不操作 OPFS，
 不验证持久化、原子替换、跨文件系统移动、目录并发、文件 mmap 或完整 C++ 标准库。
