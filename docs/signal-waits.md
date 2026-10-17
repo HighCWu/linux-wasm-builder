@@ -155,12 +155,23 @@ distro `889fb5a` 新增独立 MIT fixture `signal-futex.c`，使用原始 Linux 
 共享 SDK 提供 `sdk-check-signal-futex-runtime` 和 `sdk-wasm64-check-signal-futex-runtime`，
 均为双核；浏览器复用 SDK 产物，严格用例
 `runs SDK futex signal restart and timed interruption through Linux` 将套件增至 11 项。
-GCC/Clang 宿主检查包含新 fixture 共 10 项通过；目标 Wasm 结果仍待 CI 确认。
+GCC/Clang 宿主检查包含新 fixture 共 10 项通过。固定 `889fb5a` 的
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/39000999931) 已核对末阶段和 pass；
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/39001001372) 与
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/39001002596) 实际执行后失败于
+`futex signal handler or unchanged word check failed`，Chromium 其余 10 项通过。
+[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/39001004021) 则因源码下载
+HTTP 429 未执行测试，不能将三种结果混为一谈。
+
+审计发现 fixture 调用 musl 公开 `syscall()` 时传入了 int 变参，而实现读取六个 long；
+wasm64 的 int/long 宽度不同，不能依赖原生寄存器 ABI 的隐式扩展。`73d0a65` 修正为固定参数
+类型的包装，传入六个机器字宽变参，另加逐阶段和失败值诊断。修正后的宿主 10 项通过；
+它是否完全解释目标失败仍待复验，不先宣布内核重启语义有错或已修复。
 本轮不改内核/libc，也不声称验证了停止/继续导致的 restart_block deadline 保留、
 futex_waitv、PI、robust owner death、取消协议或任意交错下的正确性。
 
 这些重复用例不是对任意并行交错的形式证明；有限超时允许把丢失唤醒暴露为失败，
 并没有使无限等待的正确性自动成立。本轮没有验证内部多次重挂等待是否保留同一
 deadline；新增 I/O/回收 fixture 也不证明异步 I/O 取消、副作用回滚、read 拷贝过程
-中的信号交错或标准 fork；新增 futex 重启分类的目标验收仍待确认。
+中的信号交错或标准 fork；新增 futex 重启分类的 wasm64 修正后验收仍待确认。
 后续按这些边界独立增加用例，不以一组等待测试代替完整 POSIX 信号语义。

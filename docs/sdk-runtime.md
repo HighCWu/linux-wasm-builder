@@ -532,6 +532,13 @@ C++异常tag和catch处理仍存在。旧配置会失败，修正后通过；SDK
 
 ## 验证状态
 
+直接使用公开 `syscall(long, ...)` 的程序需要额外审计：当前 musl 实现读取六个
+机器字宽参数，应显式传入 long，指针经 uintptr_t 转为 long，未用参数使用 `0L`。
+尤其 wasm64 的 int 为 32 位、long 为 64 位，不能依赖其他平台寄存器传参偶然提供的
+扩展行为。普通 libc 函数的固定类型接口不要求应用这样处理。原始 syscall 的时间
+结构还必须匹配对应 time32/time64 入口；变参宽度正确不能替代结构布局检查。
+此边界已用于修正 [futex 信号测试](signal-waits.md)，目标修正结果待验证。
+
 Autoconf项目可使用SDK的`wasm-linux-configure`入口，使用方式、配置探测及验证
 边界见[Autoconf构建说明](sdk-autoconf.md)。
 Meson项目可使用安装后的cross file及显式构建机工具，见[Meson构建说明](sdk-meson.md)。

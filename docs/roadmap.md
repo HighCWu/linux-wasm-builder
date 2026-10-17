@@ -31,6 +31,12 @@
 
 ## P0：可复现上游基线
 
+Linux 源码获取增加 codeload 优先与原 archive 后备，共用原精确 pin 和解包哈希；
+新增只取源码的独立检查，不占用 LLVM/内核编译资源。构建材料同步保留获取配方，
+宿主材料/源码包 7 项与 pin 解析 3 项通过；`50af862` 的公开取源码检查已成功，日志
+确认经 codeload 下载、解包，并通过原固定内容哈希校验。
+参见[固定源码获取](source-fetching.md)。
+
 - 添加 `HighCWu/distro`、`linux`、`llvm-project`、`musl` submodule并固定提交。
 - 将 distro/Nix中的 Linux、LLVM和musl来源更新到对应 HighCWu fork的精确commit pin。
 - 校验主仓库submodule指针与distro pin一致，避免集成仓库展示的版本与实际构建版本
@@ -63,7 +69,9 @@
 包含 GCC/Clang 去掉该 flag 后必须失败的反向控制，双位宽 Node 已核实完整末阶段和 pass。
 `889fb5a` 独立 futex 信号用例区分无超时 SA_RESTART 与带超时 restart_block 的 EINTR 路径，
 增加显式 wake、timeout 和残留队列检查，wasm32 显式选择 time64 syscall；宿主共 10 项
-通过，双位宽 SDK/11 项浏览器入口已接入，目标结果待确认。
+通过，双位宽 SDK/11 项浏览器入口已接入。Node wasm32 已核实通过，Node wasm64 与
+Chromium 的 futex 断言失败，Firefox 因源码 429 未执行。后续修正 fixture 的原始 syscall
+机器字宽变参并保持断言，宿主 10 项通过，wasm64 修正后复验待确认。
 不声称完成标准 fork 或完整信号语义。
 具体边界见[信号等待验证](signal-waits.md)。
 
