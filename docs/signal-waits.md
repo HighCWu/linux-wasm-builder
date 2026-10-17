@@ -187,8 +187,14 @@ FUTEX_WAITV 使用其自身的 time64 绝对时间接口，不套用旧 futex �
 long 变参；反向控制将一个参数改回 int 或删除一个参数，必须编译失败。两份用例各用
 GCC/Clang 检查共 4 项通过，原有时间/信号/pthread 宿主 10 项也通过。这是调用点
 契约检查，不模拟 Wasm 内存、时间布局或内核执行。独立目标入口为
-`sdk-check-futex-runtime` 和 `sdk-wasm64-check-futex-runtime`，新增基础用例的目标
-验收仍待公开 CI 确认；浏览器已通过的 11 项是上述信号用例，不包含这组基础检查。
+`sdk-check-futex-runtime` 和 `sdk-wasm64-check-futex-runtime`。
+固定 `5a54912` 的 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39005583127)
+和 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39005586443) 均已成功；日志
+核实完整的 `futex ABI: ... verified` 阶段和 pass。浏览器已通过的 11 项是上述信号用例，
+不包含这组基础检查。
+
+后续 [robust mutex 回归](robust-mutex.md) 单独验证普通线程退出及 deferred cancellation
+之后的 owner-dead 恢复，不把基础 futex 通过当作 robust list 或进程崩溃恢复的证据。
 
 这些重复用例不是对任意并行交错的形式证明；有限超时允许把丢失唤醒暴露为失败，
 并没有使无限等待的正确性自动成立。本轮没有验证内部多次重挂等待是否保留同一

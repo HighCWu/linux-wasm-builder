@@ -74,7 +74,10 @@ Firefox 因源码 429 未执行。`73d0a65` 修正 fixture 的原始 syscall 机
 断言后，Node 双位宽已核实最终阶段与 pass；Chromium/Firefox 各 11 项通过且无跳过/重试。
 `5a54912` 进一步修正基础 futex/waitv 用例的调用宽度和 time64 选择，增加窄参数/缺参数
 反向门禁，宿主契约 4 项与原有时间/信号 10 项通过；独立双位宽 SDK 入口的真实超时与
-原子更新验收待 CI 确认，不把信号用例通过泛化到全部 futex 操作。
+原子更新均已核实末阶段和 pass，不把信号用例通过泛化到全部 futex 操作。
+`95f8012` 新增 [robust mutex 线程退出恢复](robust-mutex.md)，区分修复后复用、未修复后的
+不可恢复状态、恢复者再次退出及 deferred cancellation，含反向控制的宿主整组 12 项
+通过；目标结果待独立 CI 确认。
 不声称完成标准 fork 或完整信号语义。
 具体边界见[信号等待验证](signal-waits.md)。
 

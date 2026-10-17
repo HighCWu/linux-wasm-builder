@@ -538,7 +538,9 @@ C++异常tag和catch处理仍存在。旧配置会失败，修正后通过；SDK
 扩展行为。普通 libc 函数的固定类型接口不要求应用这样处理。原始 syscall 的时间
 结构还必须匹配对应 time32/time64 入口；变参宽度正确不能替代结构布局检查。
 此边界已用于修正 [futex 信号测试](signal-waits.md)，固定 `73d0a65` 的 Node 双位宽及
-Chromium/Firefox wasm64 已验证通过；后续基础 futex/waitv 检查仍独立验收。
+Chromium/Firefox wasm64 已验证通过；固定 `5a54912` 的基础 futex/waitv Node 双位宽
+也已独立通过。[Robust mutex 线程退出恢复](robust-mutex.md) 另行验收，不据此宣称
+进程崩溃时的内核 robust list 清理已验证。
 
 Autoconf项目可使用SDK的`wasm-linux-configure`入口，使用方式、配置探测及验证
 边界见[Autoconf构建说明](sdk-autoconf.md)。
