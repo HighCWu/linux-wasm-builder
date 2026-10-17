@@ -80,15 +80,17 @@ jobs:
             uname -a
             lscpu
             readlink -f result-file-copy
-            for artifact in kernel runner initramfs.cpio disk.img; do
+            for artifact in kernel runner initramfs.cpio components.cpio disk.img; do
               readlink -f "result-file-copy/$artifact"
             done
-            sha256sum result-file-copy/{kernel/dist/index.js,runner/run-test.js,initramfs.cpio,disk.img}
+            sha256sum result-file-copy/{kernel/dist/index.js,runner/run-test.js,initramfs.cpio,components.cpio,disk.img}
             git -C sources/distro show HEAD:distro/musl/package.nix
             git -C sources/distro show HEAD:distro/linux/package.nix
             git -C sources/distro show HEAD:distro/llvm-toolchain/unwrapped.nix
           } > provenance/build-and-host.txt
-          bash scripts/run_file_copy_benchmarks.sh result-file-copy "$BITS" results
+          mkdir results
+          bash scripts/run_file_copy_benchmarks.sh result-file-copy "$BITS" results/paired
+          bash scripts/run_file_copy_benchmarks.sh result-file-copy "$BITS" results/components components
       - uses: actions/upload-artifact@v4
         if: always()
         with:

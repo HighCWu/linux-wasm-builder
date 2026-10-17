@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 import unittest
-from summarize_file_copy_benchmark import summarize
+from itertools import permutations
+from summarize_file_copy_benchmark import COMPONENT_ORDER, summarize
 
 
 def fixture(bits=64):
@@ -14,7 +15,56 @@ def fixture(bits=64):
     return rows + ["file mmap: warm paired copy benchmark completed; no speed threshold", "::vm-test::pass"]
 
 
+def components_fixture(bits=64):
+    rows = []
+    for length in (65536, 131072):
+        for trial, order in enumerate(COMPONENT_ORDER, 1):
+            for mode in order:
+                elapsed = {"pread": 64000, "anon-pread": 128000, "mmap": 384000}[mode]
+                checksum = (length // 4096 * 11 + 230) * 64
+                rows.append(f"file-copy-components,{bits},{mode},{length},{trial},64,{elapsed},{checksum}")
+    return rows + ["file mmap: warm three-path diagnostic completed; no speed threshold", "::vm-test::pass"]
+
+
 class FileCopyBenchmarkTests(unittest.TestCase):
+    def test_components(self):
+        self.assertEqual(set(COMPONENT_ORDER), set(permutations(("pread", "mmap", "anon-pread"))))
+        for bits in (32, 64):
+            report = summarize(components_fixture(bits), bits, components=True)
+            self.assertIn("| 65536 | 1.000 | 2.000 | 6.000 | 2.000 | 3.000 | 6.000 |", report)
+            self.assertIn("not additive", report)
+        for rows in [components_fixture()[1:], components_fixture()[:-1],
+                     components_fixture() + [fixture()[0]], fixture(),
+                     components_fixture()[:1] + components_fixture(),
+                     [row.replace(",6,64,", ",7,64,") for row in components_fixture()],
+                     [row.replace(",anon-pread,", ",unknown,") for row in components_fixture()],
+                     [row.replace(",384000,", ",0,") for row in components_fixture()],
+                     [row.replace(",25984", ",25985") for row in components_fixture()],
+                     [row.replace(",64,mmap,", ",32,mmap,") for row in components_fixture()]]:
+            with self.subTest(rows=rows[:1]), self.assertRaises(ValueError):
+                summarize(rows, 64, components=True)
+        for rows in [components_fixture(), fixture() + [components_fixture()[0]]]:
+            with self.assertRaises(ValueError):
+                summarize(rows, 64)
+        rows = components_fixture()
+        rows[0], rows[1] = rows[1], rows[0]
+        with self.assertRaises(ValueError):
+            summarize(rows, 64, components=True)
+
+    def test_components_uses_paired_ratios(self):
+        rows = components_fixture()
+        for index, row in enumerate(rows):
+            fields = row.split(",")
+            if len(fields) != 8 or fields[3] != "65536":
+                continue
+            trial = int(fields[4])
+            if fields[2] == "pread":
+                fields[6] = str(trial * 64000)
+            elif fields[2] == "anon-pread":
+                fields[6] = str((100 if trial == 1 else trial) * 64000)
+            rows[index] = ",".join(fields)
+        self.assertIn("| 65536 | 3.500 | 4.500 | 6.000 | 1.000 |", summarize(rows, 64, components=True))
+
     def test_both_widths(self):
         for bits in (32, 64):
             report = summarize(fixture(bits), bits)

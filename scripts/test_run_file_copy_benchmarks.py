@@ -8,15 +8,15 @@ import sys
 import tempfile
 import unittest
 
-from test_summarize_file_copy_benchmark import fixture
+from test_summarize_file_copy_benchmark import components_fixture, fixture
 
 
 class FreshBootTests(unittest.TestCase):
-    def run_case(self, bits=64, invalid=False, exit_code=0, existing=False):
+    def run_case(self, bits=64, invalid=False, exit_code=0, existing=False, components=False):
         with tempfile.TemporaryDirectory(prefix="file-copy-orchestration-") as temp:
             root = Path(temp)
             assets = root / "assets with spaces"
-            for name in ("initramfs.cpio", "disk.img", "kernel/dist/index.js", "runner/run-test.js"):
+            for name in ("initramfs.cpio", "components.cpio", "disk.img", "kernel/dist/index.js", "runner/run-test.js"):
                 path = assets / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.touch()
@@ -36,14 +36,15 @@ else:
 ''')
             node.chmod(0o755)
             log = root / "input.log"
-            log.write_text("\n".join(fixture(bits)[:-1] if invalid else fixture(bits)) + "\n")
+            rows = components_fixture(bits) if components else fixture(bits)
+            log.write_text("\n".join(rows[:-1] if invalid else rows) + "\n")
             calls = root / "calls.jsonl"
             output = root / "output"
             if existing:
                 output.mkdir()
             result = subprocess.run(
                 ["bash", str(Path(__file__).with_name("run_file_copy_benchmarks.sh")),
-                 str(assets), str(bits), str(output)],
+                 str(assets), str(bits), str(output)] + (["components"] if components else []),
                 env={**os.environ, "PATH": f"{fake_bin}:{os.environ['PATH']}",
                      "MOCK_CALLS": str(calls), "MOCK_LOG": str(log), "MOCK_EXIT": str(exit_code)},
                 capture_output=True, text=True, timeout=20,
@@ -66,16 +67,18 @@ else:
                 self.assertEqual(args, [str(assets / "runner/run-test.js"), "--cpus", "1",
                                        "--snapshot-first-disk", "--readonly-disks",
                                        str(assets / "kernel/dist/index.js"),
-                                       str(assets / "initramfs.cpio"), str(assets / "disk.img")])
+                                       str(assets / ("components.cpio" if components else "initramfs.cpio")), str(assets / "disk.img")])
 
     def test_three_separate_boots_for_both_widths(self):
         for bits in (32, 64):
-            with self.subTest(bits=bits):
-                self.run_case(bits)
+            for components in (False, True):
+                with self.subTest(bits=bits, components=components):
+                    self.run_case(bits, components=components)
 
     def test_stops_after_invalid_evidence_or_nonzero_runner(self):
         self.run_case(invalid=True)
         self.run_case(exit_code=7)
+        self.run_case(invalid=True, components=True)
 
     def test_refuses_previous_output(self):
         self.run_case(existing=True)

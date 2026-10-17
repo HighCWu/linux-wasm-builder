@@ -14,7 +14,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Keep explicit benchmark dispatches separate from routine push validation;
+  # GitHub replaces a pending run even when cancel-in-progress is false.
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
@@ -187,6 +189,16 @@ jobs:
             status=0
             python3 -B scripts/summarize_file_copy_benchmark.py --bits 64 \
               < "$RUNNER_TEMP/file-copy-host.log" > /dev/null 2> "$RUNNER_TEMP/file-copy-error.log" || status=$?
+            test "$status" -eq 2
+            grep -F 'host-only or failed run' "$RUNNER_TEMP/file-copy-error.log"
+            "$compiler" -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/basic-init/tests/mmap-file-components-host.c \
+              -o "$RUNNER_TEMP/file-copy-components-$compiler"
+            timeout 30s "$RUNNER_TEMP/file-copy-components-$compiler" > "$RUNNER_TEMP/file-copy-components.log"
+            test "$(grep -c '^file-copy-components,' "$RUNNER_TEMP/file-copy-components.log")" -eq 36
+            status=0
+            python3 -B scripts/summarize_file_copy_benchmark.py --bits 64 --components \
+              < "$RUNNER_TEMP/file-copy-components.log" > /dev/null 2> "$RUNNER_TEMP/file-copy-error.log" || status=$?
             test "$status" -eq 2
             grep -F 'host-only or failed run' "$RUNNER_TEMP/file-copy-error.log"
           done
