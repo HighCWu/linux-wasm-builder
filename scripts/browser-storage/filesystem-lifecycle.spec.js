@@ -30,6 +30,9 @@ test("virtio-fs failed CREATE releases unpublished handles and lookup references
             exists = true;
             return { node, handle };
           },
+          open() {
+            return handle;
+          },
           flush() {},
           fsync() {},
           release(actualNode, actualHandle) {
@@ -85,6 +88,11 @@ test("virtio-fs failed CREATE releases unpublished handles and lookup references
         const absent = await request(3, 2n, new Uint8Array(16));
         const found = await request(1, 1n, name);
         const inode = Number(view.getBigUint64(1040, true));
+        const opened = await request(14, 2n, new Uint8Array(8));
+        const release = new Uint8Array(24);
+        new DataView(release.buffer).setBigUint64(0, view.getBigUint64(1040, true), true);
+        const released = await request(18, 2n, release);
+        const duplicateRelease = await request(18, 2n, release);
         const forget = new Uint8Array(8);
         new DataView(forget.buffer).setBigUint64(0, 1n, true);
         await request(2, 2n, forget);
@@ -96,6 +104,9 @@ test("virtio-fs failed CREATE releases unpublished handles and lookup references
           absent,
           found,
           inode,
+          opened,
+          released,
+          duplicateRelease,
           collected,
           exists,
         });
@@ -116,7 +127,10 @@ test("virtio-fs failed CREATE releases unpublished handles and lookup references
       inode: 2,
       collected: -2,
       exists: true,
-      finalReleases: 1,
+      opened: 0,
+      released: releaseFails ? -5 : 0,
+      duplicateRelease: -9,
+      finalReleases: 2,
     })),
   );
 });
