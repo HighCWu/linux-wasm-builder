@@ -66,7 +66,10 @@ distro `e733bfb` 将相同 SDK 产物通过独立 `runtime-filesystem.cpio` 接�
 零重试。此前 14 项套件不包含此程序；宿主检查不替代 Linux 在浏览器中的实际运行。
 wasm32 旧版 14 项的两浏览器成功也不替代此新增程序；固定 `de86fb3` 的新版
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39059055736) 和
-[Firefox](https://github.com/HighCWu/distro/actions/runs/39059060075) 独立补验正在进行。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39059060075) 独立补验均已成功：
+实际日志包含新增 C++ 文件系统用例，各 15 项通过，精确报告门禁确认零跳过、
+零重试。因此该程序已分别有双位宽 Node 与双位宽两浏览器的实际成功证据；
+各自源码提交仍以上述固定版本为准，不泛化到后续变更。
 
 测试只验证默认内核中的临时文件系统，不挂载 NodeFS/BrowserFS，不操作 OPFS，
 不验证持久化、原子替换、跨文件系统移动、目录并发、文件 mmap 或完整 C++ 标准库。
