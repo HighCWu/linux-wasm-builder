@@ -157,6 +157,15 @@ jobs:
         run: |
           npx --yes oxfmt@0.59.0 --check sources/distro/distro/zstd/*-host.test.js
           node --test sources/distro/distro/zstd/*-host.test.js
+      - name: Check standard file mmap lifetime workload on the host
+        # Native mappings and padded EOF only; no target ABI or mount evidence.
+        run: |
+          for compiler in gcc clang; do
+            "$compiler" -O2 -pthread -Wall -Wextra -Werror \
+              sources/distro/distro/basic-init/tests/mmap-file-lifetime-host.c \
+              -o "$RUNNER_TEMP/mmap-file-lifetime-$compiler"
+            timeout 30s "$RUNNER_TEMP/mmap-file-lifetime-$compiler"
+          done
       - name: Check standalone wasm64 embedding example without booting Linux
         run: |
           npx --yes oxfmt@0.59.0 --check \
