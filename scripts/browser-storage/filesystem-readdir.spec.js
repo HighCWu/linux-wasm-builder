@@ -105,7 +105,8 @@ test("virtio-fs directory pages stop and close sync and async iterators", async 
             for (let cursor = 1040; cursor < 1024 + view.getUint32(1024, true);) {
               const length = view.getUint32(cursor + 16, true);
               entries.push([
-                new TextDecoder().decode(bytes.subarray(cursor + 24, cursor + 24 + length)),
+                // TextDecoder in browsers rejects SharedArrayBuffer views.
+                new TextDecoder().decode(bytes.slice(cursor + 24, cursor + 24 + length)),
                 Number(view.getBigUint64(cursor + 8, true)),
               ]);
               cursor += (24 + length + 7) & ~7;
