@@ -122,7 +122,10 @@ jobs:
       - name: Verify committed source manifest export
         run: python3 -B scripts/test_source_manifest.py
       - name: Check browser user-runtime completion and lifecycle
-        run: node --test sources/distro/distro/vm-test/runtime-smoke-test.js
+        run: |
+          node --test sources/distro/distro/vm-test/runtime-smoke-test.js \
+            sources/distro/distro/vm-test/shutdown-test.js \
+            sources/distro/distro/vm-test/runner-shutdown-test.js
       - name: Check network readiness, timeout handling and remaining output collection
         run: node --test sources/distro/packages/linux-guest/tests/helpers.test.ts
       - name: Check userland memory ABI and agent browser packaging
