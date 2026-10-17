@@ -9,11 +9,11 @@ pointer 和现有拒绝边界。这是开放条件和验收顺序，不是新增
 
 | 环节 | 已有实现/证据 | 剩余工作 |
 |---|---|---|
-| 标准入口 | `arch/wasm/kernel/syscall.c` 接受匿名 RW 子集 | 独立处理文件参数、权限、flags、错误及旧模块兼容 |
+| 标准入口 | 默认仍为匿名 RW 子集；`8bd657d` 增加默认关闭的标准文件候选 | 验证文件参数、权限、flags、错误及旧模块兼容，不据源码提交宣称可用 |
 | offset | 双位宽 syscall 别名修复，单位/溢出模型 | 在标准路径核对 mmap2 的 4096 字节单位及 mmap 字节单位，验证非零 offset 成功内容 |
 | 不可变来源 | 私有快照身份、设备树防伪、单设备 EROFS 查询 | 将来源、类型、读权限和稳定长度检查接入文件路径；普通只读 fd/挂载不能放行 |
 | 读取与回滚 | file/staging 持有、VFS 读取、短读/错误回滚实验；本轮加入原子在途预算 | 目标验证预算拒绝/复用，继续审查真实设备在途读取、信号/退出与生产者完成 |
-| 复制与发布 | `user_mmap_init_v1` 同步复制及初始化后发布实验 | 稳定并协商执行能力，明确旧模块行为；默认 SDK 尚未导出实验 wrapper |
+| 复制与发布 | `user_mmap_init_v1` 增加当前模块能力查询；复用同步复制/初始化后发布 | 验证候选协议与旧模块拒绝；默认 SDK 尚未导出 wrapper，协议未承诺稳定发布 |
 | 保护 | 当前生产路径只接受 RW；上游 NOMMU 已有不强制保护的只读私有复制语义 | 候选路径明确声明 NOMMU 权限边界，不静默改变当前生产 ABI 或伪装 fault 能力 |
 | 应用 | Zstd malloc/read 字典及强制 mmap 拒绝已在 Node 双位宽通过 | 扩展边界基线，再建立不可变来源的正向验收，最后进入浏览器 |
 
@@ -50,7 +50,8 @@ mmap(NULL, (size_t)fileSize, PROT_READ, MAP_PRIVATE, fileHandle, 0)
 目标入口沿用 `zstd-check-roundtrip`、`zstd-wasm64-check-roundtrip`。固定 `b662d58` 的
 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/39009756964) 已成功，日志确认
 六种尺寸及最终 pass；[首次 wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39009753274)
-在源码下载时遇到 HTTP 429，未运行应用，已另行重试。
+在源码下载时遇到 HTTP 429，未运行应用；[重试](https://github.com/HighCWu/distro/actions/runs/39010264830)
+现已通过，日志同样确认六种尺寸及最终 pass。
 
 ## NOMMU 只读权限：上游依据与候选边界
 
@@ -89,15 +90,16 @@ Linux `2c0f7ce` 在 `CONFIG_WASM_MMAP_COPY_TEST` 的实际文件读取路径新�
 同时检查预留归零，接入既有信号/退出清理检查。本轮
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39010863533) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39010866844) 的 signal 聚合验收
-均已通过计划检查并进入实际构建，包含预算/生命周期、信号及基础 VFS 回归，运行结果
-待确认；没有把尚未重跑的退出检查记为通过。
+均已成功，实际日志逐项确认预算/生命周期、信号及基础 VFS 的 pass；没有把尚未
+重跑的退出检查记为通过。这是 `2c0f7ce` 的结果，不代替后续提取共用读取实现的候选验收。
 本地 GCC/Clang 对实际预留函数使用 C11 原子 shim 检查边界及八线程各一万次尝试，
 相关 C 语法检查通过；这不是 Linux 原子实现、Wasm 调度或 VFS 运行的通过证明。
 
 ## 后续顺序
 
-1. 确认双位宽应用基线，保留拒绝配置作为对照。
-2. 明确权限政策、不可变来源和容量预算，才实现默认关闭的标准文件 mmap 候选路径；
+1. 双位宽应用拒绝基线和原预算回归已通过，继续保留默认配置作为对照。
+2. [标准候选入口](file-mmap-candidate.md)已按权限政策、不可变来源和容量预算实现，
+   默认关闭，尚待标准接口正向/旧模块/默认配置的双位宽目标验收；
    不增加应用私有 mmap UAPI，不绕过 VFS 读取宿主文件。
 3. offset 优先在内核归一化并交给 VFS，确实跨执行边界时才设计独立 i64 字段。
    现有复制桥只传长度和 staging 内容，不必为 offset 模型强行新增 host import；
@@ -106,5 +108,5 @@ Linux `2c0f7ce` 在 `CONFIG_WASM_MMAP_COPY_TEST` 的实际文件读取路径新�
    以原 Zstd `--mmap-dict` 验收；只读请求未满足时，不将该应用路径记为支持。
 5. 先 Node 双位宽，再浏览器、生命周期压力和性能对照，之后才评估默认开放。
 
-本轮生产内核配置和 libc 不变，预算修改仅进入 Linux 的默认关闭实验代码（GPL-2.0）。
+默认生产配置和 libc 不变，Linux 的候选/共用读取实现遵循 GPL-2.0。
 新测试与文档采用 MIT，上游 Zstd 补丁保持原有许可。

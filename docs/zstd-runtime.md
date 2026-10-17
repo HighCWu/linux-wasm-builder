@@ -27,7 +27,8 @@ Zstandard 被选为[文件 mmap 就绪度阶段](file-mmap-readiness.md)的真�
 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/39009756964) 已成功，日志确认
 六种边界尺寸及最终 pass。[首次 wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39009753274)
 失败在源码下载 HTTP 429，并未运行应用；[重试](https://github.com/HighCWu/distro/actions/runs/39010264830)
-结果待确认。此前记录的两条运行链接位宽标注反了，此处已按实际 heavy job 名称更正。
+已成功，实际日志确认六种边界及最终 pass。此前记录的两条运行链接位宽标注反了，
+此处已按实际 heavy job 名称更正。
 原先成功的 `79bd2b3` 不包含本次扩展。
 生产内核与 libc 不变，不承诺已支持原 Zstd 的 PROT_READ 文件映射。
 
