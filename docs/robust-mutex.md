@@ -47,7 +47,7 @@ syscall、进程被杀、process-shared、PI、robust pending 窗口、死亡前
 异步取消、应用数据自动恢复或任意并发交错。ERRORCHECK 对象成功解锁只验证当前
 所有者可操作，不替代对其他线程错误解锁的完整负向测试。
 
-## 并发竞争后的所有者退出（待目标验证）
+## 并发竞争后的所有者退出
 
 distro `c184e08` 追加四轮并发恢复，每轮一名所有者和四名竞争者，仍只使用标准
 pthread 接口。所有者先持有 robust mutex；四名竞争者分别用 trylock 明确取得
@@ -66,8 +66,10 @@ robust mutex: four contending threads serialize one owner-dead repair verified
 GCC/Clang 的相同程序均通过，宿主整组仍为 12 项；除了原有反向控制，还分别删去
 并发修复调用，必须明确报告 `contending waiter did not acquire repaired mutex`，
 不能只观察到挂起。浏览器现有 robust mutex 测试额外要求新阶段，未增加或跳过用例。
-双位宽 SDK 目标已提交公开 CI，尚待实际阶段与 pass 日志；旧版本 Node/浏览器通过
-记录不包含此新增场景。
+固定 `c184e08` 的 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39055141423)
+和 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39055138112) 均已成功：
+实际日志包含新增四竞争者恢复阶段、原完整阶段和 pass，目标及整个工作流通过。
+旧版本浏览器通过记录不包含此新增场景，尚不声明新版浏览器结果。
 
 这里证明每个竞争者确实观察到活跃所有者并参与恢复，但通知与 timedlock 之间仍有
 调度窗口，不能证明所有线程在所有者死亡前已进入内核 futex 队列。不扩大为 kernel

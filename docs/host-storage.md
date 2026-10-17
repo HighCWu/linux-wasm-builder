@@ -50,8 +50,11 @@ distro `b094494` 为 `BlockDeviceStorage` 增加可选同步 `stop()`。设备�
 24 项新增确定性宿主回归使用真实块设备/virtqueue，覆盖 read/write/flush 的成功与
 拒绝、无停止回调、正常停止、主动取消及停止抛错，验证回调顺序、在途等待、幂等关闭、
 后续 I/O 抑制与不发布完成。修改前回归已实际失败；修改后全部 162 项内核宿主测试、
-源码和测试类型检查通过。新版 wasm64 Chromium/Firefox 标准映射与 Zstd 回归已提交
-公开 CI，尚待检查真实目标结果；宿主通过不是浏览器整机关闭或 Linux 在途 mmap 验证。
+源码和测试类型检查通过。固定 `b094494` 的 wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39053921687) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39053925636) 均已通过：实际日志
+各包含标准映射和 Zstd 完整阶段，两项用例零跳过、零重试，并完成正常整机关闭。
+这不是关闭中任意 Linux 在途 mmap 交错、后端取消或断电恢复的证明。
 本轮自有实现和测试采用 MIT，不改变内核许可或应用 UAPI。
 
 后续 distro `1590f3d` 修正远程设备 `close` 消息同步发送失败：不再直接抛出后留下
@@ -84,8 +87,11 @@ distro `6b7af4c` 修正 `distro/vm-test/run-test.js`：应用 pass/fail 后启�
 
 等待关闭不等于强制取消；若后端不结束，仍由外层 300 秒 watchdog（以及 CI job
 上限）终止检查，不以提前释放资源伪造完成。强制终止不能承诺磁盘已刷新。
-新版 wasm64 标准文件映射生命周期检查已提交公开 CI，用于核对打包与真实关闭路径，
-尚待实际目标日志；不追溯改变此前固定旧 runner 的测量和通过记录。
+固定 `6b7af4c` 的 wasm64
+[标准文件映射生命周期检查](https://github.com/HighCWu/distro/actions/runs/39054567355)
+已成功，实际日志包含完整映射阶段与 pass，目标及整个工作流通过。这验证该版本的
+打包和正常关闭路径，不替代宿主故障注入，也不覆盖后续 `1c241b0` 的启动失败修改。
+不追溯改变此前固定旧 runner 的测量和通过记录。
 
 后续 distro `1c241b0` 将磁盘打开、设备构造和启动拒绝统一纳入失败/清理路径，
 initramfs 在取得磁盘 fd 前读取。第二盘打开失败时也会释放此前已打开的 fd。

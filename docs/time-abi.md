@@ -2,6 +2,34 @@
 
 # 默认内核的时间ABI回归
 
+## 信号量绝对截止时间边界
+
+Linux `cbac6cd` 修复 Wasm 命名信号量 timedwait 的参数判断：没有可用令牌且纳秒
+合法时，负数绝对 realtime 秒数表示已过期，应返回 `ETIMEDOUT`，而非 `EINVAL`。
+非法纳秒仍优先返回 `EINVAL`；已有令牌时保留立即消费、不检查未使用期限的快路径。
+这是既有命名信号量实现的内核 GPL 修正，不新增应用接口，也不引入 softmmu。
+
+distro `008317b` 新增 MIT `semaphore-deadline.c`，通过标准 `sem_timedwait` 对照
+命名和非命名信号量，覆盖负数/零期限、非法纳秒、失败后值保持及已有令牌只消费一次。
+命名对象创建后立即 unlink，保留打开句柄完成检查。双位宽 SDK 定向入口为
+`sdk-check-semaphore-deadline-runtime` 和 `sdk-wasm64-check-semaphore-deadline-runtime`，
+使用默认内核和 raw initramfs，不开启文件映射实验。
+
+GCC/Clang 宿主语料共两项通过；glibc 会先检查非法纳秒，所以宿主语料只对合法的
+已过期期限验证令牌快路径，额外的非法未使用纳秒检查保留给 musl/Wasm。独立 MIT
+脚本在测试时读取准确版本的内核 syscall 函数，以轻量宿主 shim 检查负数秒（含
+最小 64 位值）、非法纳秒、fd 释放和快路径；恢复旧错误码的反向控制必须失败。
+修改前已复现负数秒错误，修改后两种编译器及反向控制通过。这不验证内核调度、锁、
+usercopy 或 Wasm 执行；CI 只下载 gitlink 固定版本的单个内核源文件，不完整检出 Linux。
+
+新内核源码哈希由公开
+[预取任务](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39055467745)
+生成，随后更新 distro 的 Nix pin 和 builder 的 gitlink。双位宽目标已提交公开 CI，
+尚待实际运行日志；不以宿主通过宣称目标或浏览器通过，也不扩大为信号、取消竞态、
+process-shared 或完整 POSIX 信号量支持。
+
+## 既有时间接口范围
+
 时间接口是Linux/Wasm基础支持的一部分，不依赖文件mmap实验、私有系统调用或
 softmmu。wasm32使用Linux的time64兼容入口，wasm64使用原生64位时间入口；两者
 均由musl向用户程序提供64位time_t。相关stat与utimensat修正及通过记录见
