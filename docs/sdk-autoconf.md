@@ -100,7 +100,9 @@ shell代码由configure加载，应只选择适用于当前profile的文件。�
 真实 Autoconf 回归，1 项通过、零跳过；构建产物在 Linux/Wasm 内输出
 `SDK Autoconf: cross configuration and allocation verified` 和 `::vm-test::pass`。
 因此该版本的 wasm32 配置、宿主生成器、目标编译与分配运行路径已有证据。
-wasm64 仍在构建，不以 wasm32 结果替代，也不宣称任意项目已兼容。
+同版 wasm64 随后也成功，独立日志确认相同 Autoconf 回归 1 项通过、零跳过，
+以及 Linux 内相同分配运行标记和最终 pass。因此双位宽均有该版目标运行证据，
+仍不宣称任意项目已兼容。
 
 [autoconf64]: https://github.com/HighCWu/distro/actions/runs/39075979454
 [autoconf32]: https://github.com/HighCWu/distro/actions/runs/39075983153
@@ -112,3 +114,8 @@ wasm64 仍在构建，不以 wasm32 结果替代，也不宣称任意项目已�
 已启动；不取消、替换或重复启动仍在运行的 wasm64 任务。
 
 [site-path-recheck]: https://github.com/HighCWu/distro/actions/runs/39076874833
+
+旧 wasm64 检查成功结束后，[新版 wasm64 复验][site-path64-recheck]固定 `1a7e57a`
+启动，包含同一 `27a16a1` 路径修复；计划解析通过，目标构建仍在进行。
+
+[site-path64-recheck]: https://github.com/HighCWu/distro/actions/runs/39077156157

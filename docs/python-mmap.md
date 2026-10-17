@@ -162,7 +162,7 @@ Linux，不能据此宣称安装布局或运行断言通过。
 [msync-recheck]: https://github.com/HighCWu/distro/actions/runs/39075438707
 
 旧 `1870d56` 三项检查确认自然失败后，固定 `91480f7` 启动了对应复验，包含
-musl 修复和安装布局门禁；均已通过计划解析并进入构建，尚无目标运行结论。
+musl 修复和安装布局门禁；均通过计划解析并进入构建，当时尚无目标运行结论。
 当时仍在运行的 `0d71aef` wasm32 映射复验没有被取消，其最终结果见上文。
 
 | 修正后目标检查 | 公开任务 |
@@ -174,6 +174,12 @@ musl 修复和安装布局门禁；均已通过计划解析并进入构建，尚
 [python64-full-recheck]: https://github.com/HighCWu/distro/actions/runs/39076153816
 [python64-mmap-recheck]: https://github.com/HighCWu/distro/actions/runs/39076156858
 [python32-full-recheck]: https://github.com/HighCWu/distro/actions/runs/39076159576
+
+随后该版 wasm32 完整解释器检查成功，实际日志确认 `Python ABI` 的 32 位
+指针、size_t、long 与 sysconfig 检查，以及 `Python layout` 的安装路径和
+操作参数检查，最终输出 `::vm-test::pass`。原完整脚本要求压缩、SQLite、curses、
+TLS、subprocess 与 multiprocessing 检查通过后才能到达该标记。
+这不包含后续归档应用、启动异常修正或匿名映射专用检查，也不替代 wasm64 验收。
 
 `3356d3f` 补齐映射测试根盘的证书依赖，不移除 OpenSSL 或放宽安装失败检查。
 新增回归逐一检查两个 Python 安装集合包含所需包，并核对 OpenSSL 实际依赖声明。
@@ -195,3 +201,23 @@ Python 八项本机检查通过，包含真实原生归档启动；源码接线�
 检查执行同一流程。当前仍在运行的旧提交不含它，尚无目标运行验收结论。
 这只覆盖纯 Python 归档分发，不代表 pip、wheel 安装、原生扩展或任意第三方包
 均已兼容；`ensurepip` 与动态扩展的现有边界保持不变。
+
+## 无 fork 启动失败的异常兼容
+
+`1a7e57a` 修正 PATH 搜索失败时的公开异常：保留首个非 ENOENT/ENOTDIR 错误
+的优先级，同时让 `OSError.filename` 保持调用方传入的程序名，而不是暴露内部
+搜索候选路径；字符串与字节程序名分别保持原类型。没有改为 shell 启动或忽略错误。
+
+新增共享语料覆盖缺失目录、不可执行文件和非目录 PATH 项，分别改变顺序，要求
+errno、原程序名和类型与普通 Linux subprocess 一致。本机同时运行标准 subprocess
+及从实际补丁提取的 PATH 分支，九项 Python 检查通过；恢复旧异常行为的反例确实
+因候选路径泄漏失败。补丁格式、Nix、Shell 与 JavaScript 格式检查通过。
+提取分支使用原生 posix_spawn，只验证搜索与异常逻辑，不证明目标 fd 动作或
+运行时已经通过。完整解释器的双位宽测试已接入同一语料，目标仍需新版 CI 验收；
+不据此承诺所有 cwd、权限或并发启动错误都与其他 Linux 架构完全一致。
+
+旧 wasm32 完整检查成功结束后，固定该修正与归档应用语料的
+[新版完整解释器复验][spawn-errors-recheck]已通过计划解析并进入构建。
+没有取消或重复启动仍在运行的 wasm64 和映射检查。
+
+[spawn-errors-recheck]: https://github.com/HighCWu/distro/actions/runs/39077152138

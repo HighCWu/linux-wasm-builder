@@ -100,8 +100,8 @@ wasm64 验收各 13 项通过，精确报告门禁确认零跳过、零重试（
 
 `91480f7` 让外部 SDK 的 Autoconf 与 distro 共用已知不支持能力的配置，修正
 Linux 交叉编译默认把完整 mmap 判为可用及链接 stub 被误判的问题。仍执行普通
-编译/链接和未知运行探测；22 项本机回归通过，固定该版的 wasm32 目标检查
-已实际完成 Autoconf 回归与 Linux 内分配运行，wasm64 仍在构建。
+编译/链接和未知运行探测；22 项本机回归通过，固定该版的 wasm32 与 wasm64
+目标检查均已实际完成 Autoconf 回归与 Linux 内分配运行。
 安装文件、覆盖方式和证据边界见 [SDK Autoconf](sdk-autoconf.md)。
 
 原生用户态新增 `73cf891` 的 `zstd-wasm64`，尝试恢复双位宽 Zstandard 的上游 POSIX
