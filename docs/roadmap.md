@@ -58,9 +58,12 @@
 目标 wasm64 在源码下载阶段遭遇 HTTP 429，wasm32 已核对完整末阶段和 pass。
 `7968bc9` 进一步补入 sigsuspend 与 handler 专有 sa_mask 的隔离/恢复检查，主交接
 增至 192 次，整组宿主 8 项通过；Node wasm32 已通过，wasm64 因源码 HTTP 429 未执行。
-该版本新版 10 项浏览器验收中 Chromium 同样遇到源码 429，Firefox 仍在运行。
+该版本新版 10 项浏览器验收中 Chromium 同样遇到源码 429，Firefox 已核实全部通过。
 `8cf8984` 增加 SA_RESTART waitpid 的信号交接和单次回收检查；整组宿主 8 项通过，
-包含 GCC/Clang 去掉该 flag 后必须失败的反向控制，双位宽目标验收已提交。
+包含 GCC/Clang 去掉该 flag 后必须失败的反向控制，双位宽 Node 已核实完整末阶段和 pass。
+`889fb5a` 独立 futex 信号用例区分无超时 SA_RESTART 与带超时 restart_block 的 EINTR 路径，
+增加显式 wake、timeout 和残留队列检查，wasm32 显式选择 time64 syscall；宿主共 10 项
+通过，双位宽 SDK/11 项浏览器入口已接入，目标结果待确认。
 不声称完成标准 fork 或完整信号语义。
 具体边界见[信号等待验证](signal-waits.md)。
 

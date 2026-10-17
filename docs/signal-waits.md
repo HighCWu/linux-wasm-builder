@@ -113,7 +113,8 @@ sigsuspend 必须调用 handler、返回 EINTR，并恢复等待前完整掩码�
 因源码下载 HTTP 429 失败，未执行等待测试。固定该版本的新版 10 项浏览器套件中，
 [Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38998537486) 同样在源码下载
 HTTP 429 失败；[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38998538592)
-仍在构建。旧版本的 9 项浏览器通过不覆盖 sigsuspend 或新 sa_mask 断言。
+已核对 10 项通过，严格门禁确认零跳过、零重试，包含新增 sigsuspend/sa_mask 和部分 I/O
+用例，但不包含后续 SA_RESTART waitpid 扩展。旧版本的 9 项浏览器通过不覆盖这些新增断言。
 本轮没有修改内核/libc。
 
 ## SA_RESTART 子进程等待
@@ -126,15 +127,40 @@ distro `8cf8984` 在同一 I/O fixture 增加带 SA_RESTART 的 waitpid：
   再次等待必须 ECHILD。原不带 SA_RESTART 的 EINTR/WNOWAIT 检查保持独立。
 - GCC/Clang 宿主检查还编译一个仅去掉该等待 SA_RESTART flag 的反向版本，要求命中
   指定失败断言且不得出现 pass；报告失败前释放、回收仍存活的子进程。
-- 整组 8 项宿主检查通过，包含上述两路反向控制。双位宽 Node 验收已提交，结果待确认。
-  运行中的 `7968bc9` 浏览器任务不覆盖这次扩展；不取消它，也不把旧结果算作新验收。
+- 整组 8 项宿主检查通过，包含上述两路反向控制。固定 `8cf8984` 的
+  [Node wasm32](https://github.com/HighCWu/distro/actions/runs/38998788161) 与
+  [Node wasm64](https://github.com/HighCWu/distro/actions/runs/38998788993) 均已核对完整末阶段
+  和 pass 标记；这两项目标运行不包含宿主反向控制。`7968bc9` 浏览器结果不覆盖这次扩展。
 
 16 次交接增加命中阻塞等待的机会，但节流延时不证明任意一次信号的精确内核投递位置；
 宿主反向控制也不替代 Wasm 的反向控制或对所有交错的证明。此提交只扩展 MIT 测试，
 没有修改重启策略、内核、libc 或 ABI。
 
+## futex 的信号重启分类
+
+distro `889fb5a` 新增独立 MIT fixture `signal-futex.c`，使用原始 Linux futex syscall，而不是把 pthread
+包装器的重试当作内核重启。分别对普通/SA_RESTART handler 验证有超时和无超时的等待：
+
+- 无超时、不带 SA_RESTART 时必须返回 EINTR；带 SA_RESTART 时逐个确认 16 次信号后，
+  由辅助线程执行 FUTEX_WAKE_PRIVATE，要求实际唤醒一名已排队等待者，等待返回成功。
+  futex 值始终不变，不能用 EAGAIN 冒充重启成功。
+- 带超时 FUTEX_WAIT 使用 restart_block 路径；有用户 handler 时，即使设置 SA_RESTART，
+  也必须返回 EINTR。此分类来自当前 Linux `futex_wait` 和架构信号退出路径，不将它
+  推广到所有 futex 操作或 futex_waitv。
+- 各路径验证 handler 掩码及嵌套 syscall、等待返回后的掩码和原值、调用者 timeout
+  未修改；再次 wake 返回 0，检查没有残留排队者。另有无信号的真实超时和 EAGAIN 检查。
+- wasm32 的原始 futex 98 是 time32 接口；musl timespec 使用 time64，因此等待显式选择
+  SYS_futex_time64，wasm64 使用 SYS_futex，不将两种时间结构误解释为同一布局。
+
+共享 SDK 提供 `sdk-check-signal-futex-runtime` 和 `sdk-wasm64-check-signal-futex-runtime`，
+均为双核；浏览器复用 SDK 产物，严格用例
+`runs SDK futex signal restart and timed interruption through Linux` 将套件增至 11 项。
+GCC/Clang 宿主检查包含新 fixture 共 10 项通过；目标 Wasm 结果仍待 CI 确认。
+本轮不改内核/libc，也不声称验证了停止/继续导致的 restart_block deadline 保留、
+futex_waitv、PI、robust owner death、取消协议或任意交错下的正确性。
+
 这些重复用例不是对任意并行交错的形式证明；有限超时允许把丢失唤醒暴露为失败，
 并没有使无限等待的正确性自动成立。本轮没有验证内部多次重挂等待是否保留同一
 deadline；新增 I/O/回收 fixture 也不证明异步 I/O 取消、副作用回滚、read 拷贝过程
-中的信号交错、futex 重启或标准 fork；带 SA_RESTART 的 waitpid 目标验收仍待确认。
+中的信号交错或标准 fork；新增 futex 重启分类的目标验收仍待确认。
 后续按这些边界独立增加用例，不以一组等待测试代替完整 POSIX 信号语义。
