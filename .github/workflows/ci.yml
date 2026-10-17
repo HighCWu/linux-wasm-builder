@@ -35,6 +35,16 @@ jobs:
         run: git submodule update --init --depth 1 sources/distro sources/musl
       - name: Check Wasm raw stat layouts
         run: bash scripts/check_wasm_kstat.sh
+      - name: Check named semaphore deadline admission with host shims
+        # Fetch only the exact pinned function source, not a full Linux checkout.
+        # This checks admission logic, not Wasm execution or scheduler behavior.
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/HighCWu/linux/$revision/arch/wasm/kernel/semaphore.c" \
+            -o "$RUNNER_TEMP/wasm-semaphore.c"
+          python3 -B scripts/check_named_semaphore_deadline.py "$RUNNER_TEMP/wasm-semaphore.c"
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
@@ -74,6 +84,9 @@ jobs:
         run: node --test sources/distro/distro/sdk/time-consumer-test.js
       - name: Reject narrow and missing raw futex syscall arguments
         run: node --test sources/distro/distro/sdk/futex-abi-test.js
+      - name: Check semaphore deadline fixture on the build host
+        # glibc does not exercise musl's invalid-unused-nanoseconds fast path.
+        run: node --test sources/distro/distro/sdk/semaphore-deadline-test.js
       - name: Check SQLite runtime fixture on the build host
         # Fixture validation only; actual target builds use pinned SQLite 3.51.0.
         run: |
