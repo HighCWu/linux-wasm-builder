@@ -149,7 +149,9 @@ FileSystemHandle.kind；符号链接保留链接类型，不把目标类型当�
 builder `c430927` 扩展流式目录浏览器用例，并增加真实 OPFS 文件/目录类型检查，
 强制清单增至 26 项，8 项报告门禁回归通过；
 [Chromium/Firefox 公开检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39059416775)
-正在进行，旧版 25 项成功不替代此次结果。可控后端的 virtqueue 用例和真实 OPFS
+已成功：实际日志确认两浏览器各 26 项通过，包括扩展后的类型复用与真实 OPFS
+枚举用例，精确报告门禁通过且零跳过、零重试；固定 builder `c430927` 和 distro
+`2f484d1`，旧版 25 项成功不替代此次结果。可控后端的 virtqueue 用例和真实 OPFS
 适配器用例分别验证桥接与类型来源，不启动 Linux 或证明完整挂载端到端行为。
 改动均为 MIT，不改内核、UAPI、默认配置或许可边界。
 
