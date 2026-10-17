@@ -239,6 +239,25 @@ COPYING/完整 LICENSES 目录，以及工具链和运行库对应 LLVM 子项�
 - 编译器/runtime/kernel ABI版本清单；
 - 用户程序样例的链接组成记录，确认实际组成与声明的许可证边界一致。
 
+## Python 配置与补丁材料
+
+distro `f389394` 为双位宽 Python 增加独立 `buildMaterials` 输出，保存该次构建
+实际的 `pyconfig.h`、原始 Makefile、config.log、生成的 Modules 配置、CPython
+许可证、配方和所有配置补丁。补丁按应用顺序编号，不因相同文件名而互相覆盖。
+JSON 记录位宽、声明内存上限、编译器/源码身份、配置参数，以及七组直接静态
+依赖的输出和源码身份；不把这个选定清单当作完整传递依赖 SBOM。
+
+默认只安装 `out`，不把这些材料放入运行根盘。采集脚本要求配置及补丁非空并
+生成校验和；三项宿主回归涵盖逐字节保存、缺失配置/空补丁拒绝和篡改检测。
+相关整组 60 项本机检查通过，Nix 多输出和目标构建尚待公开 CI 验收。
+
+`python[-wasm64]-check-build-materials` 要求实际构建后核对配置指针宽度、JSON、
+全部补丁和 CPython 许可证，成功后上传保留 3 天的验证材料。
+[wasm64 首轮](https://github.com/HighCWu/distro/actions/runs/39079878041)已启动。
+这不是完整对应源码包：未包含完整 Python/Readline 等依赖源码、完整工具链环境
+或长期源码托管；配置仍可能包含实际构建 store 路径。不得用临时 artifact 或
+这些配置材料替代正式发行时适用的 GPL 对应源码和其它组件许可义务。
+
 ## 对外表述
 
 推荐表述：

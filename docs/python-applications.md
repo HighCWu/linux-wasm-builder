@@ -50,6 +50,14 @@ python3 /path/to/application.pyz
 跨版本一致保证。首次 CI 上传及新版 Linux/Wasm 运行仍须分别确认，不能仅凭
 本机打包成功声称公开产物或目标运行已通过。
 
+固定主仓库 `0147f8b` 的[首次公开构建][example-ci]现已成功，打包和上传步骤均
+通过。已下载实际 artifact（ID `12117989069`，5621 字节、检查时未过期），逐项
+确认归档内六个应用成员与附带源码一致、固定 ZIP 元数据、LICENSE 字节，以及
+清单中的 builder commit 和 distro `95ad6e5` pin。此证据不包含新版 Wasm 运行，
+7 天保留期也不是长期应用发布渠道。
+
+[example-ci]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39079565447
+
 distro 的 `python.applicationExample` 和 `python-wasm64.applicationExample` 暴露同一
 宿主构建配方；公开 Actions 可使用如下 installable，仅生成示例而不编译解释器：
 
@@ -74,3 +82,6 @@ nix build './sources/distro#python-wasm64.applicationExample'
 本项目当前 Python 静态链接 GNU Readline，分发该解释器必须遵守其实际 GPL 等义务，
 不能把整个解释器重标为 MIT，也不能省略对应源码和许可材料要求。
 这与独立脚本或用户程序的许可判断不同；具体产品应按实际分发、修改和链接关系审核。
+
+Python 后续另提供独立 `buildMaterials` 配置/补丁输出，默认不安装进根盘；其
+内容和明确排除项见[发行政策](licensing.md)。它不是依赖源码包或已完成合规的保证。
