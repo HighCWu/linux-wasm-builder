@@ -45,8 +45,19 @@ node --test sources/distro/distro/quickjs/language-contract.test.js
 覆盖层的依赖选择，以及浏览器镜像复用完整脚本和匹配产物；Node 只解析模块，
 不执行 qjs:std/qjs:os，不是 QuickJS 运行证据。
 固定 `5187e55` 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39060535971)
-和 [wasm64](https://github.com/HighCWu/distro/actions/runs/39060531254) 目标检查正在
-公开 CI 中运行，尚待实际编译、ABI 门禁和运行结果。
+检查已失败：实际日志确认 qjs、qjsc 编译及 wasm32 ABI 门禁均通过，安装系统随后
+因测试查找错误的 `/usr/share/licenses/quickjs` 路径失败，未进入语言用例。
+包实际安装在 `/share/licenses/quickjs`，转换安装时不添加 `/usr` 前缀。
+同批 [wasm64](https://github.com/HighCWu/distro/actions/runs/39060531254) 也已失败，
+实际日志同样确认两个程序编译及 ABI 门禁通过，随后停在错误的许可路径检查。
+
+distro `d06effa` 修正脚本路径，移除浏览器镜像里掩盖此问题的 `/usr` 许可别名，
+保留原样 payload。新增两项回归直接执行 QuickJS/Lua 包的实际许可证复制片段，
+再执行真实运行脚本的许可检查；错误前缀及空材料必须失败。相关轻量检查（含 Lua、
+共享运行器及浏览器接线）合计 29 项通过。固定 `d06effa` 已提交修正后的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39061447730) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39061451084) Node 复验，
+均通过计划解析、进入重型检查，尚待实际目标结果。
 
 ## 浏览器验证接入
 
@@ -61,7 +72,8 @@ distro `92830ef` 为 wasm32/wasm64 浏览器运行套件增加 QuickJS，精确�
 真实浏览器运行成功。固定 `92830ef` 已提交 wasm64 的
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39060951193) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39060954362) 公开检查，
-尚待计划解析、目标构建和完整 16 项实际运行结论。wasm32 已接线，尚未提交本轮
+计划解析已通过，尚待目标构建和完整 16 项实际运行结论；它们仍使用带别名的旧
+`92830ef`，即使成功也不能验证后续许可布局修正。wasm32 已接线，尚未提交本轮
 浏览器重型检查。Node 入口仍是安装系统检查；浏览器入口是可丢弃的内存根盘，
 二者均不作为 OPFS 持久化、包管理安装验证等价性或完整发行版迁移成功的证据。
 

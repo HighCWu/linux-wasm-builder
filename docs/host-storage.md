@@ -173,8 +173,11 @@ Windows 或缺少 O_DIRECTORY 的宿主继续使用逻辑目录句柄以保留�
 覆盖实际目录同步、注入同步错误后恢复、删除后同步、描述符关闭以及释放后 EBADF。
 原目录枚举及跨适配器回归也显式释放所持目录句柄，避免新增描述符泄漏。
 真实 Linux 挂载用例另通过公开文件对象对共享目录执行 sync；固定 `e995aea` 的
-[定向公开 CI](https://github.com/HighCWu/distro/actions/runs/39059844546) 正在进行，
-尚不把宿主通过当作 Linux FSYNCDIR 已通过。此运行不包含 `c4301f3` 的后续失效检查。
+[定向公开 CI](https://github.com/HighCWu/distro/actions/runs/39059844546) 已成功。
+实际日志确认新增 `synchronizes the shared directory through Linux FSYNCDIR` 用例
+执行并通过，连同外层共 6 项、零失败/跳过；这是 wasm32 Linux 挂载 NodeFS 的
+目录同步证据，不扩大为浏览器 OPFS 或崩溃持久性证明。此运行不包含 `c4301f3`
+及 `209310c` 的后续失效/排队重校验修改。
 
 `209310c` 补上排队 readdir 的执行时句柄检查：其入队检查通过后，前面的 release
 仍可能先关闭句柄，因此不能只检查入队时的状态。正常关闭及关闭后注入错误的两项
