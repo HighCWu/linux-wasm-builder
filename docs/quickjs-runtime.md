@@ -60,7 +60,8 @@ distro `d06effa` 修正脚本路径，移除浏览器镜像里掩盖此问题的
 均通过计划解析。wasm64 已成功，实际日志确认 qjs/qjsc 的共享 memory64 ABI
 门禁通过，随后输出完整 `QuickJS: language, file I/O, spawn, Worker, timers and
 bytecode generation verified` 阶段及最终 pass，验证修正后的安装系统路径确实可用。
-wasm32 仍待实际目标结果，不把 wasm64 成功扩大为其运行证据。
+wasm32 也已成功：两个程序的 ABI 门禁、同一完整阶段标记及最终 pass 均经实际
+日志核对。两次运行固定 `d06effa`，不包含后续 Lua 多输出或运行器关闭期判定修正。
 
 ## 浏览器验证接入
 
@@ -87,6 +88,10 @@ Chromium、Firefox 均已成功，实际日志确认 QuickJS 用例执行且完�
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39062203518) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39062207326) 已通过计划解析、
 进入重型构建，尚待真实浏览器运行结果；旧 16 项成功不能替代此版本验收。
+
+`5eca882` 后续修正 Node/浏览器运行器在 pass 后漏记控制台失败的问题，强化到
+设备关闭后才最终判定；已提交 wasm64 Node 及完整 18 项双浏览器复验。旧结果
+仍证明上述脚本和 ABI 到达通过点，不用其代替新关闭期判定的实际集成验收。
 
 ## 许可证材料
 

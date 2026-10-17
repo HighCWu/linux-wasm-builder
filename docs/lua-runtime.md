@@ -53,13 +53,16 @@ Lua 5.4.8 源码原生构建，下载归档 SHA-256 与官方目录公布的
 固定 `3bdb90c` 的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39061282695) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39061286995) 安装系统检查
-已通过计划解析、进入重型构建，尚待实际结果。不过同期 QuickJS 目标日志暴露
+曾通过计划解析、进入重型构建，但同期 QuickJS 目标日志暴露
 共用的许可路径错误：包内 `/share/licenses` 不会被安装工具添加 `/usr` 前缀。
 `d06effa` 已一并修正 Lua 脚本并增加直接执行实际复制/检查片段的两项跨包回归，
 旧 `3bdb90c` 不包含修正，不能据其结果验收当前版本。固定 `d06effa` 的修正版
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39061566007) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39061569694) 目标复验已提交，
-尚待实际结果，未取消仍在运行的旧检查。
+现已全部成功，实际日志确认两个程序的匹配位宽 ABI 检查通过，并在 Linux 输出
+完整整数64、模块、I/O、协程清理、spawn、字节码往返阶段及最终 pass。它们固定
+`d06effa`，不包含后续开发输出拆分、C 嵌入消费者或 pass 后失败判定修正，不扩大
+为这些后续变更或浏览器运行的证据。
 现有静态库和头文件在下述后续提交中拆为独立开发输出，浏览器用例也已接线但
 尚待实际验收；不据此宣称已验证动态模块或任意应用。
 
