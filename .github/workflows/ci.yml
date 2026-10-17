@@ -101,7 +101,7 @@ jobs:
         # Fixture validation only; actual target builds use pinned SQLite 3.51.0.
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libsqlite3-dev sqlite3 zstd lua5.4
+          sudo apt-get install --yes libsqlite3-dev sqlite3 zstd lua5.4 liblua5.4-dev
           node --test sources/distro/packages/browser-tests/site-sqlite.test.js sources/distro/packages/browser-tests/site-fs-trace.test.js sources/distro/packages/linux-guest/tests/agent-wasm64-sqlite-commands.test.ts
           node --test sources/distro/distro/sqlite3/pkg-config-test.js
           for compiler in gcc clang; do
@@ -112,7 +112,9 @@ jobs:
           done
       - name: Check shared Lua workload on a native interpreter
         # Native execution validates the fixture, not target SjLj or the Wasm ABI.
-        run: node --test sources/distro/distro/lua/language-host.test.js
+        run: |
+          node --test sources/distro/distro/lua/language-host.test.js \
+            sources/distro/distro/lua/development-host.test.js
       - name: Check SDK CMake integration on the build host
         run: |
           node --test sources/distro/distro/llvm-runtimes/cxa-thread-atexit-test.js
