@@ -41,12 +41,29 @@ nix build './sources/distro#checks.x86_64-linux.quickjs-wasm64-check-language'
 node --test sources/distro/distro/quickjs/language-contract.test.js
 ```
 
-两项轻量检查已通过：验证 shell 和三个 JavaScript 模块的语法，以及 wasm64
-覆盖层的依赖选择；Node 只解析模块，不执行 qjs:std/qjs:os，不是 QuickJS 运行证据。
+三项 QuickJS 轻量检查已通过：验证 shell 和三个 JavaScript 模块的语法、wasm64
+覆盖层的依赖选择，以及浏览器镜像复用完整脚本和匹配产物；Node 只解析模块，
+不执行 qjs:std/qjs:os，不是 QuickJS 运行证据。
 固定 `5187e55` 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39060535971)
 和 [wasm64](https://github.com/HighCWu/distro/actions/runs/39060531254) 目标检查正在
-公开 CI 中运行，尚待实际编译、ABI 门禁和运行结果。当前入口为 Node
-安装系统检查，不作为浏览器运行、OPFS 持久化或完整发行版迁移成功的证据。
+公开 CI 中运行，尚待实际编译、ABI 门禁和运行结果。
+
+## 浏览器验证接入
+
+distro `92830ef` 为 wasm32/wasm64 浏览器运行套件增加 QuickJS，精确报告门禁
+从 15 个用例扩展为 16 个。临时 initramfs 放入同位宽 BusyBox、qjs、qjsc 和
+许可证文本，以原封不动的 language-test.sh 为 init，使用共享的双 CPU 启动、
+用户控制台协议、超时与关闭检查。它不通过浏览器宿主 JS 引擎执行测试语料。
+浏览器断言同时要求完整 QuickJS 阶段标记、最终 pass 且没有 fail；缺失阶段标记、
+仅 pass、混入 fail 或漏跑用例均会被轻量负向测试拒绝。
+
+本轮相关轻量检查合计 25 项通过，包含共享运行器的失败与关闭路径；它们不证明
+真实浏览器运行成功。固定 `92830ef` 已提交 wasm64 的
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39060951193) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39060954362) 公开检查，
+尚待计划解析、目标构建和完整 16 项实际运行结论。wasm32 已接线，尚未提交本轮
+浏览器重型检查。Node 入口仍是安装系统检查；浏览器入口是可丢弃的内存根盘，
+二者均不作为 OPFS 持久化、包管理安装验证等价性或完整发行版迁移成功的证据。
 
 ## 许可证材料
 
