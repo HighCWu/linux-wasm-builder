@@ -96,11 +96,19 @@ shell代码由configure加载，应只选择适用于当前profile的文件。�
 公开 CI 验收，不把站点答案本身当作新的系统功能已经实现。
 
 固定 `91480f7` 的 [wasm64 目标检查][autoconf64]和 [wasm32 目标检查][autoconf32]
-均已通过计划与派生解析，正在构建；尚无该版本的目标运行通过结论。
+均已通过计划与派生解析。wasm32 已成功，实际日志确认安装后的 SDK 包装器完成
+真实 Autoconf 回归，1 项通过、零跳过；构建产物在 Linux/Wasm 内输出
+`SDK Autoconf: cross configuration and allocation verified` 和 `::vm-test::pass`。
+因此该版本的 wasm32 配置、宿主生成器、目标编译与分配运行路径已有证据。
+wasm64 仍在构建，不以 wasm32 结果替代，也不宣称任意项目已兼容。
 
 [autoconf64]: https://github.com/HighCWu/distro/actions/runs/39075979454
 [autoconf32]: https://github.com/HighCWu/distro/actions/runs/39075983153
 
 路径校验的回归还使用标记脚本证明三种无效配置均在 configure 启动前失败；
 有效目标文件、默认策略、宿主隔离及 `/dev/null` 覆盖继续通过。相关 22 项本机
-检查全部通过；上表正在运行的 `91480f7` 不包含这项后续校验，不能替代新版验收。
+检查全部通过；上述 `91480f7` 检查不包含这项后续校验，不能替代新版验收。
+旧 wasm32 任务成功结束后，固定 `27a16a1` 的[新版 wasm32 复验][site-path-recheck]
+已启动；不取消、替换或重复启动仍在运行的 wasm64 任务。
+
+[site-path-recheck]: https://github.com/HighCWu/distro/actions/runs/39076874833
