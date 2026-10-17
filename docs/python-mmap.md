@@ -105,3 +105,27 @@ musl 和 compiler-rt 的原始许可材料，完整运行检查要求关键文�
 应用仍需按各自实际代码与链接关系分别判断，不能仅凭平台支持闭源商业软件来
 免除特定依赖的义务。若未来提供不链接 Readline 的变体，应单独设计和验收，
 不在此处悄悄移除现有 REPL 功能来规避问题。
+
+## 安装后 sysconfig 门禁
+
+`09f19d0` 为两个位宽的完整解释器和映射检查加入 `--installed-layout`。实际运行
+解释器后查询 `sysconfig`，要求标准库、site-packages、头文件、scripts 和 data
+目录符合 `/usr` 安装布局，prefix/exec_prefix 同样为 `/usr`。操作性 `CC`、`CXX`、
+`AR`、`CFLAGS`、`CPPFLAGS`、`LDFLAGS`、`LIBS` 不能引用 `/nix/store/`，缺失字段
+也不能静默跳过。失败时保留字段名和值，便于后续针对真实构建结果修正。
+
+不因这一检查新增编译器、动态加载器或扩展构建支持；历史 `CONFIG_ARGS` 等来源
+记录不被当作运行搜索路径，也不为让测试通过而删除来源信息。尚未替换未知路径
+或声称所有 sysconfig 字段均已完全搬移。
+
+Python 六项轻量检查通过，其中布局夹具含六个 unittest 用例，分别验证合法布局、
+错误安装目录、缺失目录、操作参数路径泄漏、缺失操作字段及错误 prefix。
+SDK CMake 三项回归也通过。合成配置仅验证断言，真实目标仍查询实际安装的
+CPython；固定 `1870d56` 的三项重型检查不包含本次新门禁，不能替代其验收。
+在这些任务终态前不重复提交同一目标检查，也不取消或重启现有任务。
+
+主仓库固定 `011f090` 的[轻量 CI][python-host-ci]已成功，实际日志确认 Python
+原有五项夹具、完整 wasm64 接线、libcurl 许可复制回归、原生 CMake 安装以及 RPATH
+正反例执行。这是加入新布局门禁前的宿主证据，不代表目标 CPython 或布局已通过。
+
+[python-host-ci]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39074757317
