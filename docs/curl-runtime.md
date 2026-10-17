@@ -97,8 +97,9 @@ wasm64 file/HTTP 检查也完成了真实目标构建和 Linux 运行。
 固定 `aa28e76` 的四项浏览器任务仍使用旧显式 CA 脚本，不能证明新默认阶段。
 固定 `81e776d` 的新 wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39067035351) 和
-[Firefox](https://github.com/HighCWu/distro/actions/runs/39067038837) 已另行提交并通过
-计划及派生解析，实际浏览器结果待验收；此版未提交 wasm32 浏览器重型检查。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39067038837) 均已成功，实际日志
+确认 curl 用例执行、各自完整 20 项通过，严格报告零跳过/重试；此版未提交 wasm32
+浏览器重型检查。这些结果不包含后加的普通 libcurl C 应用。
 
 ## 浏览器共享用例
 
@@ -120,6 +121,10 @@ Wasm 或浏览器运行通过。后续公开 CI 的运行证据另列如下。
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39065216582)。
 实际日志确认 curl 用例执行，各自完整 20 项通过，严格报告零跳过/重试。
 这四项仍只包含旧显式 CA 脚本，不自动覆盖 `81e776d` 的新增默认信任阶段。
+
+后续将安装后 libcurl C 应用接入同一运行框架，当前双位宽精确门禁扩为 21 项；
+普通 C 应用的共享脚本、正常退出与信任验证阶段见
+[libcurl 开发记录](libcurl-development.md)。旧 20 项结果不能替代新增项验收。
 
 主仓库固定 `00e8946` 的
 [轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39064449263)
