@@ -55,6 +55,11 @@ shell代码由configure加载，应只选择适用于当前profile的文件。�
 修复或能力证明。Autoconf 将 CONFIG_SITE 视为空白分隔的文件列表，文件路径不应
 包含空白。SDK 配置记录新增 `paths.configSite`，安装检查比较其内容与共享源文件。
 
+`27a16a1` 起包装器在调用 configure 前验证该路径：缺失、不可读或指向目录时
+退出 66，含空白时退出 64。这个入口只接受单个站点文件，不接受 Autoconf 的
+可选文件列表；否则不存在的路径可能被 Autoconf 静默忽略，使负向策略失效。
+`/dev/null` 仍是显式绕过的有效选择，不把写错路径当作绕过意图。
+
 ## 验证范围
 
 本地使用真实Autoconf和Make验证交叉编译模式、malloc存在、缺失函数不存在、运行
@@ -95,3 +100,7 @@ shell代码由configure加载，应只选择适用于当前profile的文件。�
 
 [autoconf64]: https://github.com/HighCWu/distro/actions/runs/39075979454
 [autoconf32]: https://github.com/HighCWu/distro/actions/runs/39075983153
+
+路径校验的回归还使用标记脚本证明三种无效配置均在 configure 启动前失败；
+有效目标文件、默认策略、宿主隔离及 `/dev/null` 覆盖继续通过。相关 22 项本机
+检查全部通过；上表正在运行的 `91480f7` 不包含这项后续校验，不能替代新版验收。
