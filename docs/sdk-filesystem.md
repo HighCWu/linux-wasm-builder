@@ -46,9 +46,10 @@ node --test sources/distro/distro/sdk/filesystem-test.js
 
 GCC/Clang 两项宿主检查已经通过，核对完整阶段、正常退出和临时目录清理；这些
 使用宿主 C++ 运行库，不证明 Wasm 的 libc++、musl 或内核已通过。固定 `52b6003` 的
-[wasm32 SDK](https://github.com/HighCWu/distro/actions/runs/39057897448) 和
-[wasm64 SDK](https://github.com/HighCWu/distro/actions/runs/39057893423) 已启动，
-尚待实际目标结果。
+[wasm32 SDK](https://github.com/HighCWu/distro/actions/runs/39057897448) 已成功，
+实际 Node/Linux 日志确认完整文件系统完成阶段及 `::vm-test::pass`；
+[wasm64 SDK](https://github.com/HighCWu/distro/actions/runs/39057893423) 仍在进行。
+wasm32 的结果不替代 wasm64 或浏览器运行验证。
 
 ## 浏览器集成
 
