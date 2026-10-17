@@ -89,8 +89,13 @@ initramfs 共用相同 OpenSSL、BusyBox、CA 材料和已安装静态库消费�
 真实 Wasm 或浏览器执行。固定 `1823c91` 的 wasm64
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39063794108) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39063798111) 公开 CI 均已通过
-计划及派生解析、进入重型检查，实际运行尚待验收。wasm32 同样接线，但本轮
-尚未提交其重型浏览器检查。
+计划及派生解析。Chromium 现已成功，实际日志确认 OpenSSL 第 18 个用例执行，
+完整 19 项通过，严格报告零跳过/重试。Firefox 现也已成功，实际日志确认
+OpenSSL 用例执行及完整 19 项、零跳过/重试。此固定版本未提交 wasm32
+浏览器检查；后续 20 项矩阵已另行提交双位宽检查。
+
+后续 curl TCP/TLS 接线将当前套件扩为 20 项；上述固定版本仍为 19 项，不含
+curl，不能替代新套件的验收。见 [curl 运行记录](curl-runtime.md)。
 
 此镜像是可丢弃 initramfs，不经过软件包安装，也不包含浏览器网络代理或外部
 TLS 服务。即使运行通过，也只证明该版本 Linux/Wasm 内的 CLI 和内存 BIO TLS

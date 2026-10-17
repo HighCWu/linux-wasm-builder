@@ -186,13 +186,15 @@ distro `108f20a` 为 wasm32/wasm64 浏览器套件各增加两个用例，精确
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39063502379) 完整套件复验均已
 通过计划及派生解析。Firefox 已成功，实际日志确认 QuickJS、Lua 语言和安装后
 C 嵌入用例均执行，完整 18 项通过，严格报告零跳过/重试；包含迁移修正和加强后
-的关闭期判定，不含后加 OpenSSL。Chromium 同批仍在运行，尚待结果。wasm32
-已接线，当前尚未提交本轮浏览器重型检查。新套件同时使用
+的关闭期判定，不含后加 OpenSSL。同批 Chromium 也已成功，实际日志确认相同
+QuickJS/Lua 用例和完整 18 项通过，严格报告零跳过/重试。wasm32
+已接线，此固定版本未提交 wasm32 浏览器重型检查。新套件同时使用
 修正后的 QuickJS `/share/licenses` 检查，不沿用先前镜像的额外许可别名。
 
-后续 `1823c91` 增加 OpenSSL 用例，当前双位宽套件精确门禁为 19 项；上述
-18 项任务固定旧版本，不自动覆盖新增项。新 wasm64 双浏览器检查已另行提交，
-见 [OpenSSL 运行记录](openssl-runtime.md)。
+后续 `1823c91` 增加 OpenSSL，套件扩为 19 项；其双浏览器均已通过，
+见 [OpenSSL 运行记录](openssl-runtime.md)。`aa28e76` 再加入 curl
+TCP/TLS，当前双位宽门禁为 20 项；旧 18/19 项不能替代新增项的实际验收，见
+[curl 运行记录](curl-runtime.md)。
 
 解释器浏览器根盘为可丢弃 initramfs，不是安装系统的 ext4 根盘；C 消费者根盘只
 包含编译后的用户程序。两者不证明软件包安装、OPFS 持久化、完整根盘升级或浏览器

@@ -45,7 +45,7 @@ nix build './sources/distro#checks.x86_64-linux.curl-check-https'
 
 现有 `curl-check-transfers` 和新增覆盖层的 `curl-wasm64-check-transfers` 保留独立的
 file/HTTP 用例；不因为 HTTPS 检查接线就宣称新 wasm64 file/HTTP 检查已经运行。
-新 HTTPS 用例目前未加入浏览器套件，OpenSSL 内存 BIO 的浏览器用例也不能代替它。
+新增浏览器接线见下文；OpenSSL 内存 BIO 的浏览器用例不能代替 curl 的 TCP/TLS。
 
 ```sh
 node --test sources/distro/distro/curl/tests/https-host.test.js \
@@ -61,6 +61,35 @@ TCP/TLS 已验收。固定 `ecd3c1f`（功能 `907f64d` 加许可夹具格式整
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39064447319) 和
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39064451129) HTTPS 公开 CI
 均已通过计划及派生解析、进入重型检查，尚待编译和实际 Linux 运行结果。
+
+## 浏览器共享用例
+
+`aa28e76` 为双位宽运行套件新增 curl HTTPS 用例，精确门禁从 19 项扩为 20 项。
+`runtimeAssets` 只定义一份脚本、内容集合与临时根盘；Node 安装系统检查和
+浏览器共用同一完整 HTTPS 脚本及对应位宽的 curl、OpenSSL、BusyBox 和 CA 材料，
+不为浏览器换成 mock HTTP 响应或弱化证书校验。
+
+Playwright 要求可信 TLS 1.3 成功、不受信任证书拒绝、错误主机名拒绝、完整完成
+阶段及最终 pass 全部出现，且不含 fail；每个阶段缺失、仅 pass、混入 fail、
+下载失败与报告漏项均由负向回归拒绝。沿用双 CPU、熵设备及最终关闭期判定。
+相关原生 TLS、依赖/许可、浏览器接线与运行器共 44 项本地检查通过，不等于
+Wasm 或浏览器运行通过。已提交双位宽 Chromium/Firefox 四项新检查，均需实际
+构建与运行验收，不将某一组合成功扩大为整个矩阵完成。
+
+四项公开任务均已通过计划、进入重型检查：wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39065145729)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39065148975)，wasm32
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39065212445)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39065216582)。
+
+主仓库固定 `00e8946` 的
+[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39064449263)
+也已成功，实际日志确认宿主 curl TCP/TLS、关闭验证/负向接受变体拒绝、位宽接线
+及许可布局回归；该 CI 仍不执行 Wasm 或浏览器中的 curl。
+
+该根盘可丢弃，直接叠加包内容，不验证包管理安装、磁盘持久化或软件升级。
+即使通过，TLS 两端仍是同一个浏览器内 Linux 的回环 TCP；不使用 Fetch 桥，
+不证明外部原始 TCP/TLS、CORS 或公共信任链已可用。
 
 ## 许可证材料
 

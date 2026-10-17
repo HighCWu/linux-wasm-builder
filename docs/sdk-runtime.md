@@ -602,8 +602,10 @@ Chromium/Firefox 均已失败于 Lua 开发包路径迁移门禁，实际日志�
 后续固定 `25d3789` 的
 [Firefox 18 项检查](https://github.com/HighCWu/distro/actions/runs/39063502379)
 已成功，实际日志及严格报告确认完整执行、零跳过/重试，包含加强后的运行器与
-Lua 安装后 C 消费者。不含后加 OpenSSL 的第 19 项，不能作为其验收；同批
-Chromium 仍待结果。
+Lua 安装后 C 消费者。同批
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39063499422) 现也成功，
+实际相同用例与严格 18 项报告均已核对。二者不包含后加的 OpenSSL/curl 项，
+不能用作当前更大套件的完整验收。
 
 本轮独立于[线程等待回归](time-abi.md)继续推进。CI运行期间可开展不依赖其结果的
 文档、代码审计和SDK任务；依赖运行结论的支持声明及修复决策，仍需等待对应证据。
