@@ -30,6 +30,7 @@ export const lifecycleCases = Object.freeze([
   "virtio-fs failed CREATE releases unpublished handles and lookup references",
   "virtio-fs DESTROY waits for another queue and releases a late open handle",
   "virtio-fs directory pages stop and close sync and async iterators",
+  "BrowserFS directory enumeration preserves real OPFS entry kinds",
 ]);
 
 export function caseFilter() {

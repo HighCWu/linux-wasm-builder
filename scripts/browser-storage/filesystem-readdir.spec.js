@@ -7,7 +7,12 @@ test("virtio-fs directory pages stop and close sync and async iterators", async 
     const { fileSystemDevice, FSError, close_virtio_device, virtio_imports } =
       await import("/filesystem-api.js");
     const results = [];
-    for (const asynchronous of [false, true]) {
+    for (const [asynchronous, typed] of [
+      [false, false],
+      [false, true],
+      [true, false],
+      [true, true],
+    ]) {
       const root = {},
         child = {};
       let opened = 0,
@@ -19,7 +24,7 @@ test("virtio-fs directory pages stop and close sync and async iterators", async 
         try {
           for (const name of ["a", "b", "c"]) {
             yielded++;
-            yield { name, node: child };
+            yield { name, node: child, type: typed ? "file" : undefined };
           }
           throw new Error("traversed beyond the requested page");
         } finally {
@@ -121,7 +126,7 @@ test("virtio-fs directory pages stop and close sync and async iterators", async 
     return results;
   });
   expect(results).toEqual(
-    [false, true].map(() => ({
+    [false, true, false, true].map((typed) => ({
       openError: 0,
       pages: [
         {
@@ -145,8 +150,38 @@ test("virtio-fs directory pages stop and close sync and async iterators", async 
           yielded: 4,
           closed: 2,
         },
-        { error: -13, entries: [], opened: 3, yielded: 5, closed: 3 },
+        {
+          error: typed ? 0 : -13,
+          entries: typed ? [["a", 3]] : [],
+          opened: 3,
+          yielded: 5,
+          closed: 3,
+        },
       ],
     })),
   );
+});
+
+test("BrowserFS directory enumeration preserves real OPFS entry kinds", async ({ page }) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { BrowserFS } = await import("/browser-fs.js");
+    const root = await navigator.storage.getDirectory();
+    const name = `browser-fs-dirent-${crypto.randomUUID()}`;
+    const directory = await root.getDirectoryHandle(name, { create: true });
+    try {
+      await directory.getFileHandle("file", { create: true });
+      await directory.getDirectoryHandle("directory", { create: true });
+      const fs = new BrowserFS(directory);
+      const handle = await fs.opendir(fs.root);
+      const entries = await fs.readdir(fs.root, handle);
+      return entries.map(({ name, type }) => [name, type]).sort();
+    } finally {
+      await root.removeEntry(name, { recursive: true });
+    }
+  });
+  expect(result).toEqual([
+    ["directory", "directory"],
+    ["file", "file"],
+  ]);
 });

@@ -28,7 +28,7 @@ test("browser selection is derived from every required report case", () => {
 
 function fixture() {
   return {
-    stats: { expected: 25, skipped: 0, unexpected: 0, flaky: 0 },
+    stats: { expected: 26, skipped: 0, unexpected: 0, flaky: 0 },
     errors: [],
     suites: [
       {
@@ -60,6 +60,7 @@ function fixture() {
               "virtio-fs failed CREATE releases unpublished handles and lookup references",
               "virtio-fs DESTROY waits for another queue and releases a late open handle",
               "virtio-fs directory pages stop and close sync and async iterators",
+              "BrowserFS directory enumeration preserves real OPFS entry kinds",
             ].map((title) => ({
               title,
               tests: [{ status: "expected", results: [{ status: "passed" }] }],
@@ -70,7 +71,7 @@ function fixture() {
     ],
   };
 }
-test("accepts exactly the twenty-five successful lifecycle cases", () => {
+test("accepts exactly the twenty-six successful lifecycle cases", () => {
   checkReport(fixture());
 });
 for (const kind of ["wrong case", "duplicate", "skipped", "retry", "missing result"]) {
