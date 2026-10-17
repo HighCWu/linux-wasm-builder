@@ -48,6 +48,11 @@
 
 ## P1：内核架构稳定性
 
+`26c0fab` 补入 ppoll/pselect 的 pending/并发信号掩码交接、EINTR、超时与就绪 fd
+断言，复用双位宽 SDK 和浏览器运行入口。新 fixture 的 GCC/Clang 宿主验证通过，
+实际 Wasm 验收已提交；未修改内核语义，也不声称覆盖部分 I/O、wait 回收或 fork。
+具体边界见[信号等待验证](signal-waits.md)。
+
 - 启动、异常和panic报告。
 - SMP、原子、锁、memory ordering和Worker生命周期。
 - 调度、clone、exec、退出、wait和进程组。
@@ -61,10 +66,11 @@
 
 ## P2：工具链与 libc
 
-原生用户态新增 `73cf891` 的 `zstd-wasm64`，并恢复双位宽 Zstandard 的上游 POSIX
-字典 mmap 路径，替换早期禁用 Wasm mmap 的规避补丁；保留正确的 MAP_FAILED 检查。
-共享安装系统语料新增映射字典、二进制文件/管道及许可文本断言，宿主 3 项检查通过，
-实际双位宽 Wasm 验收待公开 CI。范围和证据边界见 [Zstandard 运行记录](zstd-runtime.md)。
+原生用户态新增 `73cf891` 的 `zstd-wasm64`，尝试恢复双位宽 Zstandard 的上游 POSIX
+字典 mmap 路径，并修正 MAP_FAILED 检查。共享安装系统语料新增映射字典、二进制
+文件/管道及许可文本断言，宿主 3 项检查通过，但实际双位宽 Wasm 均失败在映射字典。
+默认生产内核仍拒绝文件 mmap，不能把专用测试路径当作已开放能力；此接入尚未完成。
+范围和证据边界见 [Zstandard 运行记录](zstd-runtime.md)。
 
 - 稳定 `wasm32-unknown-linux-musl` target和sysroot。
 - 在已有wasm64宿主、musl、sysroot和最小用户程序闭环的基础上，扩大SDK与真实软件

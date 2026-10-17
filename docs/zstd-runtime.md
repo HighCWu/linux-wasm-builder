@@ -2,6 +2,13 @@
 
 # 原生 Zstandard：双位宽构建与文件映射
 
+状态更正：固定 `73cf891` 的 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38987437765)
+和 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/38987438669) 均已失败，
+不能作为可用包或字典映射的通过证明。wasm64 实际日志明确为字典压缩时 error 34 /
+Invalid argument，随后触发运行失败标记。生产内核 mmap wrapper 仍拒绝文件映射；
+专用文件映射测试路径不能等同于默认配置已开放该能力。下面记录的是接入尝试与目标，
+其中“当前平台已经提供私有文件映射”的原判断不成立，需修正集成后再验收。
+
 distro `73cf891` 增加显式 `zstd-wasm64`，默认 `zstd` 仍为 wasm32。
 两者复用固定的 Zstandard 1.5.6 源码、静态 CLI 构建与同一安装系统运行语料。
 wasm64 覆盖 stdenv、BusyBox、musl、compiler-rt、platform 和测试镜像构造器，
@@ -11,7 +18,7 @@ wasm64 覆盖 stdenv、BusyBox、musl、compiler-rt、platform 和测试镜像�
 ## 恢复上游文件映射路径
 
 原补丁因早期 Wasm musl 不声明 mmap/munmap，强制字典使用 malloc fallback。
-当前平台已经提供私有文件映射，因此不再排除 `__wasm__` 的 POSIX 字典路径。
+该次接入尝试不再排除 `__wasm__` 的 POSIX 字典路径，但默认生产配置并不支持该请求。
 仅保留对上游失败检查的修正：mmap 失败应比较 `MAP_FAILED`，不能比较 NULL。
 `--mmap-dict` 显式进入该路径，`--no-mmap-dict` 仍保留原始 malloc 路径。
 
@@ -29,7 +36,7 @@ wasm64 覆盖 stdenv、BusyBox、musl、compiler-rt、platform 和测试镜像�
 - 安装后的 Zstandard、musl、compiler-rt 许可证文本非空。
 
 公开 Actions 的检查名为 `zstd-check-roundtrip` 和 `zstd-wasm64-check-roundtrip`；
-两项新版已提交，实际 Wasm 构建/运行结果待确认。它们在 Node 承载的真实 Linux
+两项新版均已运行失败，实际字典路径没有通过。它们在 Node 承载的真实 Linux
 安装系统运行，不是浏览器 Zstandard 工作负载验收。
 
 轻量宿主检查可运行：

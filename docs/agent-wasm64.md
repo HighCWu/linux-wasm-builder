@@ -1110,12 +1110,18 @@ distro `e0a240e` 为示例页加入普通文件下载：绝对 Linux 路径、16
 
 相关宿主检查共 46 项通过，含二进制/空文件/上限、增长、失败关闭和 UI 重启。
 格式及浏览器打包通过；共享页面验收已增加真实浏览器下载 UTF-8 文件和独立 SDK
-程序生成的 65,553 字节二进制文件逐字节比较。新版 Chromium/Firefox 运行待 CI，
-不能用之前仅验证输入的页面通过结果作为下载证明。
+程序生成的 65,553 字节二进制文件逐字节比较。固定 `e0a240e` 的
+[Chromium](https://github.com/HighCWu/distro/actions/runs/38986875093) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/38986876161) 已核对实际日志：
+分别 1 项通过，严格用例门禁确认零跳过、零重试，并通过 111 个 bundle 文件完整性
+检查。这是 wasm64 独立示例页面的下载证明，不覆盖 wasm32 或大文件持久化。
 
 旧 Node userland 任务 `38984209153` 的具体重型 job 现已确认为失败；实际日志
 显示 fd 探针退出 22，尚未执行继承断言，对应旧 `/bin/readlink` 前置探测。
-当前源码已含 `7be1215` 的 PATH 修正，新版已补发，不据宿主探针推定原生通过。
+当前源码已含 `7be1215` 的 PATH 修正。固定 `e0a240e` 的
+[新版 Node userland 验收](https://github.com/HighCWu/distro/actions/runs/38986878068)
+已核对实际日志：7 项通过，零失败、取消或跳过；覆盖文件类型校验、流清理/排队、
+BYOB 和 fd 继承探针，以及既有 shell/进程语料。这不是 wasm32 验收。
 
 #### 排队进程取消
 
