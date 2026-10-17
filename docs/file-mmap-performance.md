@@ -54,4 +54,34 @@ Wasm 的主动复制。其输出带 `host-workload-only`，目标解析器必须
 实际 Node/V8、runner 硬件及重复新启动信息。Nix 缓存命中只证明已有检查可复用，
 不产生一次新的测量，不能用空日志或缓存成功填写新数据。
 
+## 独立启动复测
+
+distro `8408c6d` 和 builder `7363cd5` 增加复测入口。此轮未改动 allocator、
+复制桥、内核映射语义或默认开关；此前已验证的结果仍只对应原始提交。
+
+在 builder 的 GitHub Actions 中手动运行 **CI**，选择工作分支并启用
+`file-copy-benchmark` 输入。该入口调用 `Fresh file copy benchmark` 工作流，
+先 wasm64 后 wasm32、两种位宽不并行；日常 push 不触发这项重构建。
+尚未把新工作流合入默认分支时，也可通过已有 CI 入口调度。
+
+工作流读取 builder 的准确 distro gitlink，而不是跟随 distro 分支的最新 HEAD。
+`.fileBenchmarkAssets` 仅构建相匹配的候选内核、程序 initramfs、认证测试磁盘与启动器，
+不会执行或复用 `.checks.file-benchmark` 的计时结果。随后对同一组产物执行三个独立
+Node 进程，每次重新启动单 CPU Linux，并启用只读磁盘和首盘 snapshot 认证。
+每个新实例内仍使用上述预热和五对交替批次，所以这仍不是冷缓存测量。
+
+`scripts/run_file_copy_benchmarks.sh` 拒绝已存在的输出目录；每次启动都有五分钟
+watchdog，非零退出或任一次解析失败立即停止，不补齐、不重试、不忽略缺失结果。
+每次分别保留原始日志和统计，不把跨启动数据合并成一个新的独立样本。
+宿主替代测试覆盖三次调用、两种位宽、失败停止和旧输出拒绝；它们不是目标执行证据。
+
+产物 `file-copy-fresh-wasm{32,64}` 保留七天，包含 Node/V8 等实际运行时版本、
+runner 的 uname/lscpu、builder/distro 提交、run/attempt、Nix store 路径、关键产物
+SHA-256、Linux/musl/LLVM 构建来源及三次日志。硬件记录不意味着 CPU 独占或无噪声。
+只有检查真实日志与这些来源信息后，才能登记新性能结果；失败时保留的部分产物不算通过。
+需要长期使用的记录应在到期前核验并另行归档。
+
+复测是下一轮开销分解的基线，不是性能优化本身。候选路径的 backing 粒度、清零、
+内核读取和跨 memory 复制均可能贡献开销；目前不能给任何一项归因，也不能宣布默认开放。
+
 独立程序、集成、解析器和文档采用 MIT；所用组件保持各自原许可证。
