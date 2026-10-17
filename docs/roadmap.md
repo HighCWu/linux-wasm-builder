@@ -410,6 +410,11 @@ Linux `8bd657d` 新增[默认关闭的标准文件 mmap 候选](file-mmap-candid
 
 ## P6：用户态发行版
 
+`5187e55` 在已有 QuickJS-ng 固定来源及补丁上增加独立 wasm64 包，复用完整语言、
+文件、spawn、Worker、计时器及 qjsc 用例；双位宽产物新增 ABI 门禁和许可证材料。
+两项轻量语法/配置检查通过，真实目标检查已提交 CI，尚不宣称编译或运行成功。
+范围、命令和许可证边界见 [QuickJS 运行记录](quickjs-runtime.md)。
+
 `8af0f0d` 为独立 `sqlite3-wasm64` 和 SQLite ext4 应用根盘接入共享的 Node/浏览器
 事务、回滚及新实例数据库读回检查，保持最小根盘不变。六项宿主命令回归、类型
 和打包检查通过；实际目标编译/运行先由 Node CI 验证，不把现有 SDK SQLite 或
