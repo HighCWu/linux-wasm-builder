@@ -119,6 +119,7 @@ jobs:
         run: |
           node --test sources/distro/distro/busybox/check-binary.test.mjs
           node --test sources/distro/packages/browser-tests/agent-assertions.test.js
+          node --test sources/distro/packages/browser-tests/erofs-app.test.js
           node --test sources/distro/packages/linux-guest/tests/agent-wasm64-userland-commands.test.ts
           node --test sources/distro/packages/linux-guest/tests/agent-wasm64-public-network.test.ts
           node --test sources/distro/packages/linux-guest/tests/run-cleanup.test.ts
