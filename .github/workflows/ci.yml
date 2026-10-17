@@ -62,6 +62,8 @@ jobs:
       - name: Check timer and pthread time64 fixtures on the build host
         # Shared raw-initramfs fixtures stay alive after their final marker.
         run: node --test sources/distro/distro/sdk/time-consumer-test.js
+      - name: Reject narrow and missing raw futex syscall arguments
+        run: node --test sources/distro/distro/sdk/futex-abi-test.js
       - name: Check SQLite runtime fixture on the build host
         # Fixture validation only; actual target builds use pinned SQLite 3.51.0.
         run: |
