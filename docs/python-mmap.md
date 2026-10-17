@@ -221,3 +221,10 @@ errno、原程序名和类型与普通 Linux subprocess 一致。本机同时运
 没有取消或重复启动仍在运行的 wasm64 和映射检查。
 
 [spawn-errors-recheck]: https://github.com/HighCWu/distro/actions/runs/39077152138
+
+该任务随后在全仓 treefmt 门禁失败，日志确认是 SDK configure 包装器条件中的
+多余引号，而不是 Python 编译、异常或归档应用运行失败；这些新增目标断言尚未
+执行。`2bec3ff` 按 CI 的 `shfmt -s` 修正格式后启动[新版 wasm32 完整检查][format-recheck]，
+计划解析已通过；仍保留正在运行的 wasm64 与映射检查。
+
+[format-recheck]: https://github.com/HighCWu/distro/actions/runs/39077432857

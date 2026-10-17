@@ -111,11 +111,23 @@ shell代码由configure加载，应只选择适用于当前profile的文件。�
 有效目标文件、默认策略、宿主隔离及 `/dev/null` 覆盖继续通过。相关 22 项本机
 检查全部通过；上述 `91480f7` 检查不包含这项后续校验，不能替代新版验收。
 旧 wasm32 任务成功结束后，固定 `27a16a1` 的[新版 wasm32 复验][site-path-recheck]
-已启动；不取消、替换或重复启动仍在运行的 wasm64 任务。
+启动，随后在 treefmt 门禁失败，尚未进入 SDK 目标构建；没有取消其他任务。
 
 [site-path-recheck]: https://github.com/HighCWu/distro/actions/runs/39076874833
 
 旧 wasm64 检查成功结束后，[新版 wasm64 复验][site-path64-recheck]固定 `1a7e57a`
-启动，包含同一 `27a16a1` 路径修复；计划解析通过，目标构建仍在进行。
+启动，包含同一 `27a16a1` 路径修复；计划解析通过，后续终态如下。
 
 [site-path64-recheck]: https://github.com/HighCWu/distro/actions/runs/39077156157
+
+该版 wasm64 复验随后也被相同格式门禁拦下。两份实际日志均要求在 Bash
+`[[ ... ]]` 条件内移除多余引号；CI 的 `shfmt -s` 开启简化，而先前本机检查
+遗漏该参数。`2bec3ff` 只修正这两处格式，不改变校验语义；按仓库 formatter
+配置使用简化模式检查通过，相关 22 项回归继续通过。两项失败任务自然结束后
+才启动修正版复验，不把本次格式失败当作目标运行时失败。
+
+固定 `2bec3ff` 的 [wasm32 修正版][simplified-site32]与 [wasm64 修正版][simplified-site64]
+均已通过计划解析并进入重型检查；尚待新版格式门禁及目标运行结果。
+
+[simplified-site32]: https://github.com/HighCWu/distro/actions/runs/39077443337
+[simplified-site64]: https://github.com/HighCWu/distro/actions/runs/39077438216
