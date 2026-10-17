@@ -24,8 +24,10 @@ usercopy 或 Wasm 执行；CI 只下载 gitlink 固定版本的单个内核源�
 
 新内核源码哈希由公开
 [预取任务](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39055467745)
-生成，随后更新 distro 的 Nix pin 和 builder 的 gitlink。双位宽目标已提交公开 CI，
-尚待实际运行日志；不以宿主通过宣称目标或浏览器通过，也不扩大为信号、取消竞态、
+生成，随后更新 distro 的 Nix pin 和 builder 的 gitlink。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39055793137) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39055789549) 已启动，固定
+`008317b`，尚待实际运行日志；不以宿主通过宣称目标或浏览器通过，也不扩大为信号、取消竞态、
 process-shared 或完整 POSIX 信号量支持。
 
 ## 既有时间接口范围
