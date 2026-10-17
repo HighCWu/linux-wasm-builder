@@ -1037,6 +1037,24 @@ file.close 排空，也不是跨句柄/进程的写原子性、事务、持久�
 两者均固定 `f6de3c6`，正在运行，包含文件预检、流失败关闭和整块写入，以及新的
 musl pin。wasm32 还包含 userland fd 继承探针；wasm64 此最小语料不执行该探针。
 
+#### 文件输入的字节类型校验
+
+distro `7991041` 修正仅有 TypeScript 签名却未运行时校验的数据写入边界。原先
+字符串或某些空 ArrayBuffer/DataView/宽 typed array 会因 byteLength 不存在或为零
+而被静默视作成功的空写入；writeFile 已经截断目标，调用者却收不到错误。
+现在完整输入只能是 Uint8Array、Blob 或 ReadableStream，在打开前拒绝其他值；
+每个流 chunk 必须是 Uint8Array。非法 chunk 报 TypeError、取消来源、关闭文件并
+释放流锁；FsFile.writable 同样拒绝且关闭，直接 file.write 拒绝但保留调用者句柄。
+合法空字节数组、空 Blob、普通 Blob、Node Buffer 子视图仍可使用；文本应使用
+writeTextFile。流中先前已经写入的数据或打开时的截断不回滚，不是原子替换。
+
+新增 22 项双位宽宿主检查，其中 18 项输入/流校验在原实现复现失败；另四项覆盖
+合法输入兼容和直接方法所有权。相关共 169 项通过，类型/格式/浏览器打包通过。
+双位宽原生语料加入非法完整输入不改变原文件、合法前缀后遇到非法 chunk 必须失败
+且保留已写前缀、来源取消与释放锁，以及普通 write 与 writable 的所有权区别。
+运行中的 `f6de3c6` 验收不包含此变更，待它们结束后再补验，不将宿主检查当作
+原生通过。SDK README 同时补上输入类型、流关闭和整块排队的开发者使用约定。
+
 #### musl 整数宏与 Wasm 类型一致性
 
 musl `f4ffd5e5` 修正上述 C 语料编译暴露的公共头文件问题：Wasm 两种位宽均用
