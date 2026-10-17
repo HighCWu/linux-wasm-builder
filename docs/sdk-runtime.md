@@ -537,7 +537,8 @@ C++异常tag和catch处理仍存在。旧配置会失败，修正后通过；SDK
 尤其 wasm64 的 int 为 32 位、long 为 64 位，不能依赖其他平台寄存器传参偶然提供的
 扩展行为。普通 libc 函数的固定类型接口不要求应用这样处理。原始 syscall 的时间
 结构还必须匹配对应 time32/time64 入口；变参宽度正确不能替代结构布局检查。
-此边界已用于修正 [futex 信号测试](signal-waits.md)，目标修正结果待验证。
+此边界已用于修正 [futex 信号测试](signal-waits.md)，固定 `73d0a65` 的 Node 双位宽及
+Chromium/Firefox wasm64 已验证通过；后续基础 futex/waitv 检查仍独立验收。
 
 Autoconf项目可使用SDK的`wasm-linux-configure`入口，使用方式、配置探测及验证
 边界见[Autoconf构建说明](sdk-autoconf.md)。

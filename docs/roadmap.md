@@ -69,9 +69,12 @@ Linux 源码获取增加 codeload 优先与原 archive 后备，共用原精确 
 包含 GCC/Clang 去掉该 flag 后必须失败的反向控制，双位宽 Node 已核实完整末阶段和 pass。
 `889fb5a` 独立 futex 信号用例区分无超时 SA_RESTART 与带超时 restart_block 的 EINTR 路径，
 增加显式 wake、timeout 和残留队列检查，wasm32 显式选择 time64 syscall；宿主共 10 项
-通过，双位宽 SDK/11 项浏览器入口已接入。Node wasm32 已核实通过，Node wasm64 与
-Chromium 的 futex 断言失败，Firefox 因源码 429 未执行。后续修正 fixture 的原始 syscall
-机器字宽变参并保持断言，宿主 10 项通过，wasm64 修正后复验待确认。
+通过，双位宽 SDK/11 项浏览器入口已接入。原 Node wasm64 与 Chromium 的 futex 断言失败、
+Firefox 因源码 429 未执行。`73d0a65` 修正 fixture 的原始 syscall 机器字宽变参并保持
+断言后，Node 双位宽已核实最终阶段与 pass；Chromium/Firefox 各 11 项通过且无跳过/重试。
+`5a54912` 进一步修正基础 futex/waitv 用例的调用宽度和 time64 选择，增加窄参数/缺参数
+反向门禁，宿主契约 4 项与原有时间/信号 10 项通过；独立双位宽 SDK 入口的真实超时与
+原子更新验收待 CI 确认，不把信号用例通过泛化到全部 futex 操作。
 不声称完成标准 fork 或完整信号语义。
 具体边界见[信号等待验证](signal-waits.md)。
 

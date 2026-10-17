@@ -165,13 +165,33 @@ HTTP 429 未执行测试，不能将三种结果混为一谈。
 
 审计发现 fixture 调用 musl 公开 `syscall()` 时传入了 int 变参，而实现读取六个 long；
 wasm64 的 int/long 宽度不同，不能依赖原生寄存器 ABI 的隐式扩展。`73d0a65` 修正为固定参数
-类型的包装，传入六个机器字宽变参，另加逐阶段和失败值诊断。修正后的宿主 10 项通过；
-它是否完全解释目标失败仍待复验，不先宣布内核重启语义有错或已修复。
-本轮不改内核/libc，也不声称验证了停止/继续导致的 restart_block deadline 保留、
-futex_waitv、PI、robust owner death、取消协议或任意交错下的正确性。
+类型的包装，传入六个机器字宽变参，另加逐阶段和失败值诊断。修正后的宿主 10 项通过。
+固定 `73d0a65` 的 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39002143068)
+和 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39002143355) 已核对四种
+restart/timed 组合、最终阶段与 pass；
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39002144450) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39002145440) 均为 11 项通过，严格
+检查无跳过、无重试。本次失败在修正测试调用方式后消失，没有修改内核/libc。
+这些结果不声称验证了停止/继续导致的 restart_block deadline 保留、futex_waitv 的信号
+重启、PI、robust owner death、取消协议或任意交错下的正确性。
+
+### 基础 futex ABI 回归
+
+`5a54912` 的基础 `futex.c` 同步修正六个机器字宽变参、wasm32 的 time64 等待入口，以及固定
+32 位 futex 字。相对 FUTEX_WAIT 与私有/共享 FUTEX_WAITV 的超时改为 20 毫秒，并
+检查至少经过 15 毫秒；原来的 1 纳秒相对等待不足以发现时间布局被解释为零超时。
+保留 mismatch 的 EAGAIN、真实超时的 ETIMEDOUT 和 FUTEX_WAKE_OP 原子更新检查。
+FUTEX_WAITV 使用其自身的 time64 绝对时间接口，不套用旧 futex 的 time32 入口。
+
+`futex-abi-test.js` 用 GCC/Clang 编译期检查两份用例的每个原始 syscall 均传入六个
+long 变参；反向控制将一个参数改回 int 或删除一个参数，必须编译失败。两份用例各用
+GCC/Clang 检查共 4 项通过，原有时间/信号/pthread 宿主 10 项也通过。这是调用点
+契约检查，不模拟 Wasm 内存、时间布局或内核执行。独立目标入口为
+`sdk-check-futex-runtime` 和 `sdk-wasm64-check-futex-runtime`，新增基础用例的目标
+验收仍待公开 CI 确认；浏览器已通过的 11 项是上述信号用例，不包含这组基础检查。
 
 这些重复用例不是对任意并行交错的形式证明；有限超时允许把丢失唤醒暴露为失败，
 并没有使无限等待的正确性自动成立。本轮没有验证内部多次重挂等待是否保留同一
 deadline；新增 I/O/回收 fixture 也不证明异步 I/O 取消、副作用回滚、read 拷贝过程
-中的信号交错或标准 fork；新增 futex 重启分类的 wasm64 修正后验收仍待确认。
+中的信号交错或标准 fork。
 后续按这些边界独立增加用例，不以一组等待测试代替完整 POSIX 信号语义。
