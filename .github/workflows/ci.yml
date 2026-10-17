@@ -292,7 +292,7 @@ jobs:
             timeout --kill-after=2 15 "$RUNNER_TEMP/agent-cleanup-host"
           done
       - name: Check browser lifecycle report gate
-        run: node --test scripts/browser-storage/check-report.test.mjs sources/distro/distro/npm/browser-report-check.test.mjs
+        run: node --test scripts/browser-storage/check-report.test.mjs sources/distro/distro/npm/browser-report-check.test.mjs sources/distro/distro/npm/browser-runtime-fixtures.test.js
       - name: Check targeted Nix cache key consistency
         run: python3 -B scripts/test_ci_cache_contract.py
       - name: Check all kernel host tests without building Linux or LLVM
