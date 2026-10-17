@@ -142,6 +142,20 @@ nix build './sources/distro#checks.x86_64-linux.lua-check-application'
 已提交；wasm64 已通过派生计划解析、进入重型检查，实际结果待验收，不声称修正
 已在目标或浏览器验证。
 
+### 宿主开发包路径发现修正
+
+主仓库固定 `630f34d` 的
+[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39063493557)
+失败于原生 C 消费者的头文件发现：Ubuntu 的 `lua5.4.pc` 可将 `includedir` 指向
+`/usr/include`，实际通过 `Cflags` 选取 `/usr/include/lua5.4`；不能将父目录变量
+直接当作头文件安装目录。此失败不同于目标包的 Nix 路径迁移错误。
+
+distro `08dffcb` 优先使用原生 pkg-config 的 `-I`/`-L` 目录，并验证头文件/静态
+归档实际存在，变量值仅作为候选；允许系统目录标志显式输出，保留配置原生路径
+的环境变量。新增版本化头文件/多架构归档布局及缺失头文件拒绝回归。本地相关
+46 项通过，新的主仓库轻量 CI 随引用更新自动运行，Ubuntu 实际复验仍待结果。
+这只修正宿主测试发现逻辑，不修改目标 Lua、SDK 或 Wasm 执行语义。
+
 ## 浏览器共享用例
 
 distro `108f20a` 为 wasm32/wasm64 浏览器套件各增加两个用例，精确报告门禁
@@ -161,13 +175,17 @@ distro `108f20a` 为 wasm32/wasm64 浏览器套件各增加两个用例，精确
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39062203518) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39062207326) 完整 18 项检查
 均已失败，实际日志确认 Lua 开发包因上述迁移路径错误被拒绝，尚未进入浏览器。
-固定 `5eca882` 的 Chromium 严格运行器复验也在同一依赖处失败，并非关闭期运行
+固定 `5eca882` 的 Chromium/Firefox 严格运行器复验也在同一依赖处失败，并非关闭期运行
 失败。`35f9e21` 包含开发包修正；固定后续 `25d3789` 的
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39063499422) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39063502379) 完整套件复验均已
 通过计划及派生解析，进入公开重型检查，实际结果仍待验收。wasm32
 已接线，当前尚未提交本轮浏览器重型检查。新套件同时使用
 修正后的 QuickJS `/share/licenses` 检查，不沿用先前镜像的额外许可别名。
+
+后续 `1823c91` 增加 OpenSSL 用例，当前双位宽套件精确门禁为 19 项；上述
+18 项任务固定旧版本，不自动覆盖新增项。新 wasm64 双浏览器检查已另行提交，
+见 [OpenSSL 运行记录](openssl-runtime.md)。
 
 解释器浏览器根盘为可丢弃 initramfs，不是安装系统的 ext4 根盘；C 消费者根盘只
 包含编译后的用户程序。两者不证明软件包安装、OPFS 持久化、完整根盘升级或浏览器

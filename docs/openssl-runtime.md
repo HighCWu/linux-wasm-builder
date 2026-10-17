@@ -67,4 +67,28 @@ musl COPYRIGHT 和 compiler-rt LICENSE.TXT；新增自有消费者/测试采用 
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39063492740) 和
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39063496158) 公开 CI 均已
 通过计划及派生解析、进入重型检查，实际编译与 Linux 结果待逐项验收。OpenSSL
-尚未接入浏览器运行套件，不能将其它语言的浏览器检查当作本包的验收。
+的浏览器接线由下述后续提交实现，不能将其它语言的浏览器检查当作本包的验收。
+
+## 浏览器共享用例
+
+`1823c91` 将双位宽 OpenSSL 接入浏览器运行套件，精确门禁从 18 项扩为 19 项。
+`runtimeAssets` 只定义一份 CLI 脚本和内容集合：Node 安装系统检查与浏览器
+initramfs 共用相同 OpenSSL、BusyBox、CA 材料和已安装静态库消费者，不为浏览器
+换用弱化握手、不添加许可路径别名，也不重新构建一套测试专用 OpenSSL。
+
+浏览器程序依次完成 CLI 检查和两个 C 消费者后，打印可信 TLS 1.3 二进制往返、
+不受信任证书拒绝、错误主机名拒绝及完整完成阶段；Playwright 要求所有阶段和
+最终 pass，拒绝 fail。每一条阶段缺失、下载失败、仅打印 pass 或报告漏项都由
+宿主负向回归拒绝。复用用户控制台协议、双 CPU 启动、熵设备及关闭期判定，
+不是调用浏览器的 WebCrypto/TLS API 执行这些密码运算。
+
+相关原生 TLS、接线/许可、浏览器用例和运行器共 38 项本地检查通过。它们不证明
+真实 Wasm 或浏览器执行。固定 `1823c91` 的 wasm64
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39063794108) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39063798111) 公开 CI 均已通过
+计划及派生解析、进入重型检查，实际运行尚待验收。wasm32 同样接线，但本轮
+尚未提交其重型浏览器检查。
+
+此镜像是可丢弃 initramfs，不经过软件包安装，也不包含浏览器网络代理或外部
+TLS 服务。即使运行通过，也只证明该版本 Linux/Wasm 内的 CLI 和内存 BIO TLS
+路径，不扩大为公共 HTTPS、磁盘持久化、软件升级或密码安全审计的证明。

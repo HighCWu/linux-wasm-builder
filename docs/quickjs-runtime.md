@@ -94,8 +94,12 @@ Chromium、Firefox 均已成功，实际日志确认 QuickJS 用例执行且完�
 设备关闭后才最终判定。固定该提交的
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39062624048) 已成功，
 实际日志确认两个程序 ABI、完整功能阶段及最终 pass；这次运行包含加强后的关闭
-判定。完整 18 项 Chromium 复验因上述 Lua 依赖构建失败，尚未进入浏览器，不能
+判定。完整 18 项 Chromium/Firefox 复验因上述 Lua 依赖构建失败，尚未进入浏览器，不能
 把 Node 成功扩大为浏览器验收。
+
+后续 `1823c91` 将 OpenSSL CLI/验证证书的 TLS 消费者纳入共享套件，当前精确
+门禁为 19 项。含 Lua 开发包路径修正的新 wasm64 双浏览器检查已提交，待实际
+结果；旧 16/18 项运行不能替代新套件的完整验收。
 
 ## 许可证材料
 

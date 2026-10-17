@@ -595,7 +595,7 @@ distro `5eca882` 进一步修正“先 pass、后失败”的误报：先前已�
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39062630667) 复验均通过计划
 解析。Node 已成功，实际日志确认 qjs/qjsc ABI 门禁、完整语言/进程/Worker/计时器/
 字节码阶段及最终 pass，证明该实际目标检查包含新的关闭期判定。
-Chromium 已失败于 Lua 开发包路径迁移门禁，未进入浏览器；不能据此认为关闭期
+Chromium/Firefox 均已失败于 Lua 开发包路径迁移门禁，实际日志均已核对，未进入浏览器；不能据此认为关闭期
 运行失败或已验证。`35f9e21` 修正该开发包问题，含修正版本的双浏览器复验已另行
 提交，仍需实际结果。
 
