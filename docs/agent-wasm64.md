@@ -961,7 +961,8 @@ session，却保留 busy，旧操作不返回就无法重新启动。现在 mach
 格式检查和页面打包通过。该故障注入来自宿主模拟，不是浏览器内核崩溃恢复的证明；
 后续 Chromium 页面回归仅验证真实 bundle 的已有操作路径，不能替代故障注入。
 [新版 Chromium 回归](https://github.com/HighCWu/distro/actions/runs/38983901705)
-固定 `9f6353f`，正在运行，包含二进制文件输入与恢复修正，不重启已有 Firefox 任务。
+固定 `9f6353f`，已在 SDK 编译 C 语料时失败，实际日志确认同一 PRIu64/uint64_t
+类型不匹配，未执行页面用例；此版本没有后续 musl 修正。
 
 #### SDK 文件描述符的 exec 边界
 
@@ -995,6 +996,23 @@ wasm32 与共享 wasm64 文件语料加入原文件不变、新文件不创建�
 的断言。[原生 wasm64 验收](https://github.com/HighCWu/distro/actions/runs/38984568589)
 固定 `ee3b617`，正在运行，不含后续 musl 头文件修正。
 
+#### FsFile 流失败后的句柄清理
+
+distro `4ebeb62` 修正 FsFile.readable/writable 的失败路径：底层 pull/write 抛错
+会使 Web Stream 进入错误状态，但不会再触发其 cancel/abort，原实现因此保留 fd。
+现在流读写 I/O 错误以及零进展写入都显式关闭文件，再拒绝该次流操作；若关闭也
+失败，以 AggregateError 同时保留原 I/O 错误（cause）与清理错误。关闭只执行一次，
+后续文件操作拒绝。普通 file.read/write/stat 等方法的错误不自动关闭调用者句柄。
+
+12 项新增双位宽宿主检查中，10 项在原实现失败，另两项约束普通方法的所有权；
+修正后相关共 139 项通过，类型/格式/浏览器打包通过。原生 wasm32 和共享 wasm64
+文件语料加入对只读 fd 的流写入（EBADF）、目录的流读取（EISDIR），并要求失败后
+句柄关闭、原文件内容不变。当前运行中的旧版原生验收不包含该提交；等待它们结束
+后再提交包含这些断言的新版本，不将协议模拟当作原生运行证明。
+[新版 Chromium 示例回归](https://github.com/HighCWu/distro/actions/runs/38985255807)
+固定 `4ebeb62`，正在运行，包含 musl 宏修正及新 SDK 的页面操作；示例回归本身
+不执行上面的原生 EBADF/EISDIR 语料，也不是文件流失败路径的运行证明。
+
 #### musl 整数宏与 Wasm 类型一致性
 
 musl `f4ffd5e5` 修正上述 C 语料编译暴露的公共头文件问题：Wasm 两种位宽均用
@@ -1009,7 +1027,7 @@ scanf 与常量类型：修复前 wasm32、wasm64 均失败，修复后三种目
 distro `40c84bd` 已接入确切 revision/hash，元数据与源码 manifest 检查通过。
 [新版 Firefox 验收](https://github.com/HighCWu/distro/actions/runs/38984908577)
 固定 `40c84bd`，正在运行，包含上述 SDK 写入修正与 musl 宏修正。旧版 Chromium
-仍独立运行，不因预期遇到相同编译问题就中断或覆盖其结果。
+已独立结束，日志确认同一编译问题；新版 Chromium 固定 `4ebeb62` 另行验收。
 
 #### 排队进程取消
 
