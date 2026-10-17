@@ -28,6 +28,7 @@ export const lifecycleCases = Object.freeze([
   "BrowserFS directory relocation coordinates descendant mutations and queries",
   "virtio-fs shutdown drains current work without publishing or dispatching queued requests",
   "virtio-fs failed CREATE releases unpublished handles and lookup references",
+  "virtio-fs DESTROY waits for another queue and releases a late open handle",
 ]);
 
 export function caseFilter() {
