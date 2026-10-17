@@ -181,3 +181,17 @@ Python 七项本机检查全部通过，格式与源码 pin 检查通过；这�
 旧 wasm32 映射任务自然失败后才启动[该版复验][certificate-recheck]；仍在运行的其他检查保持不变。
 
 [certificate-recheck]: https://github.com/HighCWu/distro/actions/runs/39076355206
+
+## 纯 Python 应用分发验收
+
+`a14ce29` 为完整解释器检查加入独立应用流程：生成带 `.dist-info` 元数据及
+二进制资源的包，以标准 `zipapp` 制成压缩 `.pyz`，搬到新目录后删除全部源文件。
+随后以安装的解释器启动该归档，不继承 `PYTHON*` 环境，实际校验
+`importlib.metadata` 版本查询、`importlib.resources` 资源读取、正常退出、空
+stderr 和含全部 256 种字节值的双向管道内容。归档及临时安装目录在检查结束后清理。
+
+该流程与原压缩、SQLite、TLS、进程和多进程检查并存，没有以简化解释器替代。
+Python 八项本机检查通过，包含真实原生归档启动；源码接线使后续双位宽完整
+检查执行同一流程。当前仍在运行的旧提交不含它，尚无目标运行验收结论。
+这只覆盖纯 Python 归档分发，不代表 pip、wheel 安装、原生扩展或任意第三方包
+均已兼容；`ensurepip` 与动态扩展的现有边界保持不变。
