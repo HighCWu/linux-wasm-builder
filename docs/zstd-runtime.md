@@ -8,7 +8,9 @@
 Invalid argument，随后触发运行失败标记。生产内核 mmap wrapper 仍拒绝文件映射；
 专用文件映射测试路径不能等同于默认配置已开放该能力。
 `fa3eaa7` 已修正此错误验收假设，改为验证 malloc/read 字典与明确拒绝强制文件映射；
-新版双位宽运行已提交 CI，尚不能宣称通过。
+该轮双位宽均已通过前置字典断言，但随后失败在二进制语料生成，仍不能宣称包通过。
+根盘切换时卸载了启动 devtmpfs，测试没有重新挂载便读取 `/dev/zero`；`79bd2b3`
+补上显式设备挂载并保留 dd 的错误输出，新双位宽验收已提交。
 
 distro `73cf891` 增加显式 `zstd-wasm64`，默认 `zstd` 仍为 wasm32。
 两者复用固定的 Zstandard 1.5.6 源码、静态 CLI 构建与同一安装系统运行语料。
@@ -42,7 +44,8 @@ mmap 失败应比较 `MAP_FAILED`，不能比较 NULL。
 公开 Actions 的检查名为 `zstd-check-roundtrip` 和 `zstd-wasm64-check-roundtrip`；
 旧 `73cf891` 两项均失败，新 `fa3eaa7` 的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/38993962502) 和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/38993963650) 已进入重型 job，待验证。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/38993963650) 均失败在 binary generation，
+此前已执行到字典验证完成标记；不代表整个运行通过。
 它们在 Node 承载的真实 Linux
 安装系统运行，不是浏览器 Zstandard 工作负载验收。
 
@@ -52,9 +55,11 @@ mmap 失败应比较 `MAP_FAILED`，不能比较 NULL。
 node --test sources/distro/distro/zstd/roundtrip-host.test.js
 ```
 
-需要宿主 Node 和 Zstandard CLI。七项检查已通过，验证共享工作负载及故障断言，
+需要宿主 Node 和 Zstandard CLI。八项检查已通过，验证共享工作负载及故障断言，
 包括普通字典失败、错误映射退出码/诊断、静默 fallback、拒绝后输出和损坏流。
-宿主真实执行普通字典及二进制/管道往返，仅模拟强制映射拒绝，因为宿主支持文件映射。
+宿主真实执行普通字典及二进制/管道往返，模拟强制映射拒绝，因为宿主支持文件映射。
+宿主 mount 由受控 fixture 截获，不会挂载或覆盖开发机器的 `/dev`，另验设备准备失败
+必须阻止继续执行压缩语料。
 宿主 CLI 不来自本项目工具链，许可文件是编排 fixture，不能作为 Wasm 映射 ABI、
 目标失败分支或发布许可完整性的证明。
 补丁已对上游固定版本的 fileio.c 验证无 fuzz 应用。

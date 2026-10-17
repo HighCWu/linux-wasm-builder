@@ -1,9 +1,10 @@
 <!-- SPDX-License-Identifier: MIT -->
 
-# 信号与 ppoll/pselect 的等待边界
+# 信号等待、部分 I/O 与回收边界
 
 distro `26c0fab` 新增共享 `signal-waits.c`，经公开 SDK 编译，在原配置的双核
-Linux 上运行。没有修改内核、libc、执行 ABI 或 syscall 重启策略。
+Linux 上运行。该测试提交没有修改内核、libc、执行 ABI 或 syscall 重启策略；
+后续发现并修正的内核掩码问题见下文。
 
 ## 本轮断言
 
@@ -26,7 +27,7 @@ ppoll/pselect 不属于由 SA_RESTART 自动重启的接口，所以这里即使
 ## 验证状态与边界
 
 GCC/Clang 对该 fixture 的两项宿主检查通过；连同既有 time/thread-time fixture，
-当前 `time-consumer-test.js` 共六项通过。命令：
+该提交时 `time-consumer-test.js` 共六项通过；新增 I/O fixture 后为下述八项。命令：
 
 ```console
 node --test sources/distro/distro/sdk/time-consumer-test.js
@@ -54,10 +55,40 @@ Linux `e81f9ad0e` 改为在该标志清除前复制 `*sigmask_to_save()`，与�
 返回后再恢复等待之前的掩码；不改变 syscall 重启分类，也不放宽回归断言。
 distro `de12442` 已接入该内核，公开
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/38993986456)
-成功并提供固定 revision 的解包哈希。使用新内核的四路目标复验已提交；源码分析和
-宿主 fixture 通过都不是目标运行成功的替代证据。
+成功并提供固定 revision 的解包哈希。固定 `de12442` 的
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/38994158070) 与
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/38994163823) 已核对实际日志，
+均输出完整末阶段文本和 pass 标记。
+[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38994159209) 已核对实际日志：
+9 项通过，严格用例门禁确认零跳过、零重试。
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38994160445) 在源码下载阶段
+遭遇 HTTP 429，未执行测试；不能声称其通过，也不是信号断言再次失败。
+
+## 部分 I/O 与子进程回收
+
+`e9b8308` 新增 MIT fixture `signal-io.c`，不修改内核或 libc：
+
+- 对普通 handler 和 SA_RESTART handler，先由另一线程用 FIONREAD 确认管道已填满，
+  再向写线程发送信号。没有读者腾出空间，信号必然发生在已经写入一段数据之后。
+  单次 write 必须返回已提交字节数，不能返回 EINTR、丢失计数或重复重启写入。
+- 读取可用前缀时，写端仍然打开，read 必须返回现有字节而不是等到请求长度或 EOF。
+  逐字节核对后，由应用显式重试后缀；再次读回比较完整内容，空管道应先 EAGAIN，
+  关闭写端后再得到 EOF，不能留下重复字节。
+- callback clone 创建的子进程先阻塞在释放管道上；另一个线程逐次发送并确认信号，
+  直到不带 SA_RESTART 的 waitpid 返回 EINTR。重试间的小延时仅用于节流，
+  不以任何固定延时断言 waitpid 已注册等待。
+- 子进程未退出时 WNOHANG 返回 0；释放后，两次 WNOWAIT 保留相同的退出状态 37。
+  最后 waitpid 只回收一次，后续等待返回 ECHILD。
+
+公开 SDK 提供双位宽 `signal-io-runtime` 检查；浏览器复用同一 SDK 产物，严格用例为
+`runs SDK partial pipe I/O and interrupted child reaping through Linux`。
+新 fixture 的 GCC/Clang 宿主检查通过；合并既有 time、thread-time、signal-waits，
+宿主检查共 8 项通过。目标 Wasm 验收尚待确认，不把宿主 callback clone 当作 Wasm
+克隆或标准 fork 的通过证据。固定 `e9b8308` 的双位宽 Node 检查已提交；旧版本浏览器
+任务仍保持运行，不取消或重启，也不能将其结果用作新增 I/O fixture 的通过证据。
 
 这些重复用例不是对任意并行交错的形式证明；有限超时允许把丢失唤醒暴露为失败，
 并没有使无限等待的正确性自动成立。本轮没有验证内部多次重挂等待是否保留同一
-deadline，也没有覆盖部分 read/write、wait 的单次回收、futex 重启或标准 fork。
+deadline；新增 I/O/回收 fixture 也不证明异步 I/O 取消、副作用回滚、read 拷贝过程
+中的信号交错、带 SA_RESTART 的 waitpid、futex 重启或标准 fork。
 后续按这些边界独立增加用例，不以一组等待测试代替完整 POSIX 信号语义。
