@@ -117,8 +117,12 @@ getattr 失败也会关闭迭代器。仅包含 `.`、`..` 且已满的页面不
 两项新增同步/异步回归在原版本均失败；修改后全部 208 项内核宿主测试及源码/测试
 严格类型检查通过。检查分页偏移、实际枚举数量、稳定 inode 与错误时关闭。
 builder `cce8d5b` 将相同场景接入 Chromium/Firefox，精确清单增至 25 项，8 项
-报告门禁宿主检查通过；[公开浏览器检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39058577792)
-已经启动，尚待实际结果。
+报告门禁宿主检查通过。首次[公开浏览器检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39058577792)
+失败：测试直接让 TextDecoder 解码共享内存视图，浏览器拒绝该输入。builder
+`7b07c0c` 改为复制名称字节后解码，不改实现或分页断言；
+[修正后复验](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39058735238)
+已启动，尚待实际结果。首次主仓库元数据 CI 则在下载固定内核源码时收到 HTTP 429，
+未执行后续检查；这不是源码断言通过的证据。
 
 这只消除桥接层对完整目录的额外收集；后端仍可自行预先分配完整列表。
 分页仍按索引重新跳过前缀，后续页不是常数时间访问；不新增快照、稳定 cookie 或
