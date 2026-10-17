@@ -1096,8 +1096,9 @@ distro `c28c3d8` 修正 FsFile.readable 的字节流结束：controller.close �
 回归挂住整个运行套件。旧 `f6de3c6` 任务不包含此修正或前面的严格输入类型校验。
 
 [新版 Firefox 原生公开 API 验收](https://github.com/HighCWu/distro/actions/runs/38986292732)
-固定 `c28c3d8`，正在运行，包含最新文件预检、字节类型、流清理/排队、BYOB 与
-userland fd 继承语料；不是已经完成的独立示例页面用例，也不能提前记为通过。
+固定 `c28c3d8`，已核对实际日志通过：六组内部场景与外层 1 项，零跳过/重试。
+源码确认这些场景执行文件预检、字节类型、流清理/排队、空/非空 BYOB 与
+userland fd 继承语料；不是独立示例页面下载用例的通过证明，也不覆盖 wasm32。
 
 #### 独立示例的二进制文件下载
 

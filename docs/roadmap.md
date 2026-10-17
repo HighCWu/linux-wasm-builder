@@ -61,6 +61,11 @@
 
 ## P2：工具链与 libc
 
+原生用户态新增 `73cf891` 的 `zstd-wasm64`，并恢复双位宽 Zstandard 的上游 POSIX
+字典 mmap 路径，替换早期禁用 Wasm mmap 的规避补丁；保留正确的 MAP_FAILED 检查。
+共享安装系统语料新增映射字典、二进制文件/管道及许可文本断言，宿主 3 项检查通过，
+实际双位宽 Wasm 验收待公开 CI。范围和证据边界见 [Zstandard 运行记录](zstd-runtime.md)。
+
 - 稳定 `wasm32-unknown-linux-musl` target和sysroot。
 - 在已有wasm64宿主、musl、sysroot和最小用户程序闭环的基础上，扩大SDK与真实软件
   覆盖，并继续审计pointer、TLS、atomics和calling convention。
@@ -543,7 +548,9 @@ Chromium 固定 `4ebeb62` 也已实际通过同一页面用例，111 个文件�
 重试；双浏览器各有确切版本证据，不代替最新 SDK 文件错误路径的验收。
 `c28c3d8` 修正 BYOB 文件 reader 在 EOF 时缺失零字节响应而永久等待的问题；四项
 双位宽回归先复现挂起，修正后相关共 173 项通过，类型/格式/打包通过。最新原生
-文件语料含空/非空 BYOB 读取，已提交新版本 Firefox 公开 API 验收，结果待 CI。
+文件语料含空/非空 BYOB 读取，固定该提交的 Firefox 公开 API 日志现已确认六组内部
+场景及外层 1 项通过，零跳过/重试，包含文件类型/清理/排队与 fd 继承探针；不代表
+wasm32 或独立示例下载验收完成。
 
 后续运行证据已补齐：固定 `f973002` 的 Node 用户态全部 7 项通过，零失败/取消/
 跳过，覆盖启动输入拒绝后恢复、复制、NUL 与 stdin；固定 `09e1ea8` 的 Firefox
