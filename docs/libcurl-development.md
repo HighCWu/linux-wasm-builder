@@ -202,3 +202,30 @@ Linux 运行检查，而不是直接从构建目录复制二进制。本轮没�
 [cmake64-fixed]: https://github.com/HighCWu/distro/actions/runs/39072948798
 [direct32-fixed]: https://github.com/HighCWu/distro/actions/runs/39072953437
 [cmake32-fixed]: https://github.com/HighCWu/distro/actions/runs/39072958357
+
+## 编译产物后的许可复制与 Wasm 安装策略
+
+固定 `323ae8d` 的四项检查均已失败结束。双位宽直接入口实际日志确认 C 程序已编译，
+并通过各自位宽、共享内存及内存上限检查；随后向只读许可目录追加 `example-MIT` 时权限失败，
+未进入 Linux 运行。`4ea4293` 仅给输出许可目录增加 owner 写权限，保留上游声明
+文件内容和原输入权限。新原生回归直接执行配方片段，并比较声明字节与源文件模式。
+
+同版双位宽 CMake 入口实际完成依赖发现和配置，生成时因 Ninja 不能为非 ELF
+目标执行安装时 RPATH 重链接而失败，尚未编译应用。`d4fafc8` 在静态 Wasm SDK
+工具链中明确关闭 RPATH；不引入动态加载器，也不改成手写链接参数。新增原生
+生成夹具模拟非 ELF 安装路径，要求有策略时成功、移除策略时复现相同错误。
+此夹具不链接模拟依赖，不作为 Wasm 产物或运行证据。
+
+包含这两个回归、SDK CMake 和 Python 映射夹具的相关本地整组共 62 项通过。
+这些修正的目标复验仍待公开 CI；旧浏览器 20 项不含普通 C 应用，21 项尚未验收。
+固定 `d4fafc8` 已在旧四项全部结束后重新触发双位宽直接/CMake 四项检查，未取消旧任务。
+
+| 位宽 | 直接 SDK 编译 | CMake 安装入口 |
+| --- | --- | --- |
+| wasm64 | [开发包复验][direct64-latest] | [CMake 复验][cmake64-latest] |
+| wasm32 | [开发包复验][direct32-latest] | [CMake 复验][cmake32-latest] |
+
+[direct64-latest]: https://github.com/HighCWu/distro/actions/runs/39074337577
+[cmake64-latest]: https://github.com/HighCWu/distro/actions/runs/39074340872
+[direct32-latest]: https://github.com/HighCWu/distro/actions/runs/39074343687
+[cmake32-latest]: https://github.com/HighCWu/distro/actions/runs/39074346654

@@ -546,6 +546,9 @@ wasm32 站点证据当作新原生 CLI、wasm64 应用根盘已通过。
 
 - 扩大可构建、可安装的软件包集合，并维护其构建定义和依赖关系。
 - BusyBox、Bash、coreutils、Git、Python、QuickJS等持续回归。
+- `09c6c78` 恢复现有 wasm32 Python 的上游 mmap 模块检测，新增私有匿名映射和
+  默认拒绝边界检查；两项本机回归通过，真实目标待验收。默认共享/文件映射仍不支持，
+  不扩大为 pip、共享内存或 wasm64 Python 已就绪。见 [Python mmap](python-mmap.md)。
 - 区分平台修复、临时port patch和上游软件缺陷。
 - 提供可复现rootfs、软件源、安装工具和升级测试；不把某一种包管理器规定为平台ABI。
 - 维护最小镜像与开发镜像，避免一个镜像承担所有用途。
