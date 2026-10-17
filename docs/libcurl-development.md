@@ -243,3 +243,21 @@ CMake 安装入口、wasm32、浏览器或后续 musl 版本。其余原四项�
 wasm64 的 Chromium/Firefox 21 项复验使用只指向同一 `d4fafc8` 的验证分支
 `codex/libcurl-browser21-d4fafc8`，不改变开发分支、内核或编译参数，也不混入
 尚未验收的 musl `msync` 恢复。浏览器结果仍需独立日志与严格报告确认。
+
+随后同版另外三项也已成功：wasm64 CMake、wasm32 直接入口和 wasm32 CMake。
+实际日志分别确认真正的 CMake 安装步骤、安装后的声明材料与 Wasm ABI，且全部
+通过相同的六个 Linux 运行阶段和最终 pass。至此固定 `d4fafc8` 的双位宽
+直接/CMake 四个入口均获独立目标运行证据，不扩大到后续 libc 版本。
+
+同一验证分支的双位宽浏览器 21 项现均已触发并通过计划和派生解析，进入隔离
+构建；不会把以上 Node 驱动运行证据或旧 20 项结果当作新浏览器已通过。
+
+| 位宽 | Chromium | Firefox |
+| --- | --- | --- |
+| wasm64 | [21 项验收][browser64-chromium] | [21 项验收][browser64-firefox] |
+| wasm32 | [21 项验收][browser32-chromium] | [21 项验收][browser32-firefox] |
+
+[browser64-chromium]: https://github.com/HighCWu/distro/actions/runs/39075560578
+[browser64-firefox]: https://github.com/HighCWu/distro/actions/runs/39075564168
+[browser32-chromium]: https://github.com/HighCWu/distro/actions/runs/39075715868
+[browser32-firefox]: https://github.com/HighCWu/distro/actions/runs/39075718870

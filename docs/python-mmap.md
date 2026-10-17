@@ -80,8 +80,9 @@ nix build './sources/distro#checks.x86_64-linux.python-check-interpreter'
 继续仅在公开 GitHub Actions 执行，目标和浏览器结果分别验收。
 
 固定 `1870d56`（包含安装许可材料的运行检查）的下列公开任务均已通过计划和
-派生解析，进入隔离构建；尚不作为真实解释器运行成功的证据。此前 `d4fafc8`
-的 wasm32 映射检查继续自行运行，没有为新检查取消或重启旧任务。
+派生解析，随后均在编译 `mmapmodule.c` 时失败：musl 没有公开 `msync` 声明。
+三项日志均已核实，没有产生解释器运行成功的证据；与下节首次 wasm32 映射
+失败同因。旧任务均自然结束，没有为新检查取消或重启。
 
 | 目标检查 | 公开任务 |
 | --- | --- |
@@ -157,3 +158,17 @@ fetch、目标链接和运行仍须修正后的公开 CI 验收。
 进入隔离构建；尚未确认新的目标链接、安装布局或运行断言通过。
 
 [msync-recheck]: https://github.com/HighCWu/distro/actions/runs/39075438707
+
+旧 `1870d56` 三项检查确认自然失败后，固定 `91480f7` 启动了对应复验，包含
+musl 修复和安装布局门禁；均已通过计划解析并进入构建，尚无目标运行结论。
+原 `0d71aef` 的 wasm32 映射复验仍保留，不另行重复启动。
+
+| 修正后目标检查 | 公开任务 |
+| --- | --- |
+| wasm64 完整解释器 | [构建与运行][python64-full-recheck] |
+| wasm64 私有匿名映射 | [构建与运行][python64-mmap-recheck] |
+| wasm32 完整解释器 | [回归检查][python32-full-recheck] |
+
+[python64-full-recheck]: https://github.com/HighCWu/distro/actions/runs/39076153816
+[python64-mmap-recheck]: https://github.com/HighCWu/distro/actions/runs/39076156858
+[python32-full-recheck]: https://github.com/HighCWu/distro/actions/runs/39076159576

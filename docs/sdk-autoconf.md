@@ -32,15 +32,28 @@ GNU config脚本。zlib的手写configure不是Autoconf，不接受build/host参
 
 ## 配置探测
 
-编译和链接探测仍实际执行，不预填“函数存在”等答案。Autoconf运行探针由项目的
+除下述已知不支持的能力外，编译和链接探测仍实际执行，不预填“函数存在”等答案。
+Autoconf运行探针由项目的
 交叉编译分支处理；若项目没有相应分支，可能需要为该项目补充实现或经过目标验证的
 结果。wrapper不会自动执行Wasm程序，也不会把所有运行探针改为成功。
 
-默认CONFIG_SITE为/dev/null，避免继承宿主站点文件的能力判断。确实需要目标站点
-配置时，显式设置`WASM_CONFIG_SITE=/absolute/path/to/target.site`；此文件会作为
+`91480f7` 起默认 CONFIG_SITE 指向 SDK 安装的 `share/linux-wasm-sdk/config.site`，
+与 distro/stdenv 共用同一源码，不继承宿主站点文件。它仅给出已知不支持能力的
+负向答案：fork/vfork 及 works 探测、完整固定/文件 mmap、dlopen 搜索/链接与
+sigaltstack。匿名私有读写映射不被禁用，普通 `mmap`/`msync` 链接探测和未知能力
+仍不预填；标准符号存在也不等于内核支持全部语义。
+
+原因是 `AC_FUNC_MMAP` 对 Linux 交叉编译会默认回答成功，musl 的动态加载 stub
+也可能链接成功；两者都不足以证明所需运行语义。SDK 先前默认 `/dev/null` 没有
+保护外部项目避开这些误判，而 distro 配方早已有相同负向约束。
+
+确实需要目标站点配置时，显式设置 `WASM_CONFIG_SITE=/absolute/path/to/target.site`；此文件会作为
 shell代码由configure加载，应只选择适用于当前profile的文件。其余configure参数
 原样传递，包括项目选项、CFLAGS等。不要把-Werror强加给所有configure探针：某些
 生成的函数探针使用简化原型，会触发编译器诊断；实际软件构建可独立采用严格检查。
+显式 `WASM_CONFIG_SITE=/dev/null` 会绕过默认策略，是调用方主动选择，不是兼容
+修复或能力证明。Autoconf 将 CONFIG_SITE 视为空白分隔的文件列表，文件路径不应
+包含空白。SDK 配置记录新增 `paths.configSite`，安装检查比较其内容与共享源文件。
 
 ## 验证范围
 
@@ -63,5 +76,22 @@ shell代码由configure加载，应只选择适用于当前profile的文件。�
 
 目标检查已加入SDK，名称为`sdk-check-autoconf-runtime`和
 `sdk-wasm64-check-autoconf-runtime`。它们使用安装后的wrapper构建同一示例，再由
-相应默认内核运行。当前尚未触发这两项重型检查，现有C++与其他目标CI继续运行；
+相应默认内核运行。最初记录时尚未触发这两项重型检查；当前复验状态见下节，
 不能据此宣称任意Autoconf项目已经兼容。
+
+## 共享能力策略验证
+
+新增真实 Autoconf 探针检查默认策略得到五组不支持答案，显式绕过后复现 Linux
+交叉编译的 `mmap=yes` 假设；继续验证继承的宿主站点文件不会加载、显式目标文件
+可加载，以及没有交叉回退分支的运行探针必须失败。宿主数据生成器、部分输出
+失败后保留完整头文件和增量构建检查保持不变。
+
+共享策略与包装器接线、真实 Autoconf、Clang 参数转发及 CMake 相关 22 项本机
+检查全部通过，未跳过；这不执行 Wasm 程序。目标双位宽 Autoconf 运行检查还需
+公开 CI 验收，不把站点答案本身当作新的系统功能已经实现。
+
+固定 `91480f7` 的 [wasm64 目标检查][autoconf64]和 [wasm32 目标检查][autoconf32]
+均已通过计划与派生解析，正在构建；尚无该版本的目标运行通过结论。
+
+[autoconf64]: https://github.com/HighCWu/distro/actions/runs/39075979454
+[autoconf32]: https://github.com/HighCWu/distro/actions/runs/39075983153

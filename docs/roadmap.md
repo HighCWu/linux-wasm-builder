@@ -98,6 +98,11 @@ wasm64 验收各 13 项通过，精确报告门禁确认零跳过、零重试（
 
 ## P2：工具链与 libc
 
+`91480f7` 让外部 SDK 的 Autoconf 与 distro 共用已知不支持能力的配置，修正
+Linux 交叉编译默认把完整 mmap 判为可用及链接 stub 被误判的问题。仍执行普通
+编译/链接和未知运行探测；22 项本机回归通过，双位宽目标检查仍需公开 CI 验收。
+安装文件、覆盖方式和证据边界见 [SDK Autoconf](sdk-autoconf.md)。
+
 原生用户态新增 `73cf891` 的 `zstd-wasm64`，尝试恢复双位宽 Zstandard 的上游 POSIX
 字典 mmap 路径，并修正 MAP_FAILED 检查。共享安装系统语料新增映射字典、二进制
 文件/管道及许可文本断言，宿主 3 项检查通过，但实际双位宽 Wasm 均失败在映射字典。
@@ -410,9 +415,9 @@ Linux `8bd657d` 新增[默认关闭的标准文件 mmap 候选](file-mmap-candid
 
 ## P6：用户态发行版
 
-固定 `d4fafc8` 的 wasm64 libcurl 直接开发入口已实际通过编译、ABI 和 Linux 内
-文件字节、正常退出及全部 TLS 信任边界检查。同版双浏览器 21 项验收已开始；
-不扩大为 CMake、wasm32 或后续 musl 版本均已通过。见 [开发记录](libcurl-development.md)。
+固定 `d4fafc8` 的 libcurl 双位宽直接/CMake 四入口均已实际完成编译、ABI 和
+Linux 内文件字节、正常退出及全部 TLS 信任边界检查。双位宽 Chromium/Firefox
+21 项验收已开始；不扩大为浏览器或后续 musl 版本已通过。见 [开发记录](libcurl-development.md)。
 
 libcurl 的 CMake 示例补入标准安装规则，将程序及依赖声明收集为独立安装输出；
 连同只读目录搬移回归，本地 56 项整组通过，含删除构建目录后的安装程序运行和声明完整性反例。

@@ -17,6 +17,9 @@ MIT而被重新许可。使用者可按自身代码与实际依赖的许可证�
 安装在 `share/linux-wasm-sdk/profile.json`。记录包含目标位宽、triple、编译/链接默认
 参数、C++ 配置原文，以及工具链、sysroot、编译配置和修正版 Meson 的 Nix store 路径。
 排查问题或归档构建时，应同时保存此记录与应用自身的构建参数。
+`91480f7` 新增 `paths.configSite`，指向 SDK 与 distro 共用的负向能力配置；
+安装检查比较实际文件内容，Autoconf 的默认策略与显式覆盖见 [使用说明](sdk-autoconf.md)。
+这是 schemaVersion 1 的增量字段，旧记录可能没有它，不是新的 ABI 版本。
 
 distro `f5417ce` 增加 `linearMemory.maximumBytes`，与 profile 的
 `--max-memory` 链接参数共用一个定义：当前 wasm32 为 4294967296 字节（4 GiB），
