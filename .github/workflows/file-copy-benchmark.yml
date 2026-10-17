@@ -1,0 +1,100 @@
+# SPDX-License-Identifier: MIT
+name: Fresh file copy benchmark
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: file-copy-benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    name: Fresh file copy wasm${{ matrix.bits }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        bits: [64, 32]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      - name: Resolve the exact distro gitlink
+        id: source
+        run: |
+          revision=$(git rev-parse HEAD:sources/distro)
+          printf 'revision=%s\n' "$revision" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v6
+        with:
+          repository: HighCWu/distro
+          ref: ${{ steps.source.outputs.revision }}
+          path: sources/distro
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - uses: nixbuild/nix-quick-install-action@v35
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-file-copy-${{ matrix.bits }}-${{ runner.os }}-${{ hashFiles('sources/distro/**/*.nix', 'sources/distro/flake.lock') }}
+          restore-prefixes-first-match: |
+            nix-wasm64-v2-${{ runner.os }}-
+            nix-ci-${{ runner.os }}-
+          save: false
+      - uses: cachix/cachix-action@v17
+        with:
+          name: linuxwasm
+      - name: Validate parser and formatting
+        run: |
+          python3 -B scripts/test_summarize_file_copy_benchmark.py
+          python3 -B scripts/test_run_file_copy_benchmarks.py
+          cd sources/distro
+          nix build --no-link --print-build-logs .#checks.x86_64-linux.formatting
+      - name: Build candidate artifacts, not cached benchmark checks
+        env:
+          BITS: ${{ matrix.bits }}
+        working-directory: sources/distro
+        run: |
+          suffix=""
+          if [[ "$BITS" == 64 ]]; then suffix="-wasm64"; fi
+          nix build --print-build-logs --out-link ../../result-file-copy \
+            ".#legacyPackages.x86_64-linux.mmap-benchmark$suffix.fileBenchmarkAssets"
+      - name: Three fresh Linux boots with paired batches
+        env:
+          BITS: ${{ matrix.bits }}
+          DISTRO_REVISION: ${{ steps.source.outputs.revision }}
+        run: |
+          mkdir provenance
+          {
+            printf 'builder_revision=%s\ndistro_revision=%s\npointer_bits=%s\nlinux_cpus=1\n' \
+              "$GITHUB_SHA" "$DISTRO_REVISION" "$BITS"
+            printf 'run=%s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            uname -a
+            lscpu
+            readlink -f result-file-copy
+            for artifact in kernel runner initramfs.cpio disk.img; do
+              readlink -f "result-file-copy/$artifact"
+            done
+            sha256sum result-file-copy/{kernel/dist/index.js,runner/run-test.js,initramfs.cpio,disk.img}
+            git -C sources/distro show HEAD:distro/musl/package.nix
+            git -C sources/distro show HEAD:distro/linux/package.nix
+            git -C sources/distro show HEAD:distro/llvm-toolchain/unwrapped.nix
+          } > provenance/build-and-host.txt
+          bash scripts/run_file_copy_benchmarks.sh result-file-copy "$BITS" results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: file-copy-fresh-wasm${{ matrix.bits }}
+          path: |
+            results/
+            provenance/
+          if-no-files-found: warn
+          retention-days: 7

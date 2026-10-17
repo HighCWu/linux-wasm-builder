@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      file-copy-benchmark:
+        description: Run three fresh file-copy benchmark boots for both pointer widths
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -13,6 +18,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  file-copy-benchmark:
+    if: github.event_name == 'workflow_dispatch' && inputs.file-copy-benchmark
+    uses: ./.github/workflows/file-copy-benchmark.yml
   repository:
     name: Repository metadata
     runs-on: ubuntu-24.04
@@ -169,6 +177,7 @@ jobs:
       - name: Check file-copy benchmark workload and evidence parser
         run: |
           python3 -B scripts/test_summarize_file_copy_benchmark.py
+          python3 -B scripts/test_run_file_copy_benchmarks.py
           for compiler in gcc clang; do
             "$compiler" -O2 -Wall -Wextra -Werror \
               sources/distro/distro/basic-init/tests/mmap-file-benchmark-host.c \
