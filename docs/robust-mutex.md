@@ -34,7 +34,10 @@ robust mutex: owner death, consistent recovery, unrecoverable state and cancella
 执行相同语料。反向控制删去修复阶段的 `pthread_mutex_consistent`，必须在另一线程
 复用时明确报告 `repaired mutex was not reusable`，而不能仅凭超时判为成功。
 包含新增用例的宿主整组 12 项已通过，GCC/Clang 均核对了反向控制的精确失败标记。
-目标 Wasm 结果与宿主 fixture 验证分开记录，新增目标验收仍待公开 CI 确认。
+固定 `95f8012` 的 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39007573645)
+和 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39007576621) 已成功；实际
+日志均包含完整 robust mutex 完成阶段和 pass。这是标准 pthread 线程退出路径的验证，
+不是内核独立 robust list 崩溃清理的验证。
 
 ## 不覆盖的边界
 
@@ -44,4 +47,16 @@ syscall、进程被杀、process-shared、PI、robust pending 窗口、死亡前
 异步取消、应用数据自动恢复或任意并发交错。ERRORCHECK 对象成功解锁只验证当前
 所有者可操作，不替代对其他线程错误解锁的完整负向测试。
 
-浏览器套件暂不增加此用例；现有信号/futex 浏览器结果不能代替这里的目标运行结果。
+## 浏览器接入
+
+distro `4db1fcc` 将同一 SDK 产物接入浏览器 runtime 套件，不重新编写或降低断言。
+新增 `runs SDK robust mutex owner-death recovery through Linux`，与基础 futex/waitv
+新用例一起将精确报告门禁由 11 项扩为 13 项。共享构造器按目标位宽选择 SDK 和内核，
+不将 wasm32 用户程序混装进 memory64 运行路径。
+
+页面通过独立 `/runtime-robust-mutex.cpio` 启动；必须收到完整完成阶段和 pass，且无
+fail。既有总超时继续覆盖运行与整机关闭，关闭失败不能被用户程序 pass 掩盖。新增
+宿主契约测试验证取对归档、下载失败会拒绝、缺少完成阶段或 pass 会拒绝、混入 fail
+会拒绝，以及报告中的真实用例名称和 Nix 精确清单完全一致。
+相关浏览器断言/报告门禁/关闭生命周期宿主检查共 23 项通过；Chromium、Firefox 的
+新版 wasm64 13 项目标验收仍待公开 CI 确认，不用旧版 11 项结果替代。

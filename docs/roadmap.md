@@ -77,7 +77,10 @@ Firefox 因源码 429 未执行。`73d0a65` 修正 fixture 的原始 syscall 机
 原子更新均已核实末阶段和 pass，不把信号用例通过泛化到全部 futex 操作。
 `95f8012` 新增 [robust mutex 线程退出恢复](robust-mutex.md)，区分修复后复用、未修复后的
 不可恢复状态、恢复者再次退出及 deferred cancellation，含反向控制的宿主整组 12 项
-通过；目标结果待独立 CI 确认。
+通过；双位宽 Node 也已核对完整恢复阶段与 pass。
+`4db1fcc` 把基础 futex/waitv 与 robust mutex 的相同 SDK 产物接入浏览器，精确报告门禁
+从 11 项扩到 13 项。相关断言/报告/关闭生命周期宿主 23 项通过；新版 Chromium/Firefox
+wasm64 验收待 CI 确认，不将正常 pthread 退出泛化为内核独立 robust list 崩溃清理。
 不声称完成标准 fork 或完整信号语义。
 具体边界见[信号等待验证](signal-waits.md)。
 

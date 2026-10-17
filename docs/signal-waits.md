@@ -190,7 +190,9 @@ GCC/Clang 检查共 4 项通过，原有时间/信号/pthread 宿主 10 项也�
 `sdk-check-futex-runtime` 和 `sdk-wasm64-check-futex-runtime`。
 固定 `5a54912` 的 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39005583127)
 和 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39005586443) 均已成功；日志
-核实完整的 `futex ABI: ... verified` 阶段和 pass。浏览器已通过的 11 项是上述信号用例，
+核实完整的 `futex ABI: ... verified` 阶段和 pass。`4db1fcc` 另将同一 SDK 产物接入
+浏览器，增加 `runs SDK futex time64 waits, wake operations and waitv through Linux`，
+与 robust mutex 一起把精确套件扩为 13 项；新增目标结果待确认，旧版已通过的 11 项
 不包含这组基础检查。
 
 后续 [robust mutex 回归](robust-mutex.md) 单独验证普通线程退出及 deferred cancellation
