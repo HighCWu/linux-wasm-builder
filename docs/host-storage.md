@@ -35,7 +35,10 @@ FS 后端可选提供同步 `stop()`，在等待在途请求前启动自身的�
 
 builder 的独立浏览器生命周期套件新增真实 virtqueue 场景，分别延迟 lookup 成功
 和拒绝，同时排入下一请求；精确清单从 21 项增至 22 项，8 项报告门禁回归通过。
-Chromium/Firefox 公开检查待实际结果；这项测试不启动 Linux，也不使用真实 OPFS
+固定 builder `ab54d6a`、distro `cfb3c8c` 的
+[公开检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39056573326) 已成功：
+实际日志确认 Chromium/Firefox 各执行全部 22 项，包括新增 virtio-fs 场景，报告门禁
+确认零跳过、零重试，两个目标及整个工作流通过。这项测试不启动 Linux，也不使用真实 OPFS
 文件，不能替代挂载端到端、FUSE DESTROY 与其他队列并发、请求级取消、断电恢复
 或任意写入持久性保证。后端永久不结束仍可能使关闭等待，需调用方保留外层 watchdog。
 本轮实现和测试采用 MIT，不修改 Linux 内核、UAPI 或默认地址模型。
