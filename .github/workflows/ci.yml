@@ -119,6 +119,9 @@ jobs:
       - name: Check verified TLS consumer on the build host
         # Native OpenSSL is fixture evidence, not target TLS or browser networking.
         run: node --test sources/distro/distro/openssl/tests/handshake-host.test.js
+      - name: Check curl verified HTTPS over native Linux TCP
+        # Native CLI versions validate the fixture, not the Wasm build or browser transport.
+        run: node --test sources/distro/distro/curl/tests/https-host.test.js
       - name: Check SDK CMake integration on the build host
         run: |
           node --test sources/distro/distro/llvm-runtimes/cxa-thread-atexit-test.js
