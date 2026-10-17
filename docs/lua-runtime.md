@@ -100,8 +100,47 @@ nix build './sources/distro#checks.x86_64-linux.lua-check-development'
 这不证明 Wasm 归档、目标回调签名或 SjLj。固定 `a4a8c76` 的
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39061875688) 和
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39061878991) 开发检查均通过
-计划解析，正在公开 Actions 重型构建，尚待真实目标编译和运行结果；此前解释器
-检查不包含此次多输出变更。
+计划解析，但随后失败。双位宽实际日志确认 Lua/luac 的 ABI 检查成功，消费者
+构建在 `Lua metadata did not relocate` 处停止，尚未编译运行 C 消费者。
+此前解释器检查不包含此次多输出变更，不能代替开发包验收。
+
+### 可分发的独立示例与正常退出
+
+`35f9e21` 修正上述整理问题：固定 nixpkgs 的 `_multioutDevs` 会把 `.pc` 的相对
+`includedir` 改成绝对开发输出路径。Lua 已显式安装头文件/归档/元数据，因此关闭
+该包的自动开发文件整理，并将 `outputDoc` 指向 `dev`，避免示例文档移到运行包。
+不改全局 Nix 整理行为，也不删除消费者的迁移拒绝检查。
+
+开发输出现携带 `share/doc/lua/examples/embedding.c`、构建说明与自有 MIT 文本。
+用户可从复制后的完整开发包构建示例，无需检出本仓库；源码默认正常返回状态 0。
+仅作为 Linux 测试 PID 1 的变体定义 `LINUX_WASM_TEST_INIT`，成功后保持存活，
+避免 init 退出引发内核 panic。两个变体都从开发包内安装的源码编译并检查目标 ABI。
+
+```sh
+export LUA_DEV=/absolute/path/to/copied-lua-dev
+export WASM_PKG_CONFIG_PATH="$LUA_DEV/lib/pkgconfig"
+export WASM_PKG_CONFIG_SYSROOT_DIR=/
+wasm-linux-cc -O2 "$LUA_DEV/share/doc/lua/examples/embedding.c" \
+  $(wasm-linux-pkg-config --cflags --libs lua) -o lua-example.wasm
+```
+
+必须使用对应位宽 SDK，生成的是 Linux/Wasm 程序而非 WASI 程序。新增目标检查由
+BusyBox 启动普通示例，要求超时前成功退出、完整阶段标记及 pass，拒绝 fail；子程序
+输出仅写入临时文件，不能在退出前被运行器误认作整项测试成功。根盘还检查随包
+携带的 Lua、musl、compiler-rt 和示例许可文本。
+
+```sh
+nix build './sources/distro#checks.x86_64-linux.lua-wasm64-check-application'
+nix build './sources/distro#checks.x86_64-linux.lua-check-application'
+```
+
+相关 39 项本地检查通过，包括从迁移后的源码/头文件/归档经 GCC、Clang 编译执行，
+以及退出非零、漏阶段、漏 pass、显式 fail、打印 pass 后卡住等负向场景。对 Nix
+整理选项的宿主检查属于接线检查，不证明实际目标打包。固定 `35f9e21` 的新
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39063135640) 与
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39063138847) 公开 Actions
+已提交；wasm64 已通过派生计划解析、进入重型检查，实际结果待验收，不声称修正
+已在目标或浏览器验证。
 
 ## 浏览器共享用例
 
