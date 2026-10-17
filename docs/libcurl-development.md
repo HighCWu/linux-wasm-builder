@@ -141,8 +141,8 @@ Wasm 运行证据。新增目标入口的公开构建与运行结果仍待验收
 目标编译及运行仍需修正后的公开 CI 验收。
 包括只读输入回归在内的相关本地整组现为 55 项，全部通过。
 
-固定 `1905bb6` 的下列四项公开检查均已通过计划和派生解析、进入重型任务，
-真实目标构建和运行仍待验收；新浏览器 21 项矩阵尚未触发。
+固定 `1905bb6` 的下列四项公开检查均通过计划和派生解析、进入重型任务，但均
+在消费者目录搬移时失败，尚未进入应用编译和运行；新浏览器 21 项矩阵尚未触发。
 
 | 位宽 | 直接 SDK 编译 | CMake 编译 |
 | --- | --- | --- |
@@ -153,3 +153,52 @@ Wasm 运行证据。新增目标入口的公开构建与运行结果仍待验收
 [cmake64]: https://github.com/HighCWu/distro/actions/runs/39071346024
 [direct32]: https://github.com/HighCWu/distro/actions/runs/39071375313
 [cmake32]: https://github.com/HighCWu/distro/actions/runs/39071378730
+
+四项实际日志均确认开发包生成完成，随后
+`mv original relocated/installation` 因只读目录副本而报权限错误，仍未进入应用
+编译和运行；不能把前一阶段权限修复等同于消费者已通过。
+
+## CMake 构建后的安装与分发材料
+
+`bb4e434` 的安装规则补齐普通 `cmake --install build --prefix /absolute/output` 流程，
+程序位于 `bin/libcurl-fetch.wasm`，示例 MIT 文本和匹配开发安装中的依赖声明位于
+`share/licenses/curl`。缺失 curl、OpenSSL、zlib、musl、compiler-rt 或集成声明时
+配置失败，不静默省略材料；自有代码的 MIT 不改变各依赖的许可。
+
+目标 CMake 消费者改为从实际安装输出收集程序和声明，再进行 Wasm ABI 和相同
+Linux 运行检查，而不是直接从构建目录复制二进制。本轮没有修改普通 C 程序、
+运行脚本或浏览器 21 项门禁。固定 `1905bb6` 的四项 CI 不包含这些新安装规则，
+不能替代它们的目标验收；这些任务均自行结束，没有取消或重启。
+
+相关整组本地仍为 55 项，全部通过。增强的 GCC/Clang 夹具使用带空格的搬移源目录
+及独立安装前缀，删除构建目录后才运行安装的程序，比较二进制文件字节和各声明
+内容，并确认显式安装前缀不会把程序写回开发安装；缺失私有元数据或依赖声明的
+新配置必须失败。这里的原生依赖声明是明确标注的夹具，不替代实际发布物合规审计。
+
+主仓库固定 `b07f255` 的
+[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39071387521)
+已成功，实际日志确认只读元数据回归、真实宿主 libcurl 示例、CMake 构建及缓存
+分类检查执行；这仍是新安装规则加入前的证据。
+
+## 只读开发安装的目录搬移
+
+`323ae8d` 针对上述 `mv` 失败，两个消费者在复制之后仅给临时副本的顶层目录增加 owner
+写权限，再搬到新的父目录。原 Nix store、子目录和文件的权限均不改动，不能用
+递归放宽整个输入树来掩盖问题。新回归直接执行两个消费者各自的复制/权限/搬移
+片段，输入整棵目录树为 `0555`、元数据为 `0444`，验证搬移成功、只改副本根目录，
+输入内容和权限保持不变。修正后的实际目标编译及运行仍需公开 CI 验收。
+相关整组本地检查增为 56 项，全部通过。
+
+在旧四项任务全部结束后，固定 `323ae8d` 的双位宽直接入口和 CMake 安装入口
+已重新提交，均通过计划和派生解析、进入重型任务。它们包含新安装规则和目录
+搬移修正，真实目标编译、ABI、Linux 内运行仍待结果；不沿用旧浏览器 20 项证据。
+
+| 位宽 | 直接 SDK 编译 | CMake 安装入口 |
+| --- | --- | --- |
+| wasm64 | [开发包检查][direct64-fixed] | [CMake 检查][cmake64-fixed] |
+| wasm32 | [开发包检查][direct32-fixed] | [CMake 检查][cmake32-fixed] |
+
+[direct64-fixed]: https://github.com/HighCWu/distro/actions/runs/39072944199
+[cmake64-fixed]: https://github.com/HighCWu/distro/actions/runs/39072948798
+[direct32-fixed]: https://github.com/HighCWu/distro/actions/runs/39072953437
+[cmake32-fixed]: https://github.com/HighCWu/distro/actions/runs/39072958357
