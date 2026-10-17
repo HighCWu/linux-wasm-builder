@@ -27,6 +27,7 @@ export const lifecycleCases = Object.freeze([
   "BrowserFS replacement waits for target OPFS mutations before publishing",
   "BrowserFS directory relocation coordinates descendant mutations and queries",
   "virtio-fs shutdown drains current work without publishing or dispatching queued requests",
+  "virtio-fs failed CREATE releases unpublished handles and lookup references",
 ]);
 
 export function caseFilter() {

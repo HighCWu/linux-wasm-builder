@@ -1,6 +1,126 @@
 // SPDX-License-Identifier: MIT
 import { expect, test } from "@playwright/test";
 
+test("virtio-fs failed CREATE releases unpublished handles and lookup references", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const { fileSystemDevice, FSError, close_virtio_device, virtio_imports } =
+      await import("/filesystem-api.js");
+    const results = [];
+    for (const releaseFails of [false, true]) {
+      const root = {},
+        node = {},
+        handle = {};
+      let fail = true,
+        exists = false,
+        releases = 0;
+      const device = fileSystemDevice(
+        {
+          root,
+          lookup() {
+            return exists ? node : undefined;
+          },
+          getattr() {
+            if (fail) throw new FSError("EACCES");
+            return { mode: 0o100600, size: 0n };
+          },
+          create() {
+            exists = true;
+            return { node, handle };
+          },
+          flush() {},
+          fsync() {},
+          release(actualNode, actualHandle) {
+            if (actualNode !== node || actualHandle !== handle)
+              throw new Error("wrong cleanup target");
+            releases++;
+            if (releaseFails) throw new FSError("EIO");
+          },
+        },
+        { tag: "create-errors" },
+      );
+      const memory = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true });
+      const bytes = new Uint8Array(memory.buffer),
+        view = new DataView(memory.buffer);
+      let completed = Promise.withResolvers();
+      const imports = virtio_imports({
+        memory,
+        devices: [device],
+        trigger_irq() {
+          completed.resolve();
+        },
+        on_error(error) {
+          completed.reject(error);
+        },
+      });
+      async function request(opcode, id, body) {
+        completed = Promise.withResolvers();
+        bytes.fill(0);
+        view.setUint32(128, 40 + body.length, true);
+        view.setUint32(132, opcode, true);
+        view.setBigUint64(136, 1n, true);
+        view.setBigUint64(144, id, true);
+        bytes.set(body, 168);
+        view.setBigUint64(0, 128n, true);
+        view.setUint32(8, 40 + body.length, true);
+        view.setUint16(14, 129, true);
+        view.setBigUint64(16, 1024n, true);
+        view.setUint32(24, 512, true);
+        view.setUint16(30, 130, true);
+        imports.enable_vring(0, 0, 4, 0, 1);
+        imports.notify(0, 0);
+        await completed.promise;
+        imports.disable_vring(0, 0);
+        return view.getInt32(1028, true);
+      }
+      const name = new TextEncoder().encode("file\0");
+      const create = new Uint8Array(16 + name.length);
+      create.set(name, 16);
+      try {
+        const failed = await request(35, 1n, create);
+        const immediateReleases = releases;
+        fail = false;
+        const absent = await request(3, 2n, new Uint8Array(16));
+        const found = await request(1, 1n, name);
+        const inode = Number(view.getBigUint64(1040, true));
+        const forget = new Uint8Array(8);
+        new DataView(forget.buffer).setBigUint64(0, 1n, true);
+        await request(2, 2n, forget);
+        const collected = await request(3, 2n, new Uint8Array(16));
+        results.push({
+          releaseFails,
+          failed,
+          immediateReleases,
+          absent,
+          found,
+          inode,
+          collected,
+          exists,
+        });
+      } finally {
+        await close_virtio_device(device);
+      }
+      results.at(-1).finalReleases = releases;
+    }
+    return results;
+  });
+  expect(results).toEqual(
+    [false, true].map((releaseFails) => ({
+      releaseFails,
+      failed: -13,
+      immediateReleases: 1,
+      absent: -2,
+      found: 0,
+      inode: 2,
+      collected: -2,
+      exists: true,
+      finalReleases: 1,
+    })),
+  );
+});
+
 test("virtio-fs shutdown drains current work without publishing or dispatching queued requests", async ({
   page,
 }) => {
