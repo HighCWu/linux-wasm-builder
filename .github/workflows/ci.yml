@@ -38,12 +38,14 @@ jobs:
       - name: Check named semaphore deadline admission with host shims
         # Fetch only the exact pinned function source, not a full Linux checkout.
         # This checks admission logic, not Wasm execution or scheduler behavior.
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          python3 -B scripts/test_fetch_pinned_semaphore_source.py
           revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
           [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
-          curl --fail --location --retry 3 \
-            "https://raw.githubusercontent.com/HighCWu/linux/$revision/arch/wasm/kernel/semaphore.c" \
-            -o "$RUNNER_TEMP/wasm-semaphore.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-semaphore.c"
           python3 -B scripts/check_named_semaphore_deadline.py "$RUNNER_TEMP/wasm-semaphore.c"
       - uses: actions/setup-node@v6
         with:
