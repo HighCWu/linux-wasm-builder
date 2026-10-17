@@ -97,6 +97,12 @@ Chromium、Firefox 均已成功，实际日志确认 QuickJS 用例执行且完�
 判定。完整 18 项 Chromium/Firefox 复验因上述 Lua 依赖构建失败，尚未进入浏览器，不能
 把 Node 成功扩大为浏览器验收。
 
+固定 `25d3789` 的
+[Firefox 18 项复验](https://github.com/HighCWu/distro/actions/runs/39063502379)
+现已成功，实际日志确认 QuickJS 完整用例执行，严格报告全部 18 项且零跳过/重试。
+这次不带许可别名，且包含新的关闭期判定及 Lua 开发包路径修正；同批 Chromium
+仍待结果，不将 Firefox 成功扩大为后加 OpenSSL 的 19 项套件已通过。
+
 后续 `1823c91` 将 OpenSSL CLI/验证证书的 TLS 消费者纳入共享套件，当前精确
 门禁为 19 项。含 Lua 开发包路径修正的新 wasm64 双浏览器检查已提交，待实际
 结果；旧 16/18 项运行不能替代新套件的完整验收。

@@ -410,6 +410,18 @@ Linux `8bd657d` 新增[默认关闭的标准文件 mmap 候选](file-mmap-candid
 
 ## P6：用户态发行版
 
+`907f64d` 增加独立 curl/zlib wasm64 覆盖层及 CLI ABI 门禁。新双位宽用例在
+Linux 回环 TCP 上强制 TLS 1.3、显式 CA 验证，并拒绝无关 CA/错误主机名；
+不同于 OpenSSL 内存 BIO 和宿主 Fetch 桥。相关 6 项本地检查通过，双位宽目标
+HTTPS 检查已提交，尚待结果，不扩大为浏览器外网 TLS 或完整 CA 策略。见
+[curl 运行记录](curl-runtime.md)。
+
+目标证据已补齐：固定 `35f9e21` 的 Lua 双位宽普通应用检查均成功，实际 ABI 和
+Linux 正常退出阶段通过；固定 `25d3789` 的 OpenSSL 双位宽检查均成功，CLI、
+两个消费者 ABI、完整验证阶段及 pass 均经日志核对。同版本 Firefox 18 项也已
+完整通过，零跳过/重试，含 QuickJS/Lua 与关闭期修正，但不含新增 OpenSSL 浏览器
+用例。新 19 项双浏览器仍待验收；不能将上述结果扩大为它或 curl TCP/TLS 已通过。
+
 `1823c91` 将 OpenSSL 完整 CLI 与证书/主机名验证消费者加入双位宽浏览器套件，
 精确门禁从 18 项扩为 19 项。Node 安装系统与浏览器共用唯一脚本和匹配位宽的
 安装产物集合；所有阶段、pass 且无 fail 才能通过。相关 38 项本地检查通过，

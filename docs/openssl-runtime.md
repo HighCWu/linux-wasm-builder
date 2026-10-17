@@ -66,7 +66,10 @@ musl COPYRIGHT 和 compiler-rt LICENSE.TXT；新增自有消费者/测试采用 
 固定 `25d3789` 的
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39063492740) 和
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39063496158) 公开 CI 均已
-通过计划及派生解析、进入重型检查，实际编译与 Linux 结果待逐项验收。OpenSSL
+成功，实际日志确认 CLI 和两个静态库消费者的匹配位宽 ABI 门禁，以及完整
+`OpenSSL: CLI defaults, entropy, digest, X.509 and verified TLS consumers complete`
+阶段和最终 pass。脚本只有在三类证书验证场景及完整阶段检查通过后才输出该阶段；
+不把它扩大为外网、浏览器或后续 curl TCP/TLS 检查的通过证据。OpenSSL
 的浏览器接线由下述后续提交实现，不能将其它语言的浏览器检查当作本包的验收。
 
 ## 浏览器共享用例

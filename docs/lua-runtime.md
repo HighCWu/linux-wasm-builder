@@ -139,8 +139,10 @@ nix build './sources/distro#checks.x86_64-linux.lua-check-application'
 整理选项的宿主检查属于接线检查，不证明实际目标打包。固定 `35f9e21` 的新
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39063135640) 与
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39063138847) 公开 Actions
-已提交；wasm64 已通过派生计划解析、进入重型检查，实际结果待验收，不声称修正
-已在目标或浏览器验证。
+均已成功，实际日志确认解释器和两个 C 消费者的匹配位宽 ABI 门禁，以及
+`Lua application: installed example exits normally through Linux verified` 和最终 pass。
+这验证了从复制安装的开发包源码/头文件/归档构建普通应用并在 Linux 正常退出，
+不是仅以宿主编译结果推断目标可用。
 
 ### 宿主开发包路径发现修正
 
@@ -153,7 +155,10 @@ nix build './sources/distro#checks.x86_64-linux.lua-check-application'
 distro `08dffcb` 优先使用原生 pkg-config 的 `-I`/`-L` 目录，并验证头文件/静态
 归档实际存在，变量值仅作为候选；允许系统目录标志显式输出，保留配置原生路径
 的环境变量。新增版本化头文件/多架构归档布局及缺失头文件拒绝回归。本地相关
-46 项通过，新的主仓库轻量 CI 随引用更新自动运行，Ubuntu 实际复验仍待结果。
+46 项通过。固定主仓库 `4152244` 的
+[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39064029545)
+现已成功，实际 Ubuntu 日志确认原生路径发现、语言语料和 C 消费者检查通过；
+不再仅依靠显式配置本地原生路径绕过发行版布局。
 这只修正宿主测试发现逻辑，不修改目标 Lua、SDK 或 Wasm 执行语义。
 
 ## 浏览器共享用例
@@ -179,7 +184,9 @@ distro `108f20a` 为 wasm32/wasm64 浏览器套件各增加两个用例，精确
 失败。`35f9e21` 包含开发包修正；固定后续 `25d3789` 的
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39063499422) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39063502379) 完整套件复验均已
-通过计划及派生解析，进入公开重型检查，实际结果仍待验收。wasm32
+通过计划及派生解析。Firefox 已成功，实际日志确认 QuickJS、Lua 语言和安装后
+C 嵌入用例均执行，完整 18 项通过，严格报告零跳过/重试；包含迁移修正和加强后
+的关闭期判定，不含后加 OpenSSL。Chromium 同批仍在运行，尚待结果。wasm32
 已接线，当前尚未提交本轮浏览器重型检查。新套件同时使用
 修正后的 QuickJS `/share/licenses` 检查，不沿用先前镜像的额外许可别名。
 
