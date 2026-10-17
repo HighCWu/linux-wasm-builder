@@ -52,11 +52,15 @@
 断言，复用双位宽 SDK 和浏览器运行入口。新 fixture 的 GCC/Clang 宿主验证通过，
 实际 Wasm 四路验收均暴露等待后信号掩码未恢复的问题；Linux `e81f9ad0e` 修正返回
 掩码选择，distro `de12442` 的双位宽 Node 与 wasm64 Firefox 已核实通过；Chromium
-未执行到测试，因源码下载 HTTP 429 失败。
+该次未执行到测试，因源码下载 HTTP 429 失败；后续固定 `79bd2b3` 的 Chromium/Firefox
+均核实 9 项通过，零跳过、零重试（尚不覆盖以下新增用例）。
 `e9b8308` 新增部分 pipe I/O、显式后缀重试及 wait 单次回收回归，宿主 8 项通过，
-目标 wasm64 在源码下载阶段遭遇 HTTP 429，wasm32 仍在构建。
+目标 wasm64 在源码下载阶段遭遇 HTTP 429，wasm32 已核对完整末阶段和 pass。
 `7968bc9` 进一步补入 sigsuspend 与 handler 专有 sa_mask 的隔离/恢复检查，主交接
-增至 192 次，整组宿主 8 项通过，新双位宽等待验收已提交。
+增至 192 次，整组宿主 8 项通过；Node wasm32 已通过，wasm64 因源码 HTTP 429 未执行。
+该版本新版 10 项浏览器验收中 Chromium 同样遇到源码 429，Firefox 仍在运行。
+`8cf8984` 增加 SA_RESTART waitpid 的信号交接和单次回收检查；整组宿主 8 项通过，
+包含 GCC/Clang 去掉该 flag 后必须失败的反向控制，双位宽目标验收已提交。
 不声称完成标准 fork 或完整信号语义。
 具体边界见[信号等待验证](signal-waits.md)。
 

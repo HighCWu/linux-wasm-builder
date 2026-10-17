@@ -83,13 +83,15 @@ distro `de12442` 已接入该内核，公开
 公开 SDK 提供双位宽 `signal-io-runtime` 检查；浏览器复用同一 SDK 产物，严格用例为
 `runs SDK partial pipe I/O and interrupted child reaping through Linux`。
 新 fixture 的 GCC/Clang 宿主检查通过；合并既有 time、thread-time、signal-waits，
-宿主检查共 8 项通过。目标 Wasm 验收尚待确认，不把宿主 callback clone 当作 Wasm
-克隆或标准 fork 的通过证据。固定 `e9b8308` 的
+宿主检查共 8 项通过。固定 `e9b8308` 的
 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/38995516047) 已因 Linux 源码下载
 HTTP 429 失败，尚未编译/执行 I/O fixture，不能称为 I/O 语义失败。
-[Node wasm32](https://github.com/HighCWu/distro/actions/runs/38995515156) 仍在构建。
-旧版本浏览器任务仍保持运行，不取消或重启，也不能将其结果用作新增 I/O fixture
-的通过证据。
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/38995515156) 已成功，实际日志
+包含完整末阶段和 pass 标记；这是 Wasm callback clone 路径的证据，不证明标准 fork。
+固定旧版 `79bd2b3` 的
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38995392639) 和
+[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38995402802) 均核对为 9 项
+通过，严格门禁确认零跳过、零重试；这些结果不覆盖新增 I/O fixture。
 
 ## sigsuspend 与 handler 专有掩码
 
@@ -105,11 +107,34 @@ sigsuspend 必须调用 handler、返回 EINTR，并恢复等待前完整掩码�
 
 同一 SDK fixture 已同步双位宽 Node 和浏览器入口；浏览器严格用例名更新为
 `runs SDK ppoll, pselect and sigsuspend signal-mask handoff through Linux`。
-宿主 GCC/Clang 含新路径的整组 8 项通过。新版双位宽等待检查已提交 CI，结果待确认；
-旧版本的 9 项浏览器通过不覆盖 sigsuspend 或新 sa_mask 断言。本轮没有修改内核/libc。
+宿主 GCC/Clang 含新路径的整组 8 项通过。固定 `7968bc9` 的
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/38996065062) 已核对完整末阶段
+和 pass 标记；[Node wasm64](https://github.com/HighCWu/distro/actions/runs/38996000085)
+因源码下载 HTTP 429 失败，未执行等待测试。固定该版本的新版 10 项浏览器套件中，
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/38998537486) 同样在源码下载
+HTTP 429 失败；[Firefox wasm64](https://github.com/HighCWu/distro/actions/runs/38998538592)
+仍在构建。旧版本的 9 项浏览器通过不覆盖 sigsuspend 或新 sa_mask 断言。
+本轮没有修改内核/libc。
+
+## SA_RESTART 子进程等待
+
+distro `8cf8984` 在同一 I/O fixture 增加带 SA_RESTART 的 waitpid：
+
+- 子进程保持阻塞，辅助线程逐个发送并确认 16 次 SIGUSR1 后才释放子进程退出。
+  handler 仍检查自身/无关信号掩码，并执行嵌套 getpid。
+- waitpid 不得向应用暴露 EINTR，必须得到子进程和退出状态 37；返回后检查信号掩码，
+  再次等待必须 ECHILD。原不带 SA_RESTART 的 EINTR/WNOWAIT 检查保持独立。
+- GCC/Clang 宿主检查还编译一个仅去掉该等待 SA_RESTART flag 的反向版本，要求命中
+  指定失败断言且不得出现 pass；报告失败前释放、回收仍存活的子进程。
+- 整组 8 项宿主检查通过，包含上述两路反向控制。双位宽 Node 验收已提交，结果待确认。
+  运行中的 `7968bc9` 浏览器任务不覆盖这次扩展；不取消它，也不把旧结果算作新验收。
+
+16 次交接增加命中阻塞等待的机会，但节流延时不证明任意一次信号的精确内核投递位置；
+宿主反向控制也不替代 Wasm 的反向控制或对所有交错的证明。此提交只扩展 MIT 测试，
+没有修改重启策略、内核、libc 或 ABI。
 
 这些重复用例不是对任意并行交错的形式证明；有限超时允许把丢失唤醒暴露为失败，
 并没有使无限等待的正确性自动成立。本轮没有验证内部多次重挂等待是否保留同一
 deadline；新增 I/O/回收 fixture 也不证明异步 I/O 取消、副作用回滚、read 拷贝过程
-中的信号交错、带 SA_RESTART 的 waitpid、futex 重启或标准 fork。
+中的信号交错、futex 重启或标准 fork；带 SA_RESTART 的 waitpid 目标验收仍待确认。
 后续按这些边界独立增加用例，不以一组等待测试代替完整 POSIX 信号语义。
