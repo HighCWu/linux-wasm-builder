@@ -301,6 +301,12 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/node-fs.test.mjs"
           node --test "$RUNNER_TEMP/node-fs.test.mjs"
+          npx --yes esbuild@0.25.12 scripts/tests/nodefs-device-lifecycle.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/node-fs-device.test.mjs"
+          node --test "$RUNNER_TEMP/node-fs-device.test.mjs"
       - name: Check open-file metadata uses the descriptor syscall
         run: |
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/file-stat.test.ts \
