@@ -188,7 +188,8 @@ Wasm memory/virtqueue 的 OPENDIR 打开两个 Node 目录句柄，再关闭设�
 原生描述符 stat 均返回 EBADF。另一场景在第一次实际关闭后注入 EIO，要求关闭错误
 传播且第二个描述符仍被关闭，不能因前项错误跳过后续回收。两项本地检查通过，
 并接入[公开轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39060316611)，
-目前仍在排队。不依赖本地 Linux/LLVM 构建，也不导出内核宿主私有测试入口
+现已成功，实际日志确认两项指定用例通过、零失败；固定 builder `da0e074`、distro
+`209310c`。不依赖本地 Linux/LLVM 构建，也不导出内核宿主私有测试入口
 作为公开包 API。这是原生资源与桥接验证，仍不替代 Linux 挂载、崩溃或真实宿主
 关闭失败后资源状态的证明。
 
