@@ -80,8 +80,8 @@ Playwright 要求二进制文件回调/正常退出、显式 CA TLS 1.3、默认
 
 `c66e1a6` 的元数据处理补入已知 lib/include 路径的冗余斜杠支持、目录名边界检查和逐行
 错误诊断；仍拒绝未知绝对路径，并在整组验证后才改写文件。新增回归覆盖单/双/三
-斜杠、未知目录及失败不写入；这是待目标 CI 确认的修正，不声称已经查明旧失败
-路径或通过 Wasm 构建。
+斜杠、未知目录及失败不写入。初版日志没有打印具体路径，因此不将其归因为
+某一个已确证的唯一路径；后续目标 CI 的实际阶段见下文。
 
 固定 `c66e1a6` 的
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39070094997) 和
@@ -146,5 +146,10 @@ Wasm 运行证据。新增目标入口的公开构建与运行结果仍待验收
 
 | 位宽 | 直接 SDK 编译 | CMake 编译 |
 | --- | --- | --- |
-| wasm64 | [开发包检查](https://github.com/HighCWu/distro/actions/runs/39071343031) | [CMake 检查](https://github.com/HighCWu/distro/actions/runs/39071346024) |
-| wasm32 | [开发包检查](https://github.com/HighCWu/distro/actions/runs/39071375313) | [CMake 检查](https://github.com/HighCWu/distro/actions/runs/39071378730) |
+| wasm64 | [开发包检查][direct64] | [CMake 检查][cmake64] |
+| wasm32 | [开发包检查][direct32] | [CMake 检查][cmake32] |
+
+[direct64]: https://github.com/HighCWu/distro/actions/runs/39071343031
+[cmake64]: https://github.com/HighCWu/distro/actions/runs/39071346024
+[direct32]: https://github.com/HighCWu/distro/actions/runs/39071375313
+[cmake32]: https://github.com/HighCWu/distro/actions/runs/39071378730
