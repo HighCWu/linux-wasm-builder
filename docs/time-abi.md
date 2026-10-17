@@ -41,9 +41,10 @@ distro `134ab6e` 将同一 SDK 程序接入 Chromium/Firefox 的双位宽运行�
 新增宿主契约检查程序归档请求、下载失败传播、缺少完成阶段/通过标记和混入失败标记
 必须拒绝；连同浏览器报告门禁共 22 项通过。共享运行器、关闭与结果协议另 19 项
 通过；这些不是 Linux 或浏览器运行证据。固定 `134ab6e` 的新版 wasm64
-[Chromium](https://github.com/HighCWu/distro/actions/runs/39056127769) 和
-[Firefox](https://github.com/HighCWu/distro/actions/runs/39056131271) 已启动，尚待实际结果；
-之前文件映射或 robust mutex 的浏览器记录不能替代它。
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39056127769) 已成功，实际日志
+确认 14 项通过，精确报告门禁确认零跳过、零重试；新增信号量用例要求完整输出阶段、
+pass 和无 fail，并等待整机关闭。[Firefox](https://github.com/HighCWu/distro/actions/runs/39056131271)
+仍在运行，尚不宣称通过；之前文件映射或 robust mutex 的浏览器记录不能替代它。
 本次只增加 MIT 测试集成，不修改默认内核配置、musl、执行 ABI 或许可证边界。
 
 builder `2c38d43` 的

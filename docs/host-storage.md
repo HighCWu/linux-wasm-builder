@@ -60,7 +60,9 @@ CREATE 在后端成功后，还需要 getattr 才能向 Linux 回复 entry 和 f
 原始 EACCES 保留、后续查找/精确 FORGET 及关闭不重复释放。修改前已实际复现
 残留引用及零次句柄释放；修改后全部 198 项内核宿主测试和源码/测试类型检查通过。
 独立浏览器套件新增 CREATE 故障与恢复用例，精确清单增至 23 项，8 项报告门禁
-检查通过；公开 Chromium/Firefox 结果尚待确认。测试后端人为注入属性与清理失败，
+检查通过；固定 builder `4dafc10`、distro `c9e819c` 的
+[公开 Chromium/Firefox 检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39056981685)
+正在运行，结果尚待确认。测试后端人为注入属性与清理失败，
 不启动 Linux 或操作实际 OPFS，不证明所有请求并发、崩溃恢复或 Linux 挂载端到端。
 实现与验收均为 MIT，不修改 Linux 内核或 UAPI。
 
