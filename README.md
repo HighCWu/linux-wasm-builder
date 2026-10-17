@@ -63,6 +63,7 @@ CONFIG_MMU=n linux.wasm
 - [Direct mmap 性能基准](docs/mmap-benchmark.md)
 - [路线图](docs/roadmap.md)
 - [C/C++ SDK运行验证](docs/sdk-runtime.md)
+- [纯 Python 应用构建与交付](docs/python-applications.md)
 - [许可证与发行政策](docs/licensing.md)
 - [贡献指南](CONTRIBUTING.md)
 
