@@ -75,6 +75,9 @@ jobs:
       - name: Check C++ filesystem consumer on the build host
         # Host libraries do not prove the Wasm libc++ filesystem implementation.
         run: node --test sources/distro/distro/sdk/filesystem-test.js
+      - name: Check shared QuickJS fixture and explicit wasm64 scope
+        # Syntax and wiring only; target language execution stays in public Nix CI.
+        run: node --test sources/distro/distro/quickjs/language-contract.test.js
       - name: Check socket runtime fixture on the build host
         # Only the Wasm init configures its own loopback interface.
         run: |
