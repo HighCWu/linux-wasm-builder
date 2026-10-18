@@ -312,6 +312,36 @@ SHA256；归档不含解释器本体，因此本次下载复核不能独立重�
 
 [python64-materials-success]: https://github.com/HighCWu/distro/actions/runs/39081599044
 
+## Python 与七项依赖的选定源码导出
+
+distro `84d5bd9` 增加 `python.sourceBundle` / `python-wasm64.sourceBundle`，将
+该解释器实际选定的 CPython、zlib、bzip2、xz、SQLite、Readline、ncurses 和
+OpenSSL 源码输入归档，而不是重新下载某个移动分支。另附本地集成目录、实际
+配置的有序补丁、解释器原始构建材料，以及平台/源码身份/补丁顺序索引。
+输入是 patch 前源码；不将任意 postPatch 工作区冒充上游输入。
+
+导出前要求八项源码身份和位宽/内存声明与解释器的构建材料一致，核对材料校验值、
+Python 配方和实际补丁字节。普通文件独立归档，不受 Nix store 跨输入硬链接去重
+影响；源码符号链接保留目标文本、不追踪外部文件，补丁符号链接则收集实际字节。
+归档元数据固定，失败时不替换旧归档，并拒绝把输出放进被收集的目录。
+
+重型 `python[-wasm64]-check-source-bundle` 检查验证伴随校验值、最终已安装
+`usr/bin/python3.13` 的校验值与 Wasm ABI，并从真实归档比对原始 Python 许可证、
+构建材料清单、集成配方及有序补丁。成功后工作流上传保留三天的
+`python-selected-sources-CHECK-COMMIT`，包括 `python-selected-sources.tar.gz`、
+README、`BINARY_SHA256SUMS` 和 `SHA256SUMS`；复制后再次核验。
+包内没有解释器二进制，也不默认安装进运行根盘。
+
+五项宿主测试覆盖双位宽声明、完整八项输入、同名补丁顺序、硬链接/符号链接、
+可重复归档、材料损坏及写入/替换失败清理。真实源码构建、归档和上传仍待公开
+CI，不能仅据这些合成测试宣称成功。
+
+这缩小了对应源码交付缺口，**仍不是完整对应源码包、SBOM、离线重建环境或合规
+认证**：没有收齐 musl/compiler-rt/工具链/内核源码闭包、所有 Nixpkgs hooks、
+宿主依赖及全系统所需的构建安装信息。自定义 hooks/overrides 必须单独审查。
+Readline 等上游组件保留实际许可证，导出器的 MIT 不覆盖它们；短期 artifact 也
+不替代长期可获取的版本化源码发行。发布解释器或整套系统前仍须完成实际义务审查。
+
 ## 对外表述
 
 推荐表述：

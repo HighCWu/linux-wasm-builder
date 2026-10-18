@@ -611,3 +611,10 @@ SIGINT handler 先恢复完全 raw 模式再确认，之后输入包含全部 25
 最新 wasm64 Chromium 信号检查仍运行。
 
 [python32-terminal-signals-success]: https://github.com/HighCWu/distro/actions/runs/39083761930
+
+固定 `b3e6a3b` 的 [wasm64 Chromium 信号复验][python64-chromium-terminal-signals-success]
+现已成功。实际日志确认完整解释器/搬移应用与私有匿名 mmap 精确两项通过，报告
+门禁确认零跳过、零重试；该版本的浏览器必需阶段包含控制终端会话及终端生成
+窗口变化/中断信号。这不验证后续独立 Python 根盘、上传启动器或源码导出。
+
+[python64-chromium-terminal-signals-success]: https://github.com/HighCWu/distro/actions/runs/39083862152

@@ -159,5 +159,7 @@ nix build './sources/distro#python-wasm64.applicationExample'
 不能把整个解释器重标为 MIT，也不能省略对应源码和许可材料要求。
 这与独立脚本或用户程序的许可判断不同；具体产品应按实际分发、修改和链接关系审核。
 
-Python 后续另提供独立 `buildMaterials` 配置/补丁输出，默认不安装进根盘；其
-内容和明确排除项见[发行政策](licensing.md)。它不是依赖源码包或已完成合规的保证。
+Python 另提供独立 `buildMaterials` 配置/补丁输出，默认不安装进根盘。`84d5bd9`
+进一步增加双位宽 `sourceBundle` 选定源码归档配方，首次真实 CI 验收仍待结果。
+内容和明确排除项见[发行政策](licensing.md#python-与七项依赖的选定源码导出)；
+这些材料仍不是完整对应源码交付或已完成合规的保证。
