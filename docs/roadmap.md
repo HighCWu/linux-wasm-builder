@@ -415,6 +415,10 @@ Linux `8bd657d` 新增[默认关闭的标准文件 mmap 候选](file-mmap-candid
   透明COW。
 - 单独研究标准`fork()`的执行continuation。若需要工具链变换，必须形成公开、版本化并
   可测试的ABI；不能仅增加syscall号或libc符号来假装支持。
+- 已新增[执行现场恢复实验](fork-continuation.md)：固定 Asyncify 变换在 wasm32/wasm64、
+  `-O0`/`-O2` 下恢复嵌套与间接调用，包含独立 Worker、四分支、错误返回和反向控制。
+  本地 Clang 18/22 实际 Wasm 检查通过；`8760ac4` 的公开 Node 24 CI 已核实四组通过。
+  尚未接入 Linux clone 或 musl 标准 fork，不把这一机制结果扩大为系统接口已支持。
 - `/proc/<pid>/maps`与用户态可见地址一致。
 - 不支持的direct页保护返回明确错误，不能静默成功。
 
