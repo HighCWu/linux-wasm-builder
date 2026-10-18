@@ -193,14 +193,16 @@ result-fork-sdk/bin/wasm-linux-fork-finalize linked.wasm app.wasm
 不再由测试配方重复拼接 fork 编译参数。宿主新增 4 项 finalizer/接线检查，连同默认
 compiler wrapper 共 21 项通过。新路径的目标验收单独记录，不借用旧构建的成功结论：
 
-- [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39127118806)
-- [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39127124834)
-- [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39127129074)
-- [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39127133100)
-- [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39127137225)
-- [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39127142080)
+- [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39127395314)
+- [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39127400940)
+- [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39127405118)
+- [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39127408866)
+- [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39127412055)
+- [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39127416009)
 
-上述新 CI 已启动，尚待核实结果。安装包的 `share/linux-wasm-fork-sdk/profile.json`
+首轮六项均因新增 shell 脚本未满足格式门禁而停止，未运行目标程序；`c5a9e38` 已修正，
+上述为修正后的新 CI，已启动，尚待核实结果。集成提交 `e3bb8e1` 的轻量 CI 已成功。
+安装包的 `share/linux-wasm-fork-sdk/profile.json`
 明确版本和限制，`build-materials/` 保留新增配方、Binaryen 源码/许可证及默认 SDK
 材料链接；这是 Nix store 包，不是可任意搬移的独立 SDK 压缩包。自有新增代码为 MIT，
 不改变上游组件许可证。固定 256 KiB 保存区溢出仍会 trap，不承诺性能或多线程 fork。
