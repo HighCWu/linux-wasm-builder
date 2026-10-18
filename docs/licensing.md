@@ -402,7 +402,8 @@ Nix 格式与差异检查通过；新目标归档及上传尚待公开 CI，不�
 源码已推送后，主仓库以独立提交 `af310c35202dc9f0a96a8d645da76ff3b95a7765`
 更新 gitlink 并确认推送；
 [轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39099749259)
-已启动。固定该源码的
+已核实成功，实际日志确认 Python 十项及 Git 五项源码归档宿主回归通过，
+完整内核宿主 213 项也通过。固定该源码的
 [wasm32 选定源码检查](https://github.com/HighCWu/distro/actions/runs/39099787210) 与
 [wasm64 选定源码检查](https://github.com/HighCWu/distro/actions/runs/39099791307)
 另行触发，结果需核对实际成员验证及上传日志。

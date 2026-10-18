@@ -319,3 +319,24 @@ Worker，以及下载、文件创建、写流创建、写入和关闭失败时�
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39099390865) 与
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39099394181)
 已分别触发，尚待实际执行结果。
+
+## 开发服务器的启动校验
+
+后续开发服务器在监听端口之前调用已有 `verifyBundle`，验证完整文件集合、大小
+和 SHA-256。清单缺失／无效、文件缺失／新增／改变或符号链接均使启动失败，
+不会重新生成清单、构建缺失文件或继续监听。原手动 `node integrity.mjs` 入口保留。
+这增加启动时对全部载荷的一次流式读取，不是整盘 JavaScript 数组分配。
+
+服务器及完整性检查共九项宿主回归通过，完整页面宿主回归 76 项通过、无跳过。
+测试覆盖正常校验后提供隔离／MIME 响应头、六种启动拒绝情形，以及启动后新增
+越界符号链接时 HTTP 路径保护仍拒绝访问。失败用例有独立超时和子进程清理。
+启动校验不是持续防篡改、不可变快照、来源认证、签名或 Linux 可启动性验证；
+部署后仍需保持目录不被其他写入者修改，生产托管也仍须配置正确的隔离响应头。
+此前已通过的浏览器版本不包含这个启动改动，新版本需独立公开 CI。
+源码 `9447391deac3c531d4a70a38d0a5fd8914cbe9c4` 已确认推送。
+主仓库随后以独立提交 `e94d36a5f713b9f004136664cf859963c7f46f63` 更新 gitlink
+并确认推送；[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39100144106)
+已启动；固定该源码的
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39100162955) 与
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39100165424)
+检查另行触发，尚待新版本结果。
