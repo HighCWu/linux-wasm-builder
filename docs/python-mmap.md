@@ -453,3 +453,29 @@ wasm32 材料任务 `39080394738` 均已失败结束。日志确认格式门禁�
 修复的 `050ff03` 再次重放同组合。新版同时把宿主示例打包改为同目录暂存后原子
 替换，六项打包回归和整组 61 项宿主检查通过；不改变目标进程或 mmap 的运行语义。
 仍在运行的其它检查不重启，浏览器根因继续等待实际运行诊断。
+
+## 完整无 fork 分支原生重放与设备初始化
+
+`d145132` 增加 `python[-wasm64]-check-forkless-host`：从同一固定 CPython 源码
+复制实际补丁涉及的文件，应用完整 process-posix-spawn 补丁，再用构建平台
+Python 3.13 强制禁止导入 _posixsubprocess。它执行 PATH 错误、连续启动失败清理、
+超时/信号恢复、双向管道和泄漏/字节错误反向控制，外层有 90 秒期限。不编译内核、
+LLVM 或目标解释器；这是原生 POSIX 重放，不是 musl 或 Wasm 验收。glibc 不需要
+musl 的内部错误管道，因此不把原生重放用于证明该管道的 fd 耗尽语义。
+
+本机以 CPython 3.13.3 执行从 v3.13.14 取得并应用对应补丁的 subprocess 模块，
+上述实际路径和反向控制通过；完整 Nix 检查仍待公开 CI。一次本机整组检查在示例
+打包的 20 秒外层期限超时，未改期限或断言，重跑后 62 项通过。
+
+固定 `f2cad73` 的 [wasm32 完整解释器][python32-device-failure]现已实际进入 Linux，
+核对了 ABI、安装布局、两种搬移归档及连续失败清理，然后在 fd 耗尽测试打开
+`/dev/null` 时报告 ENOENT。引导层在 switch_root 前卸载自己的 /dev，而该检查
+PID 1 此前只挂载 proc，未挂载运行设备文件系统。因此不能把这次失败当成
+posix_spawn 的 EMFILE 清理缺陷，也不能用原生测试通过覆盖它。
+
+修正检查 PID 1，在解释器运行前挂载 devtmpfs、devpts，创建 fd 链接前挂载 proc，
+并明确要求 /dev/null 为字符设备。仍保留原 fd 耗尽和生命周期全部断言；新增启动
+顺序契约后整组 63 项宿主检查通过，ShellCheck 和简化模式 shfmt 检查通过。
+本次仅修复安装测试入口，不更改产品 PID 1、内核或 libc，也不预告目标复验成功。
+
+[python32-device-failure]: https://github.com/HighCWu/distro/actions/runs/39081246749

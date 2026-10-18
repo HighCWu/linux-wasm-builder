@@ -287,6 +287,15 @@ DESTDIR 嵌套，破坏原有 FHS 布局。`f2cad73` 关闭该目录改写及开
 保持运行输出和手动采集材料分离。61 项相关宿主检查通过，实际修正版材料输出
 仍待公开 CI 验收；不能将此次构建失败记为材料已上传或发行合规已完成。
 
+固定 `f2cad73` 的 [wasm32 材料复验][python32-materials-success]现已成功。已检查
+重型任务实际日志，确认配置材料、最终安装的 usr/bin/python3.13、二进制清单与
+材料清单的校验通过，并确认最终解释器为 wasm32 共享内存、4 GiB 声明上限。
+复制后的材料再次校验通过，临时 artifact 上传成功，ID `12118908591`、134180
+字节，API 检查时尚未过期。此处没有声称重新下载并独立验证该 artifact，也不以
+wasm32 成功代替 wasm64、浏览器运行或完整对应源码交付。
+
+[python32-materials-success]: https://github.com/HighCWu/distro/actions/runs/39081251655
+
 ## 对外表述
 
 推荐表述：
