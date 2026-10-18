@@ -64,6 +64,7 @@ CONFIG_MMU=n linux.wasm
 - [路线图](docs/roadmap.md)
 - [C/C++ SDK运行验证](docs/sdk-runtime.md)
 - [纯 Python 应用构建与交付](docs/python-applications.md)
+- [Python、Git、SQLite 与浏览器持久化工作区](docs/python-git-workspace.md)
 - [许可证与发行政策](docs/licensing.md)
 - [贡献指南](CONTRIBUTING.md)
 
