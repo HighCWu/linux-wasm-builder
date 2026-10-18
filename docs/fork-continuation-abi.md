@@ -3,7 +3,7 @@
 # 可选 fork continuation v1 执行协议
 
 本协议处于实验阶段，不是已经稳定发布的 Linux UAPI。应用使用 libc 的标准 `fork()`；
-Wasm 架构移植代码也可通过已有的 `linux.syscall` 发起请求，不必调用 musl 的私有 helper。
+Wasm 架构移植代码可通过版本化 syscall import 发起请求，不必调用 musl 的私有 helper。
 下面的 import/export 是工具链和 loader 之间的版本化执行协议，不是新 syscall。
 Linux 的 clone、进程身份、描述符继承、信号、退出及 wait 仍由现有内核处理。
 
@@ -38,22 +38,38 @@ Linux 的 clone、进程身份、描述符继承、信号、退出及 wait 仍�
 返回值跨 JS 边界使用 BigInt，不可通过无符号位运算截断。
 
 最后两个导出是成对启用的 syscall 扩展，不要求旧 checkpoint 模块提供。
-新完整链接变换须将 `linux.syscall` 纳入 Asyncify imports；仅变换旧 checkpoint import
+新完整链接变换须将 `linux.syscall` 与 `linux.syscall_v2` 纳入 Asyncify imports；仅变换旧 checkpoint import
 不足以支持直接 syscall 调用。loader 不能替未变换的程序凭空复制引擎调用栈。
 
 ## Linux/Wasm 的 syscall 参数约定
 
-沿用本架构已有的 clone 号 220 和参数布局：
+两种入口均沿用 clone 号 220。import 名称明确选择参数布局，不根据 flags 数值或可能的
+函数表索引猜测 ABI。
+
+可选 libc profile 的 `linux.syscall_v2` 使用 Linux 默认的五参数 clone 布局：
+
+```c
+linux_syscall_v2(SYS_clone, flags, stack, parent_tid, child_tid, tls, unused);
+```
+
+当前只接受 `(SIGCHLD, 0, 0, 0, 0)`；未使用的第六寄存器忽略。其他组合返回
+`EOPNOTSUPP`，绝不回退到回调式 clone。musl 通用 `_Fork` 保持原来的
+`__syscall(SYS_clone, SIGCHLD, 0)` 调用体，由 Wasm 架构层选择 import。
+这不是声称所有 Linux 架构均采用相同参数顺序。
+
+原 `linux.syscall` 保持既有回调布局：
 
 ```c
 linux_syscall(SYS_clone, callback, argument, flags, parent_tid, child_tid, tls);
 ```
 
-这不是 x86 或其他架构的 clone 寄存器布局。非空 callback 保持原来的回调式 clone；
-当前扩展保留空 callback 作为“从当前 syscall 调用点恢复”的请求。
+这不是 x86 或其他架构的 clone 寄存器布局。pthread 的架构层显式使用这一旧 import，
+非空 callback 保持原来的回调式 clone；旧扩展保留空 callback 作为“从当前 syscall 调用点恢复”的请求。
 首阶段只支持 `(0, 0, SIGCHLD, 0, 0, 0)`，不引入虚构的 SYS_fork 编号。
 非空 argument 返回 `EINVAL`；其他未支持的 flags/tid/tls 组合返回 `EOPNOTSUPP`。
 未启用 continuation 的程序发起空 callback 请求也返回 `EOPNOTSUPP`，不创建无效入口子进程。
+只导入 `syscall_v2` 不会自动启用 continuation；仍须满足上述导出与完整链接变换契约。
+v2 非 clone syscall 与旧入口使用相同内核调用及 exec 替换处理。
 
 入口处的 Wasm 执行适配器完成 unwind，再以现有非空回调 clone 进入真正的 Linux
 进程创建路径。PID、资源继承、信号、退出与 wait 不是由适配器仿造；
@@ -74,7 +90,8 @@ rewind 时禁止重新初始化 cursor，以免覆盖继承的活动帧。
 ## 一次分叉的次序
 
 1. 标准 musl `fork` 执行 atfork prepare 及既有锁处理。
-2. `_Fork` 保存并屏蔽信号，锁定 abort lock，再发起上述空 callback clone syscall。
+2. `_Fork` 保存并屏蔽信号，锁定 abort lock，再通过 v2 发起 flags-first clone syscall；
+   已有旧模块仍可使用空 callback 请求。
 3. syscall 执行适配器启动 unwind，不执行子初始化；宿主等待 `_start` 完整返回。
 4. 宿主停止 unwind，记录 descriptor、栈指针、TLS base 及子回调表项。
 5. 宿主调用 `__wasm_fork_clone`，仍使用当前架构已有的 callback clone 参数布局，

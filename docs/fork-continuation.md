@@ -211,7 +211,7 @@ compiler wrapper 共 21 项通过。新路径的目标验收单独记录，不�
 
 ## 接入验收与后续工作
 
-### 当前推进：统一 syscall 入口，而不是增加应用专用 API
+### 当前推进：版本化 syscall 布局，而不是增加应用专用 API
 
 distro `2759257`、集成提交 `924ac2d` 将新 profile 的 `_Fork` 改为通过已有
 `linux.syscall` 发起本架构的 clone 请求，不再调用 musl 私有 checkpoint helper。
@@ -220,17 +220,17 @@ MIT 现场保存代码移到独立的 Wasm 执行支持对象，不使用 musl �
 旧 checkpoint 模块保留兼容路径。
 
 Wasm 的既有 clone 参数是 callback、argument、flags、parent_tid、child_tid、tls，
-不是其他 Linux 架构的寄存器布局。当前保留空 callback 表示从当前调用点恢复，
+不是其他 Linux 架构的寄存器布局。该版本保留空 callback 表示从当前调用点恢复，
 仅支持 `(0, 0, SIGCHLD, 0, 0, 0)`；其他组合、缺少执行支持、信号/内核回调和
 多线程快照继续明确拒绝。实际进程创建仍进入原 Linux clone，不新增 syscall 编号。
 完整约定见[执行协议](fork-continuation-abi.md)。
 
-新增独立 C 翻译单元直接导入 `linux.syscall`，绕过 libc 的 `fork()` 和 `syscall()`：
+该版本新增独立 C 翻译单元直接导入 `linux.syscall`，绕过 libc 的 `fork()` 和 `syscall()`：
 验证两次分叉、父子返回、PID/PPID、栈/全局隔离、退出、wait 单次回收，以及拒绝后恢复。
 未经变换、使用默认 libc 的 exec 目标另检查相同空 callback 请求明确失败，随后仍可
 执行普通 syscall。raw syscall 不会自动执行 libc 的 atfork 或子线程状态收尾。
 
-宿主 kernel 测试共 235 项通过、零跳过，TypeScript 检查通过；相关构建/浏览器门禁/
+宿主 kernel 测试共 235 项通过、零跳过，源码 TypeScript 检查通过；相关构建/浏览器门禁/
 原生 raw fixture 共 7 项通过，其中原生 shim 含错误子进程身份的反向控制。
 这些只是状态机与 fixture 验证，不替代实际 Wasm 结果。新路径公开验收为：
 
@@ -242,9 +242,34 @@ Wasm 的既有 clone 参数是 callback、argument、flags、parent_tid、child_
 - [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39128752368)
 
 首轮因固定格式器对单行注释的换行要求停止，未运行目标程序；`61e0a08` 已修正。
-上述为修正后的 CI，已启动，尚待核实；`924ac2d` 的集成轻量 CI 已通过。
+上述为格式修正后的 CI，均已失败；已检查的 Node wasm32 日志显示测试项目严格类型
+检查的元组推断错误，未运行到目标程序。此前遗漏了独立的测试项目类型检查，不能将
+源码检查通过描述为完整类型验收；`924ac2d` 的集成轻量 CI 已通过。
+
+distro `89ca598`、集成提交 `6ffbaab` 修正旧测试及新增测试的元组类型，并显式区分入口：
+
+- 实验 profile 的 `linux.syscall_v2` 使用 Linux 默认 clone 五参数顺序
+  `flags, stack, parent_tid, child_tid, tls`；只支持 SIGCHLD 且其余字段为零，忽略第六寄存器。
+- musl 通用 `_Fork` 保持上游 clone 调用体，由 Wasm 架构 syscall 层选择 v2 import；
+  pthread 回调 clone 显式保持旧 `linux.syscall`，不根据参数值猜测布局。
+- 旧 callback/null-callback 及 checkpoint 路径兼容；新 raw fixture 改为直接验证 v2。
+  新浏览器阶段要求该路径与已有线程拒绝/恢复检查共同通过，不能仅凭最终 pass 放行。
+
+本地 kernel 242 项全部通过、零跳过，源码和测试两个 TypeScript 项目均通过；
+7 项构建/浏览器门禁/raw 原生检查、共享 fork/exec 语料 GCC/Clang 检查、musl 补丁
+dry-run 及固定版本格式检查通过。已重新提交双位宽 Node 和四路浏览器目标检查，
+实际 Wasm 验收尚待核实；上述宿主结果不能替代它。
+
+本轮目标检查：
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/39129851545)、
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/39129855574)、
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39129859785)、
+[wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39129863949)、
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39129868970)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39129873069)。
+
 这一步不宣称其他 libc 已移植成功、任意 raw clone 组合
-已支持、clone3 已实现或默认 SDK 已开放 fork。将 `linux.syscall` 纳入 Asyncify 会改变
+已支持、clone3 已实现或默认 SDK 已开放 fork。将两个 syscall import 纳入 Asyncify 会改变
 插桩范围，体积和性能仍须重新测量；不能沿用旧 checkpoint 路径的性能假设。
 
 ### 一、形成可拒绝的 opt-in 执行 ABI

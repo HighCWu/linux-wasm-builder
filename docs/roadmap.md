@@ -431,7 +431,11 @@ Linux `8bd657d` 新增[默认关闭的标准文件 mmap 候选](file-mmap-candid
   成功，实际日志核实原全部阶段通过；浏览器各两轮及关闭检查通过。
   `2759257` 进一步让 `_Fork` 与直接 syscall 调用者共用 Linux/Wasm clone 入口，
   现场保存实现从 musl 拆为独立 MIT 对象，不新增 syscall 号；宿主 kernel 235 项及
-  类型检查通过，新 raw syscall 语料的双位宽 Node/浏览器验收待核实。
+  源码类型检查通过，但后续目标构建发现测试项目严格类型检查失败，未执行新语料。
+  后续修正测试元组类型，并以明确的 `linux.syscall_v2` 承接 Linux 默认 flags-first
+  clone 参数；原 `linux.syscall` 保持 pthread callback 布局，不按参数值猜测。
+  通用 musl `_Fork` 调用体保持原样，由架构层选择入口。宿主 242 项及源码/测试两套
+  类型检查通过；新 raw syscall 语料仍需独立的双位宽 Node/浏览器验收。
   仍不代表默认 SDK 或完整 fork 兼容性已开放；多线程准入仍须先实现协作停车与一致性
   快照协议，见上述路线。
 - `/proc/<pid>/maps`与用户态可见地址一致。
