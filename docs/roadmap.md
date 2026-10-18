@@ -418,7 +418,8 @@ Linux `8bd657d` 新增[默认关闭的标准文件 mmap 候选](file-mmap-candid
 - 已新增[执行现场恢复实验](fork-continuation.md)：固定 Asyncify 变换在 wasm32/wasm64、
   `-O0`/`-O2` 下恢复嵌套与间接调用，包含独立 Worker、四分支、错误返回和反向控制。
   本地 Clang 18/22 实际 Wasm 检查通过；`8760ac4` 的公开 Node 24 CI 已核实四组通过。
-  尚未接入 Linux clone 或 musl 标准 fork，不把这一机制结果扩大为系统接口已支持。
+  独立机制结果不代表系统接口已支持。后续 `59f4a87` 集成默认关闭的 Linux clone/musl
+  接入候选，宿主整组 226 项通过；双位宽真实目标检查待验收，见上述说明与执行协议。
 - `/proc/<pid>/maps`与用户态可见地址一致。
 - 不支持的direct页保护返回明确错误，不能静默成功。
 

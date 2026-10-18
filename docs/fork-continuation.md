@@ -69,7 +69,28 @@ CLANG=clang-18 npm test
 保存区固定 64 KiB；耗尽时的 trap 只是实验的失败关闭，不是最终 `fork()` 错误契约。
 尚未测定真实应用的体积、常态调用开销或分叉延迟，不能据此推荐全平台默认启用 Asyncify。
 
-## 下一阶段：接入真实 Linux 进程
+## Linux 接入候选：目标待验收
+
+distro `277932f`、集成提交 `59f4a87` 新增默认关闭的真实 Linux 接入候选，
+具体 import/export、保存区和父子恢复顺序见[可选执行协议](fork-continuation-abi.md)。
+它通过完整静态链接后的 Asyncify 变换、现有 clone 和标准 musl fork/_Fork 收尾工作，
+不修改 Linux，不新增 syscall，也不改变默认 SDK 的 fork 能力。
+
+本地协议检查 13 项通过，整个 kernel 宿主组 226 项通过、零跳过；TypeScript 检查及
+共享 workload 的 GCC/Clang 原生 Linux 执行也通过。这些仍不能证明目标 fork 已可用。
+
+首次目标 wasm32 构建在 musl 编译阶段发现 `_Fork` 头文件声明仍被隐藏，未运行到用户程序。
+distro `d03ec28`、集成提交 `db2c477` 已修正可选 profile 的 fork/_Fork 声明，并将补丁
+dry-run 加入轻量 CI；默认头文件不变。当前双位宽复验为：
+
+- [wasm32](https://github.com/HighCWu/distro/actions/runs/39119902451)；
+- [wasm64](https://github.com/HighCWu/distro/actions/runs/39119906845)。
+
+实际 Wasm 内核执行尚待验收；不能把独立机制实验或原生 fork 的
+结果替代这里的标准接口结果。测试包含实际 PID/PPID、TLS、atfork、信号掩码、
+内存隔离、共享文件 offset、嵌套 fork/wait 和多线程拒绝后的恢复。
+
+## 接入验收与后续工作
 
 ### 一、形成可拒绝的 opt-in 执行 ABI
 
