@@ -86,6 +86,16 @@ jobs:
         run: |
           node --test sources/distro/distro/quickjs/language-contract.test.js \
             sources/distro/distro/vm-test/license-layout-test.js
+      - name: Check the fork continuation workload on native Linux
+        # Native fork validates the fixture only. Wasm continuation and actual
+        # target PIDs/TLS still require the separately selected heavy checks.
+        run: |
+          for compiler in gcc clang; do
+            "$compiler" -O2 -pthread -Wall -Wextra -Werror \
+              sources/distro/distro/fork-continuation/runtime.c \
+              -o "$RUNNER_TEMP/fork-continuation-host"
+            timeout 20s "$RUNNER_TEMP/fork-continuation-host"
+          done
       - name: Check socket runtime fixture on the build host
         # Only the Wasm init configures its own loopback interface.
         run: |
