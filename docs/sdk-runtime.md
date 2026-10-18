@@ -259,16 +259,24 @@ nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-build-materials
 校验和。导出器／校验器及 MIT 原文也随 SDK 配方目录归档。校验器的 `verify SPEC
 ARCHIVE` 需要实际选择 spec 和输入文件，不能仅凭下载包自己的校验和证明来源。
 
-本机 7 项归档回归通过，覆盖确定性、原始字节／执行位／符号链接、错误平台／
+本机 10 项归档回归通过，覆盖双位宽 profile、确定性、原始字节／执行位／符号链接、错误平台／
 源码身份、材料缺失、配方或包装器篡改、额外／重复成员、特殊文件、输出路径边界，
-以及写入异常时保留旧包并清理临时文件。原有 SDK 相关 26 项本机回归也通过。
+以及写入异常时保留旧包并清理临时文件。另验证成员缺失／乱序、目录或硬链接
+替换、链接目标改写、身份文件尺寸变化及截断归档均被拒绝；不解包这些反例。
+原有 SDK 相关 26 项本机回归也通过，零跳过。
 双位宽公开 Nix 检查及成功后的短期 artifact 上传已接入。源码
 `452dce987dfcfc82477f0f5f183a058fc4327d22` 已推送，固定该版的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39108764716) 和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39108767712) 任务已通过规划／
-求值并进入独立构建；实际安装包校验与上传尚待验收。这项检查不另启内核，但仍
-需要相应 SDK 构建依赖。主仓库以独立集成提交 `b746de6` 固定源码并接入宿主回归，
-验收文档随后单独提交。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39108767712) 首轮任务均通过
+规划／求值，但随后停在格式门禁，未执行材料构建或上传。已核对实际 diff：仅
+`build-materials.nix` 的冗余 lambda 需按 statix 规则简化，不是材料比较或内核失败。
+功能不变的格式修正已由 `a841ddde8ce862fcbf1a1f7d088d314189d77826` 发布，
+针对该版本的 [wasm32 复验](https://github.com/HighCWu/distro/actions/runs/39109610295)
+和 [wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39109612625) 已通过
+规划／求值并进入独立构建；实际安装包校验与上传仍待确认。这项检查不另启内核，
+但仍需要相应 SDK 构建依赖。主仓库独立提交 `90aa856` 集成格式修正。
+随后源码 `088d377` 仅补充上述双位宽／畸形归档回归，主仓库 `c0dfd83` 单独集成；
+不把正在运行的旧源码任务当作这些新增回归的目标 CI 证据。
 
 这些材料不是完整对应源码、SBOM、离线重建环境、来源签名或发行许可批准。上游
 源码、构建机依赖、Nixpkgs 变换、完整源码 checkout 和长期获取渠道仍须继续补齐；
