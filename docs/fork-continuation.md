@@ -268,6 +268,12 @@ dry-run 及固定版本格式检查通过。已重新提交双位宽 Node 和四
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39129868970)、
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39129873069)。
 
+其中 Node wasm32 已失败，实际日志确认类型检查和 242 项宿主测试均通过，但目标编译
+报错 `no such file or directory: '${execution}/fork-execution.o'`，未执行目标程序。
+distro `ab5b9e9` 将 Nix 的字面量 dollar 前缀与对象路径插值分开拼接，并为 SDK 契约检查
+增加生成配置中的已求值路径校验。源码契约测试在本地通过，真正的 Nix 求值及目标链接
+仍由公开 CI 验证，不将此构建错误描述为 fork 运行语义失败。
+
 这一步不宣称其他 libc 已移植成功、任意 raw clone 组合
 已支持、clone3 已实现或默认 SDK 已开放 fork。将两个 syscall import 纳入 Asyncify 会改变
 插桩范围，体积和性能仍须重新测量；不能沿用旧 checkpoint 路径的性能假设。
@@ -295,6 +301,21 @@ distro `46a538d`、集成提交 `8cdadd2` 修正了初始化失败 Worker 的所
 不是在真实 Wasm fork 中注入 OOM，也不是浏览器异常处理或内核进程回滚的完整验收。
 本修正单独启动 [Node wasm32 目标复验](https://github.com/HighCWu/distro/actions/runs/39130451276)，
 尚待核实；上一节六路 CI 固定在 `89ca598`，不覆盖本修正。
+
+distro `73079b3`、集成提交 `7f1da80` 进一步修正迟到初始化失败的分类：
+如果快照超时或分配失败已发布负 errno，之后的初始化异常仍归属于同一失败请求，
+保留首个结果并回收 Worker，不误触发整机失败。成功发布之后及普通非快照 Worker 的
+错误仍走整机故障路径，不借此屏蔽运行错误。主线程跳过已失败请求并关闭转发端口；
+子 Worker 在启动和复制后的检查点提前退出，最终发布仍使用原子一次性判定。
+
+本地 kernel 249 项通过、零跳过，源码/测试两套类型检查和 5 项 SDK 契约检查通过。
+新增真实 Node Worker 测试确认父端超时后，迟到一方不能发布成功；这只验证共享状态协议，
+不是实际 Linux fork 或浏览器的超时注入验收。取消是检查点检测，不保证立即中断
+正在执行的内存复制或等到复制 Worker 完全退出才向父返回；真实 OOM、超时后的完整
+内核回滚及所有资源释放仍需单独验证。此提交同时包含上述 SDK 路径修正，先进行
+双位宽 Node 复验，再安排四路浏览器，避免重复消耗构建资源。
+本轮为 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39130984682) 与
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/39130988394)，尚待目标结果。
 
 - 完成用户栈序列化后，再通过已有 Linux clone 创建真实子进程和独立用户内存。
   应用仍调用标准 libc `fork()`，不增加替代 Linux UAPI 的私有应用 syscall。
