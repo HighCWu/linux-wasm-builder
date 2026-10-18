@@ -55,16 +55,22 @@ class WorkspaceArtifactTests(unittest.TestCase):
     def test_complete_artifact(self):
         self.check()
 
-    def test_actual_ci_checksum_command_fixes_collation(self):
+    def test_actual_ci_checksum_command_has_no_discovery_pipeline(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
-        commands = [line.strip() for line in workflow.splitlines() if "rg --files --hidden -g '!SHA256SUMS'" in line]
+        commands = [line.strip() for line in workflow.splitlines() if "> SHA256SUMS)" in line]
         self.assertEqual(len(commands), 1)
-        self.assertIn("| LC_ALL=C sort -z |", commands[0])
+        self.assertEqual(commands[0], '(cd "$bundle" && sha256sum ' + " ".join(sorted(FILES)) + ' > SHA256SUMS)')
         subprocess.run(
             ["bash", "-euo", "pipefail", "-c", commands[0]],
             env={**os.environ, "bundle": str(self.bundle)}, check=True,
         )
         self.check()
+        (self.bundle / "source-pins.json").unlink()
+        result = subprocess.run(
+            ["bash", "-e", "-c", commands[0]],
+            env={**os.environ, "bundle": str(self.bundle)}, capture_output=True,
+        )
+        self.assertNotEqual(result.returncode, 0, "default CI shell must reject a missing input")
 
     def test_published_sources_and_license_are_pinned(self):
         for name in SOURCE_FILES:
