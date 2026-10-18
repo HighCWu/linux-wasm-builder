@@ -57,10 +57,12 @@ gh workflow run ci.yml --repo HighCWu/distro --ref codex/mmap-initialized-backin
 执行。不沿用进程内存或测试 initramfs；两次均要求关键许可文本存在、测试文件缺席。
 这不是断电恢复、浏览器持久化存储、交互式 PTY API 或任意应用兼容性的证明。
 
-新增配方与接线的两项宿主检查已通过，连同既有相关检查共 67 项通过；**新根盘的
-公开构建和实际运行仍待 [CI 验收](https://github.com/HighCWu/distro/actions/runs/39084313946)**。本地完整 TypeScript 检查受已有 kernel `dist`
-声明落后于源码影响，报告三处既有 `FSDirectoryEntry.type` 错误；新目标检查仍保留
-完整类型门禁，并使用 CI 构建的 kernel 声明。不据本机结果宣称目标通过。
+新增配方与接线的两项宿主检查已通过，连同当时既有相关检查共 67 项通过。
+固定 `9572fa0` 的 [Node 根盘验收](https://github.com/HighCWu/distro/actions/runs/39084313946)
+现已成功，实际日志确认两次独立实例的 write/read 阶段及外层检查共三项通过，
+零失败、取消或跳过；包含上述字节、ABI、依赖、许可及无测试文件断言。该检查
+在运行前使用 CI 构建的 kernel 声明通过完整类型门禁，不受本地旧 `dist` 的三处
+`FSDirectoryEntry.type` 错误影响。此结果不覆盖随后新增的浏览器上传控件或源码导出。
 
 这是可复用集成配方，不是已发布、合规材料完整的二进制发行版。Python 中 GNU
 Readline 的实际 GPL 义务保持不变；现有 notices 和选定构建材料不能替代完整对应
