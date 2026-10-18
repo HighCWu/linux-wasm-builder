@@ -322,6 +322,7 @@ jobs:
           node --test sources/distro/apps/wasm64-example/program-fixture.test.js
           node --test sources/distro/apps/wasm64-example/app.test.js
           node --test sources/distro/apps/wasm64-example/root.test.js
+          node --test sources/distro/apps/wasm64-example/root-storage.test.js
           node --test sources/distro/distro/npm/browser-suite-packaging.test.js
           node --check sources/distro/apps/wasm64-example/app.js
           node --check sources/distro/apps/wasm64-example/server.mjs
