@@ -125,6 +125,7 @@ jobs:
           node --test sources/distro/distro/python/mmap-host.test.js \
             sources/distro/distro/python/width-host.test.js \
             sources/distro/distro/python/root-host.test.js
+          python3 -B sources/distro/distro/python/source-bundle-test.py
       - name: Package the pure-Python application example
         # No interpreter, kernel or target compiler is bundled or built here.
         run: |
