@@ -437,8 +437,12 @@ packing/remote 入口已接入但本轮尚未验收，不视为浏览器或发�
 `348d428` 的 wasm32 remote 修复复验已核实位宽、选定材料、credential cache、
 回环 HTTP clone 与最终 pass；wasm64 packing 也已核实位宽、材料、对象往返、
 双线程 repack、fsck、gc、打包历史与最终 pass。`e6f20b8` 继续增加双位宽 Git 的独立构建材料、
-最终程序摘要和验证后 CI 上传；相关轻量回归共 29 项通过，新增目标检查待验收。
-这不是完整源码交付或静态链接许可批准，也不替代仍在运行的根盘和浏览器验收。
+程序摘要和验证后 CI 上传；其初版双位宽 CI 因摘要早于最终 strip hook 而失败，
+`b5b6506` 改为在独立 derivation 中计算最终摘要。`ce88973` 继续增加 Git 与
+zlib/curl/OpenSSL 选定源归档及逐成员验证，新材料与源包目标 CI 待验收。
+32 项 Node 相关回归、五项 Git 与八项 Python 归档回归通过。这仍不是完整源码
+交付或静态链接许可批准。此前 `348d428` 的 SDK 跨实例 Git 根盘和 wasm64
+Chromium/Firefox 三场景现也已核实成功，不用其结果替代新增源包验收。
 
 固定 `d4fafc8` 的 libcurl 双位宽直接/CMake 四入口均已实际完成编译、ABI 和
 Linux 内文件字节、正常退出及全部 TLS 信任边界检查。双位宽 Chromium/Firefox

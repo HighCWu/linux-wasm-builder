@@ -134,7 +134,7 @@ sync 并完整关闭。仅保留 ext4 块数据，第二台新实例校对 HEAD�
 pack 损坏、hook 标记改变、仓库缺失。连同根盘接线、材料与浏览器契约共 23 项
 轻量检查通过。新增代码没有引入类型错误；完整本地类型门禁仍因旧 kernel dist
 声明缺少 `FSDirectoryEntry.type` 的三项既有错误失败，不隐瞒或跳过它们，公开 CI
-仍执行使用新构建声明的完整类型检查。实际 Wasm 根盘验收另由公开 CI 执行。
+仍执行使用新构建声明的完整类型检查。下述实际 Wasm 根盘 CI 现已通过。
 
 以下三项均固定 `348d428`，已经触发，验收状态如下；旧浏览器任务确认终态后，
 也以同一版本提交 Chromium/Firefox 复验，不取消或重启仍在运行的任务：
@@ -149,7 +149,16 @@ pack 损坏、hook 标记改变、仓库缺失。连同根盘接线、材料与�
 不扩大为浏览器、公共网络、HTTPS 或任意远程服务已通过。wasm64 packing 也已
 成功，实际日志确认两个 Git 程序的共享 memory64 / 16 GiB 声明、64 位 long/size_t、
 材料校验、对象往返、双线程 repack、严格 fsck、gc、打包历史及最终 pass；
-不代表实际分配 16 GiB。根盘和双浏览器任务仍待验收，不因等待取消或重启。
+不代表实际分配 16 GiB。
+
+同一 `348d428` 的根盘检查也已成功，实际日志确认公开 SDK 的 write 和 read 两次
+新实例运行均完成：仓库、对象与二进制载荷跨实例读回及 clone 检查通过，且完整
+类型门禁通过。不能据此扩大为断电恢复或浏览器持久存储已完成。
+[Chromium 复验](https://github.com/HighCWu/distro/actions/runs/39088360476) 和
+[Firefox 复验](https://github.com/HighCWu/distro/actions/runs/39088364960) 均已成功，
+实际日志分别为三项通过（15.3 秒、31.5 秒），严格报告门禁确认精确用例且无跳过、
+无重试；覆盖 workflow、packing、credential cache/回环 HTTP clone。
+这不是新增构建材料或下述源包的验收，也不代表公网传输或跨浏览器重启持久化。
 
 ## 选定构建材料与公开 CI 附件
 
@@ -163,7 +172,8 @@ pack 损坏、hook 标记改变、仓库缺失。连同根盘接线、材料与�
 `NIX_CFLAGS_COMPILE`、`NIX_CFLAGS_LINK`、`NIX_LDFLAGS`；不导出整个构建环境，
 也不执行生成的 `GIT-BUILD-OPTIONS`。上游在有效 `ALL_LDFLAGS` 为空时可能不生成
 `GIT-LDFLAGS`，因此另用状态文件明确记录存在或缺失，不伪造上游内容。
-最终程序与 HTTP helper 的摘要在 fixup 后生成，避免将中间产物当作安装字节。
+初版在 `postFixup` 生成程序摘要，但这还不是所有 hook 完成后的安装字节；
+失败与修正见下文。
 
 新增 `git-check-build-materials` 和 `git-wasm64-check-build-materials`：
 检查材料清单、最终程序摘要、平台元数据、原始许可及配置补丁字节、实际 Wasm
@@ -181,7 +191,45 @@ Git 与浏览器轻量回归共 29 项通过；shellcheck、Nix/JS 格式、工�
 
 固定 `e6f20b8` 的 [wasm32 材料验证](https://github.com/HighCWu/distro/actions/runs/39088834446)
 与 [wasm64 材料验证](https://github.com/HighCWu/distro/actions/runs/39088837826)
-已提交公开 CI，实际构建、验证及附件上传仍待验收，不用宿主结果替代。
+均已失败。实际日志确认材料清单本身校验成功，但主程序及 HTTP helper 的最终
+字节均与早期摘要不匹配。stdenv 的 `postFixupHooks` 还会运行 `stripWasmObjects`，
+所以仅放在 `postFixup` 中不能保证摘要覆盖最终程序。原失败不被改写为成功。
+
+`b5b6506` 将早期摘要重命名为 `BUILD_STAGE_BINARY_SHA256SUMS`，明确不是最终
+标识；独立的检查 derivation 直接读取已完成全部 hook 的安装输出，生成并验证
+`BINARY_SHA256SUMS`。新增宿主反例实际改变收集后的程序字节，确认最终摘要步骤
+使用新字节而非复制中间摘要。新的材料与源包目标验收仍待 CI。
+
+## 选定源输入归档
+
+`ce88973` 增加 `git.sourceBundle` / `git-wasm64.sourceBundle`，以及
+`git-check-source-bundle` / `git-wasm64-check-source-bundle`。固定收集 Git、zlib、
+curl、OpenSSL 的最终源输入树、各自集成配方和有序配置补丁，以及 Git 构建材料。
+归档中另保留实际 exporter/verifier 与 MIT 文本，公共索引不导出本机输入路径。
+最终程序摘要由依赖已完成输出的独立 derivation 重新计算，不使用构建阶段摘要。
+
+复用已有归档与校验实现，增加显式 `--profile git`；默认 Python profile 仍要求
+原来的八组件，不因支持 Git 而放宽。导出时验证源身份、主配方/补丁与构建记录、
+平台和材料清单；失败不覆盖已有归档，也禁止归档覆盖独立补丁或工具输入。
+CI 无需解包，逐成员核对全部文件字节、类型、权限和符号链接目标，拒绝重复、
+额外、缺失、深层字节损坏或截断压缩流；源符号链接不被递归跟随复制。
+
+五项 Git 归档宿主测试、原有八项 Python 归档回归，以及 32 项 Git/浏览器相关
+Node 轻量回归通过。实际 CI 收集 shell 的双位宽复制和损坏拒绝分支也已执行；
+Nix/JS 格式、工作流、仓库元数据、source pin 与缓存契约检查通过。
+目标全源归档和短期附件上传仍待公开 CI 验收。
+
+这仍是选定源输入，不是完整对应源码、SBOM、离线重构环境或链接许可批准。
+编译器/runtime/libc 完整闭包、Nix 构建环境和其它系统组件不在该归档范围；
+配方还可能引用外部目录，自定义 hooks 或新增依赖必须另收集、审查。
+三天有效的 CI 附件不能替代适用许可证要求的长期源码交付渠道。
+
+以下四项均固定 `ce88973`，已提交公开 CI，结果与附件尚待验收：
+
+- [wasm32 材料复验](https://github.com/HighCWu/distro/actions/runs/39089477355)
+- [wasm64 材料复验](https://github.com/HighCWu/distro/actions/runs/39089480305)
+- [wasm32 选定源包](https://github.com/HighCWu/distro/actions/runs/39089484223)
+- [wasm64 选定源包](https://github.com/HighCWu/distro/actions/runs/39089487657)
 
 ## 保留的边界
 
