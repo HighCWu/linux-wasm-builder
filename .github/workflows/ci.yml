@@ -124,6 +124,7 @@ jobs:
         run: |
           node --test sources/distro/distro/git/*-host.test.js \
             sources/distro/packages/linux-guest/tests/agent-wasm64-git-commands.test.ts
+          python3 -B sources/distro/distro/git/source-bundle-test.py
       - name: Check Python anonymous mapping fixture on the build host
         # Native execution checks the workload, not the target kernel boundaries.
         run: |
