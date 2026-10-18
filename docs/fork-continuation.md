@@ -138,8 +138,35 @@ GCC/Clang 原生检查验证 pending、handler 与 exec 的 Linux 预期；不�
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39121950640)。双位宽均已完整成功，
 实际日志均确认上述信号扩展和原有 fork/exec 回归全部通过，最终输出协议 pass。
 
-目前只确认显式 opt-in、单用户模块、单线程 C 测试中的标准 fork 语义；默认 SDK、
-浏览器、完整 fork 后 exec、C++/SjLj 和其他后续边界不因此变为已支持。
+### 浏览器专项验收
+
+distro `c0d0e94`、集成提交 `0301bc4` 新增独立浏览器检查，直接复用上述 Node 检查的
+initramfs 和对应位宽 kernel，不重写应用逻辑。使用仓库固定版本的 Playwright 浏览器
+运行库和独立运行器逐项检查输出；既有浏览器测试入口保持原有行为。
+
+- [wasm32 / Chromium](https://github.com/HighCWu/distro/actions/runs/39123919317)
+- [wasm32 / Firefox](https://github.com/HighCWu/distro/actions/runs/39123922920)
+- [wasm64 / Chromium](https://github.com/HighCWu/distro/actions/runs/39123927247)
+- [wasm64 / Firefox](https://github.com/HighCWu/distro/actions/runs/39123931316)
+
+四项均已完整成功，实际日志记录 Chromium 149.0.7827.55、Firefox 151.0，均完成两轮
+全阶段回归和关闭检查；集成仓库 CI 也已成功。每项要求 cross-origin isolation，
+记录实际 browser.version()，检查
+pending、PID/TLS/atfork/内存/文件 offset/嵌套 wait、exec 拒绝后恢复、新程序及 exec
+信号语义、多线程与信号回调拒绝后恢复的全部输出，不接受仅最终协议 pass。
+同一页面连续启动两台独立实例；每次必须等待 machine.closed 和最终控制台处理完成。
+宿主反向检查要求每个阶段缺失或出现失败标记时拒绝，不将它当成浏览器执行证据。
+
+对应公开检查入口为 `browser-tests-check-fork-wasm{32,64}-{chromium,firefox}`，例如：
+
+```sh
+gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
+  -f heavy-check=browser-tests-check-fork-wasm64-chromium
+```
+
+这里验证的是日志记录的固定浏览器引擎版本，不自动等同于用户安装的任意最新版浏览器。
+不认证 WebKit、缺少跨源隔离的页面、多线程 fork 或任意应用；本路线保持显式 opt-in、
+单用户模块、单线程 C 配置。默认 SDK、完整 fork 兼容性、C++/SjLj 等仍需独立验收。
 
 ## 接入验收与后续工作
 

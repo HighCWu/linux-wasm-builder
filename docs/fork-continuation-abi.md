@@ -69,7 +69,8 @@ musl 在每次新请求前将 cursor 指向独立的 256 KiB 静态保存区起�
 - 多线程进程仍由已有内核 clone 的 mm_users 检查拒绝，返回 `EOPNOTSUPP`；
   不能在缺少一致性快照的情况下放行多线程 fork。
 - 当前协议仅覆盖本平台静态 C 配置。任意 mutable Wasm global、可变函数表、动态库、
-  C++ EH、SjLj 和浏览器运行仍需专项验证，不能由 Node 单个程序的结果推导支持。
+  C++ EH、SjLj 仍需专项验证；浏览器只认证路线文档记录的引擎和配置，不能由 Node
+  单个程序的结果推导支持。
 - 不提供 COW、不引入 softmmu，不改变 direct memory 的可用地址范围。
 - `vfork()` 尚未实现共享地址空间和父进程挂起至子 exec/exit 的语义，不作支持声明。
 - fork 后 exec 普通静态程序、exec 拒绝后恢复和上述信号扩展的双位宽回归已通过；
@@ -90,7 +91,9 @@ PID/PPID、TLS、atfork、信号掩码、栈/全局/堆/匿名映射隔离、共
 及返回主执行流后的恢复；exec 后保留掩码并重置捕获 handler。原生及旧目标结论不能
 替代这项扩展的实际 Wasm 验收，也不能证明全部信号竞态安全。
 
-distro `d03ec28` 的双位宽目标检查已确认上述测试通过，链接与后续加强版状态见
-[fork 路线](fork-continuation.md)。这一结论不能扩展到默认 SDK、任意应用、浏览器或
+distro `d03ec28` 首先通过双位宽基础 fork 目标检查；后续 exec、失败恢复和信号扩展
+在各自提交独立验收。`c0d0e94` 的 Chromium 149.0.7827.55 / Firefox 151.0 已在
+wasm32/wasm64 上各完成两轮同一 corpus 及关闭检查，链接与具体边界见
+[fork 路线](fork-continuation.md)。这些结果不扩展到默认 SDK、任意应用、未测浏览器或
 多线程 fork。原生 GCC/Clang 测试只确认共享 fixture 的 Linux 预期；宿主状态机测试
-只确认协议边界，都不能替代实际 Wasm 内核执行。
+只确认协议边界，都不能替代实际 Wasm 内核或浏览器执行。
