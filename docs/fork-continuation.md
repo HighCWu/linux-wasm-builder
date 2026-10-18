@@ -69,15 +69,15 @@ CLANG=clang-18 npm test
 保存区固定 64 KiB；耗尽时的 trap 只是实验的失败关闭，不是最终 `fork()` 错误契约。
 尚未测定真实应用的体积、常态调用开销或分叉延迟，不能据此推荐全平台默认启用 Asyncify。
 
-## Linux 接入候选：目标待验收
+## 已验收的单线程 Linux 接入候选
 
 distro `277932f`、集成提交 `59f4a87` 新增默认关闭的真实 Linux 接入候选，
 具体 import/export、保存区和父子恢复顺序见[可选执行协议](fork-continuation-abi.md)。
 它通过完整静态链接后的 Asyncify 变换、现有 clone 和标准 musl fork/_Fork 收尾工作，
 不修改 Linux，不新增 syscall，也不改变默认 SDK 的 fork 能力。
 
-本地协议检查 13 项通过，整个 kernel 宿主组 226 项通过、零跳过；TypeScript 检查及
-共享 workload 的 GCC/Clang 原生 Linux 执行也通过。这些仍不能证明目标 fork 已可用。
+初版的本地协议检查 13 项通过，整个 kernel 宿主组 226 项通过、零跳过；TypeScript
+检查及共享 workload 的 GCC/Clang 原生 Linux 执行也通过。实际目标结论另见下述 CI。
 
 首次目标 wasm32 构建在 musl 编译阶段发现 `_Fork` 头文件声明仍被隐藏，未运行到用户程序。
 distro `d03ec28`、集成提交 `db2c477` 已修正可选 profile 的 fork/_Fork 声明，并将补丁
@@ -86,9 +86,32 @@ dry-run 加入轻量 CI；默认头文件不变。当前双位宽复验为：
 - [wasm32](https://github.com/HighCWu/distro/actions/runs/39119902451)；
 - [wasm64](https://github.com/HighCWu/distro/actions/runs/39119906845)。
 
-实际 Wasm 内核执行尚待验收；不能把独立机制实验或原生 fork 的
-结果替代这里的标准接口结果。测试包含实际 PID/PPID、TLS、atfork、信号掩码、
-内存隔离、共享文件 offset、嵌套 fork/wait 和多线程拒绝后的恢复。
+这两项检查已完整成功，实际日志均确认标准 `fork()` 从原调用点继续执行，
+并输出 PID/PPID、TLS、atfork、信号掩码、内存隔离、共享文件 offset、嵌套 fork/wait
+通过，以及多线程拒绝后恢复通过，最后输出协议 pass。目标使用 flake.lock 固定的
+Binaryen 129，而上述独立机制实验使用 npm 固定的 132.0.0，不能混淆工具版本。
+
+随后 distro `c861163` 为所有用户到内核调用增加重入深度保护，防止 syscall 再入
+用户导出时启动 fork unwind；它不只依靠 signal handler 标记。新增双位宽宿主回归
+覆盖嵌套调用和异常清理，整组 228 项通过、零跳过，TypeScript 检查通过。
+这一加强版的 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39120474650)
+已成功，wasm64 仍需单独验收，不能直接继承上述 commit 的目标结论。
+
+### fork 后 exec 的回归扩展
+
+distro `3c3ef61`、集成提交 `06aa801` 加入第二个普通、未经 Asyncify 变换的静态程序，
+使用默认 libc。分叉后的子进程先修改旧 TLS，再通过标准 `execve` 替换自身；新程序检查
+参数、环境、父子身份和新 TLS 初始化，退出 37，由父进程 wait 并检查自身 TLS 未改变。
+同时将 TLS 测试变量改为 volatile，要求实际读取和写入，避免优化器折叠测试断言。
+
+共享 fixture 的 GCC/Clang 原生检查已通过；目标复验为
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39120891535) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39120895108)，目前待验收。
+首次扩展检查在 Nix 求值时发现原始 initramfs 文件接口格式错误，尚未运行用户程序；
+当前提交已修正为文件路径，保留源文件执行权限，不能把这次打包失败解释为 exec 结果。
+
+目前只确认显式 opt-in、单用户模块、单线程 C 测试中的标准 fork 语义；默认 SDK、
+浏览器、完整 fork 后 exec、C++/SjLj 和其他后续边界不因此变为已支持。
 
 ## 接入验收与后续工作
 

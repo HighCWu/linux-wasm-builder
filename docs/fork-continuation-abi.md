@@ -64,6 +64,8 @@ musl 在每次新请求前将 cursor 指向独立的 256 KiB 静态保存区起�
 
 - 只接受从主 `_start` 执行流发起的请求；普通 clone 回调和信号 handler 中返回
   `EOPNOTSUPP`，不得 unwind 穿过正在执行的宿主/内核回调。
+  用户到内核的调用还单独记录嵌套深度，覆盖 syscall 再入其他用户导出的情况；
+  正常返回和异常退出均必须恢复深度。
 - 多线程进程仍由已有内核 clone 的 mm_users 检查拒绝，返回 `EOPNOTSUPP`；
   不能在缺少一致性快照的情况下放行多线程 fork。
 - 当前协议仅覆盖本平台静态 C 配置。任意 mutable Wasm global、可变函数表、动态库、
@@ -79,6 +81,10 @@ musl 在每次新请求前将 cursor 指向独立的 256 KiB 静态保存区起�
 `fork-continuation-wasm64-check-runtime`。测试覆盖主调用点的局部变量、间接递归、
 PID/PPID、TLS、atfork、信号掩码、栈/全局/堆/匿名映射隔离、共享文件 offset、嵌套 fork、
 退出状态、单次 wait 回收，以及多线程拒绝后恢复。
+后续检查另加入 fork 后 exec 到未经变换、使用默认 libc 的程序，验证参数、环境、
+新 TLS、父子身份及父进程 wait；该扩展的目标验收状态独立记录，不沿用旧测试结论。
 
-目标检查未通过前，只能报告“实现待验证”。原生 GCC/Clang 测试只确认共享 fixture 的
-Linux 预期；宿主状态机测试只确认协议边界，都不能替代实际 Wasm 内核执行。
+distro `d03ec28` 的双位宽目标检查已确认上述测试通过，链接与后续加强版状态见
+[fork 路线](fork-continuation.md)。这一结论不能扩展到默认 SDK、任意应用、浏览器或
+多线程 fork。原生 GCC/Clang 测试只确认共享 fixture 的 Linux 预期；宿主状态机测试
+只确认协议边界，都不能替代实际 Wasm 内核执行。
