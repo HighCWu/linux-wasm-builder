@@ -151,6 +151,32 @@ jobs:
           path: ${{ runner.temp }}/python-application-example/
           if-no-files-found: error
           retention-days: 7
+      - name: Package the Python Git workspace application
+        # Only project-owned MIT source is bundled; no runtime binaries or dependencies.
+        run: |
+          bundle="$RUNNER_TEMP/python-git-workspace-example"
+          mkdir -p "$bundle/source/example"
+          cp sources/distro/distro/python/git-workspace-example.py "$bundle/source/example/__main__.py"
+          cp sources/distro/distro/python/example/LICENSE "$bundle/source/example/LICENSE"
+          cp sources/distro/distro/python/example/LICENSE "$bundle/LICENSE"
+          cp sources/distro/distro/python/build-example.py "$bundle/source/build-example.py"
+          python3 -B -c \
+            'import pathlib,runpy,sys; runpy.run_path(sys.argv[1])["build"](pathlib.Path(sys.argv[2]), pathlib.Path(sys.argv[3]), ("LICENSE", "__main__.py"))' \
+            "$bundle/source/build-example.py" "$bundle/git-workspace.pyz" "$bundle/source/example"
+          workspace=$(mktemp -d)
+          report=$(python3 -I "$bundle/git-workspace.pyz" write "$workspace/workspace")
+          head=$(printf '%s\n' "$report" | python3 -c 'import json,sys; print(json.load(sys.stdin)["head"])')
+          python3 -I "$bundle/git-workspace.pyz" read "$workspace/workspace" "$head"
+          python3 -B scripts/source_manifest.py > "$bundle/source-pins.json"
+          (cd "$bundle" && rg --files --hidden -g '!SHA256SUMS' -0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd "$bundle" && sha256sum --check SHA256SUMS)
+      - name: Upload the Python Git workspace application
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-git-workspace-example-${{ github.sha }}
+          path: ${{ runner.temp }}/python-git-workspace-example/
+          if-no-files-found: error
+          retention-days: 7
       - name: Check curl verified HTTPS over native Linux TCP
         # Native CLI versions validate the fixture, not the Wasm build or browser transport.
         run: |
@@ -285,7 +311,8 @@ jobs:
             sources/distro/apps/wasm64-example/*.mjs \
             sources/distro/apps/wasm64-example/*.html \
             sources/distro/packages/browser-tests/agent-tests/wasm64-example.spec.js \
-            sources/distro/packages/browser-tests/agent-tests/wasm64-python-example.spec.js
+            sources/distro/packages/browser-tests/agent-tests/wasm64-python-example.spec.js \
+            sources/distro/packages/browser-tests/agent-tests/wasm64-python-git-example.spec.js
           node --test sources/distro/apps/wasm64-example/server.test.js sources/distro/apps/wasm64-example/browser-support.test.js
           node --test sources/distro/apps/wasm64-example/integrity.test.js
           node --test sources/distro/apps/wasm64-example/program.test.js
@@ -297,6 +324,7 @@ jobs:
           node --check sources/distro/apps/wasm64-example/server.mjs
           node --check sources/distro/packages/browser-tests/agent-tests/wasm64-example.spec.js
           node --check sources/distro/packages/browser-tests/agent-tests/wasm64-python-example.spec.js
+          node --check sources/distro/packages/browser-tests/agent-tests/wasm64-python-git-example.spec.js
           npx --yes esbuild@0.25.12 sources/distro/apps/wasm64-example/app.js \
             --bundle --platform=browser --format=esm --target=es2022 \
             --alias:@lowland/guest=./sources/distro/packages/linux-guest/src/index.ts \
