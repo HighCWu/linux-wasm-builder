@@ -416,6 +416,13 @@ Linux `8bd657d` 新增[默认关闭的标准文件 mmap 候选](file-mmap-candid
 
 ## P6：用户态发行版
 
+`7967691` 增加显式 `git-wasm64`，复用既有 Git 2.55.0 及 posix_spawn 补丁，
+选择匹配位宽的静态依赖、BusyBox 与 Linux 运行检查器。双位宽均检查实际安装的
+Git 主程序和 HTTP helper 内存 ABI，保留 NO_MMAP 读取/复制替代路径。三项新增
+宿主契约检查与相关 libcurl/Python 检查共 17 项通过，双位宽 workflow 已提交 CI；
+packing/remote 入口已接入但本轮尚未验收，不视为浏览器或发布完成。
+范围与命令见 [Git 运行记录](git-runtime.md)。
+
 固定 `d4fafc8` 的 libcurl 双位宽直接/CMake 四入口均已实际完成编译、ABI 和
 Linux 内文件字节、正常退出及全部 TLS 信任边界检查。双位宽 Chromium/Firefox
 21 项验收已开始；不扩大为浏览器或后续 musl 版本已通过。见 [开发记录](libcurl-development.md)。

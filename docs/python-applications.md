@@ -168,6 +168,7 @@ nix build './sources/distro#python-wasm64.applicationExample'
 这与独立脚本或用户程序的许可判断不同；具体产品应按实际分发、修改和链接关系审核。
 
 Python 另提供独立 `buildMaterials` 配置/补丁输出，默认不安装进根盘。`84d5bd9`
-进一步增加双位宽 `sourceBundle` 选定源码归档配方，首次真实 CI 验收仍待结果。
+进一步增加双位宽 `sourceBundle` 选定源码归档配方。wasm32 完整成员校验与旧版
+wasm64 抽查已在真实 CI 成功并上传产物，新版 wasm64 完整校验仍待结果。
 内容和明确排除项见[发行政策](licensing.md#python-与七项依赖的选定源码导出)；
 这些材料仍不是完整对应源码交付或已完成合规的保证。
