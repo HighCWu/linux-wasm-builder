@@ -107,11 +107,20 @@ distro `3c3ef61`、集成提交 `06aa801` 加入第二个普通、未经 Asyncif
 
 共享 fixture 的 GCC/Clang 原生检查已通过；目标复验为
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39120891535) 和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39120895108)。wasm32 已完整成功，
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39120895108)。双位宽均已完整成功，
 实际日志确认新程序的参数、环境、TLS 和身份检查、父进程 wait 以及原有 fork 回归
-全部通过，最终输出协议 pass；wasm64 仍待验收。
+全部通过，最终输出协议 pass。
 首次扩展检查在 Nix 求值时发现原始 initramfs 文件接口格式错误，尚未运行用户程序；
 当前提交已修正为文件路径，保留源文件执行权限，不能把这次打包失败解释为 exec 结果。
+
+随后 distro `f2894c6` 新增失败路径回归：子进程先尝试不存在的路径，再两次装载只有
+Wasm 头而没有 memory import/入口的文件，分别要求 `ENOENT` 和 `ENOEXEC`。目标上
+后者进入 compile_begin/end 后必须在替换程序前中止，保留原 PID/PPID、TLS、栈局部值
+和信号掩码。随后再次 fork/wait，最后 exec 普通程序，以检查失败没有污染后续状态。
+GCC/Clang 原生检查通过；该扩展的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39121590536) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39121595010) 目标结果待验收，
+不能沿用前一版成功结论。
 
 目前只确认显式 opt-in、单用户模块、单线程 C 测试中的标准 fork 语义；默认 SDK、
 浏览器、完整 fork 后 exec、C++/SjLj 和其他后续边界不因此变为已支持。
@@ -155,3 +164,26 @@ distro `3c3ef61`、集成提交 `06aa801` 加入第二个普通、未经 Asyncif
 比较 opt-in 变换与当前未变换基线的二进制大小、无 fork 工作负载吞吐、分叉延迟和
 峰值内存。只有在实际应用收益与代价明确后，才评估默认配置；不以机制实验通过替代
 Linux 兼容性、浏览器验收或性能结论。
+
+### 五、多线程进程 fork 的后续准入
+
+以下是待实现路线，不是当前支持声明。普通 fork 的子进程只保留调用线程；
+父进程保留所有线程，不复制其他线程的执行 continuation。
+
+- 在 libc 的 atfork prepare 和必要锁准备之后，再请求其他线程停车；不能先停住
+  可能持有这些锁的线程。`_Fork` 的独立契约必须另行检查，不能偷偷调用 atfork handler。
+- 用独立于被复制用户内存的协调状态记录请求代次、参与者和确认；用 Atomics 建立
+  发布及唤醒顺序。单个 Worker 确认不代表整个地址空间已稳定。
+- 第一阶段仅接纳能在受控等待点停车的线程。之后再为完整链接程序的计算循环加入
+  协作安全点；postMessage/Atomics.notify 不能强制打断正在运行的 Wasm。
+- 不得冻结持有快照或 clone 所需内核锁的执行流。阻塞 syscall、futex、信号处理、
+  用户内存回写及异步完成都需明确的安全点或写入排除协议。
+- 在线程创建/退出、并发 fork、用户内存增长之间建立一致的准入顺序；复制期间还要
+  排除其他内核/宿主写入者，不能只暂停用户指令。
+- 超时、Worker 退出、复制失败等路径必须先终止或隔离仍可能访问源内存的复制者，
+  再释放屏障；恢复父进程不能留下迟到的快照或半发布子进程。
+- 浏览器与 Node 共用协议，不阻塞浏览器主线程。分别验证真实 Worker；能力不足时
+  保持明确拒绝，不以移除内核的 mm_users 检查替代一致性实现。
+
+即使这一机制完成，多线程 fork 后也保留普通 Linux 的应用锁限制：其他线程持有的
+应用锁可能留在子进程中，而持锁线程不再存在。不能据此承诺子进程可安全执行任意库调用。
