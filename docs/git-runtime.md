@@ -59,14 +59,16 @@ BusyBox 校验命令；加上既有位宽契约共七项通过。配套 shellche
 和 [wasm32 remote](https://github.com/HighCWu/distro/actions/runs/39086740378)
 已提交 CI，均固定 `f9da168`；此前 `7967691` 的双位宽 workflow 不含这套材料
 门禁，不以其结果替代新版证据；仍运行的任务不取消或重启。
-wasm64 remote 在原 workflow 成功后，也以同一 `f9da168` 提交 CI，结果待验收。
+原 workflow 成功后，也以同一 `f9da168` 提交
+[wasm64 remote](https://github.com/HighCWu/distro/actions/runs/39086895924)。
 
-上述 wasm32 remote 首次失败在材料检查入口：实际日志为 `sh: set: -eu:
+上述 wasm32 remote、wasm64 packing 和 remote 均已失败在材料检查入口，三份
+实际日志均为 `sh: set: -eu:
 invalid option`，尚未运行 credential cache 或 HTTP 传输。默认 shell 是 hush，
 固定的 BusyBox 源码中没有 nounset (`-u`) 支持；宿主的 BusyBox ash 并不能证明
 该选项在目标 hush 可用。`979c403` 改为逐项显式失败检查，保留全部文件非空及
 checksum 断言，不把失败重分类成已通过，也不靠删除检查放行。新增轻量防回退
-契约，目标复验随下述新版提交；仍运行的旧版 wasm64 任务保留。
+契约，目标复验随下述新版提交；保留旧失败记录，不以新版本覆盖旧结果。
 
 这些是选定声明和默认补丁，不是完整对应源码。自定义 derivation overrides
 必须另收集自己的修改；未自动推断所有依赖、许可证兼容性或发布资格。
@@ -100,8 +102,11 @@ helper 的实际 Wasm 内存声明检查，也没有额外宣称指针运行时�
 分组有重叠，不能相加当作独立测试数。格式、语法、shellcheck、工作流、仓库与
 轻量前端打包通过，实际浏览器和新脚本的目标执行仍须另验。
 
-首轮 wasm64 Chromium/Firefox 与修正后的 wasm32 remote 已提交，均固定
-`d5bc3bb`；wasm32 浏览器入口本轮尚未触发。不用旧 workflow 的成功替代
+首轮 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39087516919)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39087519457) 与修正后的
+[wasm32 remote](https://github.com/HighCWu/distro/actions/runs/39087522099) 已提交，
+均固定 `d5bc3bb`，计划解析均已成功，实际运行仍待验收；wasm32 浏览器入口本轮
+尚未触发。不用旧 workflow 的成功替代
 这套带位宽与材料门禁的新版本证据，也不以本机回归宣称浏览器已通过。
 
 ## 保留的边界
