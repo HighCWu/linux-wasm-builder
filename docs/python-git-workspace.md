@@ -101,5 +101,36 @@ clone/HEAD/摘要损坏、notice 命令失败、未 flush 和关闭失败；这�
 [Firefox 目标](https://github.com/HighCWu/distro/actions/runs/39090668642) 的计划检查
 已成功，实际重检查仍在运行；两项均固定 `7ad998f`，不把计划成功记为运行成功。
 
-本阶段不覆盖 OPFS 持久化、断电一致性、公共网络、pip 生态、
+## 跨页面 OPFS 恢复
+
+`85f7f7f` 在两个独立浏览器检查入口接入 OPFS：
+`browser-tests-check-agent-python-git-opfs-root-wasm64-chromium` 和
+`browser-tests-check-agent-python-git-opfs-root-wasm64-firefox`。原有内存块盘检查
+不被这两项取代，也不取消正在执行的旧版目标。
+
+写阶段只初始化一个新的唯一命名磁盘；已有文件会拒绝覆盖。它启动真实 Linux，
+导入示例并执行完整 write 工作流，sync 后等待整机及磁盘设备关闭，返回原始
+提交 HEAD。页面重载后，检查阻断初始根盘下载，只打开已有 OPFS 文件，不传入
+create、capacity 或截断参数；以原始 HEAD 执行完整 read 工作流，核对持久化的
+示例源、hook、Git 对象、原始载荷及 SQLite 记录，并新建独立 clone 作二次校验。
+两种存储路径共用同一个
+应用检查函数，不以简化的数据库查询代替应用协作。
+
+每个 OPFS 入口有独立的唯一用例及零跳过/重试报告门禁。测试最终仅删除它创建的
+精确命名 OPFS 磁盘；不修改系统默认根盘，也不改动内核、进程协议或用户 UAPI。
+这只是受控检查，不是多标签页并发创建磁盘或任意不可信仓库的安全设计。
+
+47 项相关 Node 回归和四项本机 Python 示例测试通过；新增存储/生命周期注入
+反例覆盖已有磁盘、缺失读盘、非法阶段/名称/HEAD、写入中止、应用校验失败和
+关闭失败。注入检查还实际执行浏览器用例的控制流程，要求跨重载传递同一 HEAD、
+阻断模板并清理精确磁盘。这些结果不代表真实浏览器 OPFS 已通过，目标结果另验。
+浏览器模块打包、格式、工作流、元数据、source pin 和缓存契约检查通过；本地
+完整类型检查仍只有前述三项旧声明错误，公开 CI 完整门禁不变。
+
+固定 `85f7f7f` 的 [Chromium OPFS 检查](https://github.com/HighCWu/distro/actions/runs/39091161575)
+和 [Firefox OPFS 检查](https://github.com/HighCWu/distro/actions/runs/39091164560)
+的计划检查均已成功并进入实际重检查，真实运行尚未验收。不以本机注入检查或
+旧版内存根盘结果替代这些目标。
+
+本阶段不覆盖断电一致性、用户主动清理存储后的恢复、存储配额保障、公共网络、pip 生态、
 远程托管服务、原生编译器自托管或任意软件兼容性。
