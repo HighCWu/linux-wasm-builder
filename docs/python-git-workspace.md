@@ -318,7 +318,9 @@ Worker，以及下载、文件创建、写流创建、写入和关闭失败时�
 已成功，实际日志确认两项跨层关闭检查与完整内核宿主 213 项通过。新源码的
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39099390865) 与
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39099394181)
-已分别触发，尚待实际执行结果。
+已核实实际日志成功：两者各有 117 个 bundle 文件校验和两例通过，Chromium
+19.7 秒、Firefox 38.6 秒，精确报告均确认零跳过、零重试。这包含新增双页面
+Open／Create 争用拒绝与后续原盘数据恢复，不包含后面的服务器启动校验修订。
 
 ## 开发服务器的启动校验
 
@@ -336,7 +338,60 @@ Worker，以及下载、文件创建、写流创建、写入和关闭失败时�
 源码 `9447391deac3c531d4a70a38d0a5fd8914cbe9c4` 已确认推送。
 主仓库随后以独立提交 `e94d36a5f713b9f004136664cf859963c7f46f63` 更新 gitlink
 并确认推送；[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39100144106)
-已启动；固定该源码的
+已核实成功，实际日志确认服务器正常／六种拒绝检查、跨层关闭及完整内核宿主
+213 项通过；固定该源码的
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39100162955) 与
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39100165424)
-检查另行触发，尚待新版本结果。
+检查另行触发。两者实际日志均显示启动校验拒绝了测试目录内新增的
+`node_modules/@playwright` 符号链接，未进入浏览器用例，不能记作验收通过；
+Firefox 也已自然结束，未取消任务。下文修订测试布局以保留完整性门禁。
+
+## agent 构造失败时的磁盘回收
+
+页面打开磁盘后，将 agent 构造也纳入启动错误清理范围，避免构造抛错时绕过
+`root.close()`。构造失败不启动 Linux；页面等待磁盘清理完成才允许重新启动，
+清理本身失败则报告聚合启动错误，不当作正常停止。正常运行、同步与停止路径不变。
+
+两项故障注入检查在保留旧写法的独立临时副本上均实际失败（零次磁盘关闭），
+修复后通过；20 项页面状态检查通过，最终页面打包通过。挂载盘完整回归有一项
+既有 Python 子进程 5 秒超时，保持该超时不变，将相同轻量源码复制到本机临时
+目录复验后完整 78 项均通过。未屏蔽或删除断言，未进行本地目标构建。
+这些是宿主故障路径证据，不代表真实浏览器发生过 agent 构造失败，也不将此前
+固定版本的浏览器成功泛化为本修复已经通过新的目标矩阵。
+
+该修复源码 `b6d00ad` 已确认推送，主仓库随后以独立提交
+`f2412fa484db34b4a04425926cf5df9c47fe61d9` 固定并确认推送。
+[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39101192697)
+已成功，实际日志确认两项 agent 构造故障回收检查及完整内核宿主 213 项通过。
+
+## 浏览器测试依赖与应用完整性边界
+
+三个独立示例的浏览器测试入口改为导入各自原始 Nix 应用包中的 `server.mjs`，
+由该服务器校验并提供原始应用目录。Playwright 依赖链接、配置和上传测试夹具
+仍在包外的测试目录；不重新生成清单、不忽略链接、不放宽文件集合校验，
+也不把测试文件作为应用载荷提供给 HTTP 客户端。实际发布包和服务器实现不变。
+最小示例的 SDK 程序及 Python 示例的两份上传夹具改由测试进程从套件目录读取，
+仍经实际文件选择控件上传并核对原有运行结果，不再通过应用 HTTP 服务读取包外夹具。
+组合示例的 `git-workspace.pyz` 本来就是正式应用载荷，其下载校验保持不变。
+
+宿主测试同时运行直接入口和包外入口，后者包含测试专用符号链接且从测试目录
+启动，要求仍先校验原始包、正常提供隔离响应头，并拒绝访问测试专用文件。
+配方检查覆盖全部三个入口，六种损坏包拒绝检查保留。最终相同轻量源码在本机
+临时目录完整回归 80 项通过，零失败／跳过；挂载盘另有既有 Python 子进程
+5 秒超时，未提高超时或跳过断言。此宿主结果不替代 Nix 集成及双浏览器验收。
+
+测试布局源码 `6c378f6b51421e0a6f699f136e2460200bfe28ce` 和夹具上传修订
+`e9a8a5e18e674d126ac9d20979fd4d7eef47dce9` 均已确认推送。夹具脚本语法和
+包外相对路径检查通过；三套示例的 Chromium／Firefox 新检查以最终源码另行触发，
+在实际运行完成前不声称本次浏览器验收成功。
+主仓库已以独立提交 `18836aa9723837dc09f1bd770caef9f862e101d7` 固定最终源码并
+确认推送；文档另以 `[skip ci]` 提交，不将文档提交作为新的运行时验收版本。
+
+固定 `e9a8a5e` 的公开任务：
+
+- 最小示例：[Chromium](https://github.com/HighCWu/distro/actions/runs/39102118686)、
+  [Firefox](https://github.com/HighCWu/distro/actions/runs/39102121357)。
+- Python 示例：[Chromium](https://github.com/HighCWu/distro/actions/runs/39102125159)、
+  [Firefox](https://github.com/HighCWu/distro/actions/runs/39102127709)。
+- Python＋Git 示例：[Chromium](https://github.com/HighCWu/distro/actions/runs/39102131003)、
+  [Firefox](https://github.com/HighCWu/distro/actions/runs/39102133796)。
