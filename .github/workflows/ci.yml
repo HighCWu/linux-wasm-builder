@@ -90,6 +90,7 @@ jobs:
         # Native fork validates the fixture only. Wasm continuation and actual
         # target PIDs/TLS still require the separately selected heavy checks.
         run: |
+          node --test sources/distro/packages/browser-tests/fork-contract.test.js
           patch --dry-run -p1 -d sources/musl \
             < sources/distro/distro/musl/fork-continuation.patch
           for compiler in gcc clang; do
