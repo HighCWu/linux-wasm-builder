@@ -338,12 +338,43 @@ distro `e2c7edc`、集成提交 `da80732` 另将原父进程恢复流程提为�
 本轮为 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39134412900) 与
 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39134418533)，尚待目标结果。
 
+上述 `e2c7edc` 双位宽 Node 工作流后续均已成功，实际日志逐项核实 raw syscall 分叉、
+标准 fork 的 PID/TLS/atfork/内存/文件/嵌套 wait、信号继承和拒绝恢复、exec 成功及失败恢复、
+未变换程序拒绝 raw clone、多线程拒绝恢复和新旧 clone ABI 共存，最终 pass。
+这只对应普通运行语料，不覆盖下面新增的故障注入配置，也不代表浏览器复验已完成。
+
 - 完成用户栈序列化后，再通过已有 Linux clone 创建真实子进程和独立用户内存。
   应用仍调用标准 libc `fork()`，不增加替代 Linux UAPI 的私有应用 syscall。
 - 子进程的回调入口只负责恢复继承的 continuation，不作为应用需要手写的替代入口。
 - 创建失败只能恢复父进程的错误路径，不发布半初始化子进程，不重复执行用户副作用。
 - 保持当前多线程 private-memory clone 的安全拒绝；未经并发快照设计与验证不放开。
 - 完成 Worker、内存和保存区的回收；验证失败后父进程还能继续创建子进程。
+
+### 独立目标故障注入检查
+
+distro `39819f1`、集成提交 `844c9c0` 新增 `fork-continuation-check-faults` 与 `fork-continuation-wasm64-check-faults`，
+使用同一双位宽实验 SDK 构建独立静态 C 初始化程序，直接调用标准 libc `fork()`。
+专用 loader 构建通过 `kernel.override { copyFaultTest = true; }` 启用内部固定计划：
+只对前两次 private-memory COPY 请求依次注入 Worker 初始化异常和分配路径异常。
+前者经过主线程错误回调返回 EAGAIN，后者经过既有复制失败路径返回 ENOMEM。
+这不是实际耗尽浏览器/Node 内存，也没有添加 Linux syscall、应用 API、环境变量或
+公开 boot 选项。普通构建的计划为空，Worker 中的注入也被 build-time 开关关闭。
+计划按每次机器启动创建，不跨机器共享；共享内存线程和内核启动 Worker 不消耗计划。
+
+目标程序要求两次失败均只向父进程返回预期 errno，atfork prepare/parent 收尾、信号
+掩码和用户内存保留，`waitpid(-1, ..., WNOHANG)` 返回 ECHILD。随后连续完成八次
+正常 fork，检查父子 PID、TLS、栈/全局/堆隔离、子退出状态及单次回收。
+失败不得进入子程序分支；最终 pass 后等待 runner 主动关闭，避免 PID 1 提前退出。
+
+本地 kernel 宿主测试 255 项及源码/测试两套类型检查通过，相关 SDK/原生/链接契约
+12 项通过。GCC/Clang 原生运行只覆盖八次正常 fork，不执行 Wasm 专用的注入阶段；
+另已检查启用注入阶段的 C 语法，以及 build-only 计划的启用、有限次数和按机器重置。
+实际双位宽目标故障验收另行进行，未完成前不宣称 Linux 回滚路径已验证。
+即使目标检查通过，也不证明全部资源无泄漏、真实 OOM、超时中断或多线程 fork 安全。
+
+本轮独立检查为 [wasm32 faults](https://github.com/HighCWu/distro/actions/runs/39136819311) 和
+[wasm64 faults](https://github.com/HighCWu/distro/actions/runs/39136823713)，均固定在上述提交，
+已启动，尚待实际目标结果。
 
 ### 三、恢复 musl 的标准封装并验证系统语义
 
