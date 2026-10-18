@@ -511,3 +511,24 @@ Wasm 信号、设备或 musl 内部错误管道语义。已结束的浏览器组
 同版 wasm32 Firefox 与 wasm64 Chromium 修正版重放已分别启动，尚待运行结果。
 
 [python-native-replay-success]: https://github.com/HighCWu/distro/actions/runs/39082515524
+
+## 安装系统完整运行恢复与 PTY 覆盖
+
+固定 `6af4307` 的 [wasm32 完整解释器][python32-device-repaired]现已成功。实际
+Linux 日志确认 ABI/安装布局、搬移归档及发布示例、连续启动失败清理、fd 耗尽、
+超时恢复/信号终止和大管道背压均执行，最后输出 pass。这提供设备初始化修复后
+的完整语料证据，不等于 wasm64、浏览器或后续 PTY 扩展已经通过。
+
+`299cd6e` 新增独立 pty-test.py，经完整解释器安装并在最终 pass 前运行；浏览器也强制要求
+其完成阶段。它分配自己的 master/slave，检查字符设备、slave 的 /dev/pts 路径、
+双端 CLOEXEC、关闭 echo 的 canonical 输入、raw 模式双向完整字节及两方向窗口
+大小 ioctl。非阻塞 select 传输有五秒期限，退出时关闭两端；不借用测试进程的
+控制终端，不调用 fork，也不启动交互 shell。
+
+原生反向控制故意损坏一个 raw 输入字节，必须被逐字节断言拒绝；宿主实际运行及
+整组 65 项检查通过，格式、ShellCheck、shfmt、源码 pin 和缓存契约检查通过。
+该项是对 Python/termios 与实际 devpts 的新增验收，目标运行尚待公开 CI；不承诺
+pty.fork、控制终端会话、前后台作业控制、任意 termios 选项或交互 shell 已经完备。
+此前仍在运行的浏览器任务不包含本项，不取消或重启。
+
+[python32-device-repaired]: https://github.com/HighCWu/distro/actions/runs/39082233830
