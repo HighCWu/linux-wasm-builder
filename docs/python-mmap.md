@@ -585,3 +585,13 @@ SIGINT handler 先恢复完全 raw 模式再确认，之后输入包含全部 25
 
 [python32-pty-basic-success]: https://github.com/HighCWu/distro/actions/runs/39082882383
 [python-native-session-success]: https://github.com/HighCWu/distro/actions/runs/39083403727
+
+固定 `b3e6a3b` 的[信号原生重放][python-native-terminal-signals-success]现已成功；
+实际日志确认终端生成信号阶段、分别损坏两种确认的反例，以及最终完整补丁重放
+完成行。固定 `223938a` 的 [wasm64 Chromium][python64-chromium-devices-success]
+也已成功，完整解释器和私有匿名映射精确两项通过，门禁确认零跳过、零重试；
+该版不含 PTY 扩展。旧 Chromium 任务终态后才启动最新 `b3e6a3b` 同组合复验，
+其它正在运行的旧版目标检查不重启；新增信号的实际 Wasm 结论仍待确认。
+
+[python-native-terminal-signals-success]: https://github.com/HighCWu/distro/actions/runs/39083757228
+[python64-chromium-devices-success]: https://github.com/HighCWu/distro/actions/runs/39082524390
