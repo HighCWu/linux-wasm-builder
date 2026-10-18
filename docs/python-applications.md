@@ -100,8 +100,14 @@ Python 选项，页面明确显示所选根盘配置。
 辅助控制归档仅放入检查套件，不安装进交付根盘。Chromium/Firefox 的精确单用例
 报告门禁拒绝跳过、重试或额外场景；首次
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39084743974) 和
-[Firefox](https://github.com/HighCWu/distro/actions/runs/39084746481) 公开运行仍待结果，
-不用宿主结果替代。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39084746481) 均失败在辅助归档
+构建阶段：Nix 源文件时间早于 1980，`zipfile.write()` 拒绝写入；尚未执行浏览器，
+不是 Linux/Python 运行失败。`2d7aa94` 固定 ZIP 时间、Unix 权限和压缩元数据，
+新增回归复现旧错误，并验证实际配方生成的归档内容、执行结果及两次生成一致性；
+相关宿主检查增至 55 项，全部通过。修正后的
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39086122510) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39086128342) 已提交，仍待真实结果，
+不降低原浏览器断言或用宿主结果替代。
 
 解释器中 Readline 及系统其它组件的实际分发义务不因增加浏览器入口而改变；当前
 尚未完成整个系统的对应源码交付或长期版本发布。详细控制和限制也见
