@@ -295,8 +295,9 @@ Worker，以及下载、文件创建、写流创建、写入和关闭失败时�
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39098295965) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39098298955) 均固定 `d51e295`，
 其中 Chromium 已核实实际日志成功：117 个 bundle 文件 SHA-256 校验通过，两例
-共 19.5 秒通过，精确报告确认零跳过、零重试。Firefox 仍待验收。这不是浏览器
-内存峰值测量，也不包含后续双页面争用扩展。
+共 19.5 秒通过，精确报告确认零跳过、零重试。Firefox 也已核实实际日志成功：
+同样 117 个文件校验、两例共 45.2 秒通过、零跳过／重试。这不是浏览器内存峰值
+测量，也不包含后续双页面争用扩展。
 
 ## 实际双页面磁盘争用
 
@@ -314,7 +315,7 @@ Worker，以及下载、文件创建、写流创建、写入和关闭失败时�
 磁盘／打包宿主契约 12 项通过，不把它们当作真实双页面通过。
 主仓库以独立提交 `0e717e5607ec864eacf72b3898ee1bfde9174146` 更新 gitlink，
 已确认推送；[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39099360739)
-已启动。新源码的
+已成功，实际日志确认两项跨层关闭检查与完整内核宿主 213 项通过。新源码的
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39099390865) 与
-[另一路浏览器检查](https://github.com/HighCWu/distro/actions/runs/39099394181)
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39099394181)
 已分别触发，尚待实际执行结果。

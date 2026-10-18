@@ -385,6 +385,28 @@ ABI 与全部 15,748 个选定源/归档成员匹配，两个短期附件上传�
 wasm64 的相同两项检查随后也成功，最终摘要、ABI 与全部选定成员验证及附件上传
 均已核实，仍保留相同的交付与许可边界。具体证据见 [Git 记录](git-runtime.md)。
 
+## Python 归档工具与项目 MIT 文本
+
+`cfaacae26e6bc41a2f2d3e63163b41d18692ac84` 在 Python 选定源码配方中显式加入
+`archive-tools/exporter.py`、`verifier.py` 和完整 `LICENSE-MIT.txt`，与 Git 包一致。
+完整成员验证同时校对三者实际字节和公开索引；缺失、篡改或仅提供部分工具均失败。
+旧 schema-v1 Python 输入未声明工具时仍兼容；当前配方明确声明完整三项，不能
+将旧格式兼容当作允许当前包遗漏许可文本。工具的 MIT 不覆盖上游组件。
+
+Python 10 项与 Git 5 项宿主归档回归通过；按 Nix 宿主检查的独立目录布局复验，
+Python 同样 10 项通过。新测试从归档复制三个已知常规文件，在隔离 Python 模式
+执行 verifier/exporter 并重建逐字节相同归档，不使用批量解压。执行仍依赖明确
+提供的原始 spec、输入树及构建材料，不是自包含的离线重建环境或可信来源认证。
+Nix 格式与差异检查通过；新目标归档及上传尚待公开 CI，不据此宣布完整合规发行。
+
+源码已推送后，主仓库以独立提交 `af310c35202dc9f0a96a8d645da76ff3b95a7765`
+更新 gitlink 并确认推送；
+[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39099749259)
+已启动。固定该源码的
+[wasm32 选定源码检查](https://github.com/HighCWu/distro/actions/runs/39099787210) 与
+[wasm64 选定源码检查](https://github.com/HighCWu/distro/actions/runs/39099791307)
+另行触发，结果需核对实际成员验证及上传日志。
+
 ## 对外表述
 
 推荐表述：
