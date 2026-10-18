@@ -2,8 +2,9 @@
 
 # 可选 fork continuation v1 执行协议
 
-本协议处于实验阶段，不是已经稳定发布的 Linux UAPI。应用使用 musl 的标准 `fork()`；
-下面的 import/export 是工具链、libc 和 loader 之间的版本化执行协议，不是新 syscall。
+本协议处于实验阶段，不是已经稳定发布的 Linux UAPI。应用使用 libc 的标准 `fork()`；
+Wasm 架构移植代码也可通过已有的 `linux.syscall` 发起请求，不必调用 musl 的私有 helper。
+下面的 import/export 是工具链和 loader 之间的版本化执行协议，不是新 syscall。
 Linux 的 clone、进程身份、描述符继承、信号、退出及 wait 仍由现有内核处理。
 
 ## 构建与准入
@@ -13,8 +14,10 @@ Linux 的 clone、进程身份、描述符继承、信号、退出及 wait 仍�
 在完整静态链接后执行 Asyncify 变换。不得只变换包含 fork 的那个源文件。
 只有该可选 musl profile 恢复头文件中的 fork/_Fork 声明，默认安装的头文件保持原样。
 
-loader 只接受 `linux_fork_v1.checkpoint` 这一函数 import。含该 namespace 的模块还必须
-导出以下函数及两个 global；缺少导出的模块在装载准入时拒绝，未知 import 不被放行。
+旧 checkpoint 路径只接受 `linux_fork_v1.checkpoint` 这一函数 import。
+当前 syscall 路径不需要这一私有 import，而用导出 `__wasm_fork_abi` 显式识别。
+含该 namespace 或 ABI 导出的模块必须导出以下基础函数及两个 global；
+缺少导出的模块在装载准入时拒绝，未知 import 不被放行。
 实例化后继续检查版本、初始状态和 global 的指针宽度。
 
 | 名称 | 类型/要求 |
@@ -28,14 +31,41 @@ loader 只接受 `linux_fork_v1.checkpoint` 这一函数 import。含该 namespa
 | `asyncify_get_state` | `() -> i32`，0=正常、1=unwind、2=rewind |
 | `asyncify_start_unwind`、`asyncify_start_rewind` | `(uintptr_t descriptor) -> void` |
 | `asyncify_stop_unwind`、`asyncify_stop_rewind` | `() -> void` |
+| `__wasm_fork_syscall_abi` | syscall 扩展标识，`() -> i32`，必须返回 1 |
+| `__wasm_fork_descriptor` | syscall 扩展，`() -> uintptr_t`，初始化并返回保存区 descriptor |
 
 `pid_t` 和 checkpoint 返回值在双位宽下均为 i32；wasm64 的地址及 raw clone 的 long
 返回值跨 JS 边界使用 BigInt，不可通过无符号位运算截断。
 
+最后两个导出是成对启用的 syscall 扩展，不要求旧 checkpoint 模块提供。
+新完整链接变换须将 `linux.syscall` 纳入 Asyncify imports；仅变换旧 checkpoint import
+不足以支持直接 syscall 调用。loader 不能替未变换的程序凭空复制引擎调用栈。
+
+## Linux/Wasm 的 syscall 参数约定
+
+沿用本架构已有的 clone 号 220 和参数布局：
+
+```c
+linux_syscall(SYS_clone, callback, argument, flags, parent_tid, child_tid, tls);
+```
+
+这不是 x86 或其他架构的 clone 寄存器布局。非空 callback 保持原来的回调式 clone；
+当前扩展保留空 callback 作为“从当前 syscall 调用点恢复”的请求。
+首阶段只支持 `(0, 0, SIGCHLD, 0, 0, 0)`，不引入虚构的 SYS_fork 编号。
+非空 argument 返回 `EINVAL`；其他未支持的 flags/tid/tls 组合返回 `EOPNOTSUPP`。
+未启用 continuation 的程序发起空 callback 请求也返回 `EOPNOTSUPP`，不创建无效入口子进程。
+
+入口处的 Wasm 执行适配器完成 unwind，再以现有非空回调 clone 进入真正的 Linux
+进程创建路径。PID、资源继承、信号、退出与 wait 不是由适配器仿造；
+这仍是架构执行 ABI 的增量支持，不代表内核已有通用硬件式执行现场快照。
+libc 仍负责 atfork、锁和子线程状态收尾；绕过 libc 的 raw syscall 不会自动得到这些封装。
+
 ## 保存区
 
 descriptor 是两个小端 `uintptr_t`：当前 cursor、保存区 end，字段分别占 4 或 8 字节。
-musl 在每次新请求前将 cursor 指向独立的 256 KiB 静态保存区起点。
+独立 MIT 执行支持对象在每次新请求前将 cursor 指向 256 KiB 静态保存区起点。
+该对象不使用 musl 私有头文件，也不再编译进 musl；其他 libc 可链接同一对象。
+rewind 时禁止重新初始化 cursor，以免覆盖继承的活动帧。
 
 宿主在新请求时检查 descriptor 边界及对齐、cursor/end 的安全整数表示、保存区边界、
 非空、有界大小和不覆盖 descriptor。Asyncify 的越界断言保持开启。
@@ -44,21 +74,22 @@ musl 在每次新请求前将 cursor 指向独立的 256 KiB 静态保存区起�
 ## 一次分叉的次序
 
 1. 标准 musl `fork` 执行 atfork prepare 及既有锁处理。
-2. `_Fork` 保存并屏蔽信号，锁定 abort lock，再进入 checkpoint。
-3. checkpoint 启动 unwind，不执行子初始化；宿主等待 `_start` 完整返回。
+2. `_Fork` 保存并屏蔽信号，锁定 abort lock，再发起上述空 callback clone syscall。
+3. syscall 执行适配器启动 unwind，不执行子初始化；宿主等待 `_start` 完整返回。
 4. 宿主停止 unwind，记录 descriptor、栈指针、TLS base 及子回调表项。
 5. 宿主调用 `__wasm_fork_clone`，仍使用当前架构已有的 callback clone 参数布局，
    flags 为 SIGCHLD，不设置 CLONE_VM。
 6. 现有 Worker 握手复制用户内存。仅这次 clone 传递 continuation 元数据；
    父返回后删除元数据，不能污染之后的普通 clone 或 exec。
 7. 子进程的 `switch_entry` 核对专用回调，不运行该 C 回调；恢复栈指针和 TLS base，
-   rewind `_start`，到 checkpoint 停止 rewind 并返回 0。
-8. 父进程以 clone 返回的实际 PID 或负 errno rewind 到同一 checkpoint。
+   rewind `_start`，到 syscall 调用点停止 rewind 并返回 0。
+8. 父进程以 clone 返回的实际 PID 或负 errno rewind 到同一 syscall 调用点。
 9. 双方继续原有 musl `_Fork`/`fork` 收尾：子线程身份/robust list/线程链、锁、信号
    掩码及 parent/child atfork handler 均由标准封装处理。
 
 父子不是重跑应用初始化；经过变换的恢复路径跳过分叉前已执行的副作用。
 默认 callback clone 的应用入口和已有 posix_spawn 路径保持原样。
+旧 checkpoint 模块继续使用原 v1 入口；上述 syscall 适配不移除其兼容路径。
 
 ## 明确限制
 

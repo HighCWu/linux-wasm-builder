@@ -201,7 +201,8 @@ compiler wrapper 共 21 项通过。新路径的目标验收单独记录，不�
 - [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39127416009)
 
 首轮六项均因新增 shell 脚本未满足格式门禁而停止，未运行目标程序；`c5a9e38` 已修正，
-上述为修正后的新 CI，已启动，尚待核实结果。集成提交 `e3bb8e1` 的轻量 CI 已成功。
+上述为修正后的 CI，六项均已完整成功；实际日志核实双位宽 Node 全阶段通过，
+四个浏览器组合各完成两轮全阶段回归和关闭检查。集成轻量 CI 也已成功。
 安装包的 `share/linux-wasm-fork-sdk/profile.json`
 明确版本和限制，`build-materials/` 保留新增配方、Binaryen 源码/许可证及默认 SDK
 材料链接；这是 Nix store 包，不是可任意搬移的独立 SDK 压缩包。自有新增代码为 MIT，
@@ -209,6 +210,42 @@ compiler wrapper 共 21 项通过。新路径的目标验收单独记录，不�
 后续补充更小的独立使用示例，以及体积、常态吞吐、分叉延迟和峰值内存测量。
 
 ## 接入验收与后续工作
+
+### 当前推进：统一 syscall 入口，而不是增加应用专用 API
+
+distro `2759257`、集成提交 `924ac2d` 将新 profile 的 `_Fork` 改为通过已有
+`linux.syscall` 发起本架构的 clone 请求，不再调用 musl 私有 checkpoint helper。
+MIT 现场保存代码移到独立的 Wasm 执行支持对象，不使用 musl 私有头文件，也不再
+编译进 musl。新模块可仅通过 ABI 导出启用，不要求导入 `linux_fork_v1.checkpoint`；
+旧 checkpoint 模块保留兼容路径。
+
+Wasm 的既有 clone 参数是 callback、argument、flags、parent_tid、child_tid、tls，
+不是其他 Linux 架构的寄存器布局。当前保留空 callback 表示从当前调用点恢复，
+仅支持 `(0, 0, SIGCHLD, 0, 0, 0)`；其他组合、缺少执行支持、信号/内核回调和
+多线程快照继续明确拒绝。实际进程创建仍进入原 Linux clone，不新增 syscall 编号。
+完整约定见[执行协议](fork-continuation-abi.md)。
+
+新增独立 C 翻译单元直接导入 `linux.syscall`，绕过 libc 的 `fork()` 和 `syscall()`：
+验证两次分叉、父子返回、PID/PPID、栈/全局隔离、退出、wait 单次回收，以及拒绝后恢复。
+未经变换、使用默认 libc 的 exec 目标另检查相同空 callback 请求明确失败，随后仍可
+执行普通 syscall。raw syscall 不会自动执行 libc 的 atfork 或子线程状态收尾。
+
+宿主 kernel 测试共 235 项通过、零跳过，TypeScript 检查通过；相关构建/浏览器门禁/
+原生 raw fixture 共 7 项通过，其中原生 shim 含错误子进程身份的反向控制。
+这些只是状态机与 fixture 验证，不替代实际 Wasm 结果。新路径公开验收为：
+
+- [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39128728974)
+- [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39128734308)
+- [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39128739259)
+- [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39128743343)
+- [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39128747329)
+- [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39128752368)
+
+首轮因固定格式器对单行注释的换行要求停止，未运行目标程序；`61e0a08` 已修正。
+上述为修正后的 CI，已启动，尚待核实；`924ac2d` 的集成轻量 CI 已通过。
+这一步不宣称其他 libc 已移植成功、任意 raw clone 组合
+已支持、clone3 已实现或默认 SDK 已开放 fork。将 `linux.syscall` 纳入 Asyncify 会改变
+插桩范围，体积和性能仍须重新测量；不能沿用旧 checkpoint 路径的性能假设。
 
 ### 一、形成可拒绝的 opt-in 执行 ABI
 
