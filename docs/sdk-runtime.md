@@ -272,8 +272,10 @@ ARCHIVE` 需要实际选择 spec 和输入文件，不能仅凭下载包自己�
 `build-materials.nix` 的冗余 lambda 需按 statix 规则简化，不是材料比较或内核失败。
 功能不变的格式修正已由 `a841ddde8ce862fcbf1a1f7d088d314189d77826` 发布，
 针对该版本的 [wasm32 复验](https://github.com/HighCWu/distro/actions/runs/39109610295)
-和 [wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39109612625) 已通过
-规划／求值并进入独立构建；实际安装包校验与上传仍待确认。这项检查不另启内核，
+和 [wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39109612625) 均通过
+规划／求值。wasm32 随后在实际材料导出失败：SDK symlinkJoin 将许可证目录展开为
+真实目录及逐文件链接，不能通过目录根路径相等来判断来源。该失败不是内核或
+应用运行失败，实际安装包校验与上传仍待确认。这项检查不另启内核，
 但仍需要相应 SDK 构建依赖。主仓库独立提交 `90aa856` 集成格式修正。
 随后源码 `088d377` 仅补充上述双位宽／畸形归档回归，主仓库 `c0dfd83` 单独集成；
 不把正在运行的旧源码任务当作这些新增回归的目标 CI 证据。
@@ -282,6 +284,49 @@ ARCHIVE` 需要实际选择 spec 和输入文件，不能仅凭下载包自己�
 源码、构建机依赖、Nixpkgs 变换、完整源码 checkout 和长期获取渠道仍须继续补齐；
 临时 Actions artifact 不能替代正式发行的持久源码托管。材料工具自有代码采用 MIT，
 被收集组件继续遵循各自原始许可证。
+
+## 选定 SDK 完整源码输入
+
+`sdk.sourceBundle` / `sdk-wasm64.sourceBundle` 另提供选定源码归档：在上述实际
+SDK 材料之外，加入选定 Linux、musl、LLVM 工具链／运行库、Meson 的完整源码输入树。
+这不是可重定位 SDK，也不包含编译器或运行库二进制，不改变现有 SDK 的默认安装。
+
+```sh
+nix build './sources/distro#sdk-wasm64.sourceBundle'
+(cd result && sha256sum --check SHA256SUMS)
+nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-source-bundle'
+# wasm32 分别使用 sdk.sourceBundle 和 sdk-check-source-bundle
+```
+
+`sdk-selected-sources.tar.gz` 内的 `sdk-selected-sources.json` 把每个组件身份映射到
+`sourceArchiveRoots`。实际解析到相同目录的输入只存一份，通常 LLVM 工具链与运行库
+共享同一源码树；不同目录不因名字相近而被去重。源码根实际展开，内部符号链接保留
+目标而不跟随，隐藏文件保留，硬链接保存为独立普通文件字节。直接流式压缩，不生成
+中间完整源码副本或未压缩 tar。
+
+独立检查依赖原 SDK 材料核验，并将全部源码及材料成员的顺序、名称、类型、规范化
+元数据和字节与原输入比较；不只检查某份 COPYING，也不解包或执行归档。归档输出
+设置 Nix 零引用约束，不让运行 SDK 因此保留整棵源码。成功后的公开 CI artifact
+仅保留 3 天。新增宿主回归覆盖双位宽、同源去重、不同源保留、隐藏文件／链接／
+硬链接、源码字节变更拒绝和特殊文件拒绝。`dce8394` 再复现并修正 Nix 合并目录的
+许可证来源核验：比较完整目录结构与每个文件的实际来源，归档原始许可字节而非
+指回构建机 store 的文件链接；同字节但不同来源及目录循环均拒绝。整组共 13 项通过。
+
+源码功能 `4d394de` 与主仓库独立集成 `77afa30` 已推送，首轮
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39110025975) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39110028889) 固定该源码，仍包含
+随后修正的许可证目录问题，不把其状态用作 `dce8394` 的验收证据。针对修正版的
+双位宽源码检查同时依赖实际 SDK 材料检查，无需重复另启相同材料的定向任务。
+修正版 [wasm32](https://github.com/HighCWu/distro/actions/runs/39110227416) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39110229824) 已固定完整提交
+`dce839436e671fcd177422e40a06faa2935a085f`，实际构建／核验及上传仍待验收。
+主仓库通过独立 gitlink 提交 `3ab150d` 集成修正，文档另行提交。
+
+这里的源码是选定原始输入，不是 post-patch 构建目录快照。SDK 配方包含已知 Meson
+补丁及修改说明，但工具不会自动发现任意 override、补丁或 hook。完整对应源码还需
+匹配的 distro checkout、Nixpkgs 变换、构建依赖和长期获取渠道；内核源码也不替代
+对应内核二进制的最终配置及构建材料。此功能仍需实际双位宽公开 Nix 验收，不能据
+宿主夹具通过认定完整源码交付、离线重建或许可证审查已完成。
 
 ## 由Clang管理响应文件和链接阶段
 
