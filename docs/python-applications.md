@@ -31,7 +31,7 @@ WebAssembly API 的二进制，也不能把它上传到只接受 Wasm 程序的�
 python3 /path/to/application.pyz
 ```
 
-下述可选独立示例已接入 `.pyz` 上传配方，首次真实浏览器验收仍待 CI；它不是
+下述可选独立示例已接入 `.pyz` 上传配方，并通过指定 Chromium/Firefox 用例；它不是
 面向任意依赖的一键部署服务。自行集成根盘时还需正确提供解释器、
 标准库、运行依赖、许可材料和可写临时目录，不能只复制 `/usr/bin/python3`。
 
@@ -106,8 +106,9 @@ Python 选项，页面明确显示所选根盘配置。
 新增回归复现旧错误，并验证实际配方生成的归档内容、执行结果及两次生成一致性；
 相关宿主检查增至 55 项，全部通过。修正后的
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39086122510) 和
-[Firefox](https://github.com/HighCWu/distro/actions/runs/39086128342) 已提交，仍待真实结果，
-不降低原浏览器断言或用宿主结果替代。
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39086128342) 均已成功，固定
+`2d7aa94`；实际日志分别确认一项真实控件用例通过，以及精确报告门禁零跳过、
+零重试。不降低原浏览器断言，也不据此扩大为持久化或任意 Python 应用兼容证明。
 
 解释器中 Readline 及系统其它组件的实际分发义务不因增加浏览器入口而改变；当前
 尚未完成整个系统的对应源码交付或长期版本发布。详细控制和限制也见
@@ -168,7 +169,7 @@ nix build './sources/distro#python-wasm64.applicationExample'
 这与独立脚本或用户程序的许可判断不同；具体产品应按实际分发、修改和链接关系审核。
 
 Python 另提供独立 `buildMaterials` 配置/补丁输出，默认不安装进根盘。`84d5bd9`
-进一步增加双位宽 `sourceBundle` 选定源码归档配方。wasm32 完整成员校验与旧版
-wasm64 抽查已在真实 CI 成功并上传产物，新版 wasm64 完整校验仍待结果。
+进一步增加双位宽 `sourceBundle` 选定源码归档配方。wasm32 与 wasm64 的完整
+成员校验均已在真实 CI 成功并上传产物；这仍只是选定输入的归档一致性验收。
 内容和明确排除项见[发行政策](licensing.md#python-与七项依赖的选定源码导出)；
 这些材料仍不是完整对应源码交付或已完成合规的保证。

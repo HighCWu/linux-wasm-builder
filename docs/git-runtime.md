@@ -40,7 +40,7 @@ workflow 的最终 pass。wasm64 也已成功，实际日志确认两个 Git 程
 memory64 / 16 GiB 声明门禁与 workflow 最终 pass；不代表实际分配 16 GiB。
 两项结果均不覆盖随后新增的许可材料检查；
 packing、remote 的后续验收见下文。
-本阶段也未增加 Git 浏览器用例。
+`7967691` 尚未提供 Git 浏览器用例；后续入口见下文。
 
 ## 选定许可材料的安装检查
 
@@ -61,10 +61,48 @@ BusyBox 校验命令；加上既有位宽契约共七项通过。配套 shellche
 门禁，不以其结果替代新版证据；仍运行的任务不取消或重启。
 wasm64 remote 在原 workflow 成功后，也以同一 `f9da168` 提交 CI，结果待验收。
 
+上述 wasm32 remote 首次失败在材料检查入口：实际日志为 `sh: set: -eu:
+invalid option`，尚未运行 credential cache 或 HTTP 传输。默认 shell 是 hush，
+固定的 BusyBox 源码中没有 nounset (`-u`) 支持；宿主的 BusyBox ash 并不能证明
+该选项在目标 hush 可用。`979c403` 改为逐项显式失败检查，保留全部文件非空及
+checksum 断言，不把失败重分类成已通过，也不靠删除检查放行。新增轻量防回退
+契约，目标复验随下述新版提交；仍运行的旧版 wasm64 任务保留。
+
 这些是选定声明和默认补丁，不是完整对应源码。自定义 derivation overrides
 必须另收集自己的修改；未自动推断所有依赖、许可证兼容性或发布资格。
 特别是 `NO_OPENSSL` 只关闭 Git 的直接 OpenSSL 调用，libcurl 仍静态链接
 OpenSSL；这里不为 Git 授予或推定 OpenSSL 例外，发布前须单独审查该组合。
+
+## 浏览器安装系统验收入口
+
+`d5bc3bb` 新增四个独立检查入口：`browser-tests-check-git-wasm32-chromium`、
+`browser-tests-check-git-wasm32-firefox`、`browser-tests-check-git-wasm64-chromium`
+和 `browser-tests-check-git-wasm64-firefox`。例如公开 CI 调用：
+
+```sh
+gh workflow run ci.yml --repo HighCWu/distro --ref codex/mmap-initialized-backing \
+  -f heavy-check=browser-tests-check-git-wasm64-chromium
+```
+
+浏览器复用三组 Node 检查的相同 initramfs、完整 ext4 安装根盘与匹配位宽内核，
+每组独立启动、修改临时内存盘，并等待成功关闭。不是运行浏览器宿主 Git，也不
+以临时 initramfs 内的替代程序冒充安装产物。不会复用上一组内存或提供持久化承诺。
+
+共享脚本先核对 Git 自报的 `long`、`size_t` 与固定平台位宽，再核对选定材料，
+完成对应 workload 后才输出阶段及 pass。该自报不替代构建时对主程序和 HTTP
+helper 的实际 Wasm 内存声明检查，也没有额外宣称指针运行时自检。
+浏览器必须看到正确位宽、材料、对应场景和最终 pass，且没有 fail；精确三项
+报告门禁拒绝缺项、额外用例、跳过或重试。
+
+新增宿主检查覆盖真实共享脚本的位宽/材料失败、三个镜像加载失败、场景/ABI/
+材料/pass 缺失、失败标记及报告损坏；Git 相关 15 项通过，连同 Python 浏览器及
+关闭生命周期回归共 36 项通过。另有既有运行与报告检查整组 34 项通过；这些
+分组有重叠，不能相加当作独立测试数。格式、语法、shellcheck、工作流、仓库与
+轻量前端打包通过，实际浏览器和新脚本的目标执行仍须另验。
+
+首轮 wasm64 Chromium/Firefox 与修正后的 wasm32 remote 已提交，均固定
+`d5bc3bb`；wasm32 浏览器入口本轮尚未触发。不用旧 workflow 的成功替代
+这套带位宽与材料门禁的新版本证据，也不以本机回归宣称浏览器已通过。
 
 ## 保留的边界
 
