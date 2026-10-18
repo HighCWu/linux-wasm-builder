@@ -31,8 +31,8 @@ WebAssembly API 的二进制，也不能把它上传到只接受 Wasm 程序的�
 python3 /path/to/application.pyz
 ```
 
-当前尚无面向任意 `.pyz` 的一键浏览器上传部署流程。本次提供可复用应用产物，
-不把内部浏览器检查页面称为通用应用启动器。自行集成根盘时还需正确提供解释器、
+下述可选独立示例已接入 `.pyz` 上传配方，首次真实浏览器验收仍待 CI；它不是
+面向任意依赖的一键部署服务。自行集成根盘时还需正确提供解释器、
 标准库、运行依赖、许可材料和可写临时目录，不能只复制 `/usr/bin/python3`。
 
 ## 可复用 wasm64 Python 系统根盘
@@ -65,6 +65,45 @@ gh workflow run ci.yml --repo HighCWu/distro --ref codex/mmap-initialized-backin
 这是可复用集成配方，不是已发布、合规材料完整的二进制发行版。Python 中 GNU
 Readline 的实际 GPL 义务保持不变；现有 notices 和选定构建材料不能替代完整对应
 源码。发布检查尚须补齐，不能将整个根盘称为 MIT。
+
+## 可选的独立浏览器 Python 示例
+
+distro `f8f5d05` 新增 `wasm64-python-example`，复用原独立示例、公开 SDK、原生
+启动盘及上述 Python 根盘，不更改 `wasm64-example` 的最小根盘默认值。以下命令
+中的重型构建由公开 CI 执行，之后可整体搬移产物到普通目录运行开发服务器：
+
+```sh
+nix build './sources/distro#wasm64-python-example' --out-link result-python-example
+node result-python-example/server.mjs
+```
+
+启动 Linux 后选择 **Program type → Python .pyz application**，选择本节开头
+生成的归档，再执行 Import and run。文件只进入该次 Linux 的临时根盘，不上传
+HTTP 服务器；按 `/usr/bin/python3 -I /root/application.pyz` 加字面 JSON 参数执行。
+没有 shell 展开、扩展名猜测、JavaScript 解包或自动依赖安装。默认最小示例禁用
+Python 选项，页面明确显示所选根盘配置。
+
+导入上限 16 MiB，目前只接受以 ZIP local-file header 开头的 `.pyz`，不接受
+前置 shebang。格式头并非归档内容、解压大小、依赖或资源配额校验。Python 隔离模式
+忽略 PYTHONPATH 等环境配置和当前目录导入，不是安全沙箱。只运行可信应用，
+不能据此推断缺失的系统功能或原生扩展已可用。
+
+复用文本/文件 stdin、双输出流并发消费、取消、Stop 和文件下载；页面输出仍是
+最多 65536 字符的 UTF-8 预览，二进制输出须由应用写入文件后下载。停止或重载会
+丢弃整个临时盘，256 MiB 镜像不是 OPFS 持久化能力，也不是线性内存上限。
+
+相关示例/根盘接线/打包共 54 项宿主检查通过，另有既有 Python 等 65 项通过，
+前端 esbuild 打包成功。新浏览器用例从真实控件验证实际示例归档、文本和全字节
+文件输入、损坏归档、字面参数、退出码 37、stderr、取消后恢复及运行中 Stop/重启。
+辅助控制归档仅放入检查套件，不安装进交付根盘。Chromium/Firefox 的精确单用例
+报告门禁拒绝跳过、重试或额外场景；首次
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39084743974) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39084746481) 公开运行仍待结果，
+不用宿主结果替代。
+
+解释器中 Readline 及系统其它组件的实际分发义务不因增加浏览器入口而改变；当前
+尚未完成整个系统的对应源码交付或长期版本发布。详细控制和限制也见
+[示例 README](../sources/distro/apps/wasm64-example/README.md)。
 
 ## 公开 CI 产物与重建
 

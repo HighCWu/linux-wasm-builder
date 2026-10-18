@@ -604,3 +604,10 @@ SIGINT handler 先恢复完全 raw 模式再确认，之后输入包含全部 25
 
 [python64-pty-basic-success]: https://github.com/HighCWu/distro/actions/runs/39082877565
 [python32-firefox-session-success]: https://github.com/HighCWu/distro/actions/runs/39083522426
+
+固定 `b3e6a3b` 的 [wasm32 完整解释器][python32-terminal-signals-success]也已成功。
+实际日志包含控制终端会话、终端生成窗口变化及中断信号的完成阶段和最终 pass；
+这补上该版本的目标信号证据，不代表后续 Python 根盘或浏览器上传入口已通过。
+最新 wasm64 Chromium 信号检查仍运行。
+
+[python32-terminal-signals-success]: https://github.com/HighCWu/distro/actions/runs/39083761930
