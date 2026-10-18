@@ -103,9 +103,11 @@ nix build './sources/distro#checks.x86_64-linux.toolchain-smoke-wasm64-check-cxx
 预处理时验证模拟宿主 `vector` 头文件确实会干扰未包装的编译器，再通过 SDK 包装器
 编译原有 C++ 语料并在 Linux 内运行。固定源码
 `6637cd1dade3ed900d0126ec7dee8935252fb641` 的
-[wasm32](https://github.com/HighCWu/distro/actions/runs/39106093727) 与
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39106097721) 检查均已启动，
-结果仍待确认。主仓库通过独立集成提交 `90a6f16` 固定该源码，源码和集成提交均已推送。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39106093727) 检查已成功，实际日志
+确认驱动检查两项及异常生成检查一项通过、零跳过，并完成 Linux 内 C++ 容器、RAII、
+跨线程异常、RTTI、TLS 析构、条件变量检查与最终协议 pass。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39106097721) 仍待确认。
+主仓库通过独立集成提交 `90a6f16` 固定该源码，源码和集成提交均已推送。
 这是防止无意混用依赖的构建默认值，不是隔离恶意源码的安全沙箱，也不使 SDK 可重定位。
 
 ## 双位宽开发入口
@@ -194,6 +196,41 @@ sdk-wasm64-check-cmake-runtime。
 [wasm32](https://github.com/HighCWu/distro/actions/runs/38860955154)也已通过；对应
 `sdk-check-cmake-runtime` 的 Build isolated check 和整个工作流均成功。
 这轮不修改Linux、musl或LLVM实现，没有新增浏览器执行记录。
+
+### 构建机代码生成器
+
+`cfecce9` 为 CMake 样例增加可选 `SDK_USE_BUILD_GENERATOR=ON`：先在独立原生
+CMake/Ninja 构建目录中编译 C 静态库及链接该库的生成器，运行生成器生成头文件，
+再将生成常量用于目标 C++ 线程程序。生成器复用 Meson 样例中的两份原生专用 C 源码，
+两者均拒绝 `__wasm__`；复制样例时需同时保留 `meson-example/generator*.c`。
+它展示普通项目的两阶段构建方法，不表示 CMake 会自动识别任意项目的原生工具。
+
+两个 SDK 开发 shell 已提供 `CC_FOR_BUILD`、`AR_FOR_BUILD`、`RANLIB_FOR_BUILD`。
+启用此选项时，每个变量须指向一个原生可执行文件（绝对路径或 PATH 中的命令名，
+不是附带 flags 的 shell 命令）；缺失或无效时明确失败，不回退到目标编译器／归档器。
+例如在相应 SDK shell 的新构建目录中执行：
+
+```sh
+cmake -S sources/distro/distro/sdk/cmake-example -B build-sdk-generator -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$WASM_CMAKE_TOOLCHAIN_FILE" \
+  -DSDK_USE_BUILD_GENERATOR=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build-sdk-generator
+```
+
+原生配置不继承目标 `CMAKE_TOOLCHAIN_FILE`、CC/CXX/AR/RANLIB 或目标
+CFLAGS/CXXFLAGS/CPPFLAGS/LDFLAGS；目标配置仍使用 SDK 工具链与原有参数。
+原生生成器需要构建机 C 编译器、归档器、ranlib、CMake 和 Ninja，不使用 Node
+冒充目标执行器，也不在配置阶段运行目标程序。更换原生工具后同样应使用新构建目录。
+
+宿主回归已实际验证独立生成器、静态库、生成头文件、C++ 消费及错误原生归档器
+反例，并以原生编译器模拟 CMake cross mode 验证工具链隔离；模拟产物仍是本机
+程序，不是 Wasm。相关 SDK 整组 24 项本机检查通过，零跳过。
+双位宽 `sdk-check-cmake-runtime` / `sdk-wasm64-check-cmake-runtime` 已接入相同
+外部静态库＋生成器流程。固定源码 `cfecce910bb4abfad132387d00dc3c8a3c610ae1` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39106618148) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39106621685) 检查已启动，实际
+Wasm 构建与 Linux 运行仍待验收，不沿用上文旧 CMake 检查的成功结果。
+源码及主仓库独立 gitlink 提交 `f8c238d` 均已推送，文档随后单独提交。
 
 ## 由Clang管理响应文件和链接阶段
 

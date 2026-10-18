@@ -481,7 +481,8 @@ Python／Git／SQLite 数据验证后同步停止，列举磁盘大小，分别�
 本次删除操作；本轮开发和本机验证未操作用户既有的浏览器磁盘。
 固定该源码的 [Chromium](https://github.com/HighCWu/distro/actions/runs/39105113892) 和
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39105116266) 已建立。
-Chromium 已核对实际日志：两项用例通过（18.7 秒），精确报告确认零跳过、零重试，
-覆盖上述新增磁盘管理断言。Firefox 尚在运行，不能沿用 Chromium 的结果宣称双浏览器完成。
+两者均已核对实际日志：各两项用例通过，Chromium 18.7 秒、Firefox 47.2 秒，精确
+报告均确认零跳过、零重试，覆盖上述新增磁盘管理断言。Firefox 日志还确认校验
+117 个 bundle 文件。该结果仍不证明断电恢复、任意同 origin 脚本的互斥或长期发布完成。
 主仓库以独立提交 `f8f89e2a9ccd20ba8b838bea1a5db6c5b8418789` 固定该源码并
 接入新增宿主及跨层检查，已确认推送；文档随后单独以 `[skip ci]` 提交。
