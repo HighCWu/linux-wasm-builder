@@ -560,3 +560,28 @@ PTY 扩展；旧任务成功结束后才触发固定 `658223a` 的同组合会�
 中的目标任务继续保留。
 
 [python32-firefox-devices-success]: https://github.com/HighCWu/distro/actions/runs/39082520107
+
+## 基础 PTY 目标证据与终端生成信号
+
+固定 `299cd6e` 的 [wasm32 完整检查][python32-pty-basic-success]现已成功，日志实际
+包含字符设备、CLOEXEC、canonical/raw 双向字节、窗口大小的完成阶段及最终 pass。
+它不含后续控制终端会话或终端信号扩展。固定 `658223a` 的
+[会话原生重放][python-native-session-success]也已成功，实际日志包含会话阶段、字节损坏反例及
+最终完整补丁重放完成行；不把原生结果当成目标控制终端已经验收。
+
+`b3e6a3b` 进一步在同一前台会话检查真实终端生成信号：父进程改变 master 窗口
+大小，子进程的 SIGWINCH handler 必须读取到指定行列并回传确认；随后向 master
+写入 VINTR（Ctrl-C），必须由行规程向前台进程组产生 SIGINT，handler 回传另一
+确认。没有通过 kill 直接发送这两个信号，也没有以启动后睡眠代替准备握手。
+
+SIGINT handler 先恢复完全 raw 模式再确认，之后输入包含全部 256 种字节的数据，
+其中 VINTR/VQUIT/VSUSP 必须作为普通数据保留。子进程要求窗口变化及中断恰好
+各一次，之后继续核对二进制往返、正常退出和回收。原生反例分别破坏窗口变化、
+中断确认字节，均须被拒绝；相关 65 项宿主检查及完整补丁重放通过。
+
+新版阶段加入浏览器必需输出及缺失阶段反例，实际 Wasm 运行仍待公开 CI；这不是
+终端挂断、后台读写作业控制、任意 termios 模式或信号风暴的完整证明。仍运行的
+旧版目标任务不包含新增信号阶段，不取消或重启。
+
+[python32-pty-basic-success]: https://github.com/HighCWu/distro/actions/runs/39082882383
+[python-native-session-success]: https://github.com/HighCWu/distro/actions/runs/39083403727
