@@ -234,6 +234,31 @@ CFLAGS/CXXFLAGS/CPPFLAGS/LDFLAGS；目标配置仍使用 SDK 工具链与原有�
 目标消费完成标记和最终协议 pass；不沿用旧 CMake 检查的成功结果。
 源码及主仓库独立 gitlink 提交 `f8c238d` 均已推送，文档随后单独提交。
 
+### 安装与裁剪后的 CMake 产物
+
+`c90192d` 显式将 CMake 的 `CMAKE_STRIP` cache 固定到所选工具链的 `llvm-strip`，
+避免探测或缓存沿用宿主 strip。示例增加标准 `install(TARGETS ...)`；可在独立的
+RelWithDebInfo 构建目录完成构建后执行：
+
+```sh
+cmake --install build-sdk-generator --strip --prefix "$PWD/installed-sdk-example"
+# installed-sdk-example/bin/sdk-example.wasm 须放入 Linux/Wasm 环境运行
+```
+
+消费者检查改为实际安装／裁剪后再复制产物给 Linux 测试，不再运行构建目录原件。
+检查要求有调试信息的原件在安装后确实变小，再核对共享内存、位宽及内存声明上限。
+负向宿主夹具移除目标 strip 规则并注入会失败的宿主工具，确认安装文件仍未裁剪；
+本机 CMake 甚至可能在 strip 非零退出后返回成功，因此不只依赖安装命令退出码。
+固定工具后的反例通过，已确认实际调用所选工具，裁剪后的本机程序仍可执行。
+相关 CMake 5 项及编译器／许可证／依赖查询共 31 项宿主回归通过，零跳过。
+这仍是本机夹具证据，双位宽真正的 LLVM strip、Wasm ABI 与 Linux 运行另由新版
+`sdk[-wasm64]-check-cmake-runtime` 验收；不能沿用上面旧 CMake 任务的成功结果。
+主仓库以独立提交 `c7afb7e` 固定该源码，文档单独提交。
+固定 `c90192dbdf4574158888ce446cea661e64e5caf5` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39111332272) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39111335470) 新检查均已通过规划／
+求值并进入实际构建，安装后目标运行仍待确认。
+
 ## 选定 SDK 构建材料归档
 
 另提供独立的 `sdk.buildMaterials` / `sdk-wasm64.buildMaterials`，用于归档实际 SDK
@@ -319,7 +344,10 @@ nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-source-bundle'
 双位宽源码检查同时依赖实际 SDK 材料检查，无需重复另启相同材料的定向任务。
 修正版 [wasm32](https://github.com/HighCWu/distro/actions/runs/39110227416) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39110229824) 已固定完整提交
-`dce839436e671fcd177422e40a06faa2935a085f`，实际构建／核验及上传仍待验收。
+`dce839436e671fcd177422e40a06faa2935a085f`，现均已成功，实际构建／核验、收集与上传
+均完成。wasm64 日志确认 165 个材料成员和 295,082 个源码／材料成员逐项通过；
+API 确认两项未过期源码 artifact 分别为 515,225,399 和 515,225,440 字节，仍只保留
+3 天。该版本不含后来增加的 distro checkout，不据此宣称新版收集已通过。
 主仓库通过独立 gitlink 提交 `3ab150d` 集成修正，文档另行提交。
 
 `def0ab0` 再为成功的源码 CI artifact 附加 `distro-checkout.tar.gz`，提供对应工作流
@@ -335,6 +363,15 @@ blob 的字节／类型与执行权限，不解包或执行脚本。Git 的 expo
 新版 [wasm32](https://github.com/HighCWu/distro/actions/runs/39110541335) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39110544337) 均已固定
 `def0ab0d38d81080d6ae7c10f91ffd0e6b8ab5d5` 并通过规划／求值，已进入实际构建。
+二者现均失败，已核对实际日志：167 个材料成员、295,084 个源码／材料成员及
+821 个配方文件核验通过，但追加配方摘要时，复制自 Nix 输出的只读 SHA256SUMS
+报 `Permission denied`，未进入上传。`f52742f` 仅为收集副本增加写权限，不修改
+Nix 原输出；新增宿主回归直接执行双位宽实际收集脚本，先复现该失败，修正后通过。
+修正与轻量 CI 回归已由主仓库独立提交 `d11c767` 集成，新源码任务需独立验收。
+固定 `f52742fe6d4d7103f703930911352c257cdab75c` 的
+[wasm32 复验](https://github.com/HighCWu/distro/actions/runs/39111484378) 和
+[wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39111487077) 均已通过规划／
+求值并进入实际构建；不能用旧版原始源码包的上传代替新版附加配方的验收。
 本机另已针对该真实提交完成打包及独立 Git 对象核验：821 个已提交文件通过，
 压缩配方归档约 1.1 MiB；这不是目标 SDK／源码 CI 已上传的证据。固定 `3ab150d`
 的主仓库 CI 也已核对日志成功，含 13 项归档及 213 项内核宿主检查，不覆盖后续
