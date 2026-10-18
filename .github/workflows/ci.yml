@@ -119,6 +119,9 @@ jobs:
       - name: Check verified TLS consumer on the build host
         # Native OpenSSL is fixture evidence, not target TLS or browser networking.
         run: node --test sources/distro/distro/openssl/tests/handshake-host.test.js
+      - name: Check Git pointer-width and installed binary validation contracts
+        # Wiring only; Git compilation and Linux execution stay in public distro CI.
+        run: node --test sources/distro/distro/git/width-host.test.js
       - name: Check Python anonymous mapping fixture on the build host
         # Native execution checks the workload, not the target kernel boundaries.
         run: |
