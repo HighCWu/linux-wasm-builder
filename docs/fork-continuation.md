@@ -135,9 +135,8 @@ GCC/Clang 原生检查验证 pending、handler 与 exec 的 Linux 预期；不�
 要求 `_Fork()` 被拒绝，因为那是当前 Wasm 执行 ABI 的限制。这一扩展的实际 Wasm
 结果必须单独验收；它也不证明 unwind/复制/子发布各阶段随机信号竞态已全部覆盖。
 目标复验为 [wasm32](https://github.com/HighCWu/distro/actions/runs/39121947248) 和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39121950640)。wasm32 已完整成功，
-实际日志确认上述信号扩展和原有 fork/exec 回归全部通过，最终输出协议 pass；wasm64
-仍待验收，不能直接沿用 wasm32 或前一版的结论。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39121950640)。双位宽均已完整成功，
+实际日志均确认上述信号扩展和原有 fork/exec 回归全部通过，最终输出协议 pass。
 
 目前只确认显式 opt-in、单用户模块、单线程 C 测试中的标准 fork 语义；默认 SDK、
 浏览器、完整 fork 后 exec、C++/SjLj 和其他后续边界不因此变为已支持。
