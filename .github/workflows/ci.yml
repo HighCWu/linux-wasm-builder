@@ -101,7 +101,7 @@ jobs:
         # Fixture validation only; actual target builds use pinned SQLite 3.51.0.
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libsqlite3-dev sqlite3 zstd lua5.4 liblua5.4-dev libssl-dev curl libcurl4-openssl-dev
+          sudo apt-get install --yes libsqlite3-dev sqlite3 zstd lua5.4 liblua5.4-dev libssl-dev curl libcurl4-openssl-dev busybox
           node --test sources/distro/packages/browser-tests/site-sqlite.test.js sources/distro/packages/browser-tests/site-fs-trace.test.js sources/distro/packages/linux-guest/tests/agent-wasm64-sqlite-commands.test.ts
           node --test sources/distro/distro/sqlite3/pkg-config-test.js
           for compiler in gcc clang; do
@@ -119,9 +119,9 @@ jobs:
       - name: Check verified TLS consumer on the build host
         # Native OpenSSL is fixture evidence, not target TLS or browser networking.
         run: node --test sources/distro/distro/openssl/tests/handshake-host.test.js
-      - name: Check Git pointer-width and installed binary validation contracts
-        # Wiring only; Git compilation and Linux execution stay in public distro CI.
-        run: node --test sources/distro/distro/git/width-host.test.js
+      - name: Check Git width contracts and selected notice installation
+        # Host checks do not prove target execution or complete license compliance.
+        run: node --test sources/distro/distro/git/*-host.test.js
       - name: Check Python anonymous mapping fixture on the build host
         # Native execution checks the workload, not the target kernel boundaries.
         run: |
