@@ -35,6 +35,37 @@ python3 /path/to/application.pyz
 不把内部浏览器检查页面称为通用应用启动器。自行集成根盘时还需正确提供解释器、
 标准库、运行依赖、许可材料和可写临时目录，不能只复制 `/usr/bin/python3`。
 
+## 可复用 wasm64 Python 系统根盘
+
+distro `9572fa0` 新增 `guest-agent.nativeWasm64.rootfsPythonExt4`：256 MiB ext4
+根盘配方，包含匹配位宽的 BusyBox、Python、ncurses、OpenSSL 和 CA 证书。复用
+原生 agent 启动盘及公开 SDK，不更改默认 wasm32 镜像，也不把解释器测试脚本、
+示例应用或构建材料混入系统根盘。256 MiB 是磁盘镜像大小，不是线性内存上限。
+
+重型构建只在公开 GitHub Actions 运行；以下是供 CI 使用的明确入口：
+
+```sh
+nix build './sources/distro#legacyPackages.x86_64-linux.guest-agent.nativeWasm64.rootfsPythonExt4'
+gh workflow run ci.yml --repo HighCWu/distro --ref codex/mmap-initialized-backing \
+  -f heavy-check=guest-agent-check-python-root-wasm64
+```
+
+新检查通过公开 API 上传实际生成的 `application.pyz`，按 PATH 启动 `python3`，
+核对 64 位指针、FHS 标准库、压缩/SQLite/curses 导入及 CA 加载；并严格比较
+65553 字节全字节输入的逆序输出和 UTF-8 资源前缀、空 stderr 与正常退出。
+同步根盘后关闭整个实例，再以保留的磁盘字节启动另一实例，复核应用归档及再次
+执行。不沿用进程内存或测试 initramfs；两次均要求关键许可文本存在、测试文件缺席。
+这不是断电恢复、浏览器持久化存储、交互式 PTY API 或任意应用兼容性的证明。
+
+新增配方与接线的两项宿主检查已通过，连同既有相关检查共 67 项通过；**新根盘的
+公开构建和实际运行仍待 [CI 验收](https://github.com/HighCWu/distro/actions/runs/39084313946)**。本地完整 TypeScript 检查受已有 kernel `dist`
+声明落后于源码影响，报告三处既有 `FSDirectoryEntry.type` 错误；新目标检查仍保留
+完整类型门禁，并使用 CI 构建的 kernel 声明。不据本机结果宣称目标通过。
+
+这是可复用集成配方，不是已发布、合规材料完整的二进制发行版。Python 中 GNU
+Readline 的实际 GPL 义务保持不变；现有 notices 和选定构建材料不能替代完整对应
+源码。发布检查尚须补齐，不能将整个根盘称为 MIT。
+
 ## 公开 CI 产物与重建
 
 主仓库轻量 CI 成功执行示例打包步骤后，上传保留 7 天的

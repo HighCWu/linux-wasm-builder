@@ -10,6 +10,11 @@
 Firefox、公开镜像选择的浏览器端到端路径和完整发行版仍需分别验证。
 保持 `CONFIG_MMU=n` 和真实线性内存指针，不引入内核 softmmu。
 
+后续 distro `9572fa0` 另增加可复用 Python ext4 根盘和公开 SDK 应用检查，复用
+现有原生启动盘，不扩展 agent 进程协议。配方、验证范围及待验收状态见
+[Python 系统根盘](python-applications.md#可复用-wasm64-python-系统根盘)。目前
+SDK 的 exec 仍为管道标准流；解释器内部 PTY 验证不代表 SDK 已提供交互终端接口。
+
 ## ABI 前置工作
 
 distro `7e8eeb7` 新增内部 `abi-wasm64.ts`，不切换现有会话，不增加公开包导出。

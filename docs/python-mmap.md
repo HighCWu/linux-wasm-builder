@@ -595,3 +595,12 @@ SIGINT handler 先恢复完全 raw 模式再确认，之后输入包含全部 25
 
 [python-native-terminal-signals-success]: https://github.com/HighCWu/distro/actions/runs/39083757228
 [python64-chromium-devices-success]: https://github.com/HighCWu/distro/actions/runs/39082524390
+
+固定 `299cd6e` 的 [wasm64 完整解释器][python64-pty-basic-success]现已成功，实际
+日志包含基础 PTY 完成阶段及最终 pass，不含控制终端会话或终端生成信号。固定
+`658223a` 的 [wasm32 Firefox][python32-firefox-session-success]也已成功，日志
+确认两项通过，精确报告门禁拒绝跳过和重试；该版含控制终端会话要求，不含随后
+`b3e6a3b` 的终端生成信号。最新信号目标检查仍运行，不取消或重启。
+
+[python64-pty-basic-success]: https://github.com/HighCWu/distro/actions/runs/39082877565
+[python32-firefox-session-success]: https://github.com/HighCWu/distro/actions/runs/39083522426
