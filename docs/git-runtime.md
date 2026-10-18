@@ -136,12 +136,52 @@ pack 损坏、hook 标记改变、仓库缺失。连同根盘接线、材料与�
 声明缺少 `FSDirectoryEntry.type` 的三项既有错误失败，不隐瞒或跳过它们，公开 CI
 仍执行使用新构建声明的完整类型检查。实际 Wasm 根盘验收另由公开 CI 执行。
 
-以下三项均固定 `348d428`，已经触发，目标结果仍待验收；旧浏览器任务确认终态后，
+以下三项均固定 `348d428`，已经触发，验收状态如下；旧浏览器任务确认终态后，
 也以同一版本提交 Chromium/Firefox 复验，不取消或重启仍在运行的任务：
 
 - [Git SDK 跨实例根盘](https://github.com/HighCWu/distro/actions/runs/39088291953)
 - [wasm32 remote 修复复验](https://github.com/HighCWu/distro/actions/runs/39088294722)
 - [wasm64 packing 修复复验](https://github.com/HighCWu/distro/actions/runs/39088297352)
+
+其中 wasm32 remote 已成功，实际日志确认主程序和 HTTP helper 的共享 memory32 /
+4 GiB 声明、32 位 long/size_t、选定材料校验、credential cache 与 Linux 回环 HTTP
+发现/clone 阶段标记及最终 pass。结果固定 `348d428`，不包括下述新增构建材料，
+不扩大为浏览器、公共网络、HTTPS 或任意远程服务已通过。wasm64 packing 也已
+成功，实际日志确认两个 Git 程序的共享 memory64 / 16 GiB 声明、64 位 long/size_t、
+材料校验、对象往返、双线程 repack、严格 fsck、gc、打包历史及最终 pass；
+不代表实际分配 16 GiB。根盘和双浏览器任务仍待验收，不因等待取消或重启。
+
+## 选定构建材料与公开 CI 附件
+
+`e6f20b8` 为两个位宽增加独立的 `git.buildMaterials` /
+`git-wasm64.buildMaterials` 输出；默认安装仍只选 `out`，保持 `/usr` 运行布局，
+材料不进入根盘。留存实际生成的 Makefile 跟踪文件、原始 COPYING、集成配方、
+按顺序应用的全部配置补丁、编译器版本、静态选项和选定源/库身份。
+`sourceIdentity` 取最终 derivation 的源输入，补丁序列取最终配置而不是硬编码默认补丁。
+
+以 NUL 分隔数据保留传给 make 的额外参数，以及白名单中的
+`NIX_CFLAGS_COMPILE`、`NIX_CFLAGS_LINK`、`NIX_LDFLAGS`；不导出整个构建环境，
+也不执行生成的 `GIT-BUILD-OPTIONS`。上游在有效 `ALL_LDFLAGS` 为空时可能不生成
+`GIT-LDFLAGS`，因此另用状态文件明确记录存在或缺失，不伪造上游内容。
+最终程序与 HTTP helper 的摘要在 fixup 后生成，避免将中间产物当作安装字节。
+
+新增 `git-check-build-materials` 和 `git-wasm64-check-build-materials`：
+检查材料清单、最终程序摘要、平台元数据、原始许可及配置补丁字节、实际 Wasm
+内存 ABI，并要求材料不泄漏到运行输出。公开 CI 只在该检查成功后复制材料与
+验证清单，再次校验复制结果并上传三天有效的附件。附件不包含 Git 二进制，也
+不是长期源码分发渠道。
+
+新增六项宿主检查覆盖真实收集脚本、必需输入逐项缺失/为空、编译器失败/空输出、
+补丁顺序、材料/程序篡改和真实 CI 收集 shell 的双位宽及失败分支。连同既有
+Git 与浏览器轻量回归共 29 项通过；shellcheck、Nix/JS 格式、工作流语法、仓库
+元数据、source pin 和十项缓存契约检查通过。目标构建和附件上传仍须公开 CI 验收。
+
+这些是选定配置记录和二进制摘要，仍非完整对应源码、SBOM、离线重构环境或
+静态链接许可批准。特别是 Git/libcurl/OpenSSL 的既有审查边界没有因留存材料而消失。
+
+固定 `e6f20b8` 的 [wasm32 材料验证](https://github.com/HighCWu/distro/actions/runs/39088834446)
+与 [wasm64 材料验证](https://github.com/HighCWu/distro/actions/runs/39088837826)
+已提交公开 CI，实际构建、验证及附件上传仍待验收，不用宿主结果替代。
 
 ## 保留的边界
 

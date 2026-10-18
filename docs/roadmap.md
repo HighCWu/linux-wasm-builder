@@ -434,6 +434,12 @@ packing/remote 入口已接入但本轮尚未验收，不视为浏览器或发�
 保留旧失败记录，两项旧浏览器任务随后也因预检缺少 `/dev/null` 失败，已提交新版复验。
 见 [Git 根盘与验证边界](git-runtime.md)。
 
+`348d428` 的 wasm32 remote 修复复验已核实位宽、选定材料、credential cache、
+回环 HTTP clone 与最终 pass；wasm64 packing 也已核实位宽、材料、对象往返、
+双线程 repack、fsck、gc、打包历史与最终 pass。`e6f20b8` 继续增加双位宽 Git 的独立构建材料、
+最终程序摘要和验证后 CI 上传；相关轻量回归共 29 项通过，新增目标检查待验收。
+这不是完整源码交付或静态链接许可批准，也不替代仍在运行的根盘和浏览器验收。
+
 固定 `d4fafc8` 的 libcurl 双位宽直接/CMake 四入口均已实际完成编译、ABI 和
 Linux 内文件字节、正常退出及全部 TLS 信任边界检查。双位宽 Chromium/Firefox
 21 项验收已开始；不扩大为浏览器或后续 musl 版本已通过。见 [开发记录](libcurl-development.md)。
