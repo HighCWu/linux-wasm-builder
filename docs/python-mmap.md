@@ -479,3 +479,35 @@ posix_spawn 的 EMFILE 清理缺陷，也不能用原生测试通过覆盖它。
 本次仅修复安装测试入口，不更改产品 PID 1、内核或 libc，也不预告目标复验成功。
 
 [python32-device-failure]: https://github.com/HighCWu/distro/actions/runs/39081246749
+
+## 独立原生 CI 与浏览器诊断证据
+
+固定 `050ff03` 的 wasm32 Firefox 重放 `39081528761` 已实际进入页面，恢复的
+Runtime console 包含完整 traceback，确认同样在打开 /dev/null 时得到 ENOENT。
+它不包含 `6af4307` 的设备初始化修复。固定 `92c92d5` 的 wasm64 Chromium 重放
+`39080862032` 则失败于 Python 构建依赖，未进入页面；不能把二者混记为同一运行结果。
+
+`223938a` 为现有 ci.yml 增加独立 `python-forkless-host` 布尔模式，只运行前述
+原生补丁重放检查，并跳过默认计划及目标构建矩阵。该 job 只有 contents:read，
+没有发布凭据或 LLVM/内核大缓存，外层 15 分钟期限；与 heavy-check 同时指定时
+明确失败。普通 push/PR 和既有重型定向模式保持不变。
+
+可以显式触发：
+
+```sh
+gh workflow run ci.yml --repo HighCWu/distro --ref codex/mmap-initialized-backing \
+  -f python-forkless-host=true
+```
+
+相关本机回归增至 64 项并通过，工作流 YAML、actionlint 和十项缓存契约检查通过。
+独立模式的实际公开执行仍需确认，不以配置检查代替运行，也不将原生成功泛化为
+Wasm 信号、设备或 musl 内部错误管道语义。已结束的浏览器组合可在包含安装及设备
+初始化修复后复验，其它仍运行的任务继续保留。
+
+固定 `223938a` 的[独立原生检查][python-native-replay-success]现已成功。实际日志
+确认五个源码文件应用补丁，PATH/连续失败清理、超时恢复、双向管道及三类反向
+控制均执行，并输出最终重放完成行。任务 API 确认仅原生 job 成功，计划、默认
+构建、重型矩阵、站点部署及发布均跳过；不是目标检查被跳过后误计为 Wasm 成功。
+同版 wasm32 Firefox 与 wasm64 Chromium 修正版重放已分别启动，尚待运行结果。
+
+[python-native-replay-success]: https://github.com/HighCWu/distro/actions/runs/39082515524
