@@ -106,7 +106,8 @@ nix build './sources/distro#checks.x86_64-linux.toolchain-smoke-wasm64-check-cxx
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39106093727) 检查已成功，实际日志
 确认驱动检查两项及异常生成检查一项通过、零跳过，并完成 Linux 内 C++ 容器、RAII、
 跨线程异常、RTTI、TLS 析构、条件变量检查与最终协议 pass。
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39106097721) 仍待确认。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39106097721) 也已成功，已核对实际
+日志中相同的两项驱动／一项异常生成检查、Linux 内各阶段和最终协议 pass，均无跳过。
 主仓库通过独立集成提交 `90a6f16` 固定该源码，源码和集成提交均已推送。
 这是防止无意混用依赖的构建默认值，不是隔离恶意源码的安全沙箱，也不使 SDK 可重定位。
 
@@ -228,9 +229,51 @@ CFLAGS/CXXFLAGS/CPPFLAGS/LDFLAGS；目标配置仍使用 SDK 工具链与原有�
 双位宽 `sdk-check-cmake-runtime` / `sdk-wasm64-check-cmake-runtime` 已接入相同
 外部静态库＋生成器流程。固定源码 `cfecce910bb4abfad132387d00dc3c8a3c610ae1` 的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39106618148) 与
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39106621685) 检查已启动，实际
-Wasm 构建与 Linux 运行仍待验收，不沿用上文旧 CMake 检查的成功结果。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39106621685) 检查均已成功。
+已分别核对实际日志：消费构建各 1 项通过、零跳过，Linux 内均输出原生生成器／
+目标消费完成标记和最终协议 pass；不沿用旧 CMake 检查的成功结果。
 源码及主仓库独立 gitlink 提交 `f8c238d` 均已推送，文档随后单独提交。
+
+## 选定 SDK 构建材料归档
+
+另提供独立的 `sdk.buildMaterials` / `sdk-wasm64.buildMaterials`，用于归档实际 SDK
+安装的编译器包装器、pkg-config／configure／info 入口、profile、编译配置、
+config.site、CMake／Meson 文件、选定许可证和相关集成配方／flake 文件。
+这项输出不加入默认 SDK 运行路径，不附带编译器、运行库二进制或完整上游源码。
+它是后续交付所需的构建材料，不是已发布的独立 SDK。
+
+```sh
+nix build './sources/distro#sdk-wasm64.buildMaterials'
+(cd result && sha256sum --check SHA256SUMS)
+nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-build-materials'
+# wasm32 分别使用 sdk.buildMaterials 和 sdk-check-build-materials
+```
+
+`sdk-build-materials.tar.gz` 保留实际文件字节和源目录中的符号链接，规范化时间、
+所有者及普通／可执行权限。包内 `sdk-build-materials.json` 记录目标位宽、triple、
+线性内存声明上限和与已安装许可证一致的选定源码 store 身份。实际 profile 和脚本
+仍保留原 Nix store 路径，不能作为可重定位包使用，store 身份也不等于完整源码交付。
+
+检查先依赖 SDK profile／许可证检查，再以独立选择的安装文件和配方逐成员比较
+归档的名称、类型、规范化元数据和字节；不解包或执行归档中的脚本，不只依赖包内
+校验和。导出器／校验器及 MIT 原文也随 SDK 配方目录归档。校验器的 `verify SPEC
+ARCHIVE` 需要实际选择 spec 和输入文件，不能仅凭下载包自己的校验和证明来源。
+
+本机 7 项归档回归通过，覆盖确定性、原始字节／执行位／符号链接、错误平台／
+源码身份、材料缺失、配方或包装器篡改、额外／重复成员、特殊文件、输出路径边界，
+以及写入异常时保留旧包并清理临时文件。原有 SDK 相关 26 项本机回归也通过。
+双位宽公开 Nix 检查及成功后的短期 artifact 上传已接入。源码
+`452dce987dfcfc82477f0f5f183a058fc4327d22` 已推送，固定该版的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39108764716) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39108767712) 任务已通过规划／
+求值并进入独立构建；实际安装包校验与上传尚待验收。这项检查不另启内核，但仍
+需要相应 SDK 构建依赖。主仓库以独立集成提交 `b746de6` 固定源码并接入宿主回归，
+验收文档随后单独提交。
+
+这些材料不是完整对应源码、SBOM、离线重建环境、来源签名或发行许可批准。上游
+源码、构建机依赖、Nixpkgs 变换、完整源码 checkout 和长期获取渠道仍须继续补齐；
+临时 Actions artifact 不能替代正式发行的持久源码托管。材料工具自有代码采用 MIT，
+被收集组件继续遵循各自原始许可证。
 
 ## 由Clang管理响应文件和链接阶段
 
