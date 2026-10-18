@@ -444,6 +444,15 @@ zlib/curl/OpenSSL 选定源归档及逐成员验证，新材料与源包目标 C
 交付或静态链接许可批准。此前 `348d428` 的 SDK 跨实例 Git 根盘和 wasm64
 Chromium/Firefox 三场景现也已核实成功，不用其结果替代新增源包验收。
 
+`9d669e8` 增加可选 Python+Git 根盘与普通 Python/Git/SQLite 协作示例，公开 SDK
+检查跨实例的嵌套子进程、Python hook、二进制标准流、仓库 clone 与数据库读回。
+四项本机语料与 34 项相关 Node 回归通过；路径输入类型修复 `7eb14a2` 的计划
+检查通过，实际目标组合待 CI。不改变内核/协议，
+不声称浏览器组合或编译器自托管已经完成。见 [组合工作区](python-git-workspace.md)。
+
+固定 `ce88973` 的 Git 双位宽材料与选定源包四项 CI 现均成功，最终二进制摘要、
+ABI、逐成员匹配和附件上传已核实。这个结果不是完整对应源码交付或链接许可批准。
+
 固定 `d4fafc8` 的 libcurl 双位宽直接/CMake 四入口均已实际完成编译、ABI 和
 Linux 内文件字节、正常退出及全部 TLS 信任边界检查。双位宽 Chromium/Firefox
 21 项验收已开始；不扩大为浏览器或后续 musl 版本已通过。见 [开发记录](libcurl-development.md)。

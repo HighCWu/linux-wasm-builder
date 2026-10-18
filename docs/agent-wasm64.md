@@ -20,6 +20,10 @@ SDK 的 exec 仍为管道标准流；解释器内部 PTY 验证不代表 SDK 已
 write/read 两个新实例的真实运行与完整类型门禁成功，不扩大为浏览器持久存储。
 配方与许可边界见 [Git 根盘](git-runtime.md#可复用-wasm64-git-根盘)。
 
+`9d669e8` 再提供独立的 Python+Git 组合根盘，用原始示例检查 Python/Git/hook/
+SQLite 在两次新实例间协作，不把测试脚本加入根盘，不扩展进程协议。
+该组合目标 CI 尚待验收，范围见 [组合工作区](python-git-workspace.md)。
+
 ## ABI 前置工作
 
 distro `7e8eeb7` 新增内部 `abi-wasm64.ts`，不切换现有会话，不增加公开包导出。
