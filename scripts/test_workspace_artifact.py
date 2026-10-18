@@ -3,13 +3,15 @@
 
 import hashlib
 import json
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 import warnings
 import zipfile
 
-from verify_workspace_artifact import FILES, SOURCE_FILES, verify
+from verify_workspace_artifact import FILES, ROOT, SOURCE_FILES, verify
 
 
 class WorkspaceArtifactTests(unittest.TestCase):
@@ -51,6 +53,17 @@ class WorkspaceArtifactTests(unittest.TestCase):
         verify(self.bundle, self.sources, self.pins)
 
     def test_complete_artifact(self):
+        self.check()
+
+    def test_actual_ci_checksum_command_fixes_collation(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        commands = [line.strip() for line in workflow.splitlines() if "rg --files --hidden -g '!SHA256SUMS'" in line]
+        self.assertEqual(len(commands), 1)
+        self.assertIn("| LC_ALL=C sort -z |", commands[0])
+        subprocess.run(
+            ["bash", "-euo", "pipefail", "-c", commands[0]],
+            env={**os.environ, "bundle": str(self.bundle)}, check=True,
+        )
         self.check()
 
     def test_published_sources_and_license_are_pinned(self):

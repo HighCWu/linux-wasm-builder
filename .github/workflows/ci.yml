@@ -169,7 +169,7 @@ jobs:
           head=$(printf '%s\n' "$report" | python3 -c 'import json,sys; print(json.load(sys.stdin)["head"])')
           python3 -I "$bundle/git-workspace.pyz" read "$workspace/workspace" "$head"
           python3 -B scripts/source_manifest.py > "$bundle/source-pins.json"
-          (cd "$bundle" && rg --files --hidden -g '!SHA256SUMS' -0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd "$bundle" && rg --files --hidden -g '!SHA256SUMS' -0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS)
           (cd "$bundle" && sha256sum --check SHA256SUMS)
           python3 -B scripts/verify_workspace_artifact.py "$bundle"
       - name: Upload the Python Git workspace application
