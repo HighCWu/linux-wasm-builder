@@ -34,7 +34,9 @@ gh workflow run ci.yml --repo HighCWu/distro --ref codex/mmap-initialized-backin
 这些不是目标运行证据。首次 wasm64 workflow 与新增 ABI 门禁后的 wasm32
 workflow 已提交 CI，均固定 `7967691`：
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39086333120)、
-[wasm32](https://github.com/HighCWu/distro/actions/runs/39086335957)。结果待验收；
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39086335957)。wasm32 已成功，
+实际日志确认 Git 主程序及 HTTP helper 的共享 memory32 / 4 GiB 声明门禁，以及
+workflow 的最终 pass；它不覆盖随后新增的许可材料检查。wasm64 仍待结果；
 packing、remote 的后续验收见下文。
 本阶段也未增加 Git 浏览器用例。
 
@@ -51,8 +53,10 @@ regex 源文件中的原始声明。另保存默认 posix_spawn 补丁、说明�
 BusyBox 校验命令；加上既有位宽契约共七项通过。配套 shellcheck、shfmt、Nix
 格式、工作流和仓库检查通过。这不是目标安装或法律充分性的证明。
 
-新版 wasm64 packing 和 wasm32 remote 已提交 CI；此前仍运行的 `7967691`
-双位宽 workflow 不含这套材料门禁，不取消或重启，也不以其结果替代新版证据。
+新版 [wasm64 packing](https://github.com/HighCWu/distro/actions/runs/39086736753)
+和 [wasm32 remote](https://github.com/HighCWu/distro/actions/runs/39086740378)
+已提交 CI，均固定 `f9da168`；此前 `7967691` 的双位宽 workflow 不含这套材料
+门禁，不以其结果替代新版证据；仍运行的任务不取消或重启。
 wasm64 remote 仍待另行验收。
 
 这些是选定声明和默认补丁，不是完整对应源码。自定义 derivation overrides

@@ -424,7 +424,8 @@ packing/remote 入口已接入但本轮尚未验收，不视为浏览器或发�
 范围与命令见 [Git 运行记录](git-runtime.md)。
 `1c0ba14` / `f9da168` 再加入选定原始许可声明、默认补丁和安装后完整性检查，
 四项新增宿主回归与既有契约共七项通过；新版 wasm64 packing / wasm32 remote
-已提交 CI。此前 workflow 仍运行，不覆盖这些新门禁。完整源码与静态链接许可
+已提交 CI。此前 wasm32 workflow 已核实 ABI 与最终 pass，wasm64 仍运行；两者
+不覆盖这些新门禁。完整源码与静态链接许可
 审查尚未完成，不能将声明安装视为发布批准。
 
 固定 `d4fafc8` 的 libcurl 双位宽直接/CMake 四入口均已实际完成编译、ABI 和
