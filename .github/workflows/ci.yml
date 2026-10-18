@@ -429,7 +429,8 @@ jobs:
             sources/distro/distro/npm/python-browser-fixtures.test.js \
             sources/distro/distro/npm/git-browser-fixtures.test.js \
             sources/distro/distro/npm/python-git-browser-fixtures.test.js \
-            sources/distro/distro/npm/python-git-suite.test.js
+            sources/distro/distro/npm/python-git-suite.test.js \
+            sources/distro/distro/npm/python-git-opfs.test.js
       - name: Check targeted Nix cache key consistency
         run: python3 -B scripts/test_ci_cache_contract.py
       - name: Check all kernel host tests without building Linux or LLVM
