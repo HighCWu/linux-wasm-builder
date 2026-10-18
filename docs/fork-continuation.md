@@ -95,7 +95,8 @@ Binaryen 129，而上述独立机制实验使用 npm 固定的 132.0.0，不能�
 用户导出时启动 fork unwind；它不只依靠 signal handler 标记。新增双位宽宿主回归
 覆盖嵌套调用和异常清理，整组 228 项通过、零跳过，TypeScript 检查通过。
 这一加强版的 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/39120474650)
-已成功，wasm64 仍需单独验收，不能直接继承上述 commit 的目标结论。
+和 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/39120478704) 均已成功，
+实际日志确认原有标准 fork 场景及多线程拒绝后恢复通过。
 
 ### fork 后 exec 的回归扩展
 
@@ -106,7 +107,9 @@ distro `3c3ef61`、集成提交 `06aa801` 加入第二个普通、未经 Asyncif
 
 共享 fixture 的 GCC/Clang 原生检查已通过；目标复验为
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39120891535) 和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39120895108)，目前待验收。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39120895108)。wasm32 已完整成功，
+实际日志确认新程序的参数、环境、TLS 和身份检查、父进程 wait 以及原有 fork 回归
+全部通过，最终输出协议 pass；wasm64 仍待验收。
 首次扩展检查在 Nix 求值时发现原始 initramfs 文件接口格式错误，尚未运行用户程序；
 当前提交已修正为文件路径，保留源文件执行权限，不能把这次打包失败解释为 exec 结果。
 
