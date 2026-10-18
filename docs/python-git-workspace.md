@@ -395,3 +395,43 @@ Firefox 也已自然结束，未取消任务。下文修订测试布局以保留
   [Firefox](https://github.com/HighCWu/distro/actions/runs/39102127709)。
 - Python＋Git 示例：[Chromium](https://github.com/HighCWu/distro/actions/runs/39102131003)、
   [Firefox](https://github.com/HighCWu/distro/actions/runs/39102133796)。
+
+主仓库 `18836aa` 的[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39102211332)
+实际在独立的 `browser-suite-packaging.test.js` 失败：该测试仍用旧服务器复制语句
+定位配方，未匹配新包外启动入口；此前的页面、夹具、磁盘和服务器测试已通过。
+后续仅更新这一定位表达式，保持实际只读包复制、权限检查和负向控制；该单项
+宿主检查已通过。它不修改运行时或六项正在运行的浏览器用例，不取消或重新触发
+固定 `e9a8a5e` 的重型任务，也不把本次轻量 CI 记作成功。
+该宿主测试修订 `a4b1c9a607c456eee53fce848467f7093ee731c2` 已确认推送；
+本机以普通用户执行，负向权限控制实际执行并通过，不是因 root 权限而跳过。
+主仓库随后以独立提交 `8f7f043737f258bdec903b20d861e04735f02431` 固定该修订并
+确认推送。
+[轻量 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39102984945)
+已核实成功：实际日志确认包外服务器入口、agent 构造失败回收、只读包打包检查及
+完整内核宿主 213 项通过，不把前一失败任务改记为成功。
+
+最小示例 Firefox 的 `e9a8a5e` 日志随后暴露另一项测试加载错误：原始应用包的
+113 个文件校验通过，但 Playwright 在没有 `package.json` 的套件目录中以 CommonJS
+转换测试，新增的夹具 `import.meta` 因而导致语法错误和未发现测试。不能把这次结果
+记为 Linux 或上传程序已经运行。后续将最小和 Python 示例的测试专用夹具改为从
+`mkCheck` 已明确固定的套件工作目录读取，不改生产包、HTTP 服务或应用断言；
+组合示例未使用这一夹具路径，不为其重复触发重型检查。未结束的旧任务自然完成。
+修订后的三份原始用例已在无 `package.json` 的独立临时套件中，由仓库现有
+Playwright 1.61.1 实际执行 `--list --project=chromium`，准确发现四项测试／三份
+文件；没有启动浏览器、服务器或 Linux。这补充真实测试加载证据，不替代用例运行。
+CommonJS 夹具修订 `6aaaceb0faa2e6b85d4218c77af38053c5dbeabe` 已确认推送，
+最小和 Python 示例的双浏览器检查另行触发。该修订不包含生产实现变更。
+
+固定 `6aaaceb` 的修订任务：最小示例
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39103397509)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39103400623)，Python 示例
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39103403331)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39103406178)。
+
+主仓库已以独立提交 `af6b37324619ce71d437394a19cc4aa5ee82e687` 固定
+`6aaaceb` 并确认推送；验收文档随后单独提交。此前固定 `e9a8a5e` 的组合示例
+双浏览器任务已核实实际日志成功：各有 117 个 bundle 文件校验和两项用例通过，
+Chromium 25.4 秒、Firefox 46.6 秒，精确报告均确认零跳过／重试。该结果覆盖
+启动清理修复、服务器启动完整性校验与包外测试依赖布局，以及既有临时／OPFS
+工作区和双页面争用用例；不代表实际发生过 agent 构造故障、断电恢复，或后续
+最小／Python 示例修订已经完成浏览器验收。
