@@ -1,0 +1,43 @@
+name: Fork continuation experiment
+
+on:
+  push:
+    paths:
+      - experiments/fork-continuation/**
+      - .github/workflows/fork-continuation.yml
+  pull_request:
+    paths:
+      - experiments/fork-continuation/**
+      - .github/workflows/fork-continuation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-continuation-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  continuation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Install the small freestanding compiler toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang-18 lld-18
+      - name: Install the exact stack-transform dependency
+        working-directory: experiments/fork-continuation
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check real Wasm continuation and independent workers
+        working-directory: experiments/fork-continuation
+        env:
+          CLANG: clang-18
+        run: npm test

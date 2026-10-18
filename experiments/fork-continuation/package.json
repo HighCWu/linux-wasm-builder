@@ -1,0 +1,11 @@
+{
+  "name": "linux-wasm-fork-continuation-probe",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "bash check.sh"
+  },
+  "devDependencies": {
+    "binaryen": "132.0.0"
+  }
+}
