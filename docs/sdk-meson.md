@@ -64,7 +64,7 @@ CC_FOR_BUILD/CXX_FOR_BUILD/AR_FOR_BUILD选择正确工具。该本地流程已�
 专有依赖对原生工具仍可见；目标查询则必须拒绝该依赖。测试把普通 PKG_CONFIG
 设为无效路径，分别依靠 cross file 和 PKG_CONFIG_FOR_BUILD 选择工具，并通过
 PKG_CONFIG_PATH_FOR_BUILD 提供原生依赖目录。下述新版 wasm64 任务包含此扩展，
-但仍需等其结果；旧 wasm32 任务不能替代该场景的目标验证。
+其目标构建和运行结果见下文；旧 wasm32 任务不能替代该场景的目标验证。
 
 集成测试还用Meson构建并安装两个独立静态库，再通过目标pkg-config将它们链接到
 示例程序中。主库依赖辅助库，后者仅由Libs.private传递；删除这项元数据后，新的
@@ -89,7 +89,7 @@ SDK 现通过同一修正版 Meson 供两个开发 shell 和目标检查使用�
 不自动插入 GNU 归档组，其他架构保持原行为。wasm-ld 本身按需解析归档符号，不需要
 GNU 的分组重扫参数。补丁保留 Meson 的 Apache-2.0 许可，独立集成与回归测试为 MIT。
 回归直接调用 Meson 参数生成器，原版失败、修正版双位宽通过，并验证原生架构仍分组；
-宿主完整生成器/静态库/消费程序检查通过。目标 Wasm 链接及运行仍须新 CI 确认。
+宿主完整生成器/静态库/消费程序检查通过。目标 Wasm 链接及运行已取得下文所列证据。
 
 后续消费样例增加 A→B→A 中另一对象的循环归档依赖，并实际调用结果。宿主 Meson
 消费检查通过；同一组 C 源文件用本机 Clang 22 的 wasm32/wasm64 unknown-unknown
@@ -98,7 +98,10 @@ GNU 的分组重扫参数。补丁保留 Meson 的 Apache-2.0 许可，独立集
 [修复验证](https://github.com/HighCWu/distro/actions/runs/38901721763)在 Nix 求值阶段因
 空值字符串转换失败，未执行目标链接。override 已显式处理上游可为空的 patches 和
 postPatch 字段；包含循环归档样例的 `d70882a` 已启动
-[新版 wasm32 验证](https://github.com/HighCWu/distro/actions/runs/38902458547)，结果待确认。
+[新版 wasm32 验证](https://github.com/HighCWu/distro/actions/runs/38902458547)。实际日志
+确认目标链接、Linux 内运行及 `::vm-test::pass` 均完成（1 项通过），但随后缓存保存
+因 `Input required and not supplied: primary-key` 失败，整个工作流仍为失败。
+不能把目标程序通过误写成工作流通过，也不能将缓存失败解释成内核故障。
 旧 wasm64 任务现已因同样缺少宿主归档器而失败，未进入目标运行。
 已针对 `a7d45554607e6e7185524f5d35b47208acf4a6a6` 启动
 [新版 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38895454756)，包含
@@ -106,7 +109,14 @@ binutils 修复、原生静态库生成器、双向依赖隔离和 C++ ABI 配�
 该任务已因相同 GNU 归档组参数失败；其缓存保存步骤还暴露出 primary-key 输出为空，
 没有成功保存编译依赖。保存步骤现显式使用与恢复阶段一致的键。
 包含 Meson 补丁、循环归档回归、Nix 空值修复及缓存键修复的 `6f168e6` 已启动
-[新 wasm64 验证](https://github.com/HighCWu/distro/actions/runs/38903118046)。
-新版两项任务均尚未取得运行通过证据，不能把旧任务失败解释成 Wasm 网络或内核故障。
+[新 wasm64 验证](https://github.com/HighCWu/distro/actions/runs/38903118046)已通过。
+已核对实际日志：1 项通过，输出
+`SDK Meson: build-machine generator and target C++ thread verified` 及协议 pass 标记；
+整个工作流成功。包含修复的当前固定源码
+`052ce84c666ca6f1e1ab8632ef566131134464d5` 已另行启动
+[wasm32 补验](https://github.com/HighCWu/distro/actions/runs/39105616827)也已通过。
+已核对实际日志：消费构建 1 项通过、零跳过，Linux 内输出相同完成标记与协议 pass，
+整个工作流成功。这闭环了缓存键修复后的 wasm32 流程；不把上游 Meson 自身的
+可选功能跳过项混同于该消费构建或 Linux 运行检查。
 这些检查不是完整构建矩阵，也不意味着任意第三方 Meson 项目均兼容；后者仍需
 逐项验证。

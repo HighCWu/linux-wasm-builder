@@ -87,6 +87,27 @@ nix build './sources/distro#checks.x86_64-linux.toolchain-smoke-wasm64-check-cxx
 后续SDK工作应逐步形成脱离仓库内部脚本的第三方构建与发布流程；本轮并不宣称
 可重定位SDK、独立安装包或真实第三方应用已经交付。
 
+## 编译器搜索路径边界
+
+`wasm-linux-cc` / `wasm-linux-c++` 不继承宿主 shell 的 `CPATH`、`C_INCLUDE_PATH`、
+`CPLUS_INCLUDE_PATH`、`OBJC_INCLUDE_PATH` 和 `LIBRARY_PATH`。这些变量可能指向
+本机头文件和库；即使选择了正确 sysroot，Clang 也可能继续读取它们。
+目标依赖应由项目显式传入 `-I`、`-isystem`、`-L`，或通过构建系统与目标 pkg-config
+生成相应参数；`CFLAGS`、`CXXFLAGS`、`LDFLAGS` 不会被包装器清空，仍由构建系统消费。
+原始工具链 `clang` / `clang++` 不受此包装器策略约束。
+
+本机真实 Clang 正反例覆盖上述头文件路径、链接命令搜索路径及显式 `-I`/`-L`；
+修复前已复现 `CPATH` 混入宿主头文件。相关包装器、驱动、pkg-config、CMake 和外部
+静态库消费共 24 项本机检查通过，不能替代 Wasm 目标运行证据。
+双位宽 `sdk-check-cxx-runtime` / `sdk-wasm64-check-cxx-runtime` 还在实际目标前端
+预处理时验证模拟宿主 `vector` 头文件确实会干扰未包装的编译器，再通过 SDK 包装器
+编译原有 C++ 语料并在 Linux 内运行。固定源码
+`6637cd1dade3ed900d0126ec7dee8935252fb641` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39106093727) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39106097721) 检查均已启动，
+结果仍待确认。主仓库通过独立集成提交 `90a6f16` 固定该源码，源码和集成提交均已推送。
+这是防止无意混用依赖的构建默认值，不是隔离恶意源码的安全沙箱，也不使 SDK 可重定位。
+
 ## 双位宽开发入口
 
 distro提交`58398eee42b99df1756578fee5d695cf79fcc67d`提供MIT的SDK包装器及
