@@ -74,5 +74,32 @@ kernel dist 的 `FSDirectoryEntry.type` 声明错误，未屏蔽；公开 CI 保
 已成功，实际目标检查仍在运行。这个计划失败不被标记为应用兼容性成功或普通
 运行失败。
 
-本阶段不覆盖浏览器组合工作流、OPFS 持久化、断电一致性、公共网络、pip 生态、
+## 浏览器组合检查
+
+`7ad998f` 将上述完整目标断言提取为 Node/浏览器共用的检查，不复制简化版本。
+两者都导入原始 Python 示例，并要求嵌套子进程、hook、二进制载荷、Git 对象、
+SQLite 和跨实例读回成功；摘要在运行端通过 Web Crypto 独立计算。两台实例之间
+只保留 ext4 块数据；应用脚本也必须从第一台实例写入的文件逐字节读回。
+
+新增入口为 `browser-tests-check-agent-python-git-root-wasm64-chromium` 和
+`browser-tests-check-agent-python-git-root-wasm64-firefox`。每个浏览器必须完成唯一
+指定用例，包含按顺序执行的 write/read 两阶段并成功关闭；独立报告门禁拒绝
+遗漏、额外用例、跳过和重试。浏览器使用与 SDK 检查相同的引导盘和可选根盘，
+不向系统根盘添加测试脚本。
+
+相关 Node 轻量回归现为 40 项通过，另有四项本机 Python 示例测试通过。新增
+适配器注入检查验证实际共享检查使用的浏览器断言，反例包含错误 ABI、源文件/
+clone/HEAD/摘要损坏、notice 命令失败、未 flush 和关闭失败；这些不是真实内核
+运行证据。浏览器模块打包、格式、工作流、仓库元数据、三项 source pin 和十项
+缓存契约检查通过。完整本地类型检查仍只有前述三项旧声明错误，未绕过门禁。
+
+第一次浏览器调度误用了缺少 `check` 的入口名，
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39090598339) 和
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39090601603) 在计划的名称
+校验处结束，没有进入构建或运行；核实结束后已提交正确入口。
+[Chromium 目标](https://github.com/HighCWu/distro/actions/runs/39090665965) 和
+[Firefox 目标](https://github.com/HighCWu/distro/actions/runs/39090668642) 的计划检查
+已成功，实际重检查仍在运行；两项均固定 `7ad998f`，不把计划成功记为运行成功。
+
+本阶段不覆盖 OPFS 持久化、断电一致性、公共网络、pip 生态、
 远程托管服务、原生编译器自托管或任意软件兼容性。

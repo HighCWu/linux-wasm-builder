@@ -22,7 +22,8 @@ write/read 两个新实例的真实运行与完整类型门禁成功，不扩大
 
 `9d669e8` 再提供独立的 Python+Git 组合根盘，用原始示例检查 Python/Git/hook/
 SQLite 在两次新实例间协作，不把测试脚本加入根盘，不扩展进程协议。
-该组合目标 CI 尚待验收，范围见 [组合工作区](python-git-workspace.md)。
+该组合目标 CI 尚待验收；`7ad998f` 另接入共享完整断言的双浏览器目标，实际结果
+分别验收，范围见 [组合工作区](python-git-workspace.md)。
 
 ## ABI 前置工作
 
