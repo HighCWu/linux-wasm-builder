@@ -60,7 +60,9 @@ jobs:
             sources/distro/distro/sdk/pkg-config-test.js
       - name: Check SDK build material archive with native fixtures
         # Does not build LLVM, Linux, or a target runtime on the local host.
-        run: python3 -B sources/distro/distro/sdk/build-materials-test.py
+        run: |
+          python3 -B sources/distro/distro/sdk/build-materials-test.py
+          python3 -B sources/distro/distro/sdk/checkout-bundle-test.py
       - name: Check kernel and BusyBox source material packaging
         run: |
           node --test sources/distro/distro/linux/build-materials-test.js \
