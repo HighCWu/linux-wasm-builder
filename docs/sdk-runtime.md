@@ -335,6 +335,10 @@ blob 的字节／类型与执行权限，不解包或执行脚本。Git 的 expo
 新版 [wasm32](https://github.com/HighCWu/distro/actions/runs/39110541335) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39110544337) 均已固定
 `def0ab0d38d81080d6ae7c10f91ffd0e6b8ab5d5` 并通过规划／求值，已进入实际构建。
+本机另已针对该真实提交完成打包及独立 Git 对象核验：821 个已提交文件通过，
+压缩配方归档约 1.1 MiB；这不是目标 SDK／源码 CI 已上传的证据。固定 `3ab150d`
+的主仓库 CI 也已核对日志成功，含 13 项归档及 213 项内核宿主检查，不覆盖后续
+配方归档功能，也不替代浏览器或完整目标运行验收。
 
 这里的源码是选定原始输入，不是 post-patch 构建目录快照。SDK 配方包含已知 Meson
 补丁及修改说明，但工具不会自动发现任意 override、补丁或 hook。完整对应源码还需
