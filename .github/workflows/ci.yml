@@ -93,10 +93,13 @@ jobs:
           patch --dry-run -p1 -d sources/musl \
             < sources/distro/distro/musl/fork-continuation.patch
           for compiler in gcc clang; do
+            "$compiler" -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/fork-continuation/exec-child.c \
+              -o "$RUNNER_TEMP/fork-exec-host"
             "$compiler" -O2 -pthread -Wall -Wextra -Werror \
               sources/distro/distro/fork-continuation/runtime.c \
               -o "$RUNNER_TEMP/fork-continuation-host"
-            timeout 20s "$RUNNER_TEMP/fork-continuation-host"
+            timeout 20s "$RUNNER_TEMP/fork-continuation-host" "$RUNNER_TEMP/fork-exec-host"
           done
       - name: Check socket runtime fixture on the build host
         # Only the Wasm init configures its own loopback interface.
