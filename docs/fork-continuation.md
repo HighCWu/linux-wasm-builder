@@ -168,6 +168,44 @@ gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
 不认证 WebKit、缺少跨源隔离的页面、多线程 fork 或任意应用；本路线保持显式 opt-in、
 单用户模块、单线程 C 配置。默认 SDK、完整 fork 兼容性、C++/SjLj 等仍需独立验收。
 
+## 显式启用的实验 SDK
+
+distro `41747ff`、集成提交 `e3bb8e1` 将上述构建配置整理为独立包
+`sdk-fork-continuation` 和 `sdk-fork-continuation-wasm64`，不替换默认 SDK。
+它们提供 fork-enabled musl、匹配位宽的 sysroot 和所需链接导出；仅提供 C 编译入口，
+不据此开放 C++ EH/SjLj 或动态模块。
+
+在 distro checkout 构建选定位宽的包，编译完整程序后显式完成一次变换：
+
+```sh
+nix build .#sdk-fork-continuation-wasm64 --out-link result-fork-sdk
+result-fork-sdk/bin/wasm-linux-fork-cc -O2 -c main.c -o main.o
+result-fork-sdk/bin/wasm-linux-fork-cc main.o -o linked.wasm
+result-fork-sdk/bin/wasm-linux-fork-finalize linked.wasm app.wasm
+```
+
+`linked.wasm` 不是可交付的 fork 程序；必须对完整静态链接结果执行 finalize，不能只变换
+单个 object，也不能重复变换。finalize 使用 distro 固定 Binaryen 与显式标准功能开关，
+保留 Asyncify assertions；变换失败保留已有输出，不留下临时结果。运行时需使用实现
+`linux_fork_v1` 的对应位宽 loader/kernel。exec 的目标可以继续使用默认 SDK。
+
+现有完整 fork/exec 回归程序现在通过安装后的 SDK 命令分离编译、链接及变换，
+不再由测试配方重复拼接 fork 编译参数。宿主新增 4 项 finalizer/接线检查，连同默认
+compiler wrapper 共 21 项通过。新路径的目标验收单独记录，不借用旧构建的成功结论：
+
+- [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39127118806)
+- [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39127124834)
+- [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39127129074)
+- [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39127133100)
+- [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39127137225)
+- [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39127142080)
+
+上述新 CI 已启动，尚待核实结果。安装包的 `share/linux-wasm-fork-sdk/profile.json`
+明确版本和限制，`build-materials/` 保留新增配方、Binaryen 源码/许可证及默认 SDK
+材料链接；这是 Nix store 包，不是可任意搬移的独立 SDK 压缩包。自有新增代码为 MIT，
+不改变上游组件许可证。固定 256 KiB 保存区溢出仍会 trap，不承诺性能或多线程 fork。
+后续补充更小的独立使用示例，以及体积、常态吞吐、分叉延迟和峰值内存测量。
+
 ## 接入验收与后续工作
 
 ### 一、形成可拒绝的 opt-in 执行 ABI
