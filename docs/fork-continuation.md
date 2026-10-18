@@ -317,6 +317,27 @@ distro `73079b3`、集成提交 `7f1da80` 进一步修正迟到初始化失败�
 本轮为 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39130984682) 与
 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/39130988394)，尚待目标结果。
 
+这两项后续均已失败。已检查的 Node wasm32 日志显示对象路径修正后继续到链接阶段，
+报错 `import name mismatch for symbol: raw_linux_syscall`，仍未执行目标程序。
+原因是执行支持对象与 raw fixture 用同一个 C 符号名声明了不同的 Wasm import。
+distro `75d3eae` 为 callback import 使用独立符号 `fork_callback_syscall`，不改变其
+`linux.syscall` 名称或参数布局；raw fixture 继续使用 `linux.syscall_v2`。
+
+新增轻量 freestanding 链接回归直接编译这两个实际 C 源文件，检查产物同时包含两个
+独立 import，并以重新制造符号冲突作为必须失败的反向控制。本地 Clang 18、22 的
+wasm32/wasm64 四组均通过。测试使用最小测试头文件，不链接 libc、不执行 Linux，
+不能替代真实 SDK/内核运行验收；已接入主仓库轻量 CI 和可选 SDK 的 wrapper 检查。
+
+distro `e2c7edc`、集成提交 `da80732` 另将原父进程恢复流程提为共同内部函数，保持
+原执行顺序：suspend、仅在 clone 期间附加元数据、finally 清除、按结果 rewind。
+双位宽宿主测试通过一次性快照状态注入 EAGAIN、ENOMEM、再次 EAGAIN 后成功分叉，
+核对错误返回、元数据清除、迟到发布拒绝及后续父子返回；另确认 trap 清除元数据后
+继续抛出，不凭空转成 errno。整组 kernel 253 项与源码/测试两套类型检查通过。
+这是执行适配器的故障注入，不是实际 Linux OOM、进程表回滚或 wait 回收的完整证明。
+已重新启动双位宽 Node 目标复验，浏览器仍待构建与运行链路先通过。
+本轮为 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/39134412900) 与
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/39134418533)，尚待目标结果。
+
 - 完成用户栈序列化后，再通过已有 Linux clone 创建真实子进程和独立用户内存。
   应用仍调用标准 libc `fork()`，不增加替代 Linux UAPI 的私有应用 syscall。
 - 子进程的回调入口只负责恢复继承的 continuation，不作为应用需要手写的替代入口。
