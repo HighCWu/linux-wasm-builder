@@ -321,6 +321,7 @@ jobs:
           node --test sources/distro/apps/wasm64-example/download.test.js
           node --test sources/distro/apps/wasm64-example/program-fixture.test.js
           node --test sources/distro/apps/wasm64-example/app.test.js
+          node --test sources/distro/apps/wasm64-example/root.test.js
           node --test sources/distro/distro/npm/browser-suite-packaging.test.js
           node --check sources/distro/apps/wasm64-example/app.js
           node --check sources/distro/apps/wasm64-example/server.mjs
@@ -330,8 +331,14 @@ jobs:
           npx --yes esbuild@0.25.12 sources/distro/apps/wasm64-example/app.js \
             --bundle --platform=browser --format=esm --target=es2022 \
             --alias:@lowland/guest=./sources/distro/packages/linux-guest/src/index.ts \
+            --alias:linux-wasm-opfs-device=./sources/distro/apps/site/opfs-device.js \
             --external:@lowland/kernel --external:@lowland/kernel/plugin --external:@lowland/bytes \
             --outfile="$RUNNER_TEMP/wasm64-example.js"
+          npx --yes esbuild@0.25.12 scripts/tests/example-opfs-root-lifecycle.test.mjs \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/bytes=./sources/distro/packages/bytes/src/index.ts \
+            --outfile="$RUNNER_TEMP/example-opfs-root-lifecycle.test.mjs"
+          node --test "$RUNNER_TEMP/example-opfs-root-lifecycle.test.mjs"
       - name: Check complete ephemeral port allocation and exhaustion
         run: node --test sources/distro/packages/linux-guest/tests/network-ports.test.ts
       - name: Check UDP stream failure cleanup without booting Linux
