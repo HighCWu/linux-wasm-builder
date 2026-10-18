@@ -15,6 +15,10 @@ Firefox、公开镜像选择的浏览器端到端路径和完整发行版仍需�
 [Python 系统根盘](python-applications.md#可复用-wasm64-python-系统根盘)。目前
 SDK 的 exec 仍为管道标准流；解释器内部 PTY 验证不代表 SDK 已提供交互终端接口。
 
+`348d428` 同样增加可选 Git ext4 根盘和公开 SDK 跨实例提交/打包/clone 检查，
+不扩展协议、不改变默认根盘、不加入测试专用脚本；实际目标验收仍待 CI。
+配方与许可边界见 [Git 根盘](git-runtime.md#可复用-wasm64-git-根盘)。
+
 ## ABI 前置工作
 
 distro `7e8eeb7` 新增内部 `abi-wasm64.ts`，不切换现有会话，不增加公开包导出。

@@ -105,9 +105,43 @@ helper 的实际 Wasm 内存声明检查，也没有额外宣称指针运行时�
 首轮 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39087516919)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39087519457) 与修正后的
 [wasm32 remote](https://github.com/HighCWu/distro/actions/runs/39087522099) 已提交，
-均固定 `d5bc3bb`，计划解析均已成功，实际运行仍待验收；wasm32 浏览器入口本轮
-尚未触发。不用旧 workflow 的成功替代
+均固定 `d5bc3bb`，计划解析均已成功。wasm32 remote 已失败，实际日志为
+`fatal: could not open '/dev/null' for reading and writing: No such file or directory`；
+预检发生在 devtmpfs 挂载前，尚未进入远程工作负载。`3723338` 把三组预检移至
+设备初始化后，并添加顺序防回退断言。两项旧浏览器任务随后均已失败，各三项
+用例失败，实际日志同样显示预检无法打开 `/dev/null`，尚不构成应用场景验收；
+wasm32 浏览器入口本轮尚未触发。不用旧 workflow 的成功替代
 这套带位宽与材料门禁的新版本证据，也不以本机回归宣称浏览器已通过。
+
+## 可复用 wasm64 Git 根盘
+
+`348d428` 增加可选的 `guest-agent.nativeWasm64.rootfsGitExt4`：复用原生启动盘，
+只安装匹配位宽的 BusyBox、Git 和 CA 证书，不混入上述测试脚本，也不改变默认
+最小根盘。`256M` 是 ext4 磁盘容量，不是线性内存上限或 Git 可用内存保证。
+这是运行配方，不是已完成许可审查的二进制发行版。
+
+`guest-agent-check-git-root-wasm64` 使用公开 SDK，在第一台 Linux 实例中初始化
+仓库、提交含全部字节值的 65,553 字节文件、执行 hook 和双线程 repack，然后
+sync 并完整关闭。仅保留 ext4 块数据，第二台新实例校对 HEAD、工作文件、对象
+及 hook 标记，再通过 `clone --no-local` 执行子进程传输、严格 fsck 和精确字节读回。
+路径包含引号、字面 `$HOME` 和 Unicode，不经宿主 shell 展开。
+
+同时要求测试专用文件不存在、Git 自报 long/size_t 为 8 字节、选定许可文件非空
+且 checksum 匹配、CA 数据存在、两个实例均发生块写入和 flush，并成功关闭。
+不验证断电一致性、公共远程服务或 HTTPS 握手，也不代表 SDK 提供 PTY。
+
+共享工作负载在宿主真实 Git 上通过正向及五类反例：工作文件改变、HEAD 改变、
+pack 损坏、hook 标记改变、仓库缺失。连同根盘接线、材料与浏览器契约共 23 项
+轻量检查通过。新增代码没有引入类型错误；完整本地类型门禁仍因旧 kernel dist
+声明缺少 `FSDirectoryEntry.type` 的三项既有错误失败，不隐瞒或跳过它们，公开 CI
+仍执行使用新构建声明的完整类型检查。实际 Wasm 根盘验收另由公开 CI 执行。
+
+以下三项均固定 `348d428`，已经触发，目标结果仍待验收；旧浏览器任务确认终态后，
+也以同一版本提交 Chromium/Firefox 复验，不取消或重启仍在运行的任务：
+
+- [Git SDK 跨实例根盘](https://github.com/HighCWu/distro/actions/runs/39088291953)
+- [wasm32 remote 修复复验](https://github.com/HighCWu/distro/actions/runs/39088294722)
+- [wasm64 packing 修复复验](https://github.com/HighCWu/distro/actions/runs/39088297352)
 
 ## 保留的边界
 
