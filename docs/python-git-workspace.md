@@ -65,14 +65,15 @@ posix_spawn 适配路径承载，不声称增加普通 fork、内核 softmmu 或
 仓库元数据、source pin 和缓存契约检查通过。本地完整类型门禁仍只有三项旧
 kernel dist 的 `FSDirectoryEntry.type` 声明错误，未屏蔽；公开 CI 保留完整检查。
 
-新组合的目标验收仍待 CI；此前各自的 Python/Git 运行成功不替代此组合检查。
+新组合的目标需要独立 CI；此前各自的 Python/Git 运行成功不替代此组合检查。
 首次固定 `9d669e8` 的 [计划检查](https://github.com/HighCWu/distro/actions/runs/39089869836)
 失败在 Nix env 类型校验：`AGENT_WASM64_APPLICATION` 不能直接接收 path，尚未
 进入重构建或应用运行。`7eb14a2` 在公共检查边界使用字符串插值，保留 Nix 文件
 输入的依赖 context，也兼容原有字符串参数；七项 Python/Git 根盘契约检查通过，
 [固定版本复验](https://github.com/HighCWu/distro/actions/runs/39090006954) 的计划检查
-已成功，实际目标检查仍在运行。这个计划失败不被标记为应用兼容性成功或普通
-运行失败。
+已成功，实际目标随后也已核实成功：完整类型门禁及 write/read 两个全新实例
+检查通过，分别约 6.89/7.04 秒，外层约 14.38 秒。此结果固定 `7eb14a2`，
+不是后续共享检查、OPFS 或页面控件已经通过。原计划失败仍保留。
 
 ## 浏览器组合检查
 
@@ -99,7 +100,12 @@ clone/HEAD/摘要损坏、notice 命令失败、未 flush 和关闭失败；这�
 校验处结束，没有进入构建或运行；核实结束后已提交正确入口。
 [Chromium 目标](https://github.com/HighCWu/distro/actions/runs/39090665965) 和
 [Firefox 目标](https://github.com/HighCWu/distro/actions/runs/39090668642) 的计划检查
-已成功，实际重检查仍在运行；两项均固定 `7ad998f`，不把计划成功记为运行成功。
+已成功；两项均固定 `7ad998f`，实际运行分别验收，不把计划成功记为运行成功。
+
+其中 Chromium 随后已核实实际成功：两个应用阶段均执行，唯一指定用例通过，
+总计 5.6 秒，独立报告门禁确认精确用例且零跳过/重试。Firefox 随后也已核实
+实际成功，两阶段均执行，唯一用例 22.8 秒通过且精确报告门禁成功；两者均固定
+`7ad998f`，不扩大为 OPFS 或新组合页面控件已通过。
 
 ## 跨页面 OPFS 恢复
 
@@ -131,6 +137,38 @@ create、capacity 或截断参数；以原始 HEAD 执行完整 read 工作流�
 和 [Firefox OPFS 检查](https://github.com/HighCWu/distro/actions/runs/39091164560)
 的计划检查均已成功并进入实际重检查，真实运行尚未验收。不以本机注入检查或
 旧版内存根盘结果替代这些目标。
+
+## 可操作的浏览器配方与应用归档
+
+`01fdab1` 新增可选 `wasm64-python-git-example`，复用已有启动、停止、Python 显式选择、
+字面 JSON argv、流式输入输出、取消和文件下载控件，使用 512 MiB Python/Git
+根盘。默认最小配方与 Python 单独配方不变。完整输出包含可直接导入的
+`git-workspace.pyz` 和构建源 `workspace-source/`；归档内为原始示例源与 MIT
+文本，不嵌入解释器或重许可第三方组件。
+
+重资产只在公开 CI 构建：`nix build .#wasm64-python-git-example`。取得完整输出
+后用其中的 `server.mjs` 服务目录，下载 `/git-workspace.pyz`，在页面选择 Python
+并导入此文件。留空 stdin，传入 `["write", "/root/workspace"]`，再用报告的完整
+HEAD 传入 `["read", "/root/workspace", "完整HEAD"]`。这保留了原示例的边界：
+write 不覆盖已有目录，read 新建 clone，不是持续同步或连续编辑工具。
+
+新增双浏览器控件检查要求应用 write/read 的精确报告，以及通过文件下载控件
+逐字节读回 clone 的 65,553 字节载荷。组件级成功不能替代控件级验收。这个页面
+仍是临时内存根盘，停止或重载即丢失工作区；OPFS 检查没有自动赋予页面持久化。
+该配方不是已完成许可批准的二进制发行，既有 Readline、OpenSSL 链接和完整源码
+交付要求不变。
+
+五项本机工作区测试通过，包含新增的精确源码、固定 ZIP 元数据、可重复打包和
+移走源目录后执行 zipapp 的 write/read。原归档构建六项回归通过；页面/进程/
+打包契约 36 项通过，页面语料四项通过。页面语料在挂载盘首次发生两项 5 秒
+超时（一项为既有用例）；保持超时不变，将相同轻量源码复制到本机临时目录后
+四项均通过。此复验不是目标构建或浏览器运行，不能据此记为控件 CI 已通过。
+
+主仓库轻量 CI 另接入 `python-git-workspace-example-提交SHA` 短期附件：仅收集
+项目自有 MIT 应用、构建源、许可文本、源码 pin 记录和 SHA-256 清单，不包含
+解释器、Git、内核或其他依赖二进制。上传前实际构建归档并以本机 Python/Git
+执行 write/read，再检查复制后清单；附件保留七天，不替代长期发行渠道或系统
+对应源码交付。当前上传结果尚待独立核实。
 
 本阶段不覆盖断电一致性、用户主动清理存储后的恢复、存储配额保障、公共网络、pip 生态、
 远程托管服务、原生编译器自托管或任意软件兼容性。
