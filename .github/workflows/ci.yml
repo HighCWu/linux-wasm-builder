@@ -154,6 +154,7 @@ jobs:
       - name: Package the Python Git workspace application
         # Only project-owned MIT source is bundled; no runtime binaries or dependencies.
         run: |
+          python3 -B scripts/test_workspace_artifact.py
           bundle="$RUNNER_TEMP/python-git-workspace-example"
           mkdir -p "$bundle/source/example"
           cp sources/distro/distro/python/git-workspace-example.py "$bundle/source/example/__main__.py"
@@ -170,6 +171,7 @@ jobs:
           python3 -B scripts/source_manifest.py > "$bundle/source-pins.json"
           (cd "$bundle" && rg --files --hidden -g '!SHA256SUMS' -0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           (cd "$bundle" && sha256sum --check SHA256SUMS)
+          python3 -B scripts/verify_workspace_artifact.py "$bundle"
       - name: Upload the Python Git workspace application
         uses: actions/upload-artifact@v7
         with:
