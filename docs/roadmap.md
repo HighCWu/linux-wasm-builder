@@ -459,7 +459,8 @@ Chromium/Firefox 三场景现也已核实成功，不用其结果替代新增源
 
 组合 Node 根盘固定 `7eb14a2` 的完整类型与 write/read 两实例已核实成功；
 共享检查固定 `7ad998f` 的 Chromium/Firefox 唯一指定用例均成功，零跳过/重试。
-OPFS 仍需独立验收。另提供可选 `wasm64-python-git-example` 与原示例 MIT
+固定 `85f7f7f` 的 OPFS 双浏览器唯一用例现也已核实成功，零跳过/重试。
+另提供可选 `wasm64-python-git-example` 与原示例 MIT
 zipapp，让使用者通过现有页面控件导入运行；配方仍是临时内存盘，不把 OPFS
 检查当作页面已有持久化。新控件目标需另验，见 [组合工作区](python-git-workspace.md)。
 
