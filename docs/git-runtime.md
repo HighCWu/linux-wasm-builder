@@ -35,8 +35,30 @@ gh workflow run ci.yml --repo HighCWu/distro --ref codex/mmap-initialized-backin
 workflow 已提交 CI，均固定 `7967691`：
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39086333120)、
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39086335957)。结果待验收；
-packing、remote 入口已接入但尚未提交本轮验收。
+packing、remote 的后续验收见下文。
 本阶段也未增加 Git 浏览器用例。
+
+## 选定许可材料的安装检查
+
+`1c0ba14` / `f9da168` 为两个位宽安装 `/usr/share/licenses/git`，保存原始
+Git COPYING、SHA-1 collision-detection 与 reftable 许可证，以及六份 bundled
+regex 源文件中的原始声明。另保存默认 posix_spawn 补丁、说明和检查工具 MIT
+文本，并从实际链接的 curl 输出复制 libcurl、zlib、OpenSSL、musl、compiler-rt
+及 libcurl 集成的选定声明。原始输入字节不被修改，清单覆盖安装文件。
+
+三组 Linux 运行语料均先要求这份材料非空且校验匹配。新增四项宿主检查执行
+实际安装脚本、逐项输入缺失/为空和安装后缺失/为空/篡改负向控制，并验证
+BusyBox 校验命令；加上既有位宽契约共七项通过。配套 shellcheck、shfmt、Nix
+格式、工作流和仓库检查通过。这不是目标安装或法律充分性的证明。
+
+新版 wasm64 packing 和 wasm32 remote 已提交 CI；此前仍运行的 `7967691`
+双位宽 workflow 不含这套材料门禁，不取消或重启，也不以其结果替代新版证据。
+wasm64 remote 仍待另行验收。
+
+这些是选定声明和默认补丁，不是完整对应源码。自定义 derivation overrides
+必须另收集自己的修改；未自动推断所有依赖、许可证兼容性或发布资格。
+特别是 `NO_OPENSSL` 只关闭 Git 的直接 OpenSSL 调用，libcurl 仍静态链接
+OpenSSL；这里不为 Git 授予或推定 OpenSSL 例外，发布前须单独审查该组合。
 
 ## 保留的边界
 

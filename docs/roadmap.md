@@ -422,6 +422,10 @@ Git 主程序和 HTTP helper 内存 ABI，保留 NO_MMAP 读取/复制替代路�
 宿主契约检查与相关 libcurl/Python 检查共 17 项通过，双位宽 workflow 已提交 CI；
 packing/remote 入口已接入但本轮尚未验收，不视为浏览器或发布完成。
 范围与命令见 [Git 运行记录](git-runtime.md)。
+`1c0ba14` / `f9da168` 再加入选定原始许可声明、默认补丁和安装后完整性检查，
+四项新增宿主回归与既有契约共七项通过；新版 wasm64 packing / wasm32 remote
+已提交 CI。此前 workflow 仍运行，不覆盖这些新门禁。完整源码与静态链接许可
+审查尚未完成，不能将声明安装视为发布批准。
 
 固定 `d4fafc8` 的 libcurl 双位宽直接/CMake 四入口均已实际完成编译、ABI 和
 Linux 内文件字节、正常退出及全部 TLS 信任边界检查。双位宽 Chromium/Firefox
