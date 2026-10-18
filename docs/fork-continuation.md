@@ -119,8 +119,25 @@ Wasm 头而没有 memory import/入口的文件，分别要求 `ENOENT` 和 `ENO
 和信号掩码。随后再次 fork/wait，最后 exec 普通程序，以检查失败没有污染后续状态。
 GCC/Clang 原生检查通过；该扩展的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39121590536) 和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39121595010) 目标结果待验收，
-不能沿用前一版成功结论。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39121595010) 分别验收。
+双位宽已完整成功，实际日志均确认拒绝后保留原程序、再次 fork/wait、成功 exec 和
+原有回归通过，最终输出协议 pass。
+
+### 信号继承与回调准入回归
+
+distro `72216c8` 的 workload 扩展在 fork 前屏蔽并排队 SIGUSR1，要求子进程不继承父
+pending 信号，子进程自己的信号也不能消费父 pending。父子各解除屏蔽一次，验证继承的 handler
+执行，再恢复原掩码。目标 handler 还调用 `_Fork()`，要求明确返回 `EOPNOTSUPP`，
+不得 unwind 穿过正在执行的内核/宿主信号回调；返回主执行流后仍须能够再次 fork。
+新程序另检查 exec 保留阻塞掩码、将原来捕获信号的 handler 重置为 SIG_DFL。
+
+GCC/Clang 原生检查验证 pending、handler 与 exec 的 Linux 预期；不在原生 handler 中
+要求 `_Fork()` 被拒绝，因为那是当前 Wasm 执行 ABI 的限制。这一扩展的实际 Wasm
+结果必须单独验收；它也不证明 unwind/复制/子发布各阶段随机信号竞态已全部覆盖。
+目标复验为 [wasm32](https://github.com/HighCWu/distro/actions/runs/39121947248) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39121950640)。wasm32 已完整成功，
+实际日志确认上述信号扩展和原有 fork/exec 回归全部通过，最终输出协议 pass；wasm64
+仍待验收，不能直接沿用 wasm32 或前一版的结论。
 
 目前只确认显式 opt-in、单用户模块、单线程 C 测试中的标准 fork 语义；默认 SDK、
 浏览器、完整 fork 后 exec、C++/SjLj 和其他后续边界不因此变为已支持。
