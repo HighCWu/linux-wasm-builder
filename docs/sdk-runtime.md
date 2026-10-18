@@ -273,7 +273,7 @@ ARCHIVE` 需要实际选择 spec 和输入文件，不能仅凭下载包自己�
 功能不变的格式修正已由 `a841ddde8ce862fcbf1a1f7d088d314189d77826` 发布，
 针对该版本的 [wasm32 复验](https://github.com/HighCWu/distro/actions/runs/39109610295)
 和 [wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39109612625) 均通过
-规划／求值。wasm32 随后在实际材料导出失败：SDK symlinkJoin 将许可证目录展开为
+规划／求值。二者随后均在实际材料导出失败，已分别核对日志：SDK symlinkJoin 将许可证目录展开为
 真实目录及逐文件链接，不能通过目录根路径相等来判断来源。该失败不是内核或
 应用运行失败，实际安装包校验与上传仍待确认。这项检查不另启内核，
 但仍需要相应 SDK 构建依赖。主仓库独立提交 `90aa856` 集成格式修正。
@@ -322,9 +322,23 @@ nix build './sources/distro#checks.x86_64-linux.sdk-wasm64-check-source-bundle'
 `dce839436e671fcd177422e40a06faa2935a085f`，实际构建／核验及上传仍待验收。
 主仓库通过独立 gitlink 提交 `3ab150d` 集成修正，文档另行提交。
 
+`def0ab0` 再为成功的源码 CI artifact 附加 `distro-checkout.tar.gz`，提供对应工作流
+提交的完整 distro 配方树，包含 flake.lock、构建脚本、补丁与声明。归档通过 Git
+对象生成，不用脏工作区文件替代已提交内容；核验完整成员集合、提交身份、每个
+blob 的字节／类型与执行权限，不解包或执行脚本。Git 的 export-ignore／export-subst
+若遗漏或改写源码会使导出失败；发现未一并打包的 submodule 也拒绝，不静默遗漏。
+导出失败保留旧包并清理临时文件，拒绝覆盖已跟踪源码及 Git 元数据。5 项新增
+宿主回归通过，另有原有 13 项归档回归通过。CI 在产物 SHA256SUMS 中另记录该
+配方归档摘要；它不是 Nix `sourceBundle` 输出自身的一部分，不含 Git 历史。
+主仓库独立集成 `85c05c7` 已推送，双位宽新版公开检查待验收；不把旧提交任务
+当作此附加产物通过的证据。
+新版 [wasm32](https://github.com/HighCWu/distro/actions/runs/39110541335) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39110544337) 均已固定
+`def0ab0d38d81080d6ae7c10f91ffd0e6b8ab5d5` 并通过规划／求值，已进入实际构建。
+
 这里的源码是选定原始输入，不是 post-patch 构建目录快照。SDK 配方包含已知 Meson
 补丁及修改说明，但工具不会自动发现任意 override、补丁或 hook。完整对应源码还需
-匹配的 distro checkout、Nixpkgs 变换、构建依赖和长期获取渠道；内核源码也不替代
+匹配的 distro checkout（CI 附加归档正在验收）、Nixpkgs 变换、构建依赖和长期获取渠道；内核源码也不替代
 对应内核二进制的最终配置及构建材料。此功能仍需实际双位宽公开 Nix 验收，不能据
 宿主夹具通过认定完整源码交付、离线重建或许可证审查已完成。
 

@@ -651,6 +651,11 @@ SDK 材料，去重相同 LLVM 输入并逐成员比较全部源码字节。独�
 上传已接入，目标验收待公开 CI；不将原始输入归档误称为任意 post-patch 工作树、
 完整依赖交付或离线重建。见 [SDK 源码输入](sdk-runtime.md#选定-sdk-完整源码输入)。
 
+`def0ab0` 进一步让成功的源码 CI artifact 携带对应提交的完整 distro 配方 checkout，
+逐文件核对 Git 对象，拒绝 export-ignore／export-subst 造成的遗漏或改写及未收集的
+submodule；5 项新增宿主回归通过。它补齐配方获取路径，但不替代 Nixpkgs／构建依赖、
+长期发布或完整许可证审计；双位宽目标 CI 仍待验收。
+
 `9572fa0` / `f8f5d05` 开始将已验证的 Python 能力接入实际使用入口：提供不含测试
 脚本的独立 wasm64 Python ext4 根盘，公开 SDK 的跨实例应用运行检查，以及可选
 `wasm64-python-example` 浏览器启动器。默认最小镜像不膨胀；新配方与宿主验证已
