@@ -481,6 +481,10 @@ distro `1dd78e5`、集成提交 `05aaa9d` 增加独立检查
 本轮 [wasm64 Chromium 独立稳定性检查](https://github.com/HighCWu/distro/actions/runs/39205889224)
 固定在 `1dd78e5`，未恢复定时任务。
 
+上述稳定性检查后续成功，已实际核实 Chromium 149.0.7827.55 的普通配置四轮、
+故障配置四轮及八次关闭；四次故障轮次均在初始化/分配失败后等待约 30 秒，完成
+迟到发布拒绝与八次恢复 fork。此次小规模复验没有复现卡住，不意味着先前根因已修复。
+
 | 内容 | 当前证据 | 仍保留的边界 |
 | --- | --- | --- |
 | 标准 fork、raw clone、exec、信号与线程拒绝恢复 | 双位宽 Node 及已记录浏览器语料通过 | 默认 SDK 不启用，静态 C、单线程 opt-in |
@@ -492,6 +496,35 @@ distro `1dd78e5`、集成提交 `05aaa9d` 增加独立检查
 信号时序测试；不以增加重复次数替代对再次卡住的定位。
 
 ### 三、恢复 musl 的标准封装并验证系统语义
+
+#### 保存现场后、clone 前的受控信号时点
+
+distro `cfc6629`、集成提交 `3964313` 新增独立
+`fork-continuation-check-signals` 与 `fork-continuation-wasm64-check-signals`。
+测试版 loader 通过 `kernel.override { forkSignalTest = true; }` 启用内部门禁，
+默认构建为 false，没有新的用户 import、Linux UAPI、环境变量或 boot 参数。
+它在 `suspend()` 停止 Asyncify unwind 并保存元数据之后、真正 clone 调用之前，
+通过现有 getpid/kill syscall 向当前父进程发送 SIGUSR1。PID、syscall 参数和返回值
+分别检查 wasm32/wasm64 位宽，失败会使测试停止，不能悄悄跳过注入。
+调用受现有内核重入保护约束；hook 或 clone 抛错时均清除该次 fork 元数据。
+
+独立静态 C 语料预先屏蔽 SIGUSR1 并安装 handler，连续两次调用标准 `fork()`：
+atfork prepare 时要求尚无该 pending 信号，恢复后要求父端 pending、子端不继承；
+双方均检查掩码及 handler 状态，父端解除屏蔽后恰好一次递送，子端自发信号再解除屏蔽
+验证继承的 handler 和屏蔽状态。每次还核对 PID、atfork 收尾和单次 wait 回收。
+不在用户程序内伪造 fork 返回，不通过新应用 API 注入信号。
+
+本地 kernel 宿主 261 项、源码/测试两套类型检查通过；SDK、故障与信号契约共 11 项
+通过。GCC/Clang 原生正例和省略注入的反向控制均通过，但原生只在 atfork prepare
+末尾排队信号，不能证明 Wasm 保存现场后的精确时点。另有双位宽宿主检查核对
+after-suspend-before-clone 顺序、hook 失败时不调用 clone、元数据清理与 syscall 布局。
+只有实际目标检查才能验收新时点；它不代表复制中、发布后或 rewind 期间的信号竞态
+已覆盖，也不扩大多线程 fork、默认 SDK 或任意 libc 的支持。
+
+本轮 [wasm32 signals](https://github.com/HighCWu/distro/actions/runs/39208723250) 和
+[wasm64 signals](https://github.com/HighCWu/distro/actions/runs/39208729699) 固定在 `cfc6629`，
+已派发，运行结果待核实。Node 通过后再评估同一信号语料的浏览器接入，不用旧 fork
+浏览器结果替代新增时点的目标验收；定时任务未恢复。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
