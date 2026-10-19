@@ -596,12 +596,27 @@ clone 返回正的子 PID、父端临时快照元数据已清除之后，且尚�
 loader/initramfs 选择与跨源隔离要求另有执行检查。真实浏览器新增时点结果待核实，
 宿主测试不替代浏览器验收；默认 SDK、内核与公开应用 API 不变。
 
-固定在 `7a29e67` 的四路浏览器检查已派发，结果待核实：
+固定在 `7a29e67` 的四路浏览器检查结果如下：
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39230648311)、
 [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39230659107)、
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39230668048)、
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39230676723)。
-验收须核实四种配置各两轮、完整阶段和关闭，不以工作流状态替代实际目标证据。
+wasm32 两路和 wasm64 Chromium 已成功，实际 Heavy 日志核实四种配置各两轮、完整
+阶段门禁及关闭。wasm64 Firefox 失败，不能声明四路验收完成：普通两轮、故障第一轮
+全部通过并关闭；故障第二轮输出初始化/分配失败阶段后约 21 秒，内核报告
+`rcu_sched detected stalls`，涉及 CPU 1（`0 ticks this GP`），随后主端收到 Worker
+错误并关闭机器。尚未到真实 30 秒发布超时或任一新增信号配置；不是新增信号阶段
+断言失败，也不是外层 300 秒 watchdog。RCU stall 与 Worker 退出的因果细节仍待定位。
+
+错误栈显示控制台在机器失败清理中先被无原因 abort，测试先记录了 `Error: undefined`，
+而 `machine.closed` 的后续原始错误不在原诊断日志中。`84e7d58` 只增加测试运行器
+对每次 `reportFailure` 原因的实时诊断，即使首个拒绝已发生也记录后续原因；原先
+错误优先级、超时、关闭与通过条件完全不变。不把此诊断改动宣称为 RCU/Worker 修复。
+本地运行/关闭与 fork 契约 26 项、固定版本格式检查通过；仅派发 wasm64 Firefox
+定位复验，不重复派发已成功的三路。按照先处理验收失败的顺序，子进程恢复前信号
+测试暂未实现；本轮不放宽 RCU 检查、不缩短 30 秒超时、不扩大多线程 fork 支持。
+定位复验 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39234403618)
+固定在 `84e7d58`，结果待核实；即使复验成功，也不能因此声称根因已修复。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
