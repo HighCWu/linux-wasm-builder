@@ -617,6 +617,9 @@ wasm32 两路和 wasm64 Chromium 已成功，实际 Heavy 日志核实四种配�
 测试暂未实现；本轮不放宽 RCU 检查、不缩短 30 秒超时、不扩大多线程 fork 支持。
 定位复验 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39234403618)
 固定在 `84e7d58`，结果待核实；即使复验成功，也不能因此声称根因已修复。
+该诊断版复验随后成功，实际日志已核实四种配置各两轮及关闭；两轮故障均完成真实
+30 秒等待及八次恢复 fork。因为该版没有改动等待机制，这进一步说明先前失败存在
+偶发性，不能把重跑成功作为根因修复证据。
 
 #### 复制等待交还逻辑 CPU 的候选修复
 
@@ -653,10 +656,26 @@ distro `33f6600` 在副本尚未发布时最多等待 10 毫秒，再经此内�
 先针对双位宽 Node faults 与 wasm64 Firefox 提交候选修复验收，暂不扩展其他功能。
 即使单次复验通过，也须与先前失败、诊断版复验分开记录，不把低频问题写成长期
 无故障承诺；子进程恢复前的信号测试继续暂缓。
-候选修复运行固定在 `33f6600`，结果待核实：
+候选修复运行固定在 `33f6600`，以下三项均成功且实际阶段已核实：
 [wasm32 Node faults](https://github.com/HighCWu/distro/actions/runs/39235387623)、
 [wasm64 Node faults](https://github.com/HighCWu/distro/actions/runs/39235396808)、
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39235404155)。
+双位宽 Node 均包含初始化/分配失败、真实发布超时、八次恢复 fork 及最终用户 pass；
+日志中前两阶段间隔分别约 30.001 秒、30.011 秒。测试版调度点计数门禁也必须满足，
+故不能以旧内核同步等待回退冒充该结果。
+
+wasm64 Firefox（151.0）实际日志确认普通、故障、clone 前信号、clone 后信号各两轮
+完整阶段及关闭，共八次同页启动/关闭；故障两轮各约 30 秒等待，随后均完成八次
+恢复 fork。新的 RCU stall 拒绝检查也通过。它证明这个新组合的一次完整回归通过，
+并非长期无故障或先前 Worker 退出的所有因果链均已解释。
+
+在相同 `33f6600` 上补齐另外三路浏览器回归，不重复派发已成功的 wasm64 Firefox，
+也不以旧源码上的三路通过代替新内核/等待路径验收。结果核实前，仍暂缓子进程恢复
+前的信号测试。
+补充回归固定在 `33f6600`，已派发、结果待核实：
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39238131103)、
+[wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39238139400)、
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39238147058)。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
