@@ -9,6 +9,10 @@ on:
         description: Run three fresh file-copy benchmark boots for both pointer widths
         type: boolean
         default: false
+      fork-benchmark:
+        description: Run fresh single-thread fork measurements for both pointer widths
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -20,6 +24,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  fork-benchmark:
+    if: github.event_name == 'workflow_dispatch' && inputs.fork-benchmark
+    uses: ./.github/workflows/fork-benchmark.yml
   file-copy-benchmark:
     if: github.event_name == 'workflow_dispatch' && inputs.file-copy-benchmark
     uses: ./.github/workflows/file-copy-benchmark.yml
@@ -95,6 +102,7 @@ jobs:
           node --test sources/distro/distro/fork-continuation/raw-clone.test.js
           node --test sources/distro/distro/fork-continuation/fault-contract.test.js
           node --test sources/distro/distro/fork-continuation/signal-contract.test.js
+          node --test sources/distro/distro/fork-continuation/benchmark.test.js
           patch --dry-run -p1 -d sources/musl \
             < sources/distro/distro/musl/fork-continuation.patch
           for compiler in gcc clang; do
