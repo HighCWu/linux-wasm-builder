@@ -796,6 +796,10 @@ SHA-256、编译器/Node/CPU 信息及构建来源，公开工作流 artifact �
 编译与测量尚待 CI；宿主六项新回归、连同已有相关 85 项通过不构成性能结论。
 首轮已提交至[公开双位宽性能工作流](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39252491842)，
 固定在集成 `c92083d` / distro `a86902d`；不能以输入构建成功替代 42 次新启动的实际结果。
+首个 wasm32 作业止于全仓格式检查：Statix 要求地址位宽字段使用 `inherit`，未进入
+目标编译或测量。distro `db77b19` / 集成 `abb724b` 按实际 diff 修正，重新提交
+[双位宽检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39252720608)，
+新结果仍待核实；不取消原任务，也不将格式失败解释成性能退化。
 
 ### 五、多线程进程 fork 的后续准入
 
