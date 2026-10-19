@@ -729,13 +729,16 @@ loader 与对应 initramfs；父端两个时点和子端时点的输出不能相
 
 本地浏览器、SDK/故障/信号、运行/关闭相关 79 项、固定版本格式及 JS 语法检查通过。
 反向门禁覆盖缺阶段、带前缀输出、迟到失败、RCU stall 及三个信号时点间的错误
-替代；loader/initramfs 选择和跨源隔离也有执行检查。真实浏览器新增时点待验收，
-不以宿主结果或旧浏览器源码上的通过替代本轮结果。
-固定在 `24217a3` 的四路检查已派发，结果待核实：
+替代；loader/initramfs 选择和跨源隔离也有执行检查。
+固定在 `24217a3` 的四路检查均已成功，实际 Heavy 日志已核实：
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39248612815)、
 [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39248622383)、
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39248631380)、
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39248642286)。
+每路五种配置各两轮的全部阶段和关闭通过，共 40 次启动/关闭；两个子端信号阶段
+均出现，故障两轮保留真实约 30 秒截止和八次恢复 fork。引擎为 Chromium
+149.0.7827.55、Firefox 151.0。该小样本不证明长期无故障，也不证明此前 RCU stall
+与 Worker 退出的完整因果链已查明，不扩大任意异步恢复时点的支持范围。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
@@ -753,6 +756,46 @@ loader 与对应 initramfs；父端两个时点和子端时点的输出不能相
 比较 opt-in 变换与当前未变换基线的二进制大小、无 fork 工作负载吞吐、分叉延迟和
 峰值内存。只有在实际应用收益与代价明确后，才评估默认配置；不以机制实验通过替代
 Linux 兼容性、浏览器验收或性能结论。
+
+#### 首轮单线程 Node 测量协议
+
+distro `a86902d`、集成提交 `c92083d` 增加独立、默认不执行的性能工作流。
+通过已有 `ci.yml` 的 `fork-benchmark=true` 手动输入启动，分别构建 wasm32/wasm64
+不可变输入，再在工作流测量步骤执行；不能用 Nix 缓存中的旧检查结果替代新测量。
+内核、默认 SDK 和单线程准入边界不变，本轮不实现 vfork，也不放宽 ABI 门禁。
+
+无 fork 工作负载使用四组可运行对照：
+
+| 组 | libc / 链接与变换 |
+| --- | --- |
+| default | 默认 libc，未变换 |
+| fork-libc-raw | fork libc，但不链接 continuation 对象，未变换 |
+| fork-libc-asyncify | 对上一组的同一个已链接文件做 Asyncify |
+| sdk-asyncify | 真正 opt-in SDK 链接并完成 Asyncify |
+
+真正 SDK 的未变换模块带执行 ABI 声明，却缺少 continuation 入口，现有 loader
+会拒绝；它仅记录体积，不启动。中间两组用于隔离同一链接产物的变换成本，不能
+冒充真正 SDK 的未变换可运行版本。工作负载分别计时含周期性 getpid 的函数调用
+循环和 getpid syscall 循环，检查次数、校验和与身份，不称为纯算术吞吐。
+
+另三组使用真正 SDK，分配并每 4 KiB 触碰 1/16/64 MiB 载荷，测量父端 fork 返回
+和 fork+wait 完成耗时；同时检查父子 PID、栈/TLS、快照隔离及单次回收。载荷不是
+完整被复制地址空间大小，报告另存实际用户线性内存分配大小。
+
+每组分别启动三个全新 Node 进程和 Linux 实例，每次一轮预热、五个计时样本；
+每个位宽 21 次启动/关闭，两位宽共 42 次。交替正反组顺序，先取各次启动内的
+中位数，再取三次启动中位数的中位数；不把同一次启动内的样本当成独立启动。
+全部精确样本、校验和、pass、RCU stall 拒绝和最终 `machine.closed` 均为门禁，
+暂不设置性能数值阈值。结果保留原始 stdout/stderr、报告 JSON、二进制大小与
+SHA-256、编译器/Node/CPU 信息及构建来源，公开工作流 artifact 保留七天。
+
+内存同时报告用户/内核线性内存分配大小，以及 Linux Node 整个进程生命周期的
+最大 RSS，后者含内核、JIT、Workers 与关闭阶段，单位为 KiB，来自
+[Node.js resourceUsage](https://nodejs.org/docs/latest-v24.x/api/process.html#processresourceusage)。
+这些指标不是单个用户程序的 RSS、浏览器内存或已完全回收的证明。首轮实际目标
+编译与测量尚待 CI；宿主六项新回归、连同已有相关 85 项通过不构成性能结论。
+首轮已提交至[公开双位宽性能工作流](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39252491842)，
+固定在集成 `c92083d` / distro `a86902d`；不能以输入构建成功替代 42 次新启动的实际结果。
 
 ### 五、多线程进程 fork 的后续准入
 
