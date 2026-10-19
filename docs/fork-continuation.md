@@ -431,8 +431,17 @@ C 语料检查第三次 fork 返回 EAGAIN、atfork 收尾、身份、信号掩�
 出现发布超时、迟到子端拒绝及父端恢复阶段，随后八次恢复 fork/回收及最终 pass。
 runner 仅在用户语料成功且关闭资源无错误后返回成功；这不是仅从宿主测试推导的结果。
 wasm64 完整日志下载多次超时，暂只记录工作流成功，不标为阶段已逐项核实。
-按先核实 Node 再派发浏览器的顺序，新增超时阶段的四路浏览器复验尚未启动，
-自动跟进继续补取 wasm64 证据后派发，不重建已成功的 Node 检查。
+先前因 wasm64 日志下载问题尚未派发浏览器；后续按用户指示取消定时跟进并直接复验。
+wasm64 Node 工作流成功状态再次确认，阶段日志仍超时，不据此扩大已核实结论。
+四路浏览器检查固定在 `74f58bf`，不重建 Node，也不再把旧日志下载作为派发前置条件：
+
+- [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39190466707)
+- [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39190471668)
+- [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39190476374)
+- [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39190481428)
+
+本轮已启动或排队，尚待运行结果。门禁要求普通/故障配置各两轮及关闭，故障配置
+包含新增发布超时阶段；本地三项门禁检查再次通过，不替代本轮实际浏览器验收。
 
 ### 三、恢复 musl 的标准封装并验证系统语义
 
