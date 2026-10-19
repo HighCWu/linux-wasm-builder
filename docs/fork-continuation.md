@@ -374,7 +374,26 @@ distro `39819f1`、集成提交 `844c9c0` 新增 `fork-continuation-check-faults
 
 本轮独立检查为 [wasm32 faults](https://github.com/HighCWu/distro/actions/runs/39136819311) 和
 [wasm64 faults](https://github.com/HighCWu/distro/actions/runs/39136823713)，均固定在上述提交，
-已启动，尚待实际目标结果。
+两项工作流及对应 Heavy check 后续均已成功。本次读取完整阶段日志仍遇到下载超时，
+故先记录 CI 结论，不追加逐阶段已核实、实际 OOM 或完整资源无泄漏的声明。
+
+### 浏览器普通与故障配置共同复验
+
+distro `7d0dad6`、集成提交 `143d962` 将上述故障语料加入既有四路 fork 浏览器检查。
+每个 wasm32/wasm64 × Chromium/Firefox 组合先运行普通配置两次，再运行故障配置两次，
+均在同一页面创建新机器并等待 `machine.closed`。故障配置使用独立目录中的测试版
+loader 与独立 initramfs，普通配置继续使用默认 loader；不修改默认 SDK 或 boot API。
+每轮故障配置重新创建两次故障计划，避免前一轮耗尽后误走纯正常路径。
+
+门禁分别要求普通语料全部阶段、故障语料的初始化/分配错误阶段和八次恢复分叉阶段，
+以及最终 pass；缺少任一阶段、迟到 fail、pageerror 或关闭失败均拒绝。
+本地相关门禁与关闭流程 19 项通过、固定格式检查及 runner 语法检查通过，
+这不是浏览器运行结论。四路公开浏览器 CI 已提交，实际引擎版本、阶段及关闭结果待核实。
+
+本轮为 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39186168011)、
+[wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39186174562)、
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39186180338)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39186185620)。
 
 ### 三、恢复 musl 的标准封装并验证系统语义
 
