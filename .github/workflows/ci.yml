@@ -9,10 +9,6 @@ on:
         description: Run three fresh file-copy benchmark boots for both pointer widths
         type: boolean
         default: false
-      fork-benchmark:
-        description: Run fresh single-thread fork measurements for both pointer widths
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -24,9 +20,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  fork-benchmark:
-    if: github.event_name == 'workflow_dispatch' && inputs.fork-benchmark
-    uses: ./.github/workflows/fork-benchmark.yml
   file-copy-benchmark:
     if: github.event_name == 'workflow_dispatch' && inputs.file-copy-benchmark
     uses: ./.github/workflows/file-copy-benchmark.yml
