@@ -94,6 +94,7 @@ jobs:
           node --test sources/distro/distro/fork-continuation/sdk.test.js
           node --test sources/distro/distro/fork-continuation/raw-clone.test.js
           node --test sources/distro/distro/fork-continuation/fault-contract.test.js
+          node --test sources/distro/distro/fork-continuation/signal-contract.test.js
           patch --dry-run -p1 -d sources/musl \
             < sources/distro/distro/musl/fork-continuation.patch
           for compiler in gcc clang; do
