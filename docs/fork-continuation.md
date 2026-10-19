@@ -887,6 +887,53 @@ wasm64 当前仍在原运行中构建，不能以这 21 次成功宣称双位宽
 分阶段诊断。本轮收尾了新工作流的 wasm32 入口验收，不代表迁移入口的 wasm64
 已验收；原 wasm64 仍在构建，没有取消或重复派发。
 
+#### 独立分阶段诊断配置与 wasm64 定向复验
+
+旧运行 `39252720608` 的 wasm64 后续止于输入构建：GitHub annotation 明确报告
+超过 **1h30m0s**，作业结果为 cancelled，测量步骤跳过；没有 wasm64 原始样本。
+这不是 fork 运行失败或性能结果，也不是主动取消慢任务。2026-10-20 已在缓存归属
+正确、180 分钟预算的新入口仅提交 [wasm64 基线复验](https://github.com/HighCWu/distro/actions/runs/39342225965)，
+固定旧源码 `09b2e3a`，不重跑已验收的 wasm32；新基线结果仍待核实。
+
+distro `d291605` / 集成 `c870467` 同时实现默认关闭的私有诊断配置。
+`forkProfileTest = true` 仅用于 `benchmarkProfileAssets`，对应 workflow 输入
+`fork-benchmark=true`、`fork-benchmark-profile=true`，可选择位宽。普通 SDK、
+Linux 内核、复制结果 SAB 的布局、一次性发布及 30 秒截止协议均未改变。
+它不能和复制故障或信号注入配置混用，不增加用户 import、UAPI 或公开应用入口；
+所有独立新增代码使用 MIT。
+
+每次 COPY 使用不含地址的随机关联 ID，分别采集以下五类记录：
+
+| 记录 | 时钟与精确范围 |
+| --- | --- |
+| worker-start-message | 主线程：创建 Worker 前至收到其启动通知；含模块启动、转发和消息排队，不是纯线程创建耗时 |
+| parent-ready | 父 Worker：派发前至快照完成等待结束；不是完整 fork syscall 延迟 |
+| child-ready | 子 Worker：进入初始化至发布完成，另存内存分配、复制、内核实例化和用户实例化四个局部耗时 |
+| child-prepare-rewind | 子 Worker：恢复 stack/TLS、准备 Asyncify rewind 的同步调用 |
+| child-rewind-checkpoint | 子 Worker：从准备 rewind 前至真正到达并停止 rewind 的原 syscall 检查点；包含上一行，不含其后的 libc/atfork 收尾 |
+
+所有区间均用同一 isolate 的单调时钟计算，不相减跨 Worker 的时间戳，不按日志
+到达顺序推断执行时间。主线程、父端与子端区间存在重叠，不能直接相加成为总耗时，
+也不能把准备 rewind 的短调用当成完整恢复。诊断消息本身有成本，带诊断的数值
+不能替代未插桩基线；本轮不进行算法优化、COW 或多线程 fork 扩大。
+
+每个 fork 组每次启动必须收齐预热一轮和五次计时分叉的六组记录，每组五类完整、
+关联 ID 唯一。三个载荷各三次新启动共 54 组分叉诊断；无 fork 对照不得出现记录，
+默认基线也拒绝混入记录。原有功能、样本、错误/RCU stall 和关闭门禁全部保留。
+用户 pass 不能立即终止尚有诊断消息排队的 Worker：仅诊断 runner 增加输出完成门禁，
+收齐至少应有的记录后才关闭，再严格检查类别/重复/缺失/数值；缺记录仍受原运行
+watchdog 和 150 秒子进程上限约束。记录单独保存在 `phaseDiagnostics`，包含预热，
+不得把六组诊断误称为六个正式基线样本。
+
+本地 kernel 285 项、相关回归 90 项、源码与测试两套 TypeScript、固定版本格式和
+actionlint 通过。用例覆盖默认不调用时钟/不产生 request，局部时钟起点差异、记录
+输出异常不改变返回/错误、i32/i64 真正检查点仅通知一次、父端不误触发子端通知、
+缺阶段/重复/错误关联 ID/无效耗时拒绝，以及 user pass 后迟到记录与缺记录的清理。
+真实目标尚待 [wasm32 诊断配置](https://github.com/HighCWu/distro/actions/runs/39342888032)
+和 [默认关闭路径 Node 回归](https://github.com/HighCWu/distro/actions/runs/39342893626)，
+均固定 `d291605`。诊断性能工作流沿用不取消的并发组，可能等旧 wasm64 基线完成；
+上述本地检查不代表已经取得任何阶段耗时结论。
+
 ### 五、多线程进程 fork 的后续准入
 
 以下是待实现路线，不是当前支持声明。普通 fork 的子进程只保留调用线程；
