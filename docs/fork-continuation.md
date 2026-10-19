@@ -523,8 +523,27 @@ after-suspend-before-clone 顺序、hook 失败时不调用 clone、元数据清
 
 本轮 [wasm32 signals](https://github.com/HighCWu/distro/actions/runs/39208723250) 和
 [wasm64 signals](https://github.com/HighCWu/distro/actions/runs/39208729699) 固定在 `cfc6629`，
-已派发，运行结果待核实。Node 通过后再评估同一信号语料的浏览器接入，不用旧 fork
-浏览器结果替代新增时点的目标验收；定时任务未恢复。
+均已成功；实际 Heavy 日志分别核实两个 `fork-signal:` 阶段及最终用户 pass。
+这证明双位宽 Node 的受控保存现场时点，不替代其他时点或浏览器的验收。
+
+`59c1600` 将同一信号语料接入现有四路浏览器 fork 检查，使用独立的
+`kernel.override { forkSignalTest = true; }` loader 与 signals initramfs；普通、故障、
+信号配置不混用 loader，默认内核和 SDK 均不变。每路在同一页面分别运行三种配置
+各两轮，每轮必须包含对应语料的全部精确阶段，且等待 `machine.closed` 完成。
+原有稳定性配置仍对普通/故障各跑四轮，信号配置固定两轮；外层 300 秒 watchdog
+与页面错误门禁不放宽。信号阶段缺失、普通/故障输出冒充、带前缀输出或迟到失败
+均由宿主反向门禁拒绝。
+
+本地浏览器相关契约 40 项、SDK/故障/信号契约 11 项、运行及关闭语义 18 项通过；
+固定版本格式检查通过。它们不证明浏览器实际运行结果。新增浏览器验收待核实，
+不使用旧 fork 浏览器成功记录替代新增信号时点；定时任务未恢复。
+
+固定在 `59c1600` 的四路浏览器运行已进入 Heavy 构建，尚未验收：
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39212115655)、
+[wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39212123583)、
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39212129762)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39212135695)。
+后续须分别核对普通/故障/信号各两轮全部阶段及关闭，而非只看工作流状态。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
