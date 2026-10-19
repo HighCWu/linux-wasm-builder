@@ -618,6 +618,46 @@ wasm32 两路和 wasm64 Chromium 已成功，实际 Heavy 日志核实四种配�
 定位复验 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39234403618)
 固定在 `84e7d58`，结果待核实；即使复验成功，也不能因此声称根因已修复。
 
+#### 复制等待交还逻辑 CPU 的候选修复
+
+源码检查发现，旧 `copy_thread()` 调用同步宿主复制接口时，父端可能连续执行最长
+30 秒的 `Atomics.wait`，既不进入 Linux 调度器，也不服务这个逻辑 CPU 的时钟中断。
+结合 Firefox 日志中的 CPU 1 `0 ticks this GP`，这是明确的调度/RCU 进展风险；
+与 Worker 退出的完整因果链仍需目标证据，不能仅凭日志相邻就认定所有退出根因。
+Linux [RCU stall 说明](https://cdn.kernel.org/doc/html/latest/RCU/stallwarn.html)也将
+内核持续运行且不调度/不服务中断列为相关原因；不能靠屏蔽告警处理。
+
+Linux `6494640f6` 在架构代码增加私有 host/kernel 执行接口 `copy_worker_wait`，
+限定为当前 `copy_thread()` 的可睡眠等待栈上调用，拒绝原子或关中断上下文，
+调用 `schedule_timeout_uninterruptible(1)`。这是真正的内核调度，不是假报 RCU
+quiescent state，不是 Linux UAPI、应用 import 或新的 SDK API；内核改动遵循该文件
+原有 GPL 边界，独立 runtime/测试新增仍为 MIT。
+
+distro `33f6600` 在副本尚未发布时最多等待 10 毫秒，再经此内核调度点让出 CPU；
+已完成/失败的结果不再调度，整个请求始终使用同一个单调时钟 30 秒截止时间，
+调度耗时也计入，不按分片重置。第一终态 CAS、迟到子进程拒绝与错误返回规则不变。
+旧内核没有此 export 时保留原同步等待兼容路径，不承诺该旧组合解决 stall；新的
+超时故障验收必须观察到实际调度点，不能用兼容回退冒充新路径。
+
+新增宿主检查验证分片超时不等于总超时、调度耗时不延长期限、调度后读到终态立即
+返回、已过期/已发布不再调度，以及调度 trap 不伪造成功或 errno。真实 C 故障语料
+用 CLOCK_MONOTONIC 要求该超时至少耗时 29 秒（保留分辨率余量，实际截止仍 30 秒）；
+浏览器严格门禁新增 RCU stall 拒绝，即使全部阶段和 pass 都出现也不能成功。
+
+本地 kernel 273 项、源码/测试两套类型检查、浏览器/SDK/故障/信号/关闭相关 75 项
+通过；GCC/Clang Wasm 条件语法检查和固定版本格式检查通过。内核实际构建、真实
+30 秒超时和调度行为仍须 CI 验收，不用宿主通过替代目标结果。内核固定哈希由公开
+[预取检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39235044366)
+确认，集成提交 `012ada9` 同步更新 Linux 和 distro gitlink。
+
+先针对双位宽 Node faults 与 wasm64 Firefox 提交候选修复验收，暂不扩展其他功能。
+即使单次复验通过，也须与先前失败、诊断版复验分开记录，不把低频问题写成长期
+无故障承诺；子进程恢复前的信号测试继续暂缓。
+候选修复运行固定在 `33f6600`，结果待核实：
+[wasm32 Node faults](https://github.com/HighCWu/distro/actions/runs/39235387623)、
+[wasm64 Node faults](https://github.com/HighCWu/distro/actions/runs/39235396808)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39235404155)。
+
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
 - 验证真正的父子 PID、父子返回值、文件描述符共享 open-file-description、退出状态、
