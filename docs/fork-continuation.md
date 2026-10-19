@@ -489,11 +489,11 @@ distro `1dd78e5`、集成提交 `05aaa9d` 增加独立检查
 | --- | --- | --- |
 | 标准 fork、raw clone、exec、信号与线程拒绝恢复 | 双位宽 Node 及已记录浏览器语料通过 | 默认 SDK 不启用，静态 C、单线程 opt-in |
 | 初始化/分配失败、发布前超时、错误后再次 fork/wait | 双位宽 Node；三路首轮浏览器通过，wasm64 Chromium 定位复验通过 | 是可控故障，不等于真实 OOM、任意复制中断或完全回收证明 |
-| 同页重复运行稳定性 | 常规两轮检查和一次诊断复验通过，另有一次 wasm64 Chromium 第二轮卡住 | 根因未定位，独立八轮检查待验收 |
+| 同页重复运行稳定性 | 常规两轮检查、诊断复验及独立八轮检查已核实通过，另有一次 wasm64 Chromium 第二轮卡住 | 根因未定位，小样本重复成功不证明长期无故障 |
 | 进一步兼容性 | 已记录支持范围内的实际语料 | 多线程 fork、vfork、动态链接、任意 C++ EH/SjLj、全阶段信号竞态未扩大支持 |
 
-只有在本轮稳定性复验无新增异常并核实日志之后，再推进 fork 保存/复制/恢复期间的
-信号时序测试；不以增加重复次数替代对再次卡住的定位。
+本轮稳定性复验完成并核实日志后，已推进以下受控信号时序测试；
+不以增加重复次数替代对再次卡住的定位。
 
 ### 三、恢复 musl 的标准封装并验证系统语义
 
@@ -535,15 +535,54 @@ after-suspend-before-clone 顺序、hook 失败时不调用 clone、元数据清
 均由宿主反向门禁拒绝。
 
 本地浏览器相关契约 40 项、SDK/故障/信号契约 11 项、运行及关闭语义 18 项通过；
-固定版本格式检查通过。它们不证明浏览器实际运行结果。新增浏览器验收待核实，
-不使用旧 fork 浏览器成功记录替代新增信号时点；定时任务未恢复。
+固定版本格式检查通过。它们不单独证明浏览器实际运行结果；定时任务未恢复。
 
-固定在 `59c1600` 的四路浏览器运行已进入 Heavy 构建，尚未验收：
+固定在 `59c1600` 的四路浏览器运行均已成功且实际 Heavy 日志已核实：
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39212115655)、
 [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39212123583)、
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39212129762)、
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39212135695)。
-后续须分别核对普通/故障/信号各两轮全部阶段及关闭，而非只看工作流状态。
+四路分别通过普通/故障/信号各两轮的完整阶段门禁及关闭，共 24 次启动/关闭。
+每路故障两轮均包含真实 30 秒发布超时及八次恢复 fork；信号两轮均核对两个
+`fork-signal:` 阶段。引擎为 Chromium 149.0.7827.55、Firefox 151.0。
+该结果只覆盖当前受控 clone 前信号时点，不代表任意恢复阶段竞态或此前偶发卡住
+的根因已经修复。
+
+#### clone 成功后、父端 rewind 前的受控信号时点
+
+distro `f198df0`、集成提交 `205e36c` 增加独立
+`fork-continuation-check-resume-signals` 与
+`fork-continuation-wasm64-check-resume-signals`。测试版 loader 只启用
+`kernel.override { forkResumeSignalTest = true; }`，默认仍为 false；构建层拒绝
+同时开启 clone 前和 clone 后两种注入，以免信号合并掩盖时点错误。
+
+clone 返回正的子 PID、父端临时快照元数据已清除之后，且尚未调用
+`resumeParent()` 开始 Asyncify rewind 之前，通过现有 getpid/kill 向父进程排队
+被屏蔽的 SIGUSR1；clone 负错误或抛错时不注入。它不访问子 Worker，也不要求
+子进程此时已经执行或退出；不是新的 Linux syscall、用户 import 或应用 API。
+注入异常会使测试失败，不伪造成功，也不声明此时已有子进程的异常可作为 fork errno
+恢复。
+
+语料与 clone 前测试共享 C 源码，分别编译；新增宏只选择不同阶段标记和原生基线
+注入位置，不在 Wasm 用户程序内注入。连续两次标准 fork 检查父 pending、子不继承、
+掩码及 handler、解除屏蔽后恰好一次递送、PID、atfork、单次 wait 和栈/TLS 标记。
+新增精确阶段为 `post-clone pre-rewind parent pending and child isolation pass` 与
+`two post-clone forks, stack, TLS and single delivery pass`，均带 `fork-signal:` 前缀。
+
+本地 kernel 宿主 268 项、源码/测试两套类型检查、相关契约 20 项通过；
+固定版本格式检查通过。GCC/Clang 原生正例和省略注入的反向控制均通过，但原生
+只能在 atfork parent 中排队信号，不能证明 Wasm pre-rewind 时点。双位宽宿主检查
+另核对 suspend→clone→注入→rewind 顺序、元数据清理、负 errno 不注入和后续复用，
+以及 clone/注入异常不启动 rewind。
+
+本轮只先提交双位宽 Node 真实目标验收；新时点尚未接入浏览器，不能复用
+`59c1600` 的浏览器结果作为新增验收。它只覆盖被屏蔽信号跨父端恢复边界的保留和
+随后递送，不证明 rewind 内任意时刻的异步中断、复制期间信号、完整多线程 fork
+或其他 libc 已支持。默认 SDK、内核配置和应用 API 均不变。
+
+固定在 `f198df0` 的 [wasm32 resume-signals](https://github.com/HighCWu/distro/actions/runs/39217577300)
+与 [wasm64 resume-signals](https://github.com/HighCWu/distro/actions/runs/39217584314)
+已派发，实际阶段和最终用户 pass 待核实。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
