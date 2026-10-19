@@ -575,14 +575,33 @@ clone 返回正的子 PID、父端临时快照元数据已清除之后，且尚�
 另核对 suspend→clone→注入→rewind 顺序、元数据清理、负 errno 不注入和后续复用，
 以及 clone/注入异常不启动 rewind。
 
-本轮只先提交双位宽 Node 真实目标验收；新时点尚未接入浏览器，不能复用
-`59c1600` 的浏览器结果作为新增验收。它只覆盖被屏蔽信号跨父端恢复边界的保留和
+本轮先完成双位宽 Node 真实目标验收，不能复用 `59c1600` 的浏览器结果作为
+新增时点的验收。它只覆盖被屏蔽信号跨父端恢复边界的保留和
 随后递送，不证明 rewind 内任意时刻的异步中断、复制期间信号、完整多线程 fork
 或其他 libc 已支持。默认 SDK、内核配置和应用 API 均不变。
 
 固定在 `f198df0` 的 [wasm32 resume-signals](https://github.com/HighCWu/distro/actions/runs/39217577300)
 与 [wasm64 resume-signals](https://github.com/HighCWu/distro/actions/runs/39217584314)
-已派发，实际阶段和最终用户 pass 待核实。
+均已成功，实际 Heavy 日志分别核实两个新增 `fork-signal:` 阶段与最终用户 pass。
+
+`7a29e67` 随后将此语料接入四路浏览器检查。新增 `resume-signals` 仅是测试模式，
+使用独立的 `forkResumeSignalTest = true` loader 和匹配的 initramfs；不与 clone 前
+信号 loader 混用。每路同页依次运行普通、故障、clone 前信号、clone 后信号四种
+配置各两轮，新增两轮必须包含 post-clone pre-rewind 与 stack/TLS/single-delivery
+两项精确阶段且完成 `machine.closed`。原有稳定性配置对普通/故障各四轮不变，
+两个信号配置均固定两轮；300 秒外层 watchdog、页面错误与迟到失败检查不放宽。
+
+本地浏览器、SDK/故障/信号、运行及关闭契约合计 73 项通过；固定版本格式检查通过。
+反向门禁确认两个信号配置不能相互冒充，缺阶段、带前缀输出和迟到失败均不能通过；
+loader/initramfs 选择与跨源隔离要求另有执行检查。真实浏览器新增时点结果待核实，
+宿主测试不替代浏览器验收；默认 SDK、内核与公开应用 API 不变。
+
+固定在 `7a29e67` 的四路浏览器检查已派发，结果待核实：
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39230648311)、
+[wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39230659107)、
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39230668048)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39230676723)。
+验收须核实四种配置各两轮、完整阶段和关闭，不以工作流状态替代实际目标证据。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
