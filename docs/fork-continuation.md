@@ -708,12 +708,34 @@ Wasm 恢复前的精确时点。
 本地 kernel 278 项、源码/测试两套类型检查、浏览器/SDK/故障/信号/关闭相关 78 项
 通过；GCC/Clang 正例和省略注入的反向控制、Wasm 条件语法检查及固定版本格式检查
 通过。宿主还检查注入在 rewind/栈/TLS 恢复前发生、重入 fork 被拒绝、元数据清理、
-注入异常不 rewind 和重复调用拒绝。新时点的双位宽 Node 真实目标结果待核实，
-尚未接入浏览器；旧父端信号或旧源码浏览器结果不能代替该验收。仍不覆盖未屏蔽
+注入异常不 rewind 和重复调用拒绝。旧父端信号或旧源码浏览器结果不能代替
+新时点的验收。仍不覆盖未屏蔽
 信号在 rewind 内任意时刻的递送、完整多线程 fork 或任意 libc。
 固定在 `a13d080` 的 [wasm32 child-signals](https://github.com/HighCWu/distro/actions/runs/39243430478)
 与 [wasm64 child-signals](https://github.com/HighCWu/distro/actions/runs/39243437899)
-已派发，真实阶段及最终用户 pass 待核实。
+均已成功；实际 Heavy 日志分别核实两个子端信号阶段及最终用户 pass，包括父端
+隔离、子端 pending、栈/TLS 与单次投递，不以工作流状态替代阶段证据。
+
+distro `24217a3`、集成提交 `48ab09a` 随后把同一语料接入现有四路浏览器检查。
+新增 `child-signals` 仅是测试页面模式，使用独立的 `forkChildSignalTest = true`
+loader 与对应 initramfs；父端两个时点和子端时点的输出不能相互冒充。
+默认内核、SDK 与公开应用 API 不变。
+
+四路各在同一页面运行普通、故障、clone 前父端信号、clone 后父端信号、子端信号
+五种配置各两轮，目标每路十次启动/关闭。新增子端两轮都须包含完整精确阶段并等待
+`machine.closed`；RCU stall、页面错误与迟到失败检查保留，外层 300 秒 watchdog
+及真实 30 秒故障截止不放宽。原稳定性配置对普通/故障各四轮不变，三个受控信号
+配置均固定两轮。
+
+本地浏览器、SDK/故障/信号、运行/关闭相关 79 项、固定版本格式及 JS 语法检查通过。
+反向门禁覆盖缺阶段、带前缀输出、迟到失败、RCU stall 及三个信号时点间的错误
+替代；loader/initramfs 选择和跨源隔离也有执行检查。真实浏览器新增时点待验收，
+不以宿主结果或旧浏览器源码上的通过替代本轮结果。
+固定在 `24217a3` 的四路检查已派发，结果待核实：
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39248612815)、
+[wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39248622383)、
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39248631380)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39248642286)。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
