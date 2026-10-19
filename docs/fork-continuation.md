@@ -670,12 +670,50 @@ wasm64 Firefox（151.0）实际日志确认普通、故障、clone 前信号、c
 并非长期无故障或先前 Worker 退出的所有因果链均已解释。
 
 在相同 `33f6600` 上补齐另外三路浏览器回归，不重复派发已成功的 wasm64 Firefox，
-也不以旧源码上的三路通过代替新内核/等待路径验收。结果核实前，仍暂缓子进程恢复
-前的信号测试。
-补充回归固定在 `33f6600`，已派发、结果待核实：
+也不以旧源码上的三路通过代替新内核/等待路径验收。
+补充回归固定在 `33f6600`，三项均成功且实际日志已核实：
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39238131103)、
 [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39238139400)、
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39238147058)。
+三路均完成四种配置各两轮的全部阶段及关闭，故障两轮均保留真实约 30 秒等待和
+八次恢复 fork；RCU stall 拒绝门禁通过。与前述 wasm64 Firefox 合计四路、32 次
+同页启动/关闭均已核实，引擎为 Chromium 149.0.7827.55、Firefox 151.0。
+这完成该源码的双位宽 Node faults 与四路浏览器一轮回归，不是长期稳定性证明，
+也不补足早先偶发 Worker 退出的全部因果链。
+
+#### 子进程恢复前的受控信号时点
+
+distro `a13d080`、集成提交 `3294e00` 新增独立、默认关闭的
+`fork-continuation-check-child-signals` 与
+`fork-continuation-wasm64-check-child-signals`，使用
+`kernel.override { forkChildSignalTest = true; }`。构建层拒绝它与任一父端信号
+配置同时开启；默认内核、SDK、应用 API 均不改变，没有新增 Linux UAPI 或内核改动。
+
+子端的 `switch_entry` 仍处于内核启动回调，测试不得在那里重入 syscall。
+因此仅测试构建把 child continuation 的恢复推迟到该回调返回后的正常 `user.call`
+入口：尚未执行用户 `_start` 或 Asyncify rewind、尚未恢复子端栈/TLS 时，在现有
+内核重入保护下用 getpid/kill 向当前子进程排队被屏蔽的 SIGUSR1，然后恢复原 snapshot
+并进入用户 continuation。默认构建继续原有 `switch_entry` 恢复路径；不能把测试版
+这一时点等同于任意生产路径上的异步到达。缺失 snapshot 或注入异常不会启动 rewind，
+临时元数据会清除；它不是 fork errno 恢复承诺。
+
+独立 C 语料预先屏蔽 SIGUSR1，连续 fork 两次：子端恢复后必须 pending、handler
+尚未执行，解除屏蔽后恰好一次递送；父端在 fork 返回、解除屏蔽和 wait 完成后均不得
+获得该信号。双方还核对 atfork、PID、屏蔽字、栈/TLS、退出状态及单次回收。
+新增精确阶段为 `fork-signal: child pre-rewind pending and parent isolation pass` 与
+`fork-signal: two child-restored forks, stack, TLS and single delivery pass`。
+Wasm 用户语料不自行注入这个信号；原生基线只在 child-atfork 回调中注入，不能证明
+Wasm 恢复前的精确时点。
+
+本地 kernel 278 项、源码/测试两套类型检查、浏览器/SDK/故障/信号/关闭相关 78 项
+通过；GCC/Clang 正例和省略注入的反向控制、Wasm 条件语法检查及固定版本格式检查
+通过。宿主还检查注入在 rewind/栈/TLS 恢复前发生、重入 fork 被拒绝、元数据清理、
+注入异常不 rewind 和重复调用拒绝。新时点的双位宽 Node 真实目标结果待核实，
+尚未接入浏览器；旧父端信号或旧源码浏览器结果不能代替该验收。仍不覆盖未屏蔽
+信号在 rewind 内任意时刻的递送、完整多线程 fork 或任意 libc。
+固定在 `a13d080` 的 [wasm32 child-signals](https://github.com/HighCWu/distro/actions/runs/39243430478)
+与 [wasm64 child-signals](https://github.com/HighCWu/distro/actions/runs/39243437899)
+已派发，真实阶段及最终用户 pass 待核实。
 
 - 接入 `_Fork` 的子线程身份、TLS、robust list 和线程链处理。
 - 恢复标准 `fork` 的信号掩码、锁与 `pthread_atfork` prepare/parent/child 顺序。
