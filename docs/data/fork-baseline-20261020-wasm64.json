@@ -1,0 +1,796 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-10-19T23:44:10.581Z",
+  "manifest": {
+    "addressBits": 64,
+    "cases": [
+      {
+        "binary": "default.wasm",
+        "id": "default",
+        "kind": "work",
+        "payloadBytes": 0,
+        "variant": "default"
+      },
+      {
+        "binary": "fork-libc-raw.wasm",
+        "id": "fork-libc-raw",
+        "kind": "work",
+        "payloadBytes": 0,
+        "variant": "fork-libc-raw"
+      },
+      {
+        "binary": "fork-libc-asyncify.wasm",
+        "id": "fork-libc-asyncify",
+        "kind": "work",
+        "payloadBytes": 0,
+        "variant": "fork-libc-asyncify"
+      },
+      {
+        "binary": "sdk-asyncify.wasm",
+        "id": "sdk-asyncify",
+        "kind": "work",
+        "payloadBytes": 0,
+        "variant": "sdk-asyncify"
+      },
+      {
+        "binary": "fork-1.wasm",
+        "id": "fork-1",
+        "kind": "fork",
+        "payloadBytes": 1048576,
+        "variant": "sdk-asyncify"
+      },
+      {
+        "binary": "fork-16.wasm",
+        "id": "fork-16",
+        "kind": "fork",
+        "payloadBytes": 16777216,
+        "variant": "sdk-asyncify"
+      },
+      {
+        "binary": "fork-64.wasm",
+        "id": "fork-64",
+        "kind": "fork",
+        "payloadBytes": 67108864,
+        "variant": "sdk-asyncify"
+      }
+    ],
+    "cpus": 2,
+    "samples": 5,
+    "schemaVersion": 1,
+    "syscallIterations": 4096,
+    "warmups": 1,
+    "workIterations": 262144
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModels": [
+      "AMD EPYC 9V74 80-Core Processor"
+    ],
+    "logicalHostCpus": 4
+  },
+  "compiler": "clang version 22.1.8\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /nix/store/4gszcn80ayksfvsgdzzki8w0g6za5im0-llvm-toolchain-wasm64-22.1.8/bin\n",
+  "binaries": {
+    "default.wasm": {
+      "bytes": 39860,
+      "sha256": "925d706c02ff9975a1c70ca244065a29515444aad7f18c1a8383b0be6164c037"
+    },
+    "fork-1-raw.wasm": {
+      "bytes": 42802,
+      "sha256": "4a6ab58a85a4a1b8c02a2607c8c7b04d058305bdc789fc6b66851fd1bad7b08a"
+    },
+    "fork-1.wasm": {
+      "bytes": 106530,
+      "sha256": "0a8e82d85cb66c37f0992b58573c2339e321c074613ed6cf618c808e232c9266"
+    },
+    "fork-16-raw.wasm": {
+      "bytes": 42809,
+      "sha256": "52fa8f68a56c5e1b59ce3fd92c1aa7ebe02f948db0233b8904867642d922cf96"
+    },
+    "fork-16.wasm": {
+      "bytes": 106517,
+      "sha256": "be184a8ce133320e2f61708c2ef36b6abdd22028666983a4646b51495ac065b9"
+    },
+    "fork-64-raw.wasm": {
+      "bytes": 42811,
+      "sha256": "2fdd14254c57cea47177e79852a861a3ecb3c43088ecd34a6ba3bf561717ea62"
+    },
+    "fork-64.wasm": {
+      "bytes": 106519,
+      "sha256": "a307b9b2a5ee729a1014c6b9f114816ca6eb575c993cdc389da2d0acc4e93c4b"
+    },
+    "fork-libc-asyncify.wasm": {
+      "bytes": 97285,
+      "sha256": "0b9d827ec8a167499be88e9ddf18e5ef1bbadc9a91d10a6fb08b73f829291151"
+    },
+    "fork-libc-raw.wasm": {
+      "bytes": 39869,
+      "sha256": "58af2cdbe38db6528195a9a14344a57e2b5cc0ec58c3fa3a5c5f2fc5388645ff"
+    },
+    "sdk-asyncify.wasm": {
+      "bytes": 97738,
+      "sha256": "db0b57a3bc0cd04fe1f4fb346877c3f8dc451fccaca9691590e7b3437b02a72a"
+    },
+    "sdk-linked.wasm": {
+      "bytes": 40306,
+      "sha256": "a7455f9ced15242c29785896cb49a60ea673c7dcb4d6ce401e7021576cd9f50d"
+    }
+  },
+  "boots": [
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "default",
+      "closed": true,
+      "peakProcessRssKiB": 912444,
+      "kernelLinearBytes": 80740352,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730240K/16777216K available (40960K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1360000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":3875000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1165000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":3955000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1185000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1825000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1125000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1255000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1135000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1360000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 0
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-libc-raw",
+      "closed": true,
+      "peakProcessRssKiB": 926656,
+      "kernelLinearBytes": 81788928,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730240K/16777216K available (40960K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nUnpacking initramfs...\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1995000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":5060000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1800000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":3825000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1785000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":2300000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1235000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1445000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1115000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1340000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 0
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-libc-asyncify",
+      "closed": true,
+      "peakProcessRssKiB": 912384,
+      "kernelLinearBytes": 80871424,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":2115000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":7835000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1820000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":3215000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":2150000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":2170000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1750000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1515000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1765000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1455000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 0
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "sdk-asyncify",
+      "closed": true,
+      "peakProcessRssKiB": 894468,
+      "kernelLinearBytes": 80674816,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nUnpacking initramfs...\nio scheduler mq-deadline registered\nio scheduler kyber registered\nFreeing initrd memory: 64K\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1875000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":3445000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1775000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":2755000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1845000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1425000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1760000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1485000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1760000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1540000,\"checksum\":4096,\"linear_bytes\":8978432}\n::vm-test::pass\n",
+      "repeat": 0
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-1",
+      "closed": true,
+      "peakProcessRssKiB": 951060,
+      "kernelLinearBytes": 81002496,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":1048576,\"parent_ns\":49195000,\"wait_ns\":50415000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":1048576,\"parent_ns\":53520000,\"wait_ns\":54165000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":1048576,\"parent_ns\":48760000,\"wait_ns\":50300000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":1048576,\"parent_ns\":47955000,\"wait_ns\":49890000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":1048576,\"parent_ns\":49290000,\"wait_ns\":49975000,\"linear_bytes\":10158080}\n::vm-test::pass\n",
+      "repeat": 0
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-16",
+      "closed": true,
+      "peakProcessRssKiB": 982016,
+      "kernelLinearBytes": 81133568,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":16777216,\"parent_ns\":57845000,\"wait_ns\":58610000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":16777216,\"parent_ns\":54910000,\"wait_ns\":55480000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":16777216,\"parent_ns\":52075000,\"wait_ns\":52820000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":16777216,\"parent_ns\":55655000,\"wait_ns\":56255000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":16777216,\"parent_ns\":50200000,\"wait_ns\":51800000,\"linear_bytes\":25886720}\n::vm-test::pass\n",
+      "repeat": 0
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-64",
+      "closed": true,
+      "peakProcessRssKiB": 1078708,
+      "kernelLinearBytes": 81002496,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nUnpacking initramfs...\nio scheduler mq-deadline registered\nio scheduler kyber registered\nFreeing initrd memory: 64K\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":67108864,\"parent_ns\":58275000,\"wait_ns\":59040000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":67108864,\"parent_ns\":59385000,\"wait_ns\":59980000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":67108864,\"parent_ns\":58865000,\"wait_ns\":59515000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":67108864,\"parent_ns\":58885000,\"wait_ns\":59515000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":67108864,\"parent_ns\":58960000,\"wait_ns\":59600000,\"linear_bytes\":76218368}\n::vm-test::pass\n",
+      "repeat": 0
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-64",
+      "closed": true,
+      "peakProcessRssKiB": 1079768,
+      "kernelLinearBytes": 81788928,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nUnpacking initramfs...\nFreeing initrd memory: 64K\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":67108864,\"parent_ns\":59790000,\"wait_ns\":60515000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":67108864,\"parent_ns\":56660000,\"wait_ns\":57565000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":67108864,\"parent_ns\":58055000,\"wait_ns\":58745000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":67108864,\"parent_ns\":58170000,\"wait_ns\":58780000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":67108864,\"parent_ns\":58965000,\"wait_ns\":59555000,\"linear_bytes\":76218368}\n::vm-test::pass\n",
+      "repeat": 1
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-16",
+      "closed": true,
+      "peakProcessRssKiB": 980556,
+      "kernelLinearBytes": 81133568,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":16777216,\"parent_ns\":56865000,\"wait_ns\":57790000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":16777216,\"parent_ns\":55460000,\"wait_ns\":56150000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":16777216,\"parent_ns\":58725000,\"wait_ns\":59395000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":16777216,\"parent_ns\":58890000,\"wait_ns\":59550000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":16777216,\"parent_ns\":58950000,\"wait_ns\":59640000,\"linear_bytes\":25886720}\n::vm-test::pass\n",
+      "repeat": 1
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-1",
+      "closed": true,
+      "peakProcessRssKiB": 969728,
+      "kernelLinearBytes": 82051072,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":1048576,\"parent_ns\":53385000,\"wait_ns\":54110000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":1048576,\"parent_ns\":54555000,\"wait_ns\":55180000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":1048576,\"parent_ns\":49020000,\"wait_ns\":49835000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":1048576,\"parent_ns\":47640000,\"wait_ns\":49610000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":1048576,\"parent_ns\":48705000,\"wait_ns\":49900000,\"linear_bytes\":10158080}\n::vm-test::pass\n",
+      "repeat": 1
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "sdk-asyncify",
+      "closed": true,
+      "peakProcessRssKiB": 894052,
+      "kernelLinearBytes": 80674816,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1915000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":3535000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1795000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":6040000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1735000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1460000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1760000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1290000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1765000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1360000,\"checksum\":4096,\"linear_bytes\":8978432}\n::vm-test::pass\n",
+      "repeat": 1
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-libc-asyncify",
+      "closed": true,
+      "peakProcessRssKiB": 933392,
+      "kernelLinearBytes": 81920000,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1910000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":3690000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1785000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":3040000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1795000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1755000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":2080000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1315000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1745000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1480000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 1
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-libc-raw",
+      "closed": true,
+      "peakProcessRssKiB": 927660,
+      "kernelLinearBytes": 81788928,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730240K/16777216K available (40960K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1420000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":3520000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1165000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":2975000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1675000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1395000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1115000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1440000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1130000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1330000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 1
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "default",
+      "closed": true,
+      "peakProcessRssKiB": 911400,
+      "kernelLinearBytes": 80805888,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730240K/16777216K available (40960K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1290000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":6425000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1155000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":2685000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1170000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1650000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1145000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1465000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1115000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1355000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 1
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "default",
+      "closed": true,
+      "peakProcessRssKiB": 909424,
+      "kernelLinearBytes": 80805888,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730240K/16777216K available (40960K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nUnpacking initramfs...\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1440000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":3700000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1320000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":3140000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1600000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1495000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1120000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1400000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1115000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1345000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 2
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-libc-raw",
+      "closed": true,
+      "peakProcessRssKiB": 928980,
+      "kernelLinearBytes": 81788928,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730240K/16777216K available (40960K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1355000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":3915000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1265000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":3075000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1285000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1625000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1235000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1430000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1215000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1325000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 2
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-libc-asyncify",
+      "closed": true,
+      "peakProcessRssKiB": 913064,
+      "kernelLinearBytes": 80805888,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":1885000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":6215000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":1765000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":3060000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":2380000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1405000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1740000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1255000,\"checksum\":4096,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1755000,\"checksum\":2162556970,\"linear_bytes\":8716288}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1305000,\"checksum\":4096,\"linear_bytes\":8716288}\n::vm-test::pass\n",
+      "repeat": 2
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "sdk-asyncify",
+      "closed": true,
+      "peakProcessRssKiB": 914968,
+      "kernelLinearBytes": 80805888,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":0,\"iterations\":262144,\"ns\":2070000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":0,\"iterations\":4096,\"ns\":3765000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":1,\"iterations\":262144,\"ns\":4490000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":1,\"iterations\":4096,\"ns\":3110000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":2,\"iterations\":262144,\"ns\":1875000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":2,\"iterations\":4096,\"ns\":1870000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":3,\"iterations\":262144,\"ns\":1790000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":3,\"iterations\":4096,\"ns\":1505000,\"checksum\":4096,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"calls\",\"sample\":4,\"iterations\":262144,\"ns\":1790000,\"checksum\":2162556970,\"linear_bytes\":8978432}\nfork-bench: {\"kind\":\"work\",\"phase\":\"syscalls\",\"sample\":4,\"iterations\":4096,\"ns\":1490000,\"checksum\":4096,\"linear_bytes\":8978432}\n::vm-test::pass\n",
+      "repeat": 2
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-1",
+      "closed": true,
+      "peakProcessRssKiB": 969152,
+      "kernelLinearBytes": 82051072,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nUnpacking initramfs...\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nFreeing initrd memory: 64K\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":1048576,\"parent_ns\":52385000,\"wait_ns\":53330000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":1048576,\"parent_ns\":54650000,\"wait_ns\":55255000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":1048576,\"parent_ns\":47835000,\"wait_ns\":50270000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":1048576,\"parent_ns\":49780000,\"wait_ns\":50610000,\"linear_bytes\":10158080}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":1048576,\"parent_ns\":49725000,\"wait_ns\":50695000,\"linear_bytes\":10158080}\n::vm-test::pass\n",
+      "repeat": 2
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-16",
+      "closed": true,
+      "peakProcessRssKiB": 982924,
+      "kernelLinearBytes": 81920000,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nUnpacking initramfs...\nFreeing initrd memory: 64K\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":16777216,\"parent_ns\":57880000,\"wait_ns\":58650000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":16777216,\"parent_ns\":55515000,\"wait_ns\":56170000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":16777216,\"parent_ns\":50980000,\"wait_ns\":52220000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":16777216,\"parent_ns\":56265000,\"wait_ns\":56840000,\"linear_bytes\":25886720}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":16777216,\"parent_ns\":48940000,\"wait_ns\":51050000,\"linear_bytes\":25886720}\n::vm-test::pass\n",
+      "repeat": 2
+    },
+    {
+      "schemaVersion": 1,
+      "addressBits": 64,
+      "caseId": "fork-64",
+      "closed": true,
+      "peakProcessRssKiB": 1098292,
+      "kernelLinearBytes": 82182144,
+      "output": "random: crng init done\nprintk: legacy bootconsole [earlycon0] enabled\nLinux version 7.1.5 (runner@runnervm8k3b6) (clang version 22.1.8, LLD 22.1.8) # SMP \nHeap:\t(____ptrval____) -> (____ptrval____) = 62544\nStack:\t0000000000000000 -> (____ptrval____) = 65536\nCore count: 2\nZone ranges:\n  Normal   [mem 0x0000000000000000-0x00000003ffffffff]\nMovable zone start for each node\nEarly memory node ranges\n  node   0: [mem 0x0000000000000000-0x00000003ffffffff]\nInitmem setup node 0 [mem 0x0000000000000000-0x00000003ffffffff]\npercpu: max_distance=0x20000 too large for vmalloc space 0x0\npercpu: Embedded 1 pages/cpu s30280 r0 d35256 u65536\nKernel command line: console=hvc0 \nprintk: log buffer data + meta data: 131072 + 458752 = 589824 bytes\nDentry cache hash table entries: 2097152 (order: 8, 16777216 bytes, linear)\nInode-cache hash table entries: 1048576 (order: 7, 8388608 bytes, linear)\nSorting __ex_table...\nBuilt 1 zonelists, mobility grouping off.  Total pages: 262144\nmem auto-init: stack:all(zero), heap alloc:off, heap free:off\nSLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=2, Nodes=1\nrcu: Hierarchical RCU implementation.\nrcu: \tRCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=2.\nrcu: RCU calculated value of scheduler-enlistment delay is 10 jiffies.\nrcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=2\nNR_IRQS: 256\nIRQs enabled\nrcu: srcu_init: Setting srcu_struct sizes based on contention.\nclocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns\nclocksource: wasm: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns\nConsole: colour dummy device 80x25\npid_max: default: 32768 minimum: 301\nMount-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nMountpoint-cache hash table entries: 32768 (order: 2, 262144 bytes, linear)\nVFS: Finished mounting rootfs on nullfs\nrcu: Hierarchical SRCU implementation.\nrcu: \tMax phase no-delay instances is 1000.\nTimer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level\nsmp: Bringing up secondary CPUs ...\nHello from cpu 1!\nsmp: Brought up 1 node, 2 CPUs\nMemory: 16730176K/16777216K available (41024K reserved, 0K cma-reserved)\ndevtmpfs: initialized\nposixtimers hash table entries: 1024 (order: 0, 16384 bytes, linear)\nfutex hash table entries: 512 (32768 bytes on 1 NUMA nodes, total 32 KiB, linear).\nNET: Registered PF_NETLINK/PF_ROUTE protocol family\npps_core: LinuxPPS API ver. 1 registered\npps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\nPTP clock support registered\nclocksource: Switched to clocksource wasm\nNET: Registered PF_INET protocol family\nIP idents hash table entries: 262144 (order: 5, 2097152 bytes, linear)\ntcp_listen_portaddr_hash hash table entries: 8192 (order: 1, 131072 bytes, linear)\nTable-perturb hash table entries: 65536 (order: 2, 262144 bytes, linear)\nTCP established hash table entries: 131072 (order: 4, 1048576 bytes, linear)\nTCP bind hash table entries: 65536 (order: 5, 2097152 bytes, linear)\nTCP: Hash tables configured (established 131072 bind 65536)\nUDP hash table entries: 8192 (order: 4, 917504 bytes, linear)\nNET: Registered PF_UNIX/PF_LOCAL protocol family\nUnpacking initramfs...\nFreeing initrd memory: 64K\nworkingset: timestamp_bits=62 (anon: 58) max_order=18 bucket_order=0 (anon: 0)\nsquashfs: version 4.0 (2009/01/31) Phillip Lougher\nfuse: init (API version 7.45)\nio scheduler mq-deadline registered\nio scheduler kyber registered\nNET: Registered PF_VSOCK protocol family\nprintk: legacy console [hvc0] enabled\nprintk: legacy bootconsole [earlycon0] disabled\nThis architecture does not have kernel memory protection.\nRun /init as init process\nfork-bench: {\"kind\":\"fork\",\"sample\":0,\"payload_bytes\":67108864,\"parent_ns\":58320000,\"wait_ns\":59205000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":1,\"payload_bytes\":67108864,\"parent_ns\":55455000,\"wait_ns\":56245000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":2,\"payload_bytes\":67108864,\"parent_ns\":57480000,\"wait_ns\":58135000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":3,\"payload_bytes\":67108864,\"parent_ns\":58885000,\"wait_ns\":59555000,\"linear_bytes\":76218368}\nfork-bench: {\"kind\":\"fork\",\"sample\":4,\"payload_bytes\":67108864,\"parent_ns\":58940000,\"wait_ns\":59490000,\"linear_bytes\":76218368}\n::vm-test::pass\n",
+      "repeat": 2
+    }
+  ],
+  "summary": [
+    {
+      "caseId": "default",
+      "payloadBytes": 0,
+      "timings": {
+        "calls": {
+          "bootMediansNs": [
+            1165000,
+            1155000,
+            1320000
+          ],
+          "medianOfBootMediansNs": 1165000
+        },
+        "syscalls": {
+          "bootMediansNs": [
+            1825000,
+            1650000,
+            1495000
+          ],
+          "medianOfBootMediansNs": 1650000
+        }
+      },
+      "peakProcessRssKiB": [
+        912444,
+        911400,
+        909424
+      ],
+      "kernelLinearBytes": [
+        80740352,
+        80805888,
+        80805888
+      ],
+      "userLinearBytes": [
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ],
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ],
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ]
+      ]
+    },
+    {
+      "caseId": "fork-libc-raw",
+      "payloadBytes": 0,
+      "timings": {
+        "calls": {
+          "bootMediansNs": [
+            1785000,
+            1165000,
+            1265000
+          ],
+          "medianOfBootMediansNs": 1265000
+        },
+        "syscalls": {
+          "bootMediansNs": [
+            2300000,
+            1440000,
+            1625000
+          ],
+          "medianOfBootMediansNs": 1625000
+        }
+      },
+      "peakProcessRssKiB": [
+        926656,
+        927660,
+        928980
+      ],
+      "kernelLinearBytes": [
+        81788928,
+        81788928,
+        81788928
+      ],
+      "userLinearBytes": [
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ],
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ],
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ]
+      ]
+    },
+    {
+      "caseId": "fork-libc-asyncify",
+      "payloadBytes": 0,
+      "timings": {
+        "calls": {
+          "bootMediansNs": [
+            1820000,
+            1795000,
+            1765000
+          ],
+          "medianOfBootMediansNs": 1795000
+        },
+        "syscalls": {
+          "bootMediansNs": [
+            2170000,
+            1755000,
+            1405000
+          ],
+          "medianOfBootMediansNs": 1755000
+        }
+      },
+      "peakProcessRssKiB": [
+        912384,
+        933392,
+        913064
+      ],
+      "kernelLinearBytes": [
+        80871424,
+        81920000,
+        80805888
+      ],
+      "userLinearBytes": [
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ],
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ],
+        [
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288,
+          8716288
+        ]
+      ]
+    },
+    {
+      "caseId": "sdk-asyncify",
+      "payloadBytes": 0,
+      "timings": {
+        "calls": {
+          "bootMediansNs": [
+            1775000,
+            1765000,
+            1875000
+          ],
+          "medianOfBootMediansNs": 1775000
+        },
+        "syscalls": {
+          "bootMediansNs": [
+            1540000,
+            1460000,
+            1870000
+          ],
+          "medianOfBootMediansNs": 1540000
+        }
+      },
+      "peakProcessRssKiB": [
+        894468,
+        894052,
+        914968
+      ],
+      "kernelLinearBytes": [
+        80674816,
+        80674816,
+        80805888
+      ],
+      "userLinearBytes": [
+        [
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432
+        ],
+        [
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432
+        ],
+        [
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432,
+          8978432
+        ]
+      ]
+    },
+    {
+      "caseId": "fork-1",
+      "payloadBytes": 1048576,
+      "timings": {
+        "parent": {
+          "bootMediansNs": [
+            49195000,
+            49020000,
+            49780000
+          ],
+          "medianOfBootMediansNs": 49195000
+        },
+        "wait": {
+          "bootMediansNs": [
+            50300000,
+            49900000,
+            50695000
+          ],
+          "medianOfBootMediansNs": 50300000
+        }
+      },
+      "peakProcessRssKiB": [
+        951060,
+        969728,
+        969152
+      ],
+      "kernelLinearBytes": [
+        81002496,
+        82051072,
+        82051072
+      ],
+      "userLinearBytes": [
+        [
+          10158080,
+          10158080,
+          10158080,
+          10158080,
+          10158080
+        ],
+        [
+          10158080,
+          10158080,
+          10158080,
+          10158080,
+          10158080
+        ],
+        [
+          10158080,
+          10158080,
+          10158080,
+          10158080,
+          10158080
+        ]
+      ]
+    },
+    {
+      "caseId": "fork-16",
+      "payloadBytes": 16777216,
+      "timings": {
+        "parent": {
+          "bootMediansNs": [
+            54910000,
+            58725000,
+            55515000
+          ],
+          "medianOfBootMediansNs": 55515000
+        },
+        "wait": {
+          "bootMediansNs": [
+            55480000,
+            59395000,
+            56170000
+          ],
+          "medianOfBootMediansNs": 56170000
+        }
+      },
+      "peakProcessRssKiB": [
+        982016,
+        980556,
+        982924
+      ],
+      "kernelLinearBytes": [
+        81133568,
+        81133568,
+        81920000
+      ],
+      "userLinearBytes": [
+        [
+          25886720,
+          25886720,
+          25886720,
+          25886720,
+          25886720
+        ],
+        [
+          25886720,
+          25886720,
+          25886720,
+          25886720,
+          25886720
+        ],
+        [
+          25886720,
+          25886720,
+          25886720,
+          25886720,
+          25886720
+        ]
+      ]
+    },
+    {
+      "caseId": "fork-64",
+      "payloadBytes": 67108864,
+      "timings": {
+        "parent": {
+          "bootMediansNs": [
+            58885000,
+            58170000,
+            58320000
+          ],
+          "medianOfBootMediansNs": 58320000
+        },
+        "wait": {
+          "bootMediansNs": [
+            59515000,
+            58780000,
+            59205000
+          ],
+          "medianOfBootMediansNs": 59205000
+        }
+      },
+      "peakProcessRssKiB": [
+        1078708,
+        1079768,
+        1098292
+      ],
+      "kernelLinearBytes": [
+        81002496,
+        81788928,
+        82182144
+      ],
+      "userLinearBytes": [
+        [
+          76218368,
+          76218368,
+          76218368,
+          76218368,
+          76218368
+        ],
+        [
+          76218368,
+          76218368,
+          76218368,
+          76218368,
+          76218368
+        ],
+        [
+          76218368,
+          76218368,
+          76218368,
+          76218368,
+          76218368
+        ]
+      ]
+    }
+  ],
+  "ratios": {
+    "asyncifySameLink": {
+      "calls": 1.4189723320158103,
+      "syscalls": 1.08
+    },
+    "sdkEndToEnd": {
+      "calls": 1.5236051502145922,
+      "syscalls": 0.9333333333333333
+    }
+  },
+  "limitations": [
+    "Three fresh boots per case; samples inside one boot are not independent boots.",
+    "RSS is Linux Node whole-process lifetime high-water KiB, including kernel, JIT, Workers and shutdown, not user-program RSS or browser memory.",
+    "Linear bytes are allocation sizes, not resident memory or proof of complete resource reclamation.",
+    "No absolute performance thresholds; CI hosts, JIT and scheduling can vary.",
+    "Same-link Asyncify control omits the continuation object; the actual SDK's untransformed module is never admitted or booted."
+  ]
+}
