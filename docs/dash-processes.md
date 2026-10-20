@@ -51,7 +51,23 @@ SC2030/SC2031 指向工作负载有意保留的 subshell 变量隔离检查，�
 运行错误。`811b2af` / 集成 pin `3a9f717` 对这两处添加说明及定点豁免，保留父子
 两侧断言；本地 ShellCheck、shfmt 和两项宿主检查通过。
 [新版 wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39450779425)
-已派发，目标构建、运行阶段与关闭结果仍待核实。
+已完成并失败：静态检查及构建机语料通过，目标编译在 `redir.c` 的
+`memfd_create()` 调用处报缺失声明，尚未链接、执行完整变换或运行脚本。
+
+musl 已存在该函数的普通 syscall 转发实现，但 `sys/mman.h` 把其 GNU 声明放在
+Wasm 排除区间中。musl `c080f8e1` 将这一声明移到 Wasm 也可见的 `_GNU_SOURCE`
+区间，不改签名、不新增 syscall 或 memfd 实现，不额外开放 mprotect、mremap 等
+仍被隐藏的接口。新增原型编译断言先在 wasm32/wasm64 复现失败，修正后双位宽及
+x86_64 对照通过；原有整数头文件、msync、源码 pin 检查和可选 fork 补丁 dry-run
+也通过。声明可见不保证当前内核提供 memfd、sealing 或文件映射全部能力，调用
+仍应处理内核返回的正常错误。
+
+[源码哈希预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39511885807)
+成功后，distro `a900f5d` 固定新 musl 精确 revision/hash，主仓库 `041ee70` 同步
+两个 gitlink、头文件回归和轻量 CI。未在 Dash 中添加私有函数声明或绕过该调用。
+[修正后的 wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39512053823)
+已派发，目标构建、变换、完整脚本及关闭结果仍待核实；不宣称 Dash 或任意
+SjLj 与 fork 的组合已经受支持。
 
 ```sh
 gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
