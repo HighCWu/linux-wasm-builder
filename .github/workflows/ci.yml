@@ -96,6 +96,7 @@ jobs:
           node --test sources/distro/distro/fork-continuation/fault-contract.test.js
           node --test sources/distro/distro/fork-continuation/signal-contract.test.js
           node --test sources/distro/distro/fork-continuation/benchmark.test.js
+          node --test sources/distro/distro/fork-continuation/latency.test.js
           node --experimental-vm-modules --test sources/distro/distro/fork-continuation/worker-bundle.test.js
           patch --dry-run -p1 -d sources/musl \
             < sources/distro/distro/musl/fork-continuation.patch
