@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Compile public integer headers without building libc or target binaries."""
+"""Compile public integer and memfd headers without building libc or binaries."""
 
 import pathlib
 import subprocess
@@ -10,8 +10,12 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MUSL = ROOT / "sources/musl"
 SOURCE = r"""
+#define _GNU_SOURCE 1
 #include <inttypes.h>
 #include <stdio.h>
+#include <sys/mman.h>
+_Static_assert(_Generic(&memfd_create,
+    int (*)(const char *, unsigned): 1, default: 0), "memfd_create prototype");
 #define SAME(expr, type) _Static_assert(_Generic((expr), type: 1, default: 0), #expr)
 SAME(INT64_C(1), int_least64_t);
 SAME(UINT64_C(1), uint_least64_t);
@@ -33,7 +37,7 @@ CHECK(PTR, intptr_t, uintptr_t)
 
 
 class IntegerHeaders(unittest.TestCase):
-    def test_public_macros_match_typedefs(self):
+    def test_public_macros_and_memfd_prototype(self):
         for target, arch in [
             ("wasm32", "wasm32"),
             ("wasm64", "wasm32"),

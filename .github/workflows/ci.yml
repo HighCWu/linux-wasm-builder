@@ -249,7 +249,7 @@ jobs:
           python3 -B scripts/test_repository_source_pins.py
       - name: Check SDK spawn bounds against the native parser
         run: python3 -B scripts/test_agent_spawn_contract.py
-      - name: Check musl integer constants and format macros without building libc
+      - name: Check musl integer macros and GNU memfd declaration without building libc
         run: python3 -B scripts/test_musl_integer_headers.py
       - name: Check musl msync declaration and syscall forwarding without building libc
         run: python3 -B scripts/test_musl_msync.py
