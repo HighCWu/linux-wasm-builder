@@ -46,6 +46,13 @@ Linux 内完整阶段及关机。目标结果未核实前保持候选状态；�
 缺口，应优先定位并修正该缺口，不用 callback 重写绕过。wasm32 和浏览器需在
 主路径打通后另验，不从 Node 或本机结果推定通过。
 
+首轮 `39444729143` 在 treefmt 的 ShellCheck 门禁失败，尚未构建或运行目标 Dash。
+SC2030/SC2031 指向工作负载有意保留的 subshell 变量隔离检查，不是已定位的 Wasm
+运行错误。`811b2af` / 集成 pin `3a9f717` 对这两处添加说明及定点豁免，保留父子
+两侧断言；本地 ShellCheck、shfmt 和两项宿主检查通过。
+[新版 wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39450779425)
+已派发，目标构建、运行阶段与关闭结果仍待核实。
+
 ```sh
 gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
   -f heavy-check=dash-fork-wasm64-check-runtime
