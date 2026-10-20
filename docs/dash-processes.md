@@ -66,8 +66,21 @@ x86_64 对照通过；原有整数头文件、msync、源码 pin 检查和可选
 成功后，distro `a900f5d` 固定新 musl 精确 revision/hash，主仓库 `041ee70` 同步
 两个 gitlink、头文件回归和轻量 CI。未在 Dash 中添加私有函数声明或绕过该调用。
 [修正后的 wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39512053823)
-已派发，目标构建、变换、完整脚本及关闭结果仍待核实；不宣称 Dash 或任意
-SjLj 与 fork 的组合已经受支持。
+已完成并失败，但目标已成功编译、链接、变换和进入 Linux 执行。实际日志确认：
+
+- `dash: subshell, external exec and command substitution pass`；
+- `dash: pipelines and inherited fd redirection pass`。
+
+随后后台子进程因 raw initramfs 的 `/dev` 为空，无法打开 `/dev/null`，以状态 2
+结束，脚本正确输出失败；不是已经证明的 fork 或 wait 语义错误。尚未运行完退出码、
+错误恢复和最终关闭验收，不把前两阶段成功扩大为完整 shell 支持或任意 SjLj 兼容。
+
+distro `7c559ac` / 集成 `0739967` 在目标脚本启动时挂载 devtmpfs，并明确检查
+`/dev/null` 是字符设备。宿主验证显式跳过挂载，避免覆盖开发机 `/dev`。没有通过
+重定向后台任务的 stdin 来绕过 shell 的默认行为，没有放宽 wait 状态断言或改变
+fork 实现。本地 ShellCheck、shfmt 和两项宿主回归通过。
+[补齐运行环境后的 wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39516195908)
+已派发，仍须核实四阶段、最终 pass 及关机，才可记录本轮完整目标结果。
 
 ```sh
 gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
