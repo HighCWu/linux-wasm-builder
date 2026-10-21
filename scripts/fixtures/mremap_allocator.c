@@ -141,12 +141,47 @@ static void partial_grow(void)
 	assert(live_allocations == 0 && mappings == NULL);
 }
 
+static void private_sync(void)
+{
+	long original = __wasm_mmap(3 * PAGESIZE);
+	assert(original > 0);
+	memset((void *)original, 67, 3 * PAGESIZE);
+	const int flags[] = {0, MS_SYNC, MS_ASYNC, MS_INVALIDATE,
+		MS_SYNC | MS_INVALIDATE, MS_ASYNC | MS_INVALIDATE};
+	for (unsigned i = 0; i < sizeof flags / sizeof flags[0]; i++)
+		assert(__wasm_msync(original, 3 * PAGESIZE, flags[i]) == 0);
+	assert(__wasm_msync(0, 0, MS_SYNC) == 0);
+	assert(__wasm_msync(0, PAGESIZE, MS_SYNC) == -ENOMEM);
+	assert(__wasm_msync(original + 1, 0, MS_SYNC) == -EINVAL);
+	assert(__wasm_msync(original, PAGESIZE, MS_SYNC | MS_ASYNC) == -EINVAL);
+	assert(__wasm_msync(original, PAGESIZE, 8) == -EINVAL);
+	assert(__wasm_msync((uintptr_t)-PAGESIZE, 2 * PAGESIZE, 0) == -ENOMEM);
+	assert(__wasm_munmap(original + PAGESIZE, PAGESIZE) == 0);
+	assert(__wasm_msync(original, 3 * PAGESIZE, MS_SYNC) == -ENOMEM);
+	assert(__wasm_msync(original, PAGESIZE, MS_SYNC) == 0);
+	assert(__wasm_msync(original + 2 * PAGESIZE, PAGESIZE, MS_SYNC) == 0);
+	assert(__wasm_mmap_v2(original + PAGESIZE, PAGESIZE, 3,
+		MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE, -1, 0) == original + PAGESIZE);
+	fail_after = 0; /* Validation does not allocate or require a producer. */
+	assert(__wasm_msync(original, 3 * PAGESIZE, MS_SYNC) == 0);
+	fail_after = -1;
+	assert(*(unsigned char *)original == 67 && *(unsigned char *)(original + PAGESIZE) == 0);
+	assert(__wasm_munmap(original, 3 * PAGESIZE) == 0);
+	assert(__wasm_msync(original, PAGESIZE, MS_SYNC) == -ENOMEM);
+	long private_copy = __wasm_mmap_initialized(PAGESIZE, initialize, NULL);
+	assert(private_copy > 0 && __wasm_msync(private_copy, PAGESIZE, MS_SYNC) == 0);
+	assert(*(unsigned char *)private_copy == 71);
+	assert(__wasm_munmap(private_copy, PAGESIZE) == 0);
+	assert(live_allocations == 0 && mappings == NULL);
+}
+
 int main(void)
 {
 	for (int i = 0; i < 16; i++) { scenario(0); scenario(1); }
 	for (int i = 0; i < 3; i++) partial_move(i);
 	partial_shrink();
 	partial_grow();
+	private_sync();
 	assert(__wasm_mmap_initialized(PAGESIZE, initialize, (void *)1) == -EIO);
 	assert(live_allocations == 0 && mappings == NULL);
 	long file = __wasm_mmap_initialized(3 * PAGESIZE, initialize, NULL);
