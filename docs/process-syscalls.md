@@ -76,7 +76,10 @@ GCC/Clang 实际原生运行、故意去掉 CLOEXEC 的反向控制及相关阶�
 `6c088a6` 只补充相同语料的浏览器装配，随后派发
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39530457614)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39530463413) 和
-[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39530468988)，均待验收。
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39530468988) 均已成功，实际
+日志核实全部三阶段和最终 pass。Chromium 149.0.7827.55、Firefox 151.0 各执行两轮，
+每轮确认机器关闭，最终确认浏览器关闭；wasm32 Node 通过运行器关闭门禁。
+这些是原 exec-fd 语料的结果，不覆盖下文新增 close_range 阶段。
 
 ## 第三组：clone3 fork 形态的实际接入
 
@@ -112,8 +115,42 @@ GCC/Clang 的 C 语料通过原生 fork shim 运行，另有 clone3 专属错误
 它们不是宿主原生 clone3 或 Wasm 运行证明。新的
 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39532388311) 与
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39532393851)
-已对最终版本重新派发，须核实
-新增 clone3 阶段、完整原有语料和关闭之后，才将该接入记为目标验收通过。
+已成功，实际日志核实新增 clone3 阶段、原 raw clone、PID/TLS/atfork、pending signal、
+exec 成功／失败、pthread 与 signal callback 拒绝及后续恢复、最终 pass。两个目标
+均通过等待 machine.closed 的运行器关闭门禁，因此记录双位宽 Node 准入通过。
+浏览器另对 distro `8c3d612` 派发四路完整 fork 检查；该源码只在 exec-fd 语料扩展
+close_range，clone3 实现仍与 `abddde6` 相同。未完成前不计为浏览器准入通过。
+
+本轮浏览器任务为
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39534457837)、
+[wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39534465683)、
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39534471508)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39534477059)。
+仍要求 normal/fault/signal 对应完整阶段、各两轮和关闭，不用 Node 结果代替。
+
+## 第四组：close_range 与 exec 前 fd 清理
+
+distro `8c3d612` / 集成 `3e61caa` 扩展原 exec-fd 语料，直接调用标准
+`SYS_close_range`，不安装新的应用包装函数。公共 musl 已有该编号，Linux 也已有
+实现，因此本轮先验证真实 Wasm 路径，未重复编写内核实现。
+
+- 关闭含空洞的有界区间，核对区间内关闭及区间外 fd 保留；
+- `UINT_MAX` 上界和 `CLOSE_RANGE_UNSHARE`，核对 fork 子进程关闭后父进程 fd 保留；
+- 首末倒置或非法 flags 返回 EINVAL，原 fd 保持有效；
+- `CLOSE_RANGE_CLOEXEC` 及其与 UNSHARE 的组合：此前未标记的复制 fd 在调用后
+  仍可访问且带 FD_CLOEXEC，直到 fexecve 替换程序才关闭；数据 fd 继续继承；
+- 原 execveat/fexecve、共享文件 offset、错误返回和后续 fork/wait 回归继续执行。
+
+本地 298 项内核侧检查、15 项相关语料/协议/链接检查通过。GCC 与 Clang 各执行
+正常路径和三种反向控制：可执行 fd 泄漏、close_range 伪造成功、丢失 CLOEXEC
+语义都必须导致失败；这些仅验证宿主语料，不证明 Wasm syscall 已通过。
+
+新增阶段被纳入原 execfd 的严格阶段门禁。
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39534312750) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39534320861) 已派发，待实际
+阶段与关闭证据；浏览器尚未对这一新版本验收。测试是在单线程 fork 后独立 fd 表上执行，
+不覆盖 CLONE_FILES 共享表被 UNSHARE 分离的分支，也不声称支持多线程 fork。
+本轮没有改变默认 SDK、内核配置、执行 ABI 版本或原 clone3 的支持范围。
 
 Dash 的 wasm64 Node 结果和浏览器/wasm32 进度独立记录在
 [Dash 接入记录](dash-processes.md)，不将其中的 shell 通过泛化到 pidfd。

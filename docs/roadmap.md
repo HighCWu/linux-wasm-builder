@@ -26,11 +26,14 @@
 
 [标准进程 syscall 准入](process-syscalls.md) 已核实 pidfd_open、pidfd_send_signal、
 poll、waitid(P_PIDFD) 与单次回收的双位宽 Node 和 wasm64 双浏览器组合。
-execveat/fexecve 的 wasm64 Node 也已核实，正在补双浏览器和 wasm32。
+execveat/fexecve 的双位宽 Node 与 wasm64 双浏览器两轮及关闭也已核实。
 当前实际实现 clone3 的有限 fork 形态在 v2 执行入口的适配，坏参数／不支持形态
 不会进入回调式内核 clone；新执行对象要求 syscall 扩展 ABI 2，旧 clone 的 ABI 1
 保持兼容。公共 musl 头文件补齐标准 SYS_clone3；本地 298 项内核侧检查、相关语料、
-双位宽实际编译链接和类型检查通过，最终版本双位宽 Node 待结果。
+双位宽实际编译链接和类型检查通过；双位宽 Node 实际日志已核实新增 clone3 与
+完整原语料和关闭门禁，浏览器四路正在补验。随后扩展 close_range 的
+区间关闭、CLOEXEC/UNSHARE 及 exec 前 fd 清理组合，本地语料与反向控制通过，
+新版本双位宽 Node 已派发，尚不把新增阶段计为真实目标验收通过。
 不把验收入口存在、宿主结果或单一目标通过扩大成全部 flags、线程创建及多线程支持。
 
 按当前项目决策，停止继续拆分 fork 性能指标、调整调度等待或试验 Worker 启动
