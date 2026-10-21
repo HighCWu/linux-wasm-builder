@@ -151,6 +151,10 @@ jobs:
         run: |
           node --test sources/distro/distro/bash-fork/processes.test.js \
             sources/distro/distro/bash-fork/sjlj.test.js
+          clang --analyze -Xanalyzer -analyzer-werror -Xanalyzer -analyzer-output=text \
+            sources/distro/distro/bash-fork/sjlj.c -o /dev/null
+          clang --analyze -Xanalyzer -analyzer-werror -Xanalyzer -analyzer-output=text \
+            sources/distro/distro/fork-continuation/exec-fd.c -o /dev/null
       - name: Check shared Lua workload on a native interpreter
         # Native execution validates the fixture, not target SjLj or the Wasm ABI.
         run: |
