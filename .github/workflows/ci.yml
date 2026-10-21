@@ -60,6 +60,11 @@ jobs:
           gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/process.c?ref=$revision" \
             --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-process.c"
           python3 -B scripts/check_fork_worker_abort.py "$RUNNER_TEMP/wasm-process.c"
+          gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/syscall.c?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-syscall.c"
+          WASM_MREMAP_SYSCALL_SOURCE="$RUNNER_TEMP/wasm-syscall.c" \
+            node --test scripts/test_mremap_syscall.js
+          node --test scripts/test_mremap_allocator.js
       - name: Check SDK compiler and dependency discovery contracts
         run: |
           clang --version

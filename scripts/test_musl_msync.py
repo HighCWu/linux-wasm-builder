@@ -35,8 +35,10 @@ class MsyncContract(unittest.TestCase):
                         "-x", "c", "-",
                     ],
                     input="""
+#define _GNU_SOURCE
 #include <sys/mman.h>
 int (*operation)(void *, size_t, int) = msync;
+void *(*remap_operation)(void *, size_t, size_t, int, ...) = mremap;
 _Static_assert(MS_SYNC == 4, "standard flags");
 _Static_assert(sizeof(size_t) == sizeof(void *), "native size_t");
 """,

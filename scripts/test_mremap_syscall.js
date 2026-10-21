@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: MIT
+// Compile the exact architecture wrapper with lightweight host definitions.
+// This validates admission/forwarding, not Linux/Wasm execution or libc linkage.
+import assert from "node:assert/strict";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import test from "node:test";
+
+for (const cc of ["gcc", "clang"])
+  test(`${cc}: exact mremap wrapper rejects before forwarding and rounds at 64 KiB`, (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "wasm-mremap-syscall-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const source = readFileSync(
+      process.env.WASM_MREMAP_SYSCALL_SOURCE ??
+        new URL("../sources/linux/arch/wasm/kernel/syscall.c", import.meta.url),
+      "utf8",
+    );
+    const start = source.indexOf("SYSCALL_DEFINE5(wasm_mremap,");
+    const end = source.indexOf("\n}\n", start);
+    assert.ok(start >= 0 && end > start);
+    const wrapper = source.slice(start, end + 3);
+    const prefix = `
+#define _GNU_SOURCE
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <sys/mman.h>
+#define PAGE_SIZE 65536UL
+#define PAGE_MASK (~(PAGE_SIZE - 1))
+#define PAGE_ALIGNED(x) (!((x) & (PAGE_SIZE - 1)))
+#define TASK_SIZE 0x400000000UL
+#define check_add_overflow(a,b,c) __builtin_add_overflow(a,b,c)
+#define SYSCALL_DEFINE5(n,t0,a0,t1,a1,t2,a2,t3,a3,t4,a4) long n(t0 a0,t1 a1,t2 a2,t3 a3,t4 a4)
+static unsigned calls;
+static unsigned long captured[4];
+static long response = 0x12340000;
+static long wasm_user_v2_mremap(unsigned long a, unsigned long b, unsigned long c, unsigned long d) {
+  calls++; captured[0]=a; captured[1]=b; captured[2]=c; captured[3]=d; return response;
+}
+`;
+    const fixture = `
+int main(void) {
+  assert(wasm_mremap(65537, 1, 1, 0, 0) == -EINVAL);
+  assert(wasm_mremap(65536, 1, 0, 0, 0) == -EINVAL);
+  assert(wasm_mremap(65536, 1, 1, 8, 0) == -EINVAL);
+  assert(wasm_mremap(65536, 1, 1, 2, 0) == -EINVAL);
+  assert(wasm_mremap(65536, 1, 1, 3, 1) == -EINVAL);
+  assert(wasm_mremap(65536, 1, 1, 3, 131072) == -EOPNOTSUPP);
+  assert(wasm_mremap(65536, 0, 1, 0, 0) == -EOPNOTSUPP);
+  assert(wasm_mremap(65536, ULONG_MAX, 1, 0, 0) == -EINVAL);
+  assert(wasm_mremap(65536, 1, ULONG_MAX, 0, 0) == -ENOMEM);
+  assert(wasm_mremap(TASK_SIZE, 1, 1, 0, 0) == -EFAULT);
+  assert(wasm_mremap(65536, 1, TASK_SIZE + PAGE_SIZE, 0, 0) == -ENOMEM);
+  assert(wasm_mremap(65536, 1, 2, 5, 0) == -EOPNOTSUPP);
+  assert(wasm_mremap(65536, 1, PAGE_SIZE + 1, 5, 0) == -EINVAL);
+  assert(calls == 0);
+  assert(wasm_mremap(0x100010000UL, PAGE_SIZE + 1, 2 * PAGE_SIZE + 1, 1, 77) == response);
+  assert(calls == 1 && captured[0] == 0x100010000UL && captured[1] == 2 * PAGE_SIZE &&
+    captured[2] == 3 * PAGE_SIZE && captured[3] == 1);
+  response = -ENOMEM;
+  assert(wasm_mremap(65536, 1, 1, 0, 0) == -ENOMEM && calls == 2);
+  puts("mremap admission: flags, overflow, address extent, rounding and callback result pass");
+}
+`;
+    const input = join(dir, "test.c"),
+      binary = join(dir, "test");
+    writeFileSync(input, prefix + wrapper + fixture);
+    const build = spawnSync(
+      cc,
+      ["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", input, "-o", binary],
+      { encoding: "utf8" },
+    );
+    assert.equal(build.status, 0, build.stderr);
+    const run = spawnSync(binary, [], { encoding: "utf8", timeout: 10000 });
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+    assert.match(run.stdout, /flags, overflow, address extent, rounding and callback result pass/);
+  });
