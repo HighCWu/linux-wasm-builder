@@ -128,6 +128,11 @@ close_range，clone3 实现仍与 `abddde6` 相同。未完成前不计为浏览
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39534477059)。
 仍要求 normal/fault/signal 对应完整阶段、各两轮和关闭，不用 Node 结果代替。
 
+其中 Firefox 151.0 双位宽已成功，实际日志逐项核实全部 normal 阶段（含 clone3）、
+faults 三阶段（含真实 publication timeout）及三类 signal 阶段各两次；五种 profile
+各两轮均有机器关闭标记。作业成功且运行器等待 browser.close 完成，浏览器收尾
+门禁通过。Chromium 两路仍在运行，不由 Firefox 推定通过。
+
 ## 第四组：close_range 与 exec 前 fd 清理
 
 distro `8c3d612` / 集成 `3e61caa` 扩展原 exec-fd 语料，直接调用标准
@@ -147,10 +152,43 @@ distro `8c3d612` / 集成 `3e61caa` 扩展原 exec-fd 语料，直接调用标�
 
 新增阶段被纳入原 execfd 的严格阶段门禁。
 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39534312750) 与
-[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39534320861) 已派发，待实际
-阶段与关闭证据；浏览器尚未对这一新版本验收。测试是在单线程 fork 后独立 fd 表上执行，
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39534320861) 的实际
+阶段与关闭结果见下文。测试是在单线程 fork 后独立 fd 表上执行，
 不覆盖 CLONE_FILES 共享表被 UNSHARE 分离的分支，也不声称支持多线程 fork。
 本轮没有改变默认 SDK、内核配置、执行 ABI 版本或原 clone3 的支持范围。
+
+双位宽 Node 现均成功，实际日志各自核实全部五阶段、最终 pass 和运行器关闭门禁。
+这里的五阶段包含新增两项 close_range 阶段，不能用较早的三阶段结果替代。
+随后对 `96a3ea6` 派发
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39535788089) 与
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39535792530)；该版本仅扩展独立
+pidfd 语料，exec-fd/close_range 的 C 语料与 `8c3d612` 相同，新增两阶段仍须各两轮
+和关闭验收，尚未计为浏览器通过。
+
+## 第五组：停止、继续与非退出 wait 状态
+
+distro `96a3ea6` / 集成 `0e820fc` 将既有 pidfd 工作负载扩展到进程的非退出状态，
+仍使用标准 pidfd_send_signal、waitid、waitpid 和 poll，不增加 syscall 号或应用 API。
+子进程用 pipe 固定在正常内核等待点，父进程按确定顺序执行：
+
+- SIGSTOP 后，两次 `waitid(P_PIDFD, WSTOPPED | WNOWAIT)` 必须观察同一 PID、
+  CLD_STOPPED 与 SIGSTOP，再由 `waitpid(WUNTRACED)` 消费该状态；
+- 消费后 `waitid(WSTOPPED | WNOHANG)` 成功但 si_pid 为零，不能再次报告已消费状态；
+- 停止的进程仍存在，pidfd 不应报告退出就绪；
+- SIGCONT 后，同样两次观察 CLD_CONTINUED/SIGCONT，用 `waitpid(WCONTINUED)`
+  消费，再核对 WNOHANG 空结果、存活与非退出就绪；
+- 之后仍须执行原 SIGTERM、退出就绪、WNOWAIT 退出观察、单次终止回收及后续 fork。
+
+Linux 上游已有相应路径，本轮先验证 Wasm 适配是否正确组合这些行为；并非重新
+实现信号内核或声称已修复尚未发现的问题。本地 298 项内核侧检查、13 项相关检查
+通过，含 GCC/Clang 实际宿主执行和伪造 continued 返回状态的拒绝控制。这些不是
+Wasm 证据，新增两阶段已纳入 pidfd 的严格浏览器阶段协议。
+
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39535613953) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39535619241) 已派发，待目标
+阶段与关闭验收；浏览器尚未对该增量派发。范围仅为单线程 fork 子进程，不覆盖
+终端 foreground process group、完整 shell 作业控制、多线程 group-stop 或任意
+纯用户态循环的即时抢占。默认 SDK、内核配置及 fork 执行 ABI 均不改变。
 
 Dash 的 wasm64 Node 结果和浏览器/wasm32 进度独立记录在
 [Dash 接入记录](dash-processes.md)，不将其中的 shell 通过泛化到 pidfd。

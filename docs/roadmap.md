@@ -34,6 +34,10 @@ execveat/fexecve 的双位宽 Node 与 wasm64 双浏览器两轮及关闭也已�
 完整原语料和关闭门禁，浏览器四路正在补验。随后扩展 close_range 的
 区间关闭、CLOEXEC/UNSHARE 及 exec 前 fd 清理组合，本地语料与反向控制通过，
 新版本双位宽 Node 已派发，尚不把新增阶段计为真实目标验收通过。
+其中 close_range 的双位宽 Node 实际五阶段与关闭已核实，正在补 wasm64 双浏览器。
+clone3 的 Firefox 双位宽各五种 profile 两轮及关闭已核实，Chromium 仍在运行。当前再补
+SIGSTOP/SIGCONT、waitid 的 WSTOPPED/WCONTINUED/WNOWAIT 和非退出状态消费；
+宿主语料通过，双位宽 Node 已派发，不扩大为终端作业控制或多线程支持声明。
 不把验收入口存在、宿主结果或单一目标通过扩大成全部 flags、线程创建及多线程支持。
 
 按当前项目决策，停止继续拆分 fork 性能指标、调整调度等待或试验 Worker 启动
