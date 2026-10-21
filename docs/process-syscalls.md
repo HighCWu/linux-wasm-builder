@@ -475,6 +475,40 @@ TLS、全局数据和执行 descriptor 均在高半区，然后验证 fork 的�
 该配置需要超过 2 GiB 的线性地址范围和完整子进程快照，可能受 runner 内存限制；
 不在本地运行，不承诺所有宿主均可分配、不扩大到多线程 fork，也不宣称性能改善。
 
+`d74784a` 浏览器复验已成功，实际日志核实：
+
+- [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39549000128)、
+  [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39549004552)：
+  NULL、有效前缀、upper-half、恢复四阶段，各两轮与唯一 pass。
+- [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39549009880)、
+  [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39549015174)：
+  普通三阶段，各两轮与唯一 pass。
+
+四路均确认每轮机器关闭及最终浏览器关闭，固定 Chromium 149.0.7827.55 /
+Firefox 151.0，CPU 数均为 1。它们不包含高布局 fork 工作负载；后者单独的
+[Node 检查](https://github.com/HighCWu/distro/actions/runs/39548994652) 仍在运行，
+不能用高地址普通复制通过来代替高地址 fork 验收。
+
+### 第十三组：用户复制的无符号长度寄存器
+
+distro `e358284` / 集成 `69d7fab` 修复相邻的原始 `size_t` 入口：Wasm32 的
+0x80000000..0xffffffff 长度跨 JS 边界同样表现为负 Number，旧入口误用非负
+宿主地址转换，导致导入抛异常。新入口显式按无符号机器字解码，用于用户 read、
+write、clear 三个内核导入及无用户 context 时的完整 residue 返回；不改 syscall
+编号、不新增 musl 函数、不改变普通 JS 元数据、PID 和有符号返回值校验。
+
+本地真实小 Wasm 模块把高位长度作为 i32 参数传入，再把 residue 作为 i32 返回：
+验证 read/write 在内核缓冲区不完整时不修改内存，clear 只清除实际存在的两字节
+前缀，其余按完整无符号值报告未复制数量。该测试只用两页本地内存，不申请大缓冲
+或据此宣称超大 syscall 已准入。内存64的 BigInt 不做 32 位截断，不接受不安全
+整数。316 项内核侧检查与源/测试两套 TypeScript 检查通过。
+
+随后派发同源码的 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39549366030)
+与 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39549372193) 普通访存
+回归，仍要求原三阶段、唯一 pass 和 machine.closed；目前待核实。Linux 的
+access_ok、MAX_RW_COUNT 等上层限制仍然生效，不将原始导入修复描述为放开 4 GiB
+单次 I/O 或浏览器容量保证。Linux、musl 固定版本与默认配置保持不变。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
