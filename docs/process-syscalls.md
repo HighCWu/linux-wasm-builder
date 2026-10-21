@@ -1282,13 +1282,13 @@ C 栈地址；这些结果都不是 Wasm 内核目标证据。可选 fork 补丁
 
 | 检查 | wasm32 | wasm64 |
 | --- | --- | --- |
-| 信号栈五阶段 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599563781) | [待验收](https://github.com/HighCWu/distro/actions/runs/39599576739) |
+| 信号栈五阶段 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599563781) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599576739) |
 | 无栈导出模块 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599594972) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599607937) |
 | 原有 fork runtime | [待验收](https://github.com/HighCWu/distro/actions/runs/39599617389) | [待验收](https://github.com/HighCWu/distro/actions/runs/39599624459) |
 
-wasm32 主负载实际日志已逐项核实全部五阶段和唯一 pass；双位宽无导出模块
-均已核实拒绝/普通回调阶段与唯一 pass，三项成功作业通过等待 machine.closed
-的关闭门禁。它们不替代尚未核实的 wasm64 主负载、fork 或浏览器结果。
+wasm32/wasm64 主负载实际日志均已逐项核实全部五阶段和各自唯一 pass；双位宽
+无导出模块均已核实拒绝/普通回调阶段与唯一 pass，四项成功作业通过等待
+machine.closed 的关闭门禁。它们不替代尚未核实的 fork 或浏览器结果。
 
 后续在 Node 构建期间接入既有浏览器门禁，不重复实现 syscall。必要真实目标
 通过后再单独移除 CONFIG_SITE 的相应否定项，让应用正常探测，而非预填成功；
