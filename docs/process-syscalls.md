@@ -334,6 +334,15 @@ fork+pidfd_open shim，因此只验证语料逻辑，不证明原子创建或 Wa
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39543181756) 已派发；实际
 新增阶段、失败后恢复及关闭结果尚未核实，浏览器尚未对这个版本派发。
 
+上述 `16473c2` 双位宽 Node 现已成功。实际日志各自核实完整六阶段，包含新增
+原子 PIDFD、三次 EMFILE 回滚与输出隔离、之后普通 fork/wait，以及唯一最终 pass；
+两项均通过等待 machine.closed 的运行器退出门禁。没有以宿主 fork+pidfd_open
+shim 代替原子目标证明。随后在 `a7926dc` 派发
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39545435360) 与
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39545440270)，要求完整
+六阶段各两轮、机器及浏览器关闭。该版本同时含后续 NULL/部分复制修复，不能用
+旧 Node 结果推定浏览器或这些新访问层变更已通过。
+
 ## 第九组：标准 syscall 的 NULL 用户指针
 
 静态 review 发现 user.read/write/write_zeroes 直接把用户地址交给通用线性内存
@@ -359,6 +368,38 @@ pipe 中原字节、NULL write 不额外排队、NULL 路径/结构输出/原子
 仍保留一个独立缺口：跨越当前线性内存末端的复制目前整段拒绝，尚未实现有效
 前缀复制及剩余字节计数；下一增量应补齐该行为，不把此处 NULL 修复泛化为完整
 Linux 用户访存、页权限或内存保护支持。
+
+其中 `4aafe2f` 的 wasm64 Node 已成功，实际两个阶段、唯一最终 pass 与运行器
+关闭门禁已核实；它不含下文的部分复制阶段，wasm32 实际日志仍待补取。
+
+## 第十组：用户复制的有效前缀与剩余字节
+
+distro `a7926dc` / 集成 `fcce5af` 补齐上述独立缺口。用户范围跨当前线性内存末端
+时，读取、写入和清零只作用于有效前缀，返回请求长度减去实际复制长度；完全
+无效的起点和非空 NULL 仍整段拒绝。内核侧缓冲区必须完整有效，不能借部分用户
+范围访问损坏的内核范围。通用 memory_bytes、原子 word 的完整宽度/对齐要求、
+musl、执行 ABI、Linux 源码和 CONFIG_MMU 均不改。
+
+实现每次重新查看内存范围，不持有旧 view 作为永久上限。两项新前缀回归在修改前
+实际失败，修改后完整 310 项内核侧检查及源码/测试 TypeScript 通过；小型真实
+memory32/memory64 共享内存模块执行 memory.grow 后，下一次复制可访问新增范围。
+清零的未完成部分不触碰地址空间之外的字节，不伪造完全成功。
+
+syscall 的短读写或错误仍由 Linux 调用路径决定，不能直接用前缀长度替换 syscall
+返回值。核对固定 Linux 的 fs/pipe.c、mm/filemap.c 和 lib/iov_iter.c 后，真实
+语料分别要求：普通文件按复制字节返回短读写、更新 offset 并保留原文件后缀；
+本轮小型 pipe 请求的失败读取返回 EFAULT、用户缓冲区已收到有效前缀，但原 pipe
+队列不被消费；不完整 pipe 写入返回 EFAULT 且不发布字节。之后仍执行有效重试
+和 fd 清理。这不是所有文件系统、设备、iov 组合或页保护的完整支持声明。
+
+GCC/Clang 原生语料用 mmap+PROT_NONE 构造不可访问边界，核实完整三阶段并拒绝
+伪造复制计数、吞掉 pipe 队列等反向控制；目标 Wasm 不使用 mprotect，而用标准
+memory.grow 预留新页，在新的线性内存末端构造同样的有效前缀。没有内核 softmmu、
+浏览器新提案依赖或新应用 API；原生页权限仅用于测试，不能推定 Wasm 有页权限。
+
+新版本 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39545413872) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39545418579) 已派发，必须
+核实新增前缀阶段、原 NULL 阶段、恢复阶段、唯一 pass 和机器关闭；尚不计为通过。
 
 ### 同期 CI 检查修复
 
