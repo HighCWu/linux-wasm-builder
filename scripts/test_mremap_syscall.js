@@ -9,6 +9,67 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 for (const cc of ["gcc", "clang"])
+  test(`${cc}: exact madvise validates geometry and preserves typed advice`, (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "wasm-madvise-syscall-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const source = readFileSync(
+      process.env.WASM_MREMAP_SYSCALL_SOURCE ??
+        new URL("../sources/linux/arch/wasm/kernel/syscall.c", import.meta.url),
+      "utf8",
+    );
+    const start = source.indexOf("SYSCALL_DEFINE3(wasm_madvise,");
+    const end = source.indexOf("\n}\n", start);
+    assert.ok(start >= 0 && end > start);
+    const prefix = `
+#define _GNU_SOURCE
+#include <assert.h>
+#include <errno.h>
+#include <stdint.h>
+#include <limits.h>
+#include <sys/mman.h>
+#define PAGE_SIZE 65536UL
+#define PAGE_MASK (~(PAGE_SIZE - 1))
+#define PAGE_ALIGNED(x) (!((x) & (PAGE_SIZE - 1)))
+#define TASK_SIZE 0x400000000UL
+#define check_add_overflow(a,b,c) __builtin_add_overflow(a,b,c)
+#define SYSCALL_DEFINE3(n,t0,a0,t1,a1,t2,a2) long n(t0 a0,t1 a1,t2 a2)
+static unsigned calls;
+static long response;
+static long wasm_user_v2_madvise(unsigned long a, unsigned long b, int c) {
+  calls++; assert(a == 0x100010000UL && b == 2 * PAGE_SIZE && c == MADV_DONTNEED);
+  return response;
+}
+`;
+    const fixture = `
+int main(void) {
+  assert(wasm_madvise(0, 0, MADV_DONTNEED) == 0);
+  assert(wasm_madvise(TASK_SIZE * 2, 0, MADV_NORMAL) == 0);
+  assert(wasm_madvise(1, 0, MADV_NORMAL) == -EINVAL);
+  assert(wasm_madvise(65536, 1, -1) == -EINVAL);
+  assert(wasm_madvise(65536, 1, MADV_FREE) == -EINVAL);
+  assert(wasm_madvise(65536, ULONG_MAX, MADV_DONTNEED) == -EINVAL);
+  assert(wasm_madvise(ULONG_MAX & PAGE_MASK, PAGE_SIZE * 2, 0) == -EINVAL);
+  assert(wasm_madvise(TASK_SIZE, 1, MADV_DONTNEED) == -ENOMEM);
+  assert(calls == 0);
+  assert(wasm_madvise(0x100010000UL, PAGE_SIZE + 1, MADV_DONTNEED) == 0 && calls == 1);
+  response = -ENOSYS;
+  assert(wasm_madvise(0x100010000UL, PAGE_SIZE + 1, MADV_DONTNEED) == -ENOSYS && calls == 2);
+}
+`;
+    const input = join(dir, "test.c"),
+      binary = join(dir, "test");
+    writeFileSync(input, prefix + source.slice(start, end + 3) + fixture);
+    const build = spawnSync(
+      cc,
+      ["-O2", "-std=c11", "-Wall", "-Wextra", "-Werror", input, "-o", binary],
+      { encoding: "utf8" },
+    );
+    assert.equal(build.status, 0, build.stderr);
+    const run = spawnSync(binary, [], { encoding: "utf8", timeout: 10000 });
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+  });
+
+for (const cc of ["gcc", "clang"])
   test(`${cc}: exact private msync validates geometry and flags before forwarding`, (t) => {
     const dir = mkdtempSync(join(tmpdir(), "wasm-msync-syscall-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));

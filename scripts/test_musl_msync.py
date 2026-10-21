@@ -28,7 +28,7 @@ class MsyncContract(unittest.TestCase):
                 (bits / "alltypes.h").write_text(generated.stdout)
                 numbers = (MUSL / "arch/wasm32/bits/syscall.h.in").read_text()
                 (bits / "syscall.h").write_text(numbers + numbers.replace("__NR_", "SYS_"))
-                for name in ("mmap.c", "mremap.c"):
+                for name in ("mmap.c", "mremap.c", "madvise.c", "posix_madvise.c"):
                     checked = subprocess.run([
                         "clang", f"--target={target}", "-fsyntax-only", "-std=c99",
                         "-ffreestanding", "-nostdinc", "-matomics", "-mbulk-memory",
@@ -65,6 +65,8 @@ class MsyncContract(unittest.TestCase):
 #include <sys/mman.h>
 int (*operation)(void *, size_t, int) = msync;
 void *(*remap_operation)(void *, size_t, size_t, int, ...) = mremap;
+int (*advice_operation)(void *, size_t, int) = madvise;
+int (*posix_advice_operation)(void *, size_t, int) = posix_madvise;
 _Static_assert(MS_SYNC == 4, "standard flags");
 _Static_assert(sizeof(size_t) == sizeof(void *), "native size_t");
 """,
