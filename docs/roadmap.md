@@ -177,12 +177,22 @@ ABI 修复不变。轻量检查重新通过，同一四阶段目标已定向重�
 该版本 musl 为 `59301bde`；调度桩核查发现
 并非 Wasm 缺口，未把改变其 POSIX 语义的实验集成，也未把重复启用 chrt 当作新能力。
 
-当前增量 `574af86` / 集成 `5b0ffda` 固定 musl `d950af5c`，只补齐 Wasm 表中的
+上一增量 `574af86` / 集成 `5b0ffda` 固定 musl `d950af5c`，只补齐 Wasm 表中的
 标准 fchmodat2 编号并对齐编号范围，使直接上游已有 fchmodat flags 分支接入
 当前内核；src/include 和函数体不变，无新包装。O_PATH 空路径、重命名及 unlink
 后权限修改、NOFOLLOW 与错误恢复的 native/sanitizer/静态分析通过，双位宽原样
-libc 分派及旧表反向控制通过；双位宽真实目标三阶段已派发，执行与关闭待验收。
+libc 分派及旧表反向控制通过；双位宽真实目标已核实完整三阶段、唯一 pass 和
+Node 关闭门禁。
 不以编号范围 472 宣称全部 syscall 可用，不扩大内存、fork 或权限模型支持边界。
+
+当前增量 `3aaf7df` / 集成 `6791165` 使用 Linux `9e49334d3`，在三套配置启用
+上游 SysV 消息队列与信号量；shm 家族仍明确 ENOSYS，不泄漏无法映射的内核
+地址。musl `a0c027a4` 仅修正 wasm32 IPC 元数据架构布局，复用已有 time64
+转换，wasm64 布局不变；相关旧 wasm32 对象和静态库需随 SDK/libc 重编译。
+无新增公共函数、通用包装、内核 softmmu 或应用 API。精确内核 UAPI、原样 libc
+小型 Wasm、旧布局反向控制、native/sanitizer 和静态分析通过；真实队列、
+信号量原子回滚/阻塞删除恢复及未修改 BusyBox ipcs 的双位宽 Node 目标待验收。
+完整范围与限制见[第二十七组](process-syscalls.md#第二十七组sysv-消息队列与信号量)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

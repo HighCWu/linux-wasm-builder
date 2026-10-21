@@ -111,6 +111,14 @@ ENOSYS 函数体判断为 Wasm 专有调用缺口。固定 BusyBox chrt 源码�
 语义来制造“已支持”的表象。pthread 的内部 raw syscall 路径也不等于这些公共
 POSIX 函数应直接恢复为薄包装。
 
+此结论仅针对上述四个接口，不是保留 Wasm 缺失的通用理由。直接基线仍是
+tombl/musl；其 fork/_Fork 与通用 mmap 函数体仍在，但被 __wasm__ 条件排除。
+对于这类架构缺口，应在内核、执行 ABI 和错误路径正确接通后复用现有实现，
+不能仅因上游未支持就保持不可用。上述调度行为则可追溯到官方 musl 的
+[2012 年线程调度提交](https://git.musl-libc.org/cgit/musl/commit/?id=1e21e78bf7a5c24c217446d8760be7b7188711c2)：
+其理由是 Linux 线程级调度与 POSIX 进程级接口的语义不同，并非 tombl 删掉了
+其它架构的正常实现。不能将这一局部核查泛化为全仓库没有其它删改。
+
 musl 实验提交 `ab35b7d5` 已用后续 `f7f31459` 撤回；两者均保留公开 Git 历史，
 没有 force-push、删除或重排已发布提交。已核对撤回后整个源码树与 `59301bde`
 净差异为零。本项目 gitlink、distro rev/hash 和 SDK 从未固定该实验函数体；
@@ -129,3 +137,17 @@ tombl/musl 原有 src/stat/fchmodat.c 已包含 SYS_fchmodat2 调用分支，原
 等 flags 传给当前 Linux 内核；无 flags 的旧 syscall 路径、内核 ENOSYS 后的
 兼容 fallback、函数体、公共声明与 flags 常量均保持不变。不新增 fchmodat2
 包装函数、头文件或项目专有应用 API；新增的标准编号宏只用于已有接口的架构调用。
+
+## SysV IPC 的 Wasm 架构元数据布局
+
+`a0c027a4` 只增加 arch/wasm32/bits 的 ipcstat/msg/sem/shm 架构定义，复用 musl
+已有 riscv32 的 time64 wire-prefix 与追加公开时间字段约定。wasm64 保持原有
+generic 布局；src/ipc 的 msgctl/semctl/shmctl 函数体和公共函数集合不变，没有
+新增公共头文件 API 或通用包装。shm 布局定义用于让既有 time64 转换代码正常
+构建，不意味着内核已支持共享 backing。
+
+旧 wasm32 generic IPC 结构与内核线格式不匹配，例如 msg_cbytes 原偏移为64，
+内核要求60。修正后原样 libc 完成时间转换；固定内核 UAPI、双位宽小型 Wasm
+执行和旧布局失败控制已核对，包含超过32位的时间值。这是 wasm32 IPC ABI
+修正：使用相关结构的旧对象、静态库和程序必须与新 SDK/libc 一起重新编译，
+不能混用旧布局对象与新 libc。wasm64 布局未改变。完整目标另行验收。

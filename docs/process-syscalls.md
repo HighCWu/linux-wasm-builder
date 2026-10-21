@@ -1097,6 +1097,42 @@ fd/inode 生命周期、flags 与机器字宽度；musl 相对 `59301bde` 的净
 三阶段、最终 pass 与机器关闭。当前尚未完成目标验收，不以 native/小型模块
 或前一组大文件目标代替这一路径的真实内核运行，也没有新增浏览器结果。
 
+上述 `574af86` 双位宽现已完成验收：实际日志逐项核实 O_PATH/rename、symlink
+保护与错误恢复、unlink 后 inode 生命周期三个阶段，各自唯一 pass，成功作业
+通过等待 machine.closed 的关闭门禁。没有扩大为浏览器或所有权限模型结论。
+
+### 第二十七组：SysV 消息队列与信号量
+
+Linux `9e49334d3` 在三套 Wasm 配置启用 CONFIG_SYSVIPC，接通上游消息队列和
+信号量实现，使用原有 uaccess 拷贝路径。此前配置关闭时对应 syscall 不可用。
+此增量不是新写 libc 包装：musl `a0c027a4` 仅修正 Wasm 架构元数据定义，复用
+已有 time64 控制函数；distro `3aaf7df` / 集成 `6791165` 固定双方源码与哈希。
+
+共享内存家族 shmget/shmctl/shmat/shmdt 仍明确返回 ENOSYS：通用 NOMMU shmat
+返回的内核线性地址不是独立用户 WebAssembly.Memory 中的真实共享映射，不能
+因启用 SYSVIPC 而暴露。入口使用匹配 pt_regs 的 syscall 包装，避免 Wasm
+间接调用签名不匹配。CONFIG_MMU=n、直接内存边界与多线程 fork 限制不变。
+
+wasm32 原 generic IPC 结构存在错位，现使用 musl 已有 riscv32 风格 wire-prefix
+和追加时间字段，原样 msgctl/semctl/shmctl 完成转换；wasm64 保持 generic。
+此修正要求相关旧 wasm32 对象、静态库和程序用新 SDK/libc 重编译，不得混用。
+精确固定内核 UAPI 布局、双位宽原样控制函数执行、超过32位时间值和旧布局
+失败控制通过；native GCC/Clang ASan/UBSan 与双位宽 Clang 静态分析通过。
+
+共享工作负载覆盖类型选择与二进制消息、E2BIG 不丢消息、截断/空队列/坏类型、
+IPC_STAT 元数据与删除；信号量覆盖 SETALL/GETALL、多操作失败原子回滚、超时与
+坏 timespec、GETNCNT 确认实际入队后 IPC_RMID 唤醒 EIDRM、重新创建及回收。
+目标还通过原有 posix_spawn 启动未经修改的 BusyBox ipcs，分别读取另一进程
+创建的队列和信号量，检查实际对象 ID 和退出结果；此步骤在创建 pthread 前
+完成，不扩大多线程 fork。native 不冒充该 applet 或 Wasm 内核运行证据。
+
+同一 `3aaf7df` 的 Node
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39587100196) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39587106606) 已派发，
+要求完整三个 sysv-ipc 阶段、最终唯一 pass 和机器关闭。
+当前目标待验收；不宣称 SHM、SEM_UNDO 的进程退出恢复、所有 IPC namespace、
+跨用户权限或浏览器已验证。架构细节见[musl 兼容性边界](musl-compatibility.md)。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
