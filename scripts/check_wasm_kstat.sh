@@ -41,6 +41,17 @@ EOF
   gcc -m"$bits" -std=c11 -Wall -Wextra -Werror -fsyntax-only -x c - \
     -I"$root_dir/sources/musl/arch/wasm32/bits" <<'EOF'
 #include "syscall.h.in"
+#if __SIZEOF_LONG__ == 4
+_Static_assert(__NR_sync_file_range2 == 84, "wasm32 flags-first sync_file_range2");
+#ifdef __NR_sync_file_range
+#error wasm32 must not choose the offset-first sync_file_range wrapper
+#endif
+#else
+_Static_assert(__NR_sync_file_range == 84, "wasm64 offset-first sync_file_range");
+#ifdef __NR_sync_file_range2
+#error wasm64 must not choose the flags-first sync_file_range2 wrapper
+#endif
+#endif
 _Static_assert(__NR_utimensat == 88, "native/time32 utimensat number");
 #if __SIZEOF_LONG__ == 8
 #if defined(__NR_clock_adjtime64) || \

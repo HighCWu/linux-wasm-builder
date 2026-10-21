@@ -166,6 +166,17 @@ jobs:
       - name: Check IPv6 native workload and existing Wasm libc ABI
         # The preceding host fixture step installs the reference BusyBox.
         run: python3 -B scripts/test_ipv6.py
+      - name: Check split syscall words and sparse large-file workload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/HighCWu/linux/contents/arch/wasm/include/asm/syscall_wrapper.h?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/syscall-wrapper.h"
+          WASM_SYSCALL_WRAPPER_SOURCE="$RUNNER_TEMP/syscall-wrapper.h" \
+            python3 -B scripts/test_syscall_words.py
+          python3 -B scripts/test_large_file.py
       - name: Check fork callback and flags-first Wasm imports link together
         # Small freestanding links, not a target libc/kernel runtime acceptance.
         run: node --test sources/distro/distro/fork-continuation/execution-link.test.js
