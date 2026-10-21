@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Compile public integer and memfd headers without building libc or binaries."""
+"""Compile public integer, memfd and syscall headers without building libc."""
 
 import pathlib
 import subprocess
@@ -14,6 +14,8 @@ SOURCE = r"""
 #include <inttypes.h>
 #include <stdio.h>
 #include <sys/mman.h>
+#include <sys/syscall.h>
+_Static_assert(SYS_clone3 == 435, "standard clone3 syscall number");
 _Static_assert(_Generic(&memfd_create,
     int (*)(const char *, unsigned): 1, default: 0), "memfd_create prototype");
 #define SAME(expr, type) _Static_assert(_Generic((expr), type: 1, default: 0), #expr)
@@ -37,7 +39,7 @@ CHECK(PTR, intptr_t, uintptr_t)
 
 
 class IntegerHeaders(unittest.TestCase):
-    def test_public_macros_and_memfd_prototype(self):
+    def test_public_integer_memory_and_syscall_headers(self):
         for target, arch in [
             ("wasm32", "wasm32"),
             ("wasm64", "wasm32"),
@@ -60,6 +62,10 @@ class IntegerHeaders(unittest.TestCase):
                     check=True,
                 )
                 (bits / "alltypes.h").write_text(generated.stdout)
+                numbers = (MUSL / f"arch/{arch}/bits/syscall.h.in").read_text()
+                (bits / "syscall.h").write_text(
+                    numbers + numbers.replace("__NR_", "SYS_")
+                )
                 result = subprocess.run(
                     [
                         "clang",
