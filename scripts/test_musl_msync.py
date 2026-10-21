@@ -13,6 +13,32 @@ MUSL = ROOT / "sources/musl"
 
 
 class MsyncContract(unittest.TestCase):
+    def test_real_mapping_sources_with_musl_build_feature_flags(self):
+        for target in ("wasm32", "wasm64"):
+            with self.subTest(target=target), tempfile.TemporaryDirectory(prefix="mapping-syntax-") as tmp:
+                bits = pathlib.Path(tmp) / "bits"
+                bits.mkdir()
+                templates = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (
+                    MUSL / "include/alltypes.h.in"
+                ).read_text()
+                generated = subprocess.run(
+                    ["sed", "-f", str(MUSL / "tools/mkalltypes.sed")],
+                    input=templates, text=True, capture_output=True, check=True,
+                )
+                (bits / "alltypes.h").write_text(generated.stdout)
+                numbers = (MUSL / "arch/wasm32/bits/syscall.h.in").read_text()
+                (bits / "syscall.h").write_text(numbers + numbers.replace("__NR_", "SYS_"))
+                for name in ("mmap.c", "mremap.c"):
+                    checked = subprocess.run([
+                        "clang", f"--target={target}", "-fsyntax-only", "-std=c99",
+                        "-ffreestanding", "-nostdinc", "-matomics", "-mbulk-memory",
+                        "-D_XOPEN_SOURCE=700", "-I", str(MUSL / "arch/wasm32"),
+                        "-I", str(MUSL / "arch/generic"), "-I", str(MUSL / "src/include"),
+                        "-I", str(MUSL / "src/internal"), "-I", tmp,
+                        "-I", str(MUSL / "include"), str(MUSL / "src/mman" / name),
+                    ], text=True, capture_output=True)
+                    self.assertEqual(checked.returncode, 0, checked.stderr)
+
     def test_public_declaration_on_both_wasm_widths(self):
         for target in ("wasm32", "wasm64"):
             with self.subTest(target=target), tempfile.TemporaryDirectory(prefix="msync-headers-") as tmp:
