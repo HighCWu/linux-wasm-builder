@@ -3,6 +3,7 @@
 """Native IPC, wire layouts and exact libc conversion; not a Wasm kernel run."""
 import pathlib
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -13,6 +14,67 @@ SOURCE = ROOT / "sources/distro/distro/toolchain-smoke/sysv-ipc.c"
 
 
 class SysVIPC(unittest.TestCase):
+    def test_actual_native_kernel_command_dispatch(self):
+        headers = pathlib.Path(os.environ["WASM_IPC_UAPI_DIR"]) if "WASM_IPC_UAPI_DIR" in os.environ else None
+        def kernel_source(relative, fetched):
+            if headers is not None:
+                return (headers / fetched).read_text()
+            return subprocess.check_output(["git", "-C", str(ROOT / "sources/linux"), "show", f"HEAD:{relative}"], text=True)
+        source = kernel_source("ipc/msg.c", "msg.c")
+        match = re.search(r"^static long ksys_msgctl\(.*?^}", source, re.M | re.S)
+        self.assertIsNotNone(match, "extract the exact pinned native dispatcher")
+        constants = kernel_source("include/uapi/linux/ipc.h", "ipc.h") + kernel_source("include/uapi/linux/msg.h", "msg.h")
+        names = ("IPC_STAT", "IPC_SET", "IPC_RMID", "IPC_INFO", "IPC_64", "MSG_INFO", "MSG_STAT", "MSG_STAT_ANY")
+        definitions = []
+        for name in names:
+            definition = re.search(r"^#define[ \t]+" + name + r"[ \t]+(0x[0-9a-fA-F]+|[0-9]+)\b", constants, re.M)
+            self.assertIsNotNone(definition, name)
+            definitions.append(f"#define {name} {definition.group(1)}")
+        # Stub allocation/copy/namespace operations, not command selection. The
+        # unchanged kernel switch must reject the old IPC_64 command bit.
+        fixture = "\n".join(definitions) + r'''
+#define __user
+#define NULL ((void *)0)
+#define EINVAL 22
+#define EFAULT 14
+struct ipc_namespace { int unused; };
+struct msqid_ds { int unused; };
+struct msqid64_ds { int msg_perm; unsigned long msg_qbytes; };
+struct msginfo { int unused; };
+static struct ipc_namespace space;
+static struct { struct ipc_namespace *ipc_ns; } proxy = {&space};
+static struct { __typeof__(proxy) *nsproxy; } task = {&proxy}, *current = &task;
+static int calls;
+static int msgctl_info(struct ipc_namespace *n, int i, int c, struct msginfo *m)
+{ (void)n; (void)i; (void)c; (void)m; return 0; }
+static int msgctl_stat(struct ipc_namespace *n, int i, int c, struct msqid64_ds *m)
+{ (void)n; (void)i; (void)c; *m = (struct msqid64_ds){0}; calls++; return 0; }
+static int copy_to_user(void *a, const void *b, unsigned long size)
+{ (void)a; (void)b; (void)size; return 0; }
+static int copy_msqid_to_user(struct msqid_ds *a, struct msqid64_ds *b, int version)
+{ (void)a; (void)b; return version != IPC_64; }
+static int copy_msqid_from_user(struct msqid64_ds *a, struct msqid_ds *b, int version)
+{ (void)b; *a = (struct msqid64_ds){0}; return version != IPC_64; }
+static int msgctl_down(struct ipc_namespace *n, int i, int c, int *p, unsigned long bytes)
+{ (void)n; (void)i; (void)c; (void)p; (void)bytes; return 0; }
+''' + match.group() + r'''
+__attribute__((export_name("run"))) int run(int cmd)
+{ calls = 0; int result = ksys_msgctl(7, cmd, NULL, IPC_64); return result ? result : calls; }
+'''
+        with tempfile.TemporaryDirectory(prefix="sysv-dispatch-") as tmp:
+            path = pathlib.Path(tmp)
+            (path / "kernel.c").write_text(fixture)
+            for bits in (32, 64):
+                binary = path / "kernel.wasm"
+                subprocess.run(["clang", f"--target=wasm{bits}", "-O2", "-Wall", "-Wextra", "-Werror", "-nostdlib",
+                                "-Wl,--no-entry", str(path / "kernel.c"), "-o", str(binary)], check=True)
+                subprocess.run(["node", "--input-type=module", "-e", """
+import {readFileSync} from 'node:fs';
+const {instance} = await WebAssembly.instantiate(readFileSync(process.argv[1]));
+if (instance.exports.run(2) !== 1 || instance.exports.run(258) !== -22 || instance.exports.run(-1) !== -22)
+  throw new Error('native kernel IPC command selection changed');
+""", str(binary)], check=True)
+
     def test_native_queues_semaphores_and_waiter_removal(self):
         for cc in ("gcc", "clang"):
             with self.subTest(cc=cc), tempfile.TemporaryDirectory(prefix="sysv-native-") as tmp:
@@ -59,7 +121,7 @@ let count = 0, instance;
   syscall(n, ...args) {
     const phase = count++, sem = phase === 1;
     if (Number(n) !== [187, 191, 195][phase] || Number(args[0]) !== 40 + phase ||
-        Number(args[sem ? 2 : 1]) !== 258 || (sem && Number(args[1]) !== 0)) throw new Error('IPC command ABI');
+        Number(args[sem ? 2 : 1]) !== 2 || (sem && Number(args[1]) !== 0)) throw new Error('IPC command ABI');
     const pointer = Number(args[sem ? 3 : 2]), view = new DataView(instance.exports.memory.buffer);
     const u32 = (off, value) => view.setUint32(pointer + off, value, true);
     const word = (off, value) => wide ? view.setBigUint64(pointer + off, BigInt(value), true) : u32(off, value);
