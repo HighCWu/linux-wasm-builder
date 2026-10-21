@@ -37,6 +37,11 @@ Linux 的 clone、进程身份、描述符继承、信号、退出及 wait 仍�
 `pid_t` 和 checkpoint 返回值在双位宽下均为 i32；wasm64 的地址及 raw clone 的 long
 返回值跨 JS 边界使用 BigInt，不可通过无符号位运算截断。
 
+Wasm32 的原始指针寄存器跨 JS 边界可以表示为负 Number；loader 按 i32 位模式
+恢复无符号地址后才检查 descriptor 的实际内存范围。快照中的栈、TLS 和 descriptor
+保留原寄存器表示，恢复 Wasm global/rewind 时不改变位模式。这个规则不适用于
+PID、长度或普通 JS 元数据，也不取消当前线性内存边界检查。
+
 最后两个导出是成对启用的 syscall 扩展，不要求旧 checkpoint 模块提供。
 新完整链接变换须将 `linux.syscall` 与 `linux.syscall_v2` 纳入 Asyncify imports；仅变换旧 checkpoint import
 不足以支持直接 syscall 调用。loader 不能替未变换的程序凭空复制引擎调用栈。
