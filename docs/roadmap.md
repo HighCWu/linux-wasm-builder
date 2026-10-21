@@ -27,62 +27,30 @@
 替换默认 shell。其暴露的 memfd 头文件缺口已修正为恢复 `_GNU_SOURCE` 控制的声明，
 不代表额外实现了 memfd 内核能力。
 
-[标准进程 syscall 准入](process-syscalls.md) 已核实 pidfd_open、pidfd_send_signal、
-poll、waitid(P_PIDFD) 与单次回收的双位宽 Node 和 wasm64 双浏览器组合。
-execveat/fexecve 的双位宽 Node 与 wasm64 双浏览器两轮及关闭也已核实。
-当前实际实现 clone3 的有限 fork 形态在 v2 执行入口的适配，坏参数／不支持形态
-不会进入回调式内核 clone；新执行对象要求 syscall 扩展 ABI 2，旧 clone 的 ABI 1
-保持兼容。公共 musl 头文件补齐标准 SYS_clone3；本地 298 项内核侧检查、相关语料、
-双位宽实际编译链接和类型检查通过；双位宽 Node 实际日志已核实新增 clone3 与
-完整原语料和关闭门禁，浏览器四路正在补验。随后扩展 close_range 的
-区间关闭、CLOEXEC/UNSHARE 及 exec 前 fd 清理组合，本地语料与反向控制通过，
-新版本双位宽 Node 已派发，尚不把新增阶段计为真实目标验收通过。
-其中 close_range 的双位宽 Node 实际五阶段与关闭已核实，正在补 wasm64 双浏览器。
-clone3 的 Firefox 双位宽各五种 profile 两轮及关闭已核实，Chromium 仍在运行。当前再补
-SIGSTOP/SIGCONT、waitid 的 WSTOPPED/WCONTINUED/WNOWAIT 和非退出状态消费；
-宿主语料通过，双位宽 Node 已派发，不扩大为终端作业控制或多线程支持声明。
-现继续接入 prlimit64/getrlimit/setrlimit 的完整位宽、NOFILE 实际 EMFILE 执行与
-fork/exec 限额继承组合，本地检查通过，真实目标异步验收中。自主静态 review 发现
-并补齐 close_range 有效末端的覆盖盲点，未据此重复改写已有内核实现。
+[标准进程 syscall 准入](process-syscalls.md) 保留逐批源码和实际日志证据。当前已核实
+的阶段范围如下，不将早期版本通过泛化为所有后续变更通过：
+
+- execveat/fexecve：双位宽 Node 与 wasm64 双浏览器各两轮及关闭；close_range、
+  prlimit 等后续增量按记录中的对应阶段单独验收。
+- 普通-fork Bash `c7b299a`：双位宽 Node 四阶段，wasm64 Chromium/Firefox 各两轮、
+  机器与浏览器关闭；所需有限 C SjLj/fork 前提的 wasm64 Node 也已核实。不替换默认
+  shell，不据此声称任意 C++ EH/SjLj 或完整终端作业控制已支持。
+- 原子 CLONE_PIDFD：`16473c2` 双位宽 Node 完整六阶段；`a7926dc` wasm64
+  Chromium/Firefox 各两轮完整六阶段及关闭。Linux `feb624494` 的失败 Worker
+  同步回收与能力门控已接入，仍不支持多线程 fork 或所有 clone3 选项。
+- NULL 与有效前缀复制：`a7926dc` 双位宽 Node 完整三阶段及关闭；Linux 自己决定
+  普通文件短读写或 pipe 的 EFAULT/队列保留。没有据此声明页权限或所有设备行为。
+
+当前独立增量是 `0ba04b0`：Wasm i32 指针进入 JS 时具有有符号表示，用户复制与
+futex 原子路径现在按原始指针位模式恢复地址，通用 JS 元数据校验不放宽。本地
+312 项内核侧检查、原生语料和类型检查通过；独立 wasm32 高地址配置及 wasm64
+回归已派发，目标尚未核实。高地址配置显式请求 2 GiB+一页，不改变默认程序或
+smoke 的内存请求，不把 wasm32 的 4 GiB 声明上限当成容量保证。musl 保持
+`e7bde799` 的兼容性基线，不新增直接上游 tombl/musl 没有的公共函数。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
-明确失败后回溯修复；待目标验收的支持范围保持明确标注。优先实际程序阻塞缺口，
-不以持续添加微测试代替能力交付，也不在重型任务积压时重复派发相同构建。
-现在转向独立的标准-fork Bash 非交互候选，验证真实管道、进程替换、coprocess、
-trap 与错误恢复，不替换默认 callback Bash。候选的 C SjLj/Asyncify 组合仍待目标
-验证，不能由原生脚本通过推定支持。与此同时已根据实际 wasm32 CI 错误修正资源
-限额测试对 Linux32 saturation 的错误预期，保持上游内核语义，而非为通过测试改内核。
-现将 Bash 所需的 C sigsetjmp/siglongjmp 与 fork 组合拆为独立验收前提，核对父子帧、
-mask、TLS 及后续 fork 复用；宿主语料和 Clang 静态分析通过，wasm64 独立目标已派发。
-不从这一有限实验推定任意 C++ EH、信号回调跨内核跳转或整个 Bash 已可用。
-不把验收入口存在、宿主结果或单一目标通过扩大成全部 flags、线程创建及多线程支持。
-
-上述 wasm64 Node 结果现已核实：独立 SjLj 两阶段及普通-fork Bash 四阶段、唯一
-最终 pass 与运行器关闭门禁均通过。`c7b299a` 将同一 Bash 程序接入 wasm64
-Chromium/Firefox 的各两轮启动及关闭验收；双浏览器和 wasm32 Node 正在补验。
-musl 保持 `e7bde799` 的兼容性基线，不新增上游公共 API。后续继续以真实程序暴露的
-syscall 缺口为主，不以等待这一增量 CI 作为其他独立工作的前置条件。
-
-下一独立增量 `16473c2` 接入 clone3 的单独 CLONE_PIDFD 形态，直接复用 Linux
-原子 pidfd 创建路径。review 发现并修复 copy_thread 后资源失败时尚未发布 Worker
-的生命周期缺口：Linux `8319e3950` / `feb624494` 加入 exit_thread 同步确认与能力
-标记，新 loader 对旧内核拒绝这一选项。没有新增 musl 函数、应用 API、softmmu 或
-多线程 fork；完整 u64 地址、失败选项清除、EMFILE 回滚、子端隔离和后续恢复已
-进入语料，本地检查通过；真实双位宽 Node 验收待完成，不由宿主检查推定通过。
-
-普通-fork Bash 的 `c7b299a` 现已核实 wasm32 Node 四阶段和 wasm64 双浏览器各
-两轮、机器及浏览器关闭通过，不覆盖后续内核/访问层变更。`4aafe2f` 修正用户
-NULL 指针被当作第 0 字节读写的问题，涵盖用户复制、清零及 futex 原子入口；
-保留内核地址 0 与零长度操作，不改 musl 或公共 API。306 项本地检查及相关原生
-语料通过，独立双位宽 Wasm 检查已派发。下一相关缺口是跨线性内存末端的有效
-前缀复制和剩余字节数语义，不把 NULL 修复视作完整用户访存或页保护完成。
-
-该前缀缺口现由 `a7926dc` 实现并进入双位宽 Node 异步验收：用户复制和清零返回
-真实未完成字节数，Linux 自己决定普通文件短读写或 pipe 的 EFAULT/队列保留。
-310 项本地检查和原生边界语料通过，memory32/memory64 小模块的真实 memory.grow
-组合通过，不代表完整 Linux/Wasm 目标已验收。`16473c2` 的原子 PIDFD 双位宽 Node
-现已核实完整六阶段和关闭；已对含新访问层的 `a7926dc` 补派 wasm64 双浏览器两轮
-检查，仍不扩展多线程 fork、页权限或应用 API。
+明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
+微测试代替能力交付，也不在重型任务积压时重复派发相同构建。
 
 按当前项目决策，停止继续拆分 fork 性能指标、调整调度等待或试验 Worker 启动
 优化。保留已有测量与默认关闭的诊断工具作为以后排查实际瓶颈的依据；不继续

@@ -342,6 +342,10 @@ shim 代替原子目标证明。随后在 `a7926dc` 派发
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39545440270)，要求完整
 六阶段各两轮、机器及浏览器关闭。该版本同时含后续 NULL/部分复制修复，不能用
 旧 Node 结果推定浏览器或这些新访问层变更已通过。
+该批次浏览器现已成功：固定 `a7926dc` 的实际日志逐项核实 Chromium 149.0.7827.55
+和 Firefox 151.0 各两轮完整六阶段、每轮唯一 pass 与机器关闭，以及最终浏览器
+关闭标记。它覆盖实际原子创建和 EMFILE 后恢复，不由 host shim 替代。它仍不是
+完整 clone3、多线程 fork、wasm32 浏览器或独立用户访存故障语料的验收。
 
 ## 第九组：标准 syscall 的 NULL 用户指针
 
@@ -403,6 +407,35 @@ memory.grow 预留新页，在新的线性内存末端构造同样的有效前�
 新版本 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39545413872) 与
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39545418579) 已派发，必须
 核实新增前缀阶段、原 NULL 阶段、恢复阶段、唯一 pass 和机器关闭；尚不计为通过。
+上述 `a7926dc` 双位宽 Node 现均成功，实际三阶段和唯一最终 pass 已逐项核实，
+均通过运行器等待 machine.closed 的收尾门禁。不要用更早的两阶段 NULL 基线替代
+该结果，也不要据此推定后续高地址指针修复通过。
+
+## 第十一组：Wasm32 高位指针的寄存器表示
+
+静态 review 发现：原始 Wasm i32 导入把 0x80000000 以上的指针作为负 Number
+交给 JS，旧的非负 offset 校验因此错误拒绝本来位于用户线性内存中的地址。
+distro `0ba04b0` / 集成 `70345ba` 在原始指针入口恢复无符号 i32 位模式，应用于
+用户复制、清零、futex 原子 word 和相关内核旧值缓冲区。memory64 的 BigInt 不按
+32 位截断；越出真实 i32 表示范围的 Number、非整数和不可安全表示地址仍拒绝。
+通用 memory_bytes、JS offset/元数据校验、长度和 flags 的解释不放宽，不把所有
+整数参数一律当成无符号指针。没有新增 musl 函数、应用 API、Linux 或 MMU 改动。
+
+本地 312 项内核侧检查及源码/测试 TypeScript 通过。小型真实 Wasm 导入验证
+指针进入 JS 时确实是负值，并核对完整无符号地址恢复；恢复旧转换时，两项回归
+实际失败。没有在本地申请 2 GiB 内存，也不把小模块证明当作高地址 Linux 运行证明。
+
+新增 `toolchain-smoke-check-user-access-upper32` 独立配置，只在 wasm32 提供。
+它按声明内存上限请求 2 GiB+一页的地址范围，在新高页上检验 pipe 数据源/目标、
+uname 结构输出与 FUTEX_WAKE_OP 原子操作，然后继续原有效重试、fd 清理和关闭。
+默认 user-access 程序不定义该测试宏，不请求这块大地址范围；不修改默认 SDK
+或应用内存初始值。请求失败会明确使目标检查失败，不跳过后宣称高地址通过。
+
+[wasm32 高地址](https://github.com/HighCWu/distro/actions/runs/39546540226) 与
+[wasm64 普通回归](https://github.com/HighCWu/distro/actions/runs/39546545079) 已派发。
+前者要求原三阶段加高地址阶段及关闭，后者仍为原三阶段，实际结果尚待核实。
+这不保证每个宿主可分配完整 4 GiB，不涵盖所有执行 ABI/设备的高位地址，也不
+表示内核会接受超出当前线性内存或 TASK_SIZE 的地址。
 
 ### 同期 CI 检查修复
 
