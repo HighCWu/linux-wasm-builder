@@ -23,7 +23,8 @@ class SignalAltstack(unittest.TestCase):
                 # stack nor relocate escaped locals to a heap-backed fake stack:
                 # this workload deliberately measures the actual C stack region.
                 environment = {**os.environ, "ASAN_OPTIONS": os.environ.get("ASAN_OPTIONS", "") +
-                               ":use_sigaltstack=0:detect_stack_use_after_return=0"}
+                               ":use_sigaltstack=0:detect_stack_use_after_return=0:halt_on_error=1",
+                               "UBSAN_OPTIONS": os.environ.get("UBSAN_OPTIONS", "") + ":halt_on_error=1"}
                 result = subprocess.run([str(binary)], env=environment, capture_output=True, text=True, timeout=20)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(result.stdout.count(" pass\n"), 5)
