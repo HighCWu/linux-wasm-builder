@@ -75,8 +75,9 @@ v2 除 clone/clone3 外的 syscall 与旧入口使用相同内核调用及 exec 
 
 distro `269f4d4` 在 v2 import 接入 Linux 标准号 435：参数为用户 `clone_args` 地址、
 字节长度，其余寄存器忽略。结构字段在 wasm32/wasm64 上都是小端 u64，不按指针
-宽度截断。当前只接纳 flags=0、exit_signal=SIGCHLD，其余字段全部为零的单线程
-默认栈 fork；仍通过已有 continuation 与真正的 Linux 回调 clone 完成进程创建。
+宽度截断。基础形态接纳 flags=0、exit_signal=SIGCHLD，其余字段全部为零的单线程
+默认栈 fork；下文增加受能力门控的 CLONE_PIDFD 形态。仍通过已有 continuation
+与真正的 Linux 回调 clone 完成进程创建。
 没有新增内核 syscall 号、Linux UAPI 结构或应用专用函数。
 
 后续 distro `abddde6` 将新执行对象的 syscall 扩展标识升级为 2。仅认识 ABI 1 的
@@ -89,8 +90,35 @@ ENOSYS；只有 ABI 2 对象才接入下述解析与恢复。import 名称仍为
 88 字节；较短结构补零，较长结构的未知尾部必须为零，长度不得超过当前架构的
 64 KiB PAGE_SIZE。坏地址返回 EFAULT，过短或选定结构性错误返回 EINVAL，超长或
 非零未知尾部返回 E2BIG，其他未支持形态返回 EOPNOTSUPP。这里不是完整 Linux
-clone3 flags/错误优先级兼容承诺；不支持 alternate stack、CLONE_PIDFD、tid/TLS、
+clone3 flags/错误优先级兼容承诺；不支持 alternate stack、tid/TLS、
 cgroup、namespace、线程创建或多线程 fork。
+
+### clone3 的 CLONE_PIDFD 增量
+
+distro `16473c2` 新增仅含 CLONE_PIDFD、exit_signal=SIGCHLD、默认栈、无其他选项
+的单线程形态。pidfd 字段保留完整 u64，必须指向当前线性内存内可容纳 int 的
+非零地址；wasm32 不截断高位，未对齐地址不额外拒绝。参数拷贝完成后才开始
+unwind，保存的是当次接纳的输出地址，恢复时不重读 clone_args。
+
+这要求两个内部能力同时存在：独立执行对象的可选导出
+`__wasm_fork_clone_pidfd(uintptr_t)`，以及内核导出 `fork_worker_abort_abi() == 1`。
+缺少任一能力则返回 EOPNOTSUPP，且不初始化 descriptor。基础执行 ABI 1、syscall
+扩展 ABI 1/2 和普通 fork 的旧对象兼容性不变；旧 loader 已拒绝这一 flags 组合，
+不会因新对象的额外导出而错误创建普通子进程。
+
+该 helper 以非空 continuation callback、CLONE_PIDFD|SIGCHLD 和 parent_tid
+寄存器中的 pidfd 输出地址调用既有 Wasm clone；不同时启用 CLONE_PARENT_SETTID。
+Linux kernel_clone 负责原子创建、pidfd 写回、CLOEXEC 和资源失败清理，不在 JS 中
+用 clone 后 pidfd_open 冒充原子性。clone 结果为负或抛异常时也必须清除捕获选项，
+不能污染后续普通 fork。musl 没有因此增加函数、头文件或应用 API。
+
+内核 `8319e3950` / `feb624494` 补齐 copy_thread 成功创建 Worker、后续资源分配
+失败时的 exit_thread 生命周期：使尚未发布的 Worker 进入不可调度的 abort 状态，
+等待其停止访问任务数据的 release/acquire 确认后再释放 bootstrap/task/stack。
+改变等待值避免先通知后等待的丢失唤醒；最终确认后不得再 notify 已可释放的内存。
+它是 Wasm 内核架构兼容修复，保持 Linux GPL 边界，不添加用户 syscall。
+
+此增量的实际目标验收仍待完成，见[进程 syscall 验收](process-syscalls.md)。
 
 恢复现场时完成已接纳请求，不重新读取可能已被帧保存机制改写的参数。忙碌／重入
 和 signal callback 仍受原有状态机约束。未启用可选执行对象的 v2 请求拒绝；旧

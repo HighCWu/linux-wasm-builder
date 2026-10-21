@@ -297,6 +297,38 @@ Clang 静态分析还对 exec-fd 的重复 getenv 检查给出保守 nonnull 警
 Clang analyzer，根仓库 CI 将相关 analyzer 警告作为错误；这不替代 Wasm 目标分析。
 候选材料同时补齐独立 C 源码和两套宿主检查源码。
 
+## 第八组：原子 CLONE_PIDFD 与创建失败回滚
+
+distro `16473c2` 通过标准 clone3 选项在创建子进程时取得 pidfd，不新增 musl 公共
+函数，不使用 fork 后 pidfd_open 代替内核原子路径。仅接纳单线程、SIGCHLD、默认栈
+和单独 CLONE_PIDFD；普通 clone、其他 clone3 选项及默认 SDK 的边界不扩大。
+完整执行约定见[clone3 PIDFD 增量](fork-continuation-abi.md#clone3-的-clone_pidfd-增量)。
+
+静态 review 发现必须先修复的内核缺口：copy_thread 提前创建 Worker，随后
+pidfd_prepare 可能因 EMFILE 失败，原架构没有 exit_thread 来停止该 Worker；
+内核继续释放任务和栈会使尚未调度的 Worker 留下失效引用。Linux `8319e3950`
+补齐同步 abort 确认及 bootstrap 生命周期，`feb624494` 增加内部能力标记。
+新 loader 只在该内核能力为 1 且执行对象提供专用 helper 时开放 PIDFD 形态，
+旧内核/旧对象明确拒绝，防止把成功路径接通误当作失败路径也安全。
+
+新增真实目标语料覆盖：坏的完整 u64 输出地址；NOFILE 耗尽后三次 EMFILE、输出
+不变及无可回收子进程；恢复 fd 容量后原子创建；父端 CLOEXEC、子端输出值隔离
+和未继承父 pidfd；通过返回的 pidfd 发信号、poll、waitid 核对同一子进程并单次
+回收；随后仍执行普通 fork/wait，检查捕获选项没有残留。新增完整阶段加入 pidfd
+语料门禁，不能用旧五阶段通过替代这一增量。
+
+本地 300 项内核侧检查、源码/测试 TypeScript、18 项相关语料/链接检查和 Clang
+analyzer 通过。小型 wasm32/wasm64 实例实际调用新增执行 helper，检查 callback
+clone 参数及高位输出地址不被截断；这不是 Linux 运行证据。内核确切函数另经
+GCC/Clang 原生并发及 ASan/UBSan 检查，覆盖早到/迟到 Worker，撤销确认等待必须
+失败；小型 Wasm 编译检查最终确认后无任务数据读取。宿主进程语料显式使用
+fork+pidfd_open shim，因此只验证语料逻辑，不证明原子创建或 Wasm 内核。
+
+公开源码预取已固定最终 Linux rev/hash，集成提交为 `f14d72e`。
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39543176343) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39543181756) 已派发；实际
+新增阶段、失败后恢复及关闭结果尚未核实，浏览器尚未对这个版本派发。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
