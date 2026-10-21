@@ -10,6 +10,15 @@
 
 - 浏览器和 Node 同时验证，浏览器是首要产品环境。
 - 优先修复平台能力，避免用越来越多的应用补丁长期掩盖内核或 libc 缺口。
+- 内核配置以 Linux 官方上游 Kconfig 的默认值、依赖和选择条件为恢复基准，
+  不是以 tombl/linux 的裁剪配置为默认边界。除当前明确保持 CONFIG_MMU=n 外，
+  审查 Wasm defconfig 额外关闭的上游默认能力；能正确接通的应恢复，真实架构
+  障碍应说明并继续解决。配置启用不等于运行验收，不以改成 y 掩盖尚缺的实现，
+  也不机械套用 x86 的硬件配置。此原则与 tombl/musl 的 libc 比较基线分别适用。
+  已直接核对 [Linux 官方 v7.1 的 init/Kconfig](https://github.com/torvalds/linux/blob/v7.1/init/Kconfig)：
+  FHANDLE、AIO、IO_URING、MEMBARRIER 都是 default y；后续恢复审查不能把 fork
+  对这些选项的额外关闭视为官方默认。FHANDLE 已接通，其余仍需解决并验证实际
+  执行、共享 ring 或跨 CPU 同步等相应前提，不靠配置开关宣称完成。
 - musl 以上游 `tombl/musl` 为比较基准，仅加入 Linux on Wasm 所需的兼容代码；
   不新增上游没有的公共函数或通用 Linux 扩展。已有接口的 Wasm 声明门控与调用
   适配可以修正；无 libc 包装的接口通过标准 syscall 验证。见[musl 变更边界](musl-compatibility.md)。

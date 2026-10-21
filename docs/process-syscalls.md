@@ -1162,6 +1162,14 @@ Wasm 分支没有这一跳过路径。完整 ext4 目标与关闭仍待验收。
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39588429206) 已派发，要求三个
 file-handle 阶段、最终唯一 pass 和机器关闭；不复用前一个 IPC 配置的运行结果。
 
+上述两路首轮均在 Plan checks 失败，实际错误是 installedDisk requires at least
+one APK package：缺少 installedTest 镜像所需的基础软件包，尚未编译或运行
+内核/工作负载。distro `2cee432` / 集成 `54d4555` 为镜像加入现有 BusyBox，
+与同类 installedTest 的构造保持一致；内核、C 工作负载和验收要求不变。
+同一 `2cee432` 已定向重派
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39588740610) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39588747729)，完整目标待验收。
+
 不把此配置解释成所有文件系统、跨重启/跨挂载稳定性或 NFS 服务已验收；句柄
 是上游不透明对象，不是线性内存地址，不改变 NOMMU/映射边界或隔离模型。
 
