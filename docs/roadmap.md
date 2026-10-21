@@ -25,10 +25,11 @@
 不代表额外实现了 memfd 内核能力。
 
 [标准进程 syscall 准入](process-syscalls.md) 已核实 pidfd_open、pidfd_send_signal、
-poll、waitid(P_PIDFD) 与单次回收在 wasm64 Node 的组合，正在补双浏览器和 wasm32。
-下一组为 execveat/fexecve 的文件描述符执行、CLOEXEC、目录相对路径及错误恢复；
-宿主与反向控制通过，Wasm 目标待结果。不把验收入口存在、宿主结果或单一目标
-通过扩大成全部 flags、进程类型及多线程支持。
+poll、waitid(P_PIDFD) 与单次回收的双位宽 Node 和 wasm64 双浏览器组合。
+execveat/fexecve 的 wasm64 Node 也已核实，正在补双浏览器和 wasm32。
+当前实际实现 clone3 的有限 fork 形态在 v2 执行入口的适配，坏参数／不支持形态
+不会进入回调式内核 clone；本地状态机、语料和类型检查通过，双位宽 Node 待结果。
+不把验收入口存在、宿主结果或单一目标通过扩大成全部 flags、线程创建及多线程支持。
 
 按当前项目决策，停止继续拆分 fork 性能指标、调整调度等待或试验 Worker 启动
 优化。保留已有测量与默认关闭的诊断工具作为以后排查实际瓶颈的依据；不继续

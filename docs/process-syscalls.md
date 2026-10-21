@@ -50,8 +50,10 @@ distro `3ddc9d6` / 集成 `cec0a99`。本地相关 19 项检查通过，包含 G
 
 随后派发同源码的 [Chromium](https://github.com/HighCWu/distro/actions/runs/39526613240)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39526618525) 与
-[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39526623595)，均待验收。
-若目标失败，优先定位实际缺口，不以跳过、宿主结果或 wasm64 Node 代替该目标。
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39526623595) 均已成功，实际
+日志逐项核实完整三阶段、最终 pass。Chromium 149.0.7827.55、Firefox 151.0 各两轮，
+含每轮机器关闭和最终浏览器关闭标记；wasm32 Node 通过等待 machine.closed 的退出
+门禁。不据此推定 CLONE_PIDFD 原子获取、全部 flags 或无控制的 PID 回绕压力通过。
 
 ## 第二组：execveat 与 fexecve
 
@@ -69,8 +71,37 @@ distro `9025bdd` / 集成 `4c885e6` 新增独立 `exec-fd` 工作负载。程序
 
 GCC/Clang 实际原生运行、故意去掉 CLOEXEC 的反向控制及相关阶段/SDK 检查共 13 项
 通过，格式/元数据检查通过；这些不是 Wasm 证据。
-[wasm64 目标](https://github.com/HighCWu/distro/actions/runs/39526747006) 已派发待结果，
-成功后才扩展双位宽/浏览器验收；若失败，按实际 syscall、加载器或执行恢复缺口修复。
+[wasm64 目标](https://github.com/HighCWu/distro/actions/runs/39526747006) 已成功，实际
+日志核实全部三阶段与最终 pass，并通过运行器关闭门禁。distro `73f74b2` / 集成
+`6c088a6` 只补充相同语料的浏览器装配，随后派发
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39530457614)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39530463413) 和
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39530468988)，均待验收。
+
+## 第三组：clone3 fork 形态的实际接入
+
+此前的执行适配只识别 clone 220，不能直接将 clone3 普通 fork 送入原回调式内核
+路径。distro `269f4d4` / 集成 `8d5d0d4` 实现标准号 435 在可选 v2 执行入口的有限
+接入，旧 callback import 明确返回 ENOSYS。默认 SDK/musl 和 Linux 内核源码未改；
+新增解析与执行适配为 MIT，不新增应用 API 或内核 softmmu。
+
+支持边界与错误策略见[clone3 执行 ABI](fork-continuation-abi.md#clone3-的有限-fork-形态)。
+只接纳无 flags、默认栈、SIGCHLD、无 tid/pidfd/TLS/cgroup 选项的单线程 fork。
+指针/长度先验证，结构字段保持完整 u64；保存区重入和恢复受现有状态机控制。
+对未支持的合法组合拒绝，不声称实现完整 clone3。尤其不支持 CLONE_PIDFD 原子
+返回 pidfd；第一组测试用的是已有子进程的 pidfd_open。
+
+新原始调用语料检查旧 import 拒绝、坏地址/长度/尾部、未支持形态、不留下可回收
+子进程，随后按 64/80/88/96 四种长度从相同 syscall 调用点恢复父子，核对 PID/PPID、
+栈局部变量、私有全局隔离及单次 wait。未经变换的 exec 子程序也必须拒绝 clone3。
+浏览器 normal fork 门禁增加独立阶段，不能只靠原有 fork pass 代替。
+
+本地 296 项内核侧检查、16 项相关协议/工具检查及源码和测试 TypeScript 检查通过。
+GCC/Clang 的 C 语料通过原生 fork shim 运行，另有 clone3 专属错误身份反向控制；
+它们不是宿主原生 clone3 或 Wasm 运行证明。新的
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39531205555) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39531212530) 已派发，须核实
+新增 clone3 阶段、完整原有语料和关闭之后，才将该接入记为目标验收通过。
 
 Dash 的 wasm64 Node 结果和浏览器/wasm32 进度独立记录在
 [Dash 接入记录](dash-processes.md)，不将其中的 shell 通过泛化到 pidfd。

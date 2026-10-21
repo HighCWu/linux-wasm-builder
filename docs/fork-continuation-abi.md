@@ -69,7 +69,30 @@ linux_syscall(SYS_clone, callback, argument, flags, parent_tid, child_tid, tls);
 非空 argument 返回 `EINVAL`；其他未支持的 flags/tid/tls 组合返回 `EOPNOTSUPP`。
 未启用 continuation 的程序发起空 callback 请求也返回 `EOPNOTSUPP`，不创建无效入口子进程。
 只导入 `syscall_v2` 不会自动启用 continuation；仍须满足上述导出与完整链接变换契约。
-v2 非 clone syscall 与旧入口使用相同内核调用及 exec 替换处理。
+v2 除 clone/clone3 外的 syscall 与旧入口使用相同内核调用及 exec 替换处理。
+
+### clone3 的有限 fork 形态
+
+distro `269f4d4` 在 v2 import 接入 Linux 标准号 435：参数为用户 `clone_args` 地址、
+字节长度，其余寄存器忽略。结构字段在 wasm32/wasm64 上都是小端 u64，不按指针
+宽度截断。当前只接纳 flags=0、exit_signal=SIGCHLD，其余字段全部为零的单线程
+默认栈 fork；仍通过已有 continuation 与真正的 Linux 回调 clone 完成进程创建。
+没有新增内核 syscall 号、Linux UAPI 结构或应用专用函数。
+
+输入先有界拷贝、验证，再初始化 continuation descriptor。最小长度 64，已知字段
+88 字节；较短结构补零，较长结构的未知尾部必须为零，长度不得超过当前架构的
+64 KiB PAGE_SIZE。坏地址返回 EFAULT，过短或选定结构性错误返回 EINVAL，超长或
+非零未知尾部返回 E2BIG，其他未支持形态返回 EOPNOTSUPP。这里不是完整 Linux
+clone3 flags/错误优先级兼容承诺；不支持 alternate stack、CLONE_PIDFD、tid/TLS、
+cgroup、namespace、线程创建或多线程 fork。
+
+恢复现场时完成已接纳请求，不重新读取可能已被帧保存机制改写的参数。忙碌／重入
+和 signal callback 仍受原有状态机约束。未启用可选执行对象的 v2 请求拒绝；旧
+callback import 对 clone3 返回 ENOSYS，不再把未能保存用户现场的请求送入内核。
+raw caller 仍须自行承担 libc post-fork 收尾，不自动获得 fork() 的 atfork/锁处理。
+
+此为已实现待目标验收的增量：本地双位宽状态机及原始调用语料已接入，真实 Node
+与浏览器支持结论见[进程 syscall 验收](process-syscalls.md)，不能只凭此协议定义推定。
 
 入口处的 Wasm 执行适配器完成 unwind，再以现有非空回调 clone 进入真正的 Linux
 进程创建路径。PID、资源继承、信号、退出与 wait 不是由适配器仿造；
