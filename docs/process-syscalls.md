@@ -82,8 +82,17 @@ GCC/Clang 实际原生运行、故意去掉 CLOEXEC 的反向控制及相关阶�
 
 此前的执行适配只识别 clone 220，不能直接将 clone3 普通 fork 送入原回调式内核
 路径。distro `269f4d4` / 集成 `8d5d0d4` 实现标准号 435 在可选 v2 执行入口的有限
-接入，旧 callback import 明确返回 ENOSYS。默认 SDK/musl 和 Linux 内核源码未改；
+接入，旧 callback import 明确返回 ENOSYS。默认 SDK 不启用 continuation，Linux 内核源码未改；
 新增解析与执行适配为 MIT，不新增应用 API 或内核 softmmu。
+
+随后发现 Wasm musl 公共头文件缺少标准 `SYS_clone3` 编号，已在 musl `e7bde79`
+补齐，并由 distro `edb5719` / 集成 `f1d1cb0` 固定源码及验证过的下载哈希。
+这只是公开标准号声明，不是 musl 新增 clone3 包装函数，也不表示默认程序已获得
+fork continuation。早期 `269f4d4` 未包含该头文件修复，不作为目标验收版本。
+
+最终版本 distro `abddde6` / 集成 `e72d8fa` 要求 syscall 扩展 ABI 2，防止新程序
+被仅认识 ABI 1 的旧 loader 错误接纳。新 loader 继续兼容 ABI 1 的旧 clone 功能，
+但仅为 ABI 2 对象启用 clone3；未知版本拒绝。支持边界仍不扩大。
 
 支持边界与错误策略见[clone3 执行 ABI](fork-continuation-abi.md#clone3-的有限-fork-形态)。
 只接纳无 flags、默认栈、SIGCHLD、无 tid/pidfd/TLS/cgroup 选项的单线程 fork。
@@ -96,11 +105,14 @@ GCC/Clang 实际原生运行、故意去掉 CLOEXEC 的反向控制及相关阶�
 栈局部变量、私有全局隔离及单次 wait。未经变换的 exec 子程序也必须拒绝 clone3。
 浏览器 normal fork 门禁增加独立阶段，不能只靠原有 fork pass 代替。
 
-本地 296 项内核侧检查、16 项相关协议/工具检查及源码和测试 TypeScript 检查通过。
+最终版本本地 298 项内核侧检查、18 项相关协议/工具检查及源码和测试 TypeScript 检查通过。
+后者包含 Clang 实际编译链接 wasm32/wasm64 小模块，并实例化核对 ABI 2 导出；
+freestanding 测试专用 memset 仅补足测试环境，不改变正式 C 语料或 libc。
 GCC/Clang 的 C 语料通过原生 fork shim 运行，另有 clone3 专属错误身份反向控制；
 它们不是宿主原生 clone3 或 Wasm 运行证明。新的
-[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39531205555) 与
-[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39531212530) 已派发，须核实
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39532388311) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39532393851)
+已对最终版本重新派发，须核实
 新增 clone3 阶段、完整原有语料和关闭之后，才将该接入记为目标验收通过。
 
 Dash 的 wasm64 Node 结果和浏览器/wasm32 进度独立记录在

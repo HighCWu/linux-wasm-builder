@@ -31,7 +31,7 @@ Linux 的 clone、进程身份、描述符继承、信号、退出及 wait 仍�
 | `asyncify_get_state` | `() -> i32`，0=正常、1=unwind、2=rewind |
 | `asyncify_start_unwind`、`asyncify_start_rewind` | `(uintptr_t descriptor) -> void` |
 | `asyncify_stop_unwind`、`asyncify_stop_rewind` | `() -> void` |
-| `__wasm_fork_syscall_abi` | syscall 扩展标识，`() -> i32`，必须返回 1 |
+| `__wasm_fork_syscall_abi` | syscall 扩展标识，`() -> i32`；1 为旧 clone 扩展，2 才启用 clone3 |
 | `__wasm_fork_descriptor` | syscall 扩展，`() -> uintptr_t`，初始化并返回保存区 descriptor |
 
 `pid_t` 和 checkpoint 返回值在双位宽下均为 i32；wasm64 的地址及 raw clone 的 long
@@ -78,6 +78,12 @@ distro `269f4d4` 在 v2 import 接入 Linux 标准号 435：参数为用户 `clo
 宽度截断。当前只接纳 flags=0、exit_signal=SIGCHLD，其余字段全部为零的单线程
 默认栈 fork；仍通过已有 continuation 与真正的 Linux 回调 clone 完成进程创建。
 没有新增内核 syscall 号、Linux UAPI 结构或应用专用函数。
+
+后续 distro `abddde6` 将新执行对象的 syscall 扩展标识升级为 2。仅认识 ABI 1 的
+旧 loader 必须在 `_start` 前拒绝新对象，避免把 clone3 直接转发给缺少用户现场的
+回调式内核路径。新 loader 兼容 ABI 1 对象的原 clone 功能，但其 clone3 返回
+ENOSYS；只有 ABI 2 对象才接入下述解析与恢复。import 名称仍为 syscall_v2，
+它选择参数布局，不替代执行对象的能力版本检查。
 
 输入先有界拷贝、验证，再初始化 continuation descriptor。最小长度 64，已知字段
 88 字节；较短结构补零，较长结构的未知尾部必须为零，长度不得超过当前架构的
