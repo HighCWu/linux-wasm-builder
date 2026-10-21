@@ -621,6 +621,25 @@ musl 源码哈希由公开 prefetch `39552965261` 核实，集成为 distro `9b9
 与 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39553202261) 均固定
 该源码，仍在运行；要求新增子区间阶段与原三阶段、唯一 pass 及 machine.closed。
 
+两项现均成功，实际日志核实缩小/原地扩展、阻塞增长拒绝/迁移/邻居隔离、子区间
+两侧保留/洞复用、清理恢复四阶段和唯一 pass，并通过等待 machine.closed 的
+运行器退出门禁。由此记录单记录内子区间的双位宽 Node 准入；不扩大为跨记录、
+固定替换、共享映射或文件副本增长的支持证明。
+
+### 第十七组：CPython 复用标准 mremap
+
+distro `809df7b` / 集成 `7dba8ce` 让真实 Python fixture 使用上游已有的
+mmap.resize()；不修改 CPython 源码或强制 HAVE_MREMAP 探测，不新增 libc API。
+测试扩大、缩小/再扩大、保留数据和零尾、导出缓冲区的 BufferError、失败后仍可用
+及 close/retry，和原有内核拒绝边界共四个 mmap 阶段。构建材料检查要求实际
+HAVE_MREMAP=1，已有浏览器用例补上 resize 必需标记；旧版本结果不能替代。
+
+23 项相关宿主检查通过，包括假成功、丢数据、吞错误、残留整页四个反向控制。
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39554209066) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39554218265) 仍在运行，
+实际安装/位宽门禁、完整四阶段和关闭尚待核实，不能用 C mremap 或原生 Python
+通过代替。细节见 [Python mmap 记录](python-mmap.md#标准-mremap-接通后的-resize)。
+
 ### 高布局 fork 的独立失败
 
 `d74784a` 的 `39548994652` 实际失败发生在“栈/TLS/数据/descriptor 都在高半区”
@@ -629,6 +648,14 @@ musl 源码哈希由公开 prefetch `39552965261` 核实，集成为 distro `9b9
 各地址与逐项断言以定位实际布局；不弱化门禁来获得 pass，需独立目标复验。
 对应 [诊断复验](https://github.com/HighCWu/distro/actions/runs/39552197047) 固定
 `6438a90`，仍在运行；不能把本轮 mremap 结果当作 fork 高地址结果。
+
+该次诊断现已失败，实际输出为 stack=0x7ffffc、tls=0x80000000、
+global=0x80000dc4、descriptor=0x80080e70，唯一未满足的布局项是栈。已核对固定
+LLVM `137009e2` 的 LLD Driver/Writer/Options：stack-first 默认启用，global-base
+不改变前置栈的位置。distro `ac46f14` / 集成 `047d0e7` 只为独立高地址测试设置
+`--no-stack-first`，让栈位于高数据之后；默认 SDK 和 LLVM 源码不改，全部高地址
+断言保留。[修正复验](https://github.com/HighCWu/distro/actions/runs/39554319163)
+固定 `ac46f14`，实际布局和 fork 结果仍待核实，不能据此提前宣称通过。
 
 ## 本轮静态 review 与异步验收原则
 

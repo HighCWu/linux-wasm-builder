@@ -618,3 +618,27 @@ SIGINT handler 先恢复完全 raw 模式再确认，之后输入包含全部 25
 窗口变化/中断信号。这不验证后续独立 Python 根盘、上传启动器或源码导出。
 
 [python64-chromium-terminal-signals-success]: https://github.com/HighCWu/distro/actions/runs/39083862152
+
+## 标准 mremap 接通后的 resize
+
+distro `809df7b` / 集成 `7dba8ce` 开始验证 CPython 既有 `mmap.resize()`，不是
+增加 Python 私有接口或补丁。[固定版本的原版实现](https://github.com/python/cpython/blob/v3.13.14/Modules/mmapmodule.c)
+在检测到 HAVE_MREMAP 后直接调用 libc mremap；私有匿名映射走该路径，文件大小
+调整和默认共享匿名映射的限制仍按上游处理。本轮不修改 Linux、LLVM 或 musl。
+
+共用 fixture 增加扩大、页对齐缩小/重新扩大、原数据及零尾、导出 memoryview
+阻止 resize、EINVAL/负长度失败后旧映射保持可用、非整页尺寸和最终 close/retry。
+不要求缩小时被保留的最后一页内字节重新归零，以免误写 Linux 的页取整语义。
+原先 flush 的 ENOSYS、默认共享/文件映射拒绝仍是独立必需阶段。
+
+没有设置 ac_cv_func_mremap 或更改模块探测结果。构建材料检查要求实际生成的
+pyconfig.h 含 HAVE_MREMAP=1；缺失时不能把构建算为该能力通过。现有浏览器 mmap
+用例也要求新增 resize 标记，没有新建用例或在本地下载浏览器。
+
+本地 23 项 Python 相关宿主检查通过，包含原生负载及四种反向控制：假成功、
+增长丢失前缀、吞掉 resize 错误、重新暴露已丢弃整页。原生结果只验证负载，
+不证明 Linux/Wasm 上的 CPython 配置、syscall、指针更新或关闭已可用。
+
+双位宽 Node 已按相同 `809df7b` 派发，要求位宽/安装路径门禁及四个 mmap 阶段、
+唯一 pass 和机器关闭，实际结果待核实。此前三阶段 Python 浏览器或 C mremap
+通过均不覆盖新增 Python resize，后续浏览器结果也应单独记录。
