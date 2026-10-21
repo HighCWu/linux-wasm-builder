@@ -128,4 +128,4 @@ tombl/musl 原有 src/stat/fchmodat.c 已包含 SYS_fchmodat2 调用分支，原
 编号缺失而未编译进入该路径。补齐编号后，既有 fchmodat 接口可将 AT_EMPTY_PATH
 等 flags 传给当前 Linux 内核；无 flags 的旧 syscall 路径、内核 ENOSYS 后的
 兼容 fallback、函数体、公共声明与 flags 常量均保持不变。不新增 fchmodat2
-包装函数、公共头文件或应用 API。
+包装函数、头文件或项目专有应用 API；新增的标准编号宏只用于已有接口的架构调用。

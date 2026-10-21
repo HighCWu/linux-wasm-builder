@@ -1066,7 +1066,8 @@ musl `d950af5c` / distro `574af86` / 集成 `5b0ffda` 补齐 Wasm 架构表缺�
 标准 fchmodat2 号 452，使 tombl/musl 已有 fchmodat 函数内的对应分支进入构建。
 原先 AT_EMPTY_PATH 在 libc 层直接返回 EINVAL；NOFOLLOW 路径则可能退回依赖
 procfs 的兼容实现。当前固定 Linux `5bc1ee5e6` 已有该 syscall，不需新增内核
-实现或编号。新增接口包装、公开函数/头文件/常量、编译器和执行 import 均无变化。
+实现或编号。没有新增函数包装或头文件；fchmodat 公开声明、AT_* flags 常量、
+编译器和执行 import 不变。新增宏仅为既有接口接入所需的标准架构 syscall 号。
 
 对同一固定 Linux 的 asm-generic/arch unistd 按 wasm32/wasm64 展开后，既有共同
 名称未发现其它数值错配；部分历史别名名称不同但编号相同，未机械删除。表内
