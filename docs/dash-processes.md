@@ -90,7 +90,11 @@ distro `3ddc9d6` / 集成 `cec0a99` 新增浏览器独立运行入口，Chromium
 也必须使检查失败。宿主驱动模拟与阶段拒绝检查通过，但不代替真实页面运行。
 [Chromium](https://github.com/HighCWu/distro/actions/runs/39518891213)、
 [Firefox](https://github.com/HighCWu/distro/actions/runs/39518898108) 及
-[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39518882328) 已派发待验收。
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39518882328) 均已成功。
+固定 `3ddc9d6` 的实际日志逐项核实：Chromium 149.0.7827.55、Firefox 151.0 各两轮
+四阶段和最终 pass，均有每轮机器关闭及最终浏览器关闭标记；wasm32 Node 也完成
+全部四阶段和最终 pass，并通过等待 machine.closed 的运行器退出门禁。
+这些是所列非交互语料的有限验收，不扩展为完整 job control、任意 SjLj 或长期稳定性。
 标准 pidfd 进程控制的独立工作见[syscall 准入记录](process-syscalls.md)，不混为
 Dash 已覆盖的 syscall 范围。
 

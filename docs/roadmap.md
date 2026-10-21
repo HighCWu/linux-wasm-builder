@@ -18,19 +18,17 @@
 
 ## 当前工作重心：能力优先，暂停专项性能实验
 
-当前已核实 Dash wasm64 Node 的完整非交互进程语料与运行器关闭门禁，正在补
-双浏览器和 wasm32。并行新增[标准 pidfd 进程控制准入](process-syscalls.md)，核对
-pidfd_open、pidfd_send_signal、poll、waitid(P_PIDFD) 与单次回收的组合；宿主验证
-通过，真实 Wasm 待结果，不把新增测试入口宣称为已完成 syscall 支持。
+当前已核实 [Dash](dash-processes.md) 的 wasm32/wasm64 Node 完整非交互语料与
+运行器关闭门禁，以及 wasm64 Chromium/Firefox 各两轮完整阶段、机器及浏览器关闭。
+仍使用显式的应用局部 vfork→fork 参数与可选执行 ABI，不做 callback 重写，不
+替换默认 shell。其暴露的 memfd 头文件缺口已修正为恢复 `_GNU_SOURCE` 控制的声明，
+不代表额外实现了 memfd 内核能力。
 
-首个真实程序入口为[Dash 进程接口接入候选](dash-processes.md)：使用上游源码、
-显式的应用局部 vfork→fork 参数及现有可选执行 ABI，不做 callback 重写。相同源码
-的原生脚本验证通过；wasm64 目标构建与运行已接入公开 CI，尚未核实目标结果。
-不把候选包存在或原生通过当作 Wasm shell 已可用。
-首轮静态检查修正后，目标 Dash 编译暴露 musl 隐藏已有 `memfd_create` 声明的
-问题。musl `c080f8e1` 恢复 GNU 声明，distro `a900f5d` / 集成 `041ee70` 更新精确
-来源，双位宽及 x86_64 头文件回归通过；真实 Wasm 复验待结果，不扩大 memfd
-内核能力或 shell 支持声明，详见上述接入记录。
+[标准进程 syscall 准入](process-syscalls.md) 已核实 pidfd_open、pidfd_send_signal、
+poll、waitid(P_PIDFD) 与单次回收在 wasm64 Node 的组合，正在补双浏览器和 wasm32。
+下一组为 execveat/fexecve 的文件描述符执行、CLOEXEC、目录相对路径及错误恢复；
+宿主与反向控制通过，Wasm 目标待结果。不把验收入口存在、宿主结果或单一目标
+通过扩大成全部 flags、进程类型及多线程支持。
 
 按当前项目决策，停止继续拆分 fork 性能指标、调整调度等待或试验 Worker 启动
 优化。保留已有测量与默认关闭的诊断工具作为以后排查实际瓶颈的依据；不继续
