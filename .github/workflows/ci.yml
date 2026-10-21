@@ -148,7 +148,9 @@ jobs:
         run: node --test sources/distro/distro/fork-continuation/execution-link.test.js
       - name: Check standard-fork Bash candidate workload on the build host
         # Native script/recipe validation, not Wasm or SjLj/Asyncify acceptance.
-        run: node --test sources/distro/distro/bash-fork/processes.test.js
+        run: |
+          node --test sources/distro/distro/bash-fork/processes.test.js \
+            sources/distro/distro/bash-fork/sjlj.test.js
       - name: Check shared Lua workload on a native interpreter
         # Native execution validates the fixture, not target SjLj or the Wasm ABI.
         run: |
