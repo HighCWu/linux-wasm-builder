@@ -9,6 +9,75 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 for (const cc of ["gcc", "clang"])
+  test(`${cc}: exact munmap rejects platform bounds but forwards in-range holes`, (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "wasm-munmap-syscall-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const source = readFileSync(
+      process.env.WASM_MREMAP_SYSCALL_SOURCE ??
+        new URL("../sources/linux/arch/wasm/kernel/syscall.c", import.meta.url),
+      "utf8",
+    );
+    const start = source.indexOf("SYSCALL_DEFINE2(wasm_munmap,");
+    const end = source.indexOf("\n}\n", start);
+    assert.ok(start >= 0 && end > start);
+    const prefix = `
+#include <assert.h>
+#include <errno.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <limits.h>
+#define PAGE_SIZE 65536UL
+#define PAGE_MASK (~(PAGE_SIZE - 1))
+#define PAGE_ALIGNED(x) (!((x) & (PAGE_SIZE - 1)))
+#define TASK_SIZE 0x400000000UL
+#define check_add_overflow(a,b,c) __builtin_add_overflow(a,b,c)
+#define SYSCALL_DEFINE2(n,t0,a0,t1,a1) long n(t0 a0,t1 a1)
+static int calls;
+static long response;
+static long wasm_user_munmap(unsigned long a, unsigned long n) {
+  assert(a == 0 || a == TASK_SIZE-PAGE_SIZE); assert(n == PAGE_SIZE);
+  calls++; return response;
+}
+`;
+    const fixture = `
+int main(void) {
+  assert(wasm_munmap(TASK_SIZE, 1) == -EINVAL);
+  assert(wasm_munmap(TASK_SIZE-PAGE_SIZE, PAGE_SIZE+1) == -EINVAL);
+  assert(wasm_munmap(ULONG_MAX & PAGE_MASK, PAGE_SIZE) == -EINVAL);
+  assert(wasm_munmap(0, ULONG_MAX) == -EINVAL);
+  assert(wasm_munmap(1, 1) == -EINVAL && wasm_munmap(0, 0) == -EINVAL);
+  assert(calls == 0);
+  assert(wasm_munmap(0, 1) == 0 && calls == 1);
+  response = -ENOMEM;
+  assert(wasm_munmap(TASK_SIZE-PAGE_SIZE, PAGE_SIZE) == -ENOMEM && calls == 2);
+}
+`;
+    const original = source.slice(start, end + 3);
+    const broken = original.replace(" || addr > TASK_SIZE", "");
+    assert.notEqual(original, broken);
+    for (const [mode, body] of [
+      ["normal", original],
+      ["old-boundary", broken],
+    ]) {
+      const input = join(dir, "test.c"),
+        binary = join(dir, "test");
+      writeFileSync(input, prefix + body + fixture);
+      const build = spawnSync(
+        cc,
+        ["-O2", "-std=c11", "-Wall", "-Wextra", "-Werror", input, "-o", binary],
+        { encoding: "utf8" },
+      );
+      assert.equal(build.status, 0, build.stderr);
+      const run = spawnSync(binary, [], { encoding: "utf8", timeout: 10000 });
+      if (mode === "normal") assert.equal(run.status, 0, run.stdout + run.stderr);
+      else {
+        assert.notEqual(run.status, 0);
+        assert.match(run.stderr, /Assertion/);
+      }
+    }
+  });
+
+for (const cc of ["gcc", "clang"])
   test(`${cc}: exact mmap routes FIXED separately and gives NOREPLACE priority`, (t) => {
     const dir = mkdtempSync(join(tmpdir(), "wasm-fixed-mmap-syscall-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
