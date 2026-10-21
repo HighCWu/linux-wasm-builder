@@ -151,3 +151,11 @@ generic 布局；src/ipc 的 msgctl/semctl/shmctl 函数体和公共函数集合
 执行和旧布局失败控制已核对，包含超过32位的时间值。这是 wasm32 IPC ABI
 修正：使用相关结构的旧对象、静态库和程序必须与新 SDK/libc 一起重新编译，
 不能混用旧布局对象与新 libc。wasm64 布局未改变。完整目标另行验收。
+
+后续双位宽真实目标在 IPC_STAT 返回 EINVAL，发现还缺少原生控制命令约定。
+`7eade118` 在 syscall_arch.h 声明内部 IPC_64=0，沿用 musl 已有 RISC-V 做法：
+asm-generic 原生入口直接使用 IPC64 结构，不再把旧式0x100命令位传给内核。
+wasm32 公共 IPC_STAT 中的 time64 标记仍由原样 libc 剥离并触发字段转换；
+wasm64 仍使用原有结构。src/ipc、公开函数和公共头文件 API 不变。
+回归另行执行固定内核的原生分派函数，避免测试再次错误假设内核接受命令258；
+修复后的完整目标仍单独跟踪，不能将这项小型执行当作实际 IPC 已通过。

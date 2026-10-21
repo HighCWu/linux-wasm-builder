@@ -1133,6 +1133,22 @@ IPC_STAT 元数据与删除；信号量覆盖 SETALL/GETALL、多操作失败原
 当前目标待验收；不宣称 SHM、SEM_UNDO 的进程退出恢复、所有 IPC namespace、
 跨用户权限或浏览器已验证。架构细节见[musl 兼容性边界](musl-compatibility.md)。
 
+首轮 `3aaf7df` 两路均实际进入工作负载，随后在 message metadata ABI 阶段失败，
+errno=22。原因不是结构 offset，而是 Wasm 架构未声明 IPC_64=0，原有 libc
+IPC_CMD 将控制命令加上旧式 0x100 位。固定内核的原生 msgctl/semctl 入口已
+直接选择 IPC64 布局，不会解析旧命令版本位，IPC_STAT 应传2而非258。
+此前小型检查也错误预期258，未能暴露这个协议问题；其通过不构成目标验收。
+修正沿用 musl 现有 RISC-V 的架构约定，不更改通用控制函数或公开 API。
+新增回归直接编译固定内核 ksys_msgctl 原函数与固定 UAPI 常量，分派逻辑不
+重写，只替代分配/复制依赖，核实2命中、258返回 EINVAL；原样 libc 必须传2。
+musl `7eade118` / distro `ea37cb4` / 集成 `af5915f` 已提交该修复；源哈希由
+[prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39589895762) 核实。
+原样控制函数、固定内核分派、结构和 native/sanitizer 四项检查通过，可选
+fork 补丁 dry-run 通过。同一 `ea37cb4` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39590198798) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39590206054) 已定向重派；
+必须重新核实全部三阶段、最终 pass 与关闭，尚不宣称目标修复已验收。
+
 ### 第二十八组：上游持久文件句柄 syscall
 
 Linux `5c25d2f4e` / distro `10d7c71` / 集成 `5983fa4` 将三套配置原先显式关闭的
@@ -1172,6 +1188,33 @@ one APK package：缺少 installedTest 镜像所需的基础软件包，尚未�
 
 不把此配置解释成所有文件系统、跨重启/跨挂载稳定性或 NFS 服务已验收；句柄
 是上游不透明对象，不是线性内存地址，不改变 NOMMU/映射边界或隔离模型。
+
+### 第二十九组：恢复官方默认目录通知
+
+Linux `059800405` / distro `8236b08` / 集成 `ad9704d` 删除三套 Wasm defconfig
+中额外关闭 DNOTIFY 的条目，让
+[Linux 官方 v7.1 的 default y](https://github.com/torvalds/linux/blob/v7.1/fs/notify/dnotify/Kconfig)
+及 FSNOTIFY 选择条件正常生效；构建检查最终 CONFIG_DNOTIFY=y。通过上游
+fcntl(F_NOTIFY) 和信号路径提供目录变更通知，不新增 syscall 号、musl 包装或
+应用 API；inotify 仍是更现代的接口，此恢复用于保持原有 Linux 程序兼容。
+
+普通 C 工作负载使用现有 F_SETOWN/F_SETSIG 和阻塞实时信号集，检查通知中的
+si_code、si_fd、si_band，一次性订阅自动撤销、多次订阅连续通知、先撤销再
+更换 CREATE/DELETE 掩码、显式撤销后不再通知、非目录/坏 fd 拒绝后恢复，
+最后关闭 watch fd 后从另一目录 fd 创建文件不得遗留通知。所有清理完成并
+恢复原信号掩码后才报告 pass；不依赖异步抢占、不创建线程或扩大 fork 范围。
+
+GCC/Clang 的 native 实际三阶段和 ASan/UBSan、双位宽 Clang 前端及静态分析
+通过；将 F_NOTIFY 替换成配置关闭时的 EINVAL 后，工作负载必须在第一次注册
+失败且不得输出 pass，不能靠空事件队列误判支持。review 核对所有 fcntl 变参
+使用完整 long、SIGIO fallback 也进入阻塞/检查集合、同步文件事件完成后的
+零超时空队列检查，以及撤销/关闭顺序。真实 Wasm 三阶段与关闭待单独验收。
+固定源码哈希由公开
+[prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39589249774) 核实。
+同一 `8236b08` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39590288141) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39590295634) 已派发；目标须有
+完整三个 dnotify 阶段、最终唯一 pass 和关闭证据，当前仍为待验收。
 
 ## 本轮静态 review 与异步验收原则
 
