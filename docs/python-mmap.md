@@ -642,3 +642,10 @@ pyconfig.h 含 HAVE_MREMAP=1；缺失时不能把构建算为该能力通过。�
 双位宽 Node 已按相同 `809df7b` 派发，要求位宽/安装路径门禁及四个 mmap 阶段、
 唯一 pass 和机器关闭，实际结果待核实。此前三阶段 Python 浏览器或 C mremap
 通过均不覆盖新增 Python resize，后续浏览器结果也应单独记录。
+
+本轮 Node 为 [wasm32](https://github.com/HighCWu/distro/actions/runs/39554209066)
+和 [wasm64](https://github.com/HighCWu/distro/actions/runs/39554218265)，固定 `809df7b`。
+主仓库轻量 CI `39554196967` 的实际日志指出浏览器规范已要求 resize，但独立宿主
+模拟仍提供旧三阶段。distro `8ec790f` / 集成 `759e33f` 已同步模拟输出；完整该步 60 项检查及
+23 项 Python 宿主检查通过，缺失任一阶段的反向控制保留。不改真实负载或放宽
+浏览器要求，不重复派发已经运行中的 Python 重型任务；主仓库 push 单独复验。
