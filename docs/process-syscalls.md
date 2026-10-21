@@ -699,14 +699,15 @@ prefetch `39556482787` 与 `39556630858`，目标 CI 单独验收，不复用旧
 同一 `c2f1c5f` 已派发 [C wasm32](https://github.com/HighCWu/distro/actions/runs/39557605298)、
 [C wasm64](https://github.com/HighCWu/distro/actions/runs/39557611325)、
 [Python wasm32](https://github.com/HighCWu/distro/actions/runs/39557618206) 与
-[Python wasm64](https://github.com/HighCWu/distro/actions/runs/39557624512)。仍在运行，
+[Python wasm64](https://github.com/HighCWu/distro/actions/runs/39557624512)。本轮要求：
 C 要求完整三阶段，Python 要求含新 flush 的四阶段、ABI/安装布局，两者均须
 唯一 pass 及关闭；当前没有新增浏览器结果，不因等待而重复派发。
 
 其中两项 C 目标现均成功，已读取实际日志：私有范围/flags/页取整/数据保持、
 空洞拒绝及相邻记录恢复、释放范围拒绝三阶段和唯一 pass 全部出现。运行器
-closeTestResources 等待 machine.closed，作业成功确认关闭门禁。Python 两项
-仍在运行；这只完成 `c2f1c5f` 私有 msync 的双位宽 C 验收，不覆盖新增 madvise。
+closeTestResources 等待 machine.closed，作业成功确认关闭门禁。Python 两项随后
+也已核实实际 ABI/安装路径、含新 flush 的四阶段、唯一 pass 和关闭。由此完成
+`c2f1c5f` 私有 msync 的双位宽 Node 验收，不覆盖新增 madvise 或浏览器。
 
 ### 第十九组：标准 madvise 的匿名丢弃
 
@@ -741,7 +742,9 @@ Python 增加 madvise 后要求五个 mmap 阶段及原 ABI/安装路径、唯�
 同一 `130f0f0` 已派发 [C wasm32](https://github.com/HighCWu/distro/actions/runs/39558934760)、
 [C wasm64](https://github.com/HighCWu/distro/actions/runs/39558945270)、
 [Python wasm32](https://github.com/HighCWu/distro/actions/runs/39558954741) 与
-[Python wasm64](https://github.com/HighCWu/distro/actions/runs/39558963824)，当前均在运行。
+[Python wasm64](https://github.com/HighCWu/distro/actions/runs/39558963824)。四项均已成功，
+实际日志核实双位宽 C 三阶段、Python 五阶段及 ABI/安装路径、唯一 pass 和关闭；
+Python 的新增 madvise 阶段包含匿名页丢弃、邻页、活跃视图与非法 advice。
 前一批 msync 工作负载固定旧源码，自然运行完毕后独立核实，不取消或复用它们
 作为新增 madvise 的证明。
 
@@ -772,11 +775,41 @@ GCC/Clang ASan/UBSan 和 Clang 静态分析通过；覆盖中间替换、跨多�
 同一 `5115c9a` 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39560729491)
 与 [wasm64](https://github.com/HighCWu/distro/actions/runs/39560736823) 已派发，要求
 中间/跨记录替换、NOREPLACE 优先/洞复用/错误恢复、最后旧引用替换及继续使用三阶段，
-唯一 pass 和机器关闭。当前仍在运行，无新增固定替换浏览器结果。
+唯一 pass 和机器关闭。两项现均成功，实际日志逐项核实上述三阶段和唯一 pass；
+运行器等待 machine.closed 且目标成功确认关闭门禁。无新增固定替换浏览器结果。
 
 此前 `c2f1c5f` 的双位宽 Python msync 检查现已核实实际 ABI/安装路径、完整四阶段、
 唯一 pass 和机器关闭；`130f0f0` 的双位宽 C madvise 也已核实完整三阶段、唯一 pass
 与关闭。这些分别补齐对应旧源码的结果，不作为本组固定替换或浏览器验收。
+
+### 浏览器应用回归与独立 munmap 边界修正
+
+distro `fc7e4a8` / 集成 `abc3181` 沿用现有 Python 浏览器两个用例，不新增场景：
+完整解释器及搬移应用、私有 mmap 五阶段。只给公共运行器已有 onProgress 加
+控制台输出，保留真实阶段与 shutdown completed；诊断不能改变完成或错误语义。
+29 项宿主检查通过。以下四路均固定该源码，尚待目标与报告核实：
+
+- [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/39564585105)
+- [wasm32 Firefox](https://github.com/HighCWu/distro/actions/runs/39564595414)
+- [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39564602645)
+- [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39564610620)
+
+每路要求两项预期用例、零跳过/零重试、实际位宽/安装路径及全部相应阶段、
+pass 和机器关闭，不误写成每项两轮。使用公开 CI 的固定 Playwright 引擎，不在
+本地下载浏览器；这批不执行新的固定替换工作负载。
+
+独立 review 发现 wasm_munmap 只检查整数回绕，没有拒绝超过 TASK_SIZE 的范围，
+wasm64 可错误地把平台上限之外当成普通空洞成功。核对固定 Linux mm/vma.c 的
+do_vmi_munmap 范围检查后，Linux `366e444d2` 增加上限校验，合法范围内空洞仍可
+no-op 成功。精确源码 GCC/Clang 检查通过，故意移除上限的反向控制失败；现有
+fixed-mmap 目标增加 wasm64 上限拒绝和原映射保留检查，不增加新测试场景。
+这项修正须随新 pin 单独验收，不能用上面 `5115c9a` 的结果证明。
+
+修正已集成为 distro `c46abc6` / 主仓库 `3cc2527`，Linux 哈希来自公开 prefetch
+`39564945010`。同一修正的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39565306036)
+与 [wasm64](https://github.com/HighCWu/distro/actions/runs/39565313107) 已派发，仍在
+排队/运行；现有三阶段必须完成新增上限拒绝及合法空洞/原映射恢复后才能 pass，
+还须等待机器关闭。四路 `fc7e4a8` 浏览器继续自然运行，不取消或重复派发。
 
 ## 本轮静态 review 与异步验收原则
 

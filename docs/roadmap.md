@@ -104,22 +104,28 @@ pin，不推广成高地址内核整体支持。
 musl `c6e6b380` 的内部活跃记录检查，distro `c2f1c5f` / 集成 `1d5721e`。
 有效私有映射无共享文件回写，但空洞、已释放范围及非法 flags 不能假成功；
 CPython 直接复用既有 flush 接口。静态分析、sanitizer、323 项运行层检查和
-相关宿主检查通过，双位宽 C/Python 目标结果待验收，不扩大为共享文件持久化支持。
+相关宿主检查通过，双位宽 C/Python 目标阶段和关闭均已核实，不扩大为共享文件持久化支持。
 
 上一项独立增量是匿名 madvise：Linux `7ba501fbb`、musl `d61bd4aa`、distro
 `130f0f0` / 集成 `ece1180`。DONTNEED 清零指定匿名页并保留映射，不改变邻页；
 POSIX_DONTNEED 保持非破坏性。文件副本不能补读时拒绝丢弃，不声称物理容量
 回收或完整 advice 支持。原版 CPython 复用 mmap.madvise()，不新增 libc 函数。
 静态分析、sanitizer、325 项运行层检查及相关宿主门禁通过；目标结果独立验收。
-该版本双位宽 C 三阶段及关闭现已核实；前一版 msync 的双位宽 Python 四阶段与
+该版本双位宽 C 三阶段、Python 五阶段及关闭现已核实；前一版 msync 的双位宽 Python 四阶段与
 关闭也已核实，不据此声称浏览器或最新固定替换通过。
 
 当前增量是有界匿名 MAP_FIXED：Linux `b30bfebb0`、musl `e6543914`、distro
 `5115c9a` / 集成 `4cab302`。仅覆盖单个 mmap backing 内的区域，保留外侧记录和
 数据，目标清零，新记录保护最后一个旧 backing 引用；NOREPLACE 保持优先。
 旧程序缺少独立覆盖入口时拒绝，不把 FIXED 误当 hint。327 项运行层、类型检查、
-精确源码 sanitizer/静态分析及相关 native 检查通过，双位宽真实目标待验收。
+精确源码 sanitizer/静态分析及相关 native 检查通过，双位宽真实三阶段及关闭已核实。
 不扩大为任意线性内存、文件固定映射、MREMAP_FIXED 或页权限支持。
+
+`fc7e4a8` / 集成 `abc3181` 正在进行 Python 双位宽 Chromium/Firefox 应用回归，
+沿用两项现有用例，保留实际五阶段及关闭轨迹；尚未宣称浏览器通过。并行 review
+修正 Linux `366e444d2` 的 munmap 平台上限检查：超出 TASK_SIZE 拒绝，合法空洞
+仍 no-op 成功，已集成为 `c46abc6` / `3cc2527`。双位宽定向目标待验收，与上述
+已通过旧版本及四路正在运行的 `fc7e4a8` 浏览器分别记录，不重复派发。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
