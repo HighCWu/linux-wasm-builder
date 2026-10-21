@@ -113,5 +113,19 @@ POSIX 函数应直接恢复为薄包装。
 
 musl 实验提交 `ab35b7d5` 已用后续 `f7f31459` 撤回；两者均保留公开 Git 历史，
 没有 force-push、删除或重排已发布提交。已核对撤回后整个源码树与 `59301bde`
-净差异为零。本项目 gitlink、distro rev/hash 和 SDK 从未切换到该实验，继续固定
-`59301bde`；本轮未新增任何公共函数、头文件或通用包装，也不宣称新的实时调度能力。
+净差异为零。本项目 gitlink、distro rev/hash 和 SDK 从未固定该实验函数体；
+该次排查结束时继续固定 `59301bde`，没有新增公共函数、头文件或通用包装，
+也不宣称新的实时调度能力。后续架构编号增量与该调度实验分别记录。
+
+## 现有 fchmodat 的 flags 分支接入
+
+`d950af5c` 相对上述 `59301bde` 的整个净差异仅为现有 Wasm 架构 syscall 表：
+补齐标准号 `__NR_fchmodat2=452`，并将编号范围计数与固定 Linux 的 472 对齐。
+这不是为 472 个调用作支持声明，也没有添加所有新 Linux 接口的包装。
+公开历史中的调度实验及撤回记录保留，其净源码差异为零；没有通过改写历史隐藏它们。
+
+tombl/musl 原有 src/stat/fchmodat.c 已包含 SYS_fchmodat2 调用分支，原来因 Wasm
+编号缺失而未编译进入该路径。补齐编号后，既有 fchmodat 接口可将 AT_EMPTY_PATH
+等 flags 传给当前 Linux 内核；无 flags 的旧 syscall 路径、内核 ENOSYS 后的
+兼容 fallback、函数体、公共声明与 flags 常量均保持不变。不新增 fchmodat2
+包装函数、公共头文件或应用 API。

@@ -1055,6 +1055,47 @@ Linux `5bc1ee5e6` / distro `1459987` / 集成 `fb2eea5` 显式包含 asm/sigcont
 构建选项/测试，不把它们计作能力进展。musl 实验只用后续撤回提交保留历史，
 SDK 与 gitlink 仍为原基线；审计见[musl 兼容性边界](musl-compatibility.md)。
 
+`1459987` 双位宽大文件目标现已成功，实际日志逐项核实完整四阶段及各自唯一
+pass：包括 wasm32 的高偏移不混叠、显式拆字 vectored I/O、两个宽参数及后随
+flags、负数错误与收尾。成功作业通过等待 machine.closed 的关闭门禁。
+这补齐该宽参数修复的 Node 验收，不扩大为大文件 mmap、浏览器或崩溃持久化。
+
+### 第二十六组：现有 fchmodat flags 与 O_PATH 权限操作
+
+musl `d950af5c` / distro `574af86` / 集成 `5b0ffda` 补齐 Wasm 架构表缺少的
+标准 fchmodat2 号 452，使 tombl/musl 已有 fchmodat 函数内的对应分支进入构建。
+原先 AT_EMPTY_PATH 在 libc 层直接返回 EINVAL；NOFOLLOW 路径则可能退回依赖
+procfs 的兼容实现。当前固定 Linux `5bc1ee5e6` 已有该 syscall，不需新增内核
+实现或编号。新增接口包装、公开函数/头文件/常量、编译器和执行 import 均无变化。
+
+对同一固定 Linux 的 asm-generic/arch unistd 按 wasm32/wasm64 展开后，既有共同
+名称未发现其它数值错配；部分历史别名名称不同但编号相同，未机械删除。表内
+__NR_syscalls 从过时的 451 修正为该内核的 472，只是编号范围，并非全部调用
+已支持或验收。新源哈希由公开
+[prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39580528712) 核实。
+
+原样 src/stat/fchmodat.c 的小型 Wasm 执行先复现旧表在双位宽下没有进入
+fchmodat2；补齐后核对完整机器字分派、内核 errno、无 flags 仍使用旧 fchmodat，
+以及 ENOSYS 后仍进入原有 fallback。删除新增编号的反向控制必须重新得到旧
+EINVAL/零次 syscall 行为。函数体不修改，不把项目自己实现的包装当作原函数。
+
+共享 C 程序通过普通 fchmodat 调用核对：重命名后的 O_PATH fd 配合空路径修改
+mode、dirfd 相对 regular file 的 NOFOLLOW、symlink 不误改目标、坏 fd/flags/
+缺失路径拒绝、unlink 后仍持有 fd 的 inode 权限与最后关闭回收。raw initramfs
+不挂载 procfs，因此目标不依赖 /proc/self/fd 兼容路径。只覆盖当前权限位和根
+进程工作负载，不扩大到 ACL、跨用户权限、所有文件系统或 namespace 模型。
+
+GCC/Clang native 与 ASan/UBSan、Clang 静态分析、双位宽前端及实际 libc 分派
+检查通过；可选 fork 补丁对新 musl dry-run 通过。review 核对原 fallback 保留、
+fd/inode 生命周期、flags 与机器字宽度；musl 相对 `59301bde` 的净差异只有架构
+编号表，src/include 无新差异，调度桩保持上游原状。
+
+同一 `574af86` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39581038415) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39581048899) 已派发，要求完整
+三阶段、最终 pass 与机器关闭。当前尚未完成目标验收，不以 native/小型模块
+或前一组大文件目标代替这一路径的真实内核运行，也没有新增浏览器结果。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
