@@ -89,3 +89,15 @@ madvise 声明仍保留原特性宏，POSIX 声明对 Wasm 恢复。特别保留
 复用到原 __wasm_mmap_fixed。标准 mremap 的公共声明及包装函数体没有再次修改；
 新增的内部导出只供版本化执行 ABI 使用。节点预分配、范围重验、复制/零尾、
 来源传播和引用回收均属于 Wasm 兼容实现，仍不扩展 musl 公共函数集。
+
+## 后续宽文件偏移 ABI 修正
+
+`59301bde` 仅在现有 `arch/wasm32/bits/syscall.h.in` 中按 long 位宽选择 syscall
+84 的正确名称：wasm32 保持 sync_file_range2，wasm64 选择 sync_file_range。
+两种调用的 flags 位置不同；这使直接上游已有 sync_file_range.c 自动进入正确
+调用路径，函数体、公共声明和函数集合均不修改。没有新增公共头文件或通用
+Linux 包装函数，也未重写已经发布的 musl 历史。
+
+同轮 Linux `2237e08ea` 在内核入口重组 wasm32 的连续 low/high 标量，musl 原有
+__SYSCALL_LL_E/O 约定不变。小型 Wasm 模块分别执行原样内核头文件和原样 musl
+同步包装；完整 ext4 大文件目标单独跟踪，不用这两项检查替代目标运行。

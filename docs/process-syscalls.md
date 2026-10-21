@@ -937,6 +937,10 @@ C 要求三阶段，BusyBox 要求两阶段；各自还需最终 pass 和机器�
 完成目标验收。不据配置启用推定所有文件系统后端、递归监听、队列溢出、所有
 watch flags、跨进程权限或浏览器运行都已通过；不启用 fanotify。
 
+上述 `7007682` 四路 Node 目标现已成功。实际日志逐项核实双位宽 C 三阶段、
+BusyBox 两阶段及各自最终 pass；成功作业通过运行器等待 machine.closed 的关闭
+门禁。不将这些结果扩大为后续源码、浏览器或其它文件系统后端的验收。
+
 ### 第二十四组：上游 IPv6 socket 与现有 HTTP 应用
 
 Linux `c5b78cfcc`、distro `5cfe25a` / 集成 `7fc47f4` 将三套 defconfig 的
@@ -970,6 +974,51 @@ review 核对非阻塞连接、地址/辅助数据边界、资源收尾和 host/
 C 要求三阶段，BusyBox 要求两阶段，各自还需唯一 pass 和机器关闭，目标结果待验收。
 不据 loopback 通过推定外部 IPv6 连通、SLAAC/邻居发现、DNS、全部 socket options、
 多播、IPsec、namespace 隔离或浏览器验收完成；外部连通还取决于实际网络后端。
+
+上述 `5cfe25a` 四路 Node 目标现已成功，实际日志逐项核实双位宽 C 三阶段、
+BusyBox 两阶段及最终 pass。结合固定运行器的关闭失败非零退出约束，确认机器
+关闭门禁通过；没有新增浏览器或外部网络连通结果。
+
+### 第二十五组：wasm32 宽 syscall 标量与 wasm64 同步参数顺序
+
+Linux `2237e08ea`、musl `59301bde`、distro `aa2db02` / 集成 `cfc22a7`
+修正两处实际 ABI 缺陷，不是新增包装函数或只增加测试：
+
+- 原 wasm32 内核 wrapper 每个 C 参数只读取一个 syscall 机器字；musl 已将
+  loff_t 等 64 位标量拆成连续 low/high 两字。旧入口会丢高位并错置后续参数，
+  不仅影响超过 4 GiB 的 pread/pwrite/truncate，还影响 fallocate 等两个宽参数。
+  新入口按声明类型、依次重组 64 位标量；没有偶数寄存器对齐空位。明确用两个
+  unsigned long 声明的 preadv 等仍逐字传递，不再次合并。六字边界先验证，无法
+  表达的超长签名拒绝 ENOSYS 而不越界读取；零参数和 wasm64 路径保持原取值方式。
+- musl 的 Wasm syscall 表此前不分位宽选择 sync_file_range2，但内核只有 wasm32
+  选择 flags-first 的 range2，wasm64 使用 offset-first 的 sync_file_range。
+  架构表现在按 long 位宽选择正确名称，沿用同一标准号 84、上游已有函数体。
+  不增加公共函数、通用包装或项目 API；旧 wasm64 程序须重新链接修正后的 libc。
+
+源码哈希分别由公开 prefetch
+[Linux](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39574895129)、
+[musl](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39575139024) 核实。
+Linux 派生修改保留内核 GPL，新增独立语料为 MIT，不改 MMU/fork 支持边界。
+
+原样 syscall_wrapper.h 的小型 freestanding Wasm 执行先复现旧 wasm32 第一用例
+失败，修正后双位宽通过：两个宽参数、负宽参数、后随标量、指针、六个普通字、
+零参数和六字边界；重新引入旧取值方式的反向控制仍失败。该检查不是完整内核
+执行。还实际编译并执行 musl 原样 sync_file_range.c，在 import 处核对双位宽
+完整七参数的顺序和数值，不只看预处理宏名称。
+
+共享 C 负载用可写 ext4 根目录上的稀疏文件验证 >4 GiB 的 ftruncate、pread/
+pwrite 与低地址不混叠、preadv/pwritev、fallocate/posix_fallocate、posix_fadvise、
+sync_file_range/fsync、路径 truncate、负数拒绝、POSIX errno 保留与回收。
+文件逻辑大小超过 4 GiB，但只实际分配少量块；不扩大用户线性内存范围。
+GCC/Clang native 与 ASan/UBSan、Clang 静态分析、双位宽头文件/声明及既有
+mapping 检查通过，可选 fork 补丁对新 musl dry-run 通过。review 核对类型别名、
+符号位、split-word 例外、顺序求值和寄存器边界；没有以此宣称所有 syscall 已完整。
+
+同一 `aa2db02` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39575748736) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39575757814) 已派发，要求大文件
+完整四阶段、最终 pass 与机器关闭，尚待目标验收。不把前两组旧配置结果当作
+新通用入口的回归证明，也不宣称浏览器、大文件 mmap 或物理持久化崩溃恢复已通过。
 
 ## 本轮静态 review 与异步验收原则
 
