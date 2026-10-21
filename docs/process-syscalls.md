@@ -899,6 +899,43 @@ Linux 哈希由公开 prefetch `39569265125` 核实。同一 `abebc79` 已派发
 C 需新增提示位阶段及原三阶段，Python 需新增提示位阶段及原五阶段，两者都要
 完整 pass 和机器关闭；没有新增浏览器结果，不改或重试旧的已通过任务。
 
+随后双位宽 C 已成功，实际日志核实全部四阶段与唯一 pass，成功作业通过等待
+machine.closed 的关闭门禁。Python wasm32 也已成功，实际日志核实完整六阶段、
+唯一 pass 和相同关闭门禁；Python wasm64 仍运行。不据此扩大浏览器覆盖范围。
+
+### 第二十三组：启用上游 inotify 与现有 BusyBox inotifyd
+
+Linux `cb557f63c`、distro `7007682` / 集成 `d90ba34` 在默认、wasm32、wasm64
+三套 defconfig 启用 `CONFIG_INOTIFY_USER`，复用 Linux 上游 inotify/FSNOTIFY
+实现及标准 syscall 26/27/28。构建检查解析后的 `.config` 确实启用两项能力；
+没有新增事件模拟器、syscall 编号或内核 softmmu，仍为 NOMMU。源码哈希由公开
+[prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39572005506) 核实。
+
+直接上游 tombl/musl 已有 inotify 头文件及四个函数，实现没有被 Wasm 门控；
+本增量不修改 musl。BusyBox 的固定源码已带 `inotifyd` applet，本增量只启用
+现有构建选项，不新增软件包或补丁。其原 GPL 许可证与对应源码材料继续保留；
+本项目新增验证代码为 MIT，不改变应用开发与发布的原有许可边界。
+
+标准 C 负载核对 NONBLOCK/CLOEXEC、epoll 就绪与 64 位 opaque data、FIONREAD、
+过短 read 的 EINVAL 与队列保留，以及 create/modify/close/rename/delete 事件、
+重命名 cookie、清空队列、rm_watch/IN_IGNORED 和重新安装监听后的清理。
+BusyBox 负载运行真实 `inotifyd -`，通过 `/proc/PID/fdinfo` 确认 watch 已安装后
+才写入、重命名和删除文件；移除目录后核对 delete-self/ignored，并 wait 回收
+监控程序。准备及事件等待有界，不靠固定启动延时推断就绪。
+
+GCC/Clang 原生语料和 ASan/UBSan、损坏 cookie 的反向控制、Clang 静态分析及
+双位宽已有 musl 头文件/结构布局检查通过。宿主 BusyBox 没有 inotifyd applet，
+因此没有宣称宿主 applet 实测通过；其运行由公开目标验收负责。
+
+同一 `7007682` 已派发
+[C wasm32](https://github.com/HighCWu/distro/actions/runs/39572450386)、
+[C wasm64](https://github.com/HighCWu/distro/actions/runs/39572459397)、
+[BusyBox wasm32](https://github.com/HighCWu/distro/actions/runs/39572468594) 和
+[BusyBox wasm64](https://github.com/HighCWu/distro/actions/runs/39572476584)。
+C 要求三阶段，BusyBox 要求两阶段；各自还需最终 pass 和机器关闭，当前尚未
+完成目标验收。不据配置启用推定所有文件系统后端、递归监听、队列溢出、所有
+watch flags、跨进程权限或浏览器运行都已通过；不启用 fanotify。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

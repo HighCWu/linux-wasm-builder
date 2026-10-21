@@ -138,11 +138,20 @@ sanitizer/静态分析和相关 native 检查通过；mremap 六阶段与原 MAP
 也已核实。wasm64 初次为源码 HTTP 429、第 2 次尝试已核实完整三阶段及关闭，
 不将下载失败解释为运行时回归，也未取消其它任务。
 
-当前增量 `abebc79` / 集成 `ae75750` 使用 Linux `31234c7fd`，接受匿名 mmap
+`abebc79` / 集成 `ae75750` 使用 Linux `31234c7fd`，接受匿名 mmap
 的常见提示位并忽略无关 fd；入旧 allocator ABI 前规范化，保持 FIXED/NOREPLACE
 优先级。常规 Python 构造不再需要删除 STACK/POPULATE 等提示；不启用页保护、
 自动增长、共享、锁页或稀疏提交，不新增 musl API。精确源码/native、静态分析、
-sanitizer、Python 和浏览器模拟门禁通过；新双位宽 C 四阶段/Python 六阶段待验收。
+sanitizer、Python 和浏览器模拟门禁通过；新双位宽 C 四阶段和 Python wasm32
+六阶段现已核实唯一 pass 及关闭门禁，Python wasm64 仍运行。
+
+当前增量 `7007682` / 集成 `d90ba34` 使用 Linux `cb557f63c`，三套内核配置启用
+上游 inotify/FSNOTIFY，提供标准文件变化通知 syscall；musl 无需修改。现有
+BusyBox 启用自带 inotifyd，未引入新软件包或应用 API。C 负载覆盖事件队列、
+epoll、重命名 cookie 与移除/恢复，真实 applet 覆盖目录变化通知和退出回收。
+双编译器 native/sanitizer、静态分析、双位宽头文件与布局检查通过；双位宽
+C 三阶段和 BusyBox 两阶段已派发，实际目标及关闭待验收。配置启用不等于
+所有文件系统后端或浏览器已验证，fanotify 不在本增量范围内。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
