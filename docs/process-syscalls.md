@@ -703,6 +703,48 @@ prefetch `39556482787` 与 `39556630858`，目标 CI 单独验收，不复用旧
 C 要求完整三阶段，Python 要求含新 flush 的四阶段、ABI/安装布局，两者均须
 唯一 pass 及关闭；当前没有新增浏览器结果，不因等待而重复派发。
 
+其中两项 C 目标现均成功，已读取实际日志：私有范围/flags/页取整/数据保持、
+空洞拒绝及相邻记录恢复、释放范围拒绝三阶段和唯一 pass 全部出现。运行器
+closeTestResources 等待 machine.closed，作业成功确认关闭门禁。Python 两项
+仍在运行；这只完成 `c2f1c5f` 私有 msync 的双位宽 C 验收，不覆盖新增 madvise。
+
+### 第十九组：标准 madvise 的匿名丢弃
+
+Linux `7ba501fbb`、musl `d61bd4aa`、distro `130f0f0` / 集成 `ece1180` 接通
+标准号 233。Linux 检查 advice、地址对齐、页取整与溢出、TASK_SIZE，再调用
+内部 user_v2.madvise；旧对象没有相应分配器导出时返回 ENOSYS，不在 JS 猜测
+范围或直接改写原始指针附近的线性内存。
+
+对已注册私有匿名范围，MADV_DONTNEED 清零整个页取整范围，保留地址占用和
+映射记录；MADV_NORMAL/RANDOM/SEQUENTIAL/WILLNEED 对驻留 backing 是有效提示，
+不会丢弃内容。映射管理锁覆盖完整范围验证与清零；先核实全部记录，再修改数据，
+防止后段空洞或文件副本使前段被提前清零。相邻记录可组合，空洞及释放范围
+ENOMEM，未知/不支持 advice 或非法几何 EINVAL。不能重建来源的初始化文件
+副本对 DONTNEED 返回 EOPNOTSUPP，拆分后仍保留该限制。
+
+这实现的是应用可见匿名页丢弃语义，不宣称 WebAssembly.Memory 缩小、物理内存
+归还浏览器、共享映射、MADV_FREE、DONTFORK 或完整 Linux madvise 支持。保持
+CONFIG_MMU=n，不引入翻译层、页保护或新的应用接口。
+
+恢复的是 tombl/musl 已有 madvise/posix_madvise 的声明和 Wasm 编译门控，包装
+函数体不变。POSIX_MADV_DONTNEED 保持上游原有非破坏性语义；POSIX 失败返回
+错误号而不修改 errno。没有补造上游缺失函数。原版 CPython 直接使用既有
+mmap.madvise()，构建检查要求实际 HAVE_MADVISE=1，不强制配置探测。
+
+本地 325 项运行层检查与双类型检查、12 项精确源码/native 检查、双位宽 musl
+前端、GCC/Clang ASan/UBSan 及 Clang 静态分析通过。Python 真实原生负载和反向
+控制验证部分页清零、邻页、活跃 memoryview、重复使用与非法 advice；60 项
+浏览器模拟门禁通过。这里均不是 Wasm 或浏览器执行证据。目标 C 要求三阶段，
+Python 增加 madvise 后要求五个 mmap 阶段及原 ABI/安装路径、唯一 pass 和关闭。
+公开源码哈希由 `39558589678`（musl）与 `39558597924`（Linux）计算。
+
+同一 `130f0f0` 已派发 [C wasm32](https://github.com/HighCWu/distro/actions/runs/39558934760)、
+[C wasm64](https://github.com/HighCWu/distro/actions/runs/39558945270)、
+[Python wasm32](https://github.com/HighCWu/distro/actions/runs/39558954741) 与
+[Python wasm64](https://github.com/HighCWu/distro/actions/runs/39558963824)，当前均在运行。
+前一批 msync 工作负载固定旧源码，自然运行完毕后独立核实，不取消或复用它们
+作为新增 madvise 的证明。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

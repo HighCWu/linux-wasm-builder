@@ -68,3 +68,15 @@ musl `c4c3591d` / `08ab5ec6` 在上述基线上恢复直接上游已有的 GNU m
 
 后续 `0a8b3917` 仅扩展同一内部辅助入口的单记录内子区间处理，传播已有副本
 来源标记并完善临时资源回收；公共声明、函数集、syscall 号和执行签名均未新增。
+
+## 后续 msync 与 madvise 兼容恢复
+
+`c6e6b380` 的 `__wasm_msync` 核实私有映射范围；`d61bd4aa` 的
+`__wasm_madvise` 实现匿名 DONTNEED 清零及常见驻留内存提示，均只属于 Wasm
+内部执行兼容入口，不加入公共头文件。没有宣称共享文件回写或浏览器物理内存回收。
+
+`d61bd4aa` 同时移除 tombl/musl 已有 madvise、posix_madvise 的 Wasm 禁用门控，
+两个包装函数的原始函数体不变；已对直接上游 `637b0d25` 核实净差异。GNU/BSD
+madvise 声明仍保留原特性宏，POSIX 声明对 Wasm 恢复。特别保留原 posix_madvise
+对 POSIX_MADV_DONTNEED 的非破坏性处理及返回错误号、不设置 errno 的语义，
+不能错误转成 Linux MADV_DONTNEED 的破坏性清零。不增加上游没有的公共函数。
