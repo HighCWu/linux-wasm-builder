@@ -1284,13 +1284,20 @@ C 栈地址；这些结果都不是 Wasm 内核目标证据。可选 fork 补丁
 | --- | --- | --- |
 | 信号栈五阶段 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599563781) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599576739) |
 | 无栈导出模块 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599594972) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599607937) |
-| 原有 fork runtime | [待验收](https://github.com/HighCWu/distro/actions/runs/39599617389) | [待验收](https://github.com/HighCWu/distro/actions/runs/39599624459) |
+| 原有 fork runtime | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599617389) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599624459) |
 
 wasm32/wasm64 主负载实际日志均已逐项核实全部五阶段和各自唯一 pass；双位宽
 无导出模块均已核实拒绝/普通回调阶段与唯一 pass，四项成功作业通过等待
-machine.closed 的关闭门禁。它们不替代尚未核实的 fork 或浏览器结果。
+machine.closed 的关闭门禁。
 
-后续在 Node 构建期间接入既有浏览器门禁，不重复实现 syscall。必要真实目标
+双位宽 fork runtime 随后也已核实实际全部阶段及唯一 pass：raw clone/clone3、
+pending signal、PID/TLS/atfork/mask/memory/fd/nested wait、拒绝 exec 后恢复、
+未变换 helper 的 raw clone 拒绝与 exec 继承/重置、exec 替换及 wait、多线程
+和信号回调内 fork 拒绝、flags-first/legacy callback 共存及后续恢复。两项成功
+作业通过同一关闭门禁；至此本候选六路 Node 验收齐全，不扩展为新 fork 支持
+范围或浏览器结果。
+
+后续接入既有浏览器门禁，不重复实现 syscall。必要真实目标
 通过后再单独移除 CONFIG_SITE 的相应否定项，让应用正常探测，而非预填成功；
 随后应让现有 CPython faulthandler 等实际程序使用正常声明/探测路径验证，不能
 把上述 C 负载泛化成全部应用、引擎故障处理或浏览器已验收。
