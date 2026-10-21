@@ -50,6 +50,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
+      - name: Check failed fork Worker lifetime with exact pinned kernel source
+        # Host atomics/sanitizers and small Wasm codegen, not kernel execution.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/process.c?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-process.c"
+          python3 -B scripts/check_fork_worker_abort.py "$RUNNER_TEMP/wasm-process.c"
       - name: Check SDK compiler and dependency discovery contracts
         run: |
           clang --version
@@ -155,6 +165,8 @@ jobs:
             sources/distro/distro/bash-fork/sjlj.c -o /dev/null
           clang --analyze -Xanalyzer -analyzer-werror -Xanalyzer -analyzer-output=text \
             sources/distro/distro/fork-continuation/exec-fd.c -o /dev/null
+          clang --analyze -Xanalyzer -analyzer-werror -Xanalyzer -analyzer-output=text \
+            sources/distro/distro/fork-continuation/process-control.c -o /dev/null
       - name: Check shared Lua workload on a native interpreter
         # Native execution validates the fixture, not target SjLj or the Wasm ABI.
         run: |
