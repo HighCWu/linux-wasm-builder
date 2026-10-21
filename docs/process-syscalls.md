@@ -1020,6 +1020,18 @@ mapping 检查通过，可选 fork 补丁对新 musl dry-run 通过。review 核
 完整四阶段、最终 pass 与机器关闭，尚待目标验收。不把前两组旧配置结果当作
 新通用入口的回归证明，也不宣称浏览器、大文件 mmap 或物理持久化崩溃恢复已通过。
 
+首轮两路均未进入目标编译或运行：实际失败日志是 treefmt 中的 ShellCheck
+SC2093，指出 large-file-test.sh 在 exec 后仍有语句，不是已经观察到的宽参数
+内核回归。distro `0e68343` / 集成 `382cfe8` 移除不必要的启动脚本，直接以
+大文件 C 程序作为已安装 ext4 系统的 `/init`；Linux/musl 修复与负载均不变。
+没有压低门禁、跳过检查或修改已发布历史；删除的脚本仍可从原 Git 提交恢复。
+
+同一 `0e68343` 的定向
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39576392143) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39576401631) 已派发。原样入口、
+实际 musl 包装、native 大文件和双位宽前端重新通过；新目标仍需四阶段、最终
+pass 与关闭证据。首轮失败结果保留，不以宿主验证替代真实目标验收。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

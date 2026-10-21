@@ -160,13 +160,16 @@ httpd/wget/nc 覆盖 loopback HTTP。native/sanitizer、反向控制、静态分
 ABI 与宿主参考 applet 通过；双位宽 C 三阶段/BusyBox 两阶段现已核实实际日志、
 最终 pass 及 Node 关闭门禁。该增量不宣称外部 IPv6 转发、DNS 或浏览器已验证。
 
-当前增量 `aa2db02` / 集成 `cfc22a7` 修正 Linux `2237e08ea` 的 wasm32 通用
+`aa2db02` / 集成 `cfc22a7` 修正 Linux `2237e08ea` 的 wasm32 通用
 syscall 入口：按声明类型重组连续 low/high 64 位标量，保持显式拆字接口和
 wasm64 原路径不变；六字上限不越界读取。musl `59301bde` 只修正 wasm64 的
 sync_file_range 标准号名称选择，沿用上游函数体，不新增 API。原样入口的小型
 Wasm 执行已先复现旧错误再验证修复，实际 musl 同步包装的双位宽顺序也已核实。
 native/sanitizer/静态分析与 >4 GiB 稀疏文件负载通过；双位宽 ext4 四阶段目标
 已派发，真实内核执行及关闭待验收，不扩大线性内存或文件 mmap 支持范围。
+首轮双位宽作业实际停在 treefmt/ShellCheck SC2093，尚未编译/运行目标；当前
+`0e68343` / 集成 `382cfe8` 去掉 exec 后带语句的冗余脚本，直接启动 C `/init`，
+ABI 修复不变。轻量检查重新通过，同一四阶段目标已定向重派，尚不宣称验收通过。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
