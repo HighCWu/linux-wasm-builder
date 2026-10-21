@@ -764,7 +764,7 @@ user_v2.mmap_fixed；旧模块缺少 __wasm_mmap_fixed 时 ENOSYS，绝不把请
 内部实现锁外准备替换与拆分节点，锁内重新确认 backing，再一次性拆分/移除
 覆盖记录、清零目标并发布新记录。保留请求之外的两侧内容与文件副本来源标记；
 新匿名记录不继承旧文件来源。先持有新引用，防止移除最后一个旧记录时提前释放
-backing。分配失败或准备期间旧映射被撤销时不修改旧数据，没有永久地址保留。
+backing。分配失败或锁内重验已找不到目标 backing 时不修改旧数据，没有永久地址保留。
 
 327 项运行层检查及双类型检查、14 项精确源码/native 检查、双位宽 musl 前端、
 GCC/Clang ASan/UBSan 和 Clang 静态分析通过；覆盖中间替换、跨多记录、完整替换、
@@ -798,6 +798,11 @@ distro `fc7e4a8` / 集成 `abc3181` 沿用现有 Python 浏览器两个用例，
 pass 和机器关闭，不误写成每项两轮。使用公开 CI 的固定 Playwright 引擎，不在
 本地下载浏览器；这批不执行新的固定替换工作负载。
 
+四路现均成功，已读取实际日志：每路完整解释器/搬移应用十个必需阶段、mmap
+五阶段、两次 ABI/安装布局、两次 pass 和两次 shutdown completed 均出现，
+Playwright 报告两项通过，精确报告门禁确认零跳过/零重试。由此验收 `fc7e4a8`
+在双位宽 Chromium/Firefox 的这两个应用用例，不推广到新的固定重映射。
+
 独立 review 发现 wasm_munmap 只检查整数回绕，没有拒绝超过 TASK_SIZE 的范围，
 wasm64 可错误地把平台上限之外当成普通空洞成功。核对固定 Linux mm/vma.c 的
 do_vmi_munmap 范围检查后，Linux `366e444d2` 增加上限校验，合法范围内空洞仍可
@@ -810,6 +815,45 @@ fixed-mmap 目标增加 wasm64 上限拒绝和原映射保留检查，不增加�
 与 [wasm64](https://github.com/HighCWu/distro/actions/runs/39565313107) 已派发，仍在
 排队/运行；现有三阶段必须完成新增上限拒绝及合法空洞/原映射恢复后才能 pass，
 还须等待机器关闭。四路 `fc7e4a8` 浏览器继续自然运行，不取消或重复派发。
+
+该 `c46abc6` 双位宽 Node 现也均成功，实际日志核实 fixed-mmap 三阶段、唯一 pass
+与关闭门禁；wasm64 的第三阶段包含新增 TASK_SIZE 拒绝及原映射继续使用。它们
+证明独立边界修正，不覆盖下文的新事务重构。
+
+### 第二十一组：有界 MREMAP_FIXED 事务
+
+Linux `dbc6a5054`、musl `0600f012`、distro `bb8e564` / 集成 `8e71b1a` 接通
+MREMAP_FIXED | MREMAP_MAYMOVE，应用仍调用既有标准 mremap。Linux 校验页取整、
+源/目标上限和不重叠要求后，经独立 user_v2.mremap_fixed 内部入口执行；旧模块
+缺少 __wasm_mremap_fixed 时 ENOSYS，不退回旧的非固定 resize，也不新增公共函数。
+
+源完整范围须在一条活跃记录内，目标须完整落在一个仍保留的 mmap backing 中。
+支持匿名扩大/缩小、覆盖目标、保留两侧记录与数据，并解除完整旧范围。源、目标
+可在同一个原始记录内，或属于不同 backing；复制 min(old,new)，新增尾部清零。
+初始化文件副本可移动/缩小且保留来源限制，不能补读的增长仍 EOPNOTSUPP。
+跨多源记录、DONTUNMAP、共享别名、任意高地址和页权限仍不支持。
+
+复用同一固定放置事务实现 MAP_FIXED，锁外准备目标记录和两侧拆分节点，锁内
+重新验证全部范围与来源。进入修改点后无可失败步骤；新目标先持有 backing 引用，
+避免移除最后一条旧记录时提前释放。源 backing 最后引用释放后才在锁外回收。
+三个准备分配点失败、源记录或目标 backing 在准备期间被撤销、重叠或未知目标均不部分修改。
+事务指映射登记和错误回滚，不保证与无同步用户写入之间的逐字节原子性。
+
+329 项运行层检查及双类型检查、16 项精确源码/native 检查、双位宽 musl 前端、
+GCC/Clang ASan/UBSan 与 Clang 静态分析通过。精确源码包含同记录双重中间拆分、
+源位于目标前/后、同/跨 backing、零尾、旧洞复用、文件来源与最后引用归零。
+原生仅运行共享 C 负载新增 fixed_move 部分，故意丢弃 FIXED 必须失败；不把它
+当成全部六阶段或 Wasm 验收。下载哈希由 `39566770716` 与 `39566783271` 计算。
+
+目标沿用原 mremap 检查，新增两阶段后共六阶段；旧四阶段通过不覆盖本增量。
+另对同一新源码定向运行双位宽 MAP_FIXED 三阶段，防止共享事务重构产生回归。
+不以宿主检查、浏览器旧工作负载或工作流状态代替新阶段和关闭证据。
+
+同一 `bb8e564` 的 [mremap wasm32](https://github.com/HighCWu/distro/actions/runs/39567396466)、
+[mremap wasm64](https://github.com/HighCWu/distro/actions/runs/39567406781)、
+[MAP_FIXED wasm32](https://github.com/HighCWu/distro/actions/runs/39567414604) 与
+[MAP_FIXED wasm64](https://github.com/HighCWu/distro/actions/runs/39567424449) 已派发，
+当前在运行；不重复派发，也不把旧 `5115c9a` 或 `c46abc6` 的结果当作新事务验收。
 
 ## 本轮静态 review 与异步验收原则
 
