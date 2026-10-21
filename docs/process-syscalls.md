@@ -901,7 +901,8 @@ C 需新增提示位阶段及原三阶段，Python 需新增提示位阶段及�
 
 随后双位宽 C 已成功，实际日志核实全部四阶段与唯一 pass，成功作业通过等待
 machine.closed 的关闭门禁。Python wasm32 也已成功，实际日志核实完整六阶段、
-唯一 pass 和相同关闭门禁；Python wasm64 仍运行。不据此扩大浏览器覆盖范围。
+唯一 pass 和相同关闭门禁。Python wasm64 随后也已成功，实际日志核实六阶段、
+唯一 pass，成功作业通过相同关闭门禁；不据此扩大浏览器覆盖范围。
 
 ### 第二十三组：启用上游 inotify 与现有 BusyBox inotifyd
 
@@ -935,6 +936,40 @@ GCC/Clang 原生语料和 ASan/UBSan、损坏 cookie 的反向控制、Clang 静
 C 要求三阶段，BusyBox 要求两阶段；各自还需最终 pass 和机器关闭，当前尚未
 完成目标验收。不据配置启用推定所有文件系统后端、递归监听、队列溢出、所有
 watch flags、跨进程权限或浏览器运行都已通过；不启用 fanotify。
+
+### 第二十四组：上游 IPv6 socket 与现有 HTTP 应用
+
+Linux `c5b78cfcc`、distro `5cfe25a` / 集成 `7fc47f4` 将三套 defconfig 的
+`CONFIG_IPV6` 从关闭改为内建，构建时检查解析后的配置。此前 AF_INET6 缺少
+对应协议族；本增量接通上游网络实现，不用用户态伪造 IPv6，不新增 syscall
+编号、musl 函数或应用 API。保持 NOMMU 和原先 fork 支持边界不变。
+源码哈希由公开 [prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39572979736)
+核实。BusyBox 显式开启现有 FEATURE_IPV6，沿用固定源码及许可证，不加程序补丁。
+
+C 工作负载在 Wasm initramfs 内用标准网络 ioctl 将 lo 置为 UP，不改变宿主网络。
+三阶段分别核对 IPv6 TCP 连接/accept/二进制传输/有序 EOF、V6ONLY=0 的双栈
+监听与 IPv4-mapped peer，以及 UDP sendmsg 的两段 iovec、recvmsg 的来源地址、
+IPV6_PKTINFO 辅助数据和实际 loopback 接口编号。socket 使用 NONBLOCK/CLOEXEC，
+连接完成还核对 SO_ERROR，读取前有界等待 readiness。没有用原生结构替代 Wasm
+头文件，双位宽前端独立检查现有 sockaddr_in6/in6_pktinfo 等布局与声明。
+
+真实 BusyBox 负载以 `/proc/net/tcp6` 确认 ::1 HTTP listener 后，再由普通 wget
+和 nc 请求 IPv6 地址 URL/服务，核对实际内容，停止并 wait 回收服务进程。
+该负载只验证实例内 loopback，不依赖外网路由、DNS 或宿主 IPv6 转发。
+
+GCC/Clang 原生语料、ASan/UBSan、损坏 packet-info 接口断言的反向控制、Clang
+静态分析、双位宽 musl 前端以及宿主参考 BusyBox 的实际 IPv6 HTTP 传输均通过。
+review 核对非阻塞连接、地址/辅助数据边界、资源收尾和 host/target 网络边界；
+这些结果不是 Wasm 目标执行证明，宿主 BusyBox 也不等于固定 Wasm applet。
+
+同一 `5cfe25a` 已派发
+[C wasm32](https://github.com/HighCWu/distro/actions/runs/39573454397)、
+[C wasm64](https://github.com/HighCWu/distro/actions/runs/39573461715)、
+[BusyBox wasm32](https://github.com/HighCWu/distro/actions/runs/39573471226) 和
+[BusyBox wasm64](https://github.com/HighCWu/distro/actions/runs/39573478191)。
+C 要求三阶段，BusyBox 要求两阶段，各自还需唯一 pass 和机器关闭，目标结果待验收。
+不据 loopback 通过推定外部 IPv6 连通、SLAAC/邻居发现、DNS、全部 socket options、
+多播、IPsec、namespace 隔离或浏览器验收完成；外部连通还取决于实际网络后端。
 
 ## 本轮静态 review 与异步验收原则
 
