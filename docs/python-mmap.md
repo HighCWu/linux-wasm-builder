@@ -690,3 +690,13 @@ distro `130f0f0` / 集成 `ece1180` 使用 Linux `7ba501fbb`、musl `d61bd4aa`�
 四路现均成功，实际日志核实两项预期用例的全部应用阶段、mmap 五阶段、位宽与
 安装路径、两次 pass 和两次机器关闭；精确报告门禁确认零跳过/零重试。
 这补齐该固定版本的浏览器验收，不覆盖之后的 MREMAP_FIXED 新工作负载。
+
+## 匿名映射的提示位兼容
+
+Linux `31234c7fd`、distro `abebc79` / 集成 `ae75750` 接受能由当前直接驻留 backing
+满足的匿名提示。共享 fixture
+使用 CPython 原有 MAP_STACK、MAP_POPULATE、MAP_DENYWRITE/MAP_EXECUTABLE 常量，
+按同一 mmap 接口验证零初始化、正常写入、flush、resize、madvise 与关闭；没有
+补丁或强制探测。Python 目标增加一个提示位阶段，连同原边界共六阶段，旧五阶段
+结果不能替代。C 负载另验证 NORESERVE/NONBLOCK 和匿名无关 fd，Python 不绕过
+自身 fd 处理来伪造该 syscall 路径。

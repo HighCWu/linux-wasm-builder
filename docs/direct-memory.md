@@ -58,6 +58,12 @@ private-memory callback clone的eager-copy快照一起复制。该机制从明�
 开始执行，不是标准`fork()`；复制linear memory不能复制Wasm引擎内部的调用栈。内核
 不会返回伪地址，也不为这一接口建立softmmu、页表或TLB。
 
+匿名映射的无关 fd 按 Linux 语义忽略，不要求调用者必须传 -1；内核会在进入旧
+allocator ABI 前规范化为 -1。NORESERVE、STACK、POPULATE/NONBLOCK 和历史
+DENYWRITE/EXECUTABLE 提示也会在验证后规范化，不要求应用删除常见提示位。
+这不启用自动栈增长、锁页、执行权限、共享内存或稀疏/按需提交，也不解除容量
+限制；当前匿名 offset 仍要求 0。文件 fd 不受此匿名参数规范化影响。
+
 映射执行边界使用版本化的`user_v2.mmap(addr, len, prot, flags, fd, pgoff)` import，
 宿主把Linux已校验的完整请求原样转发给当前进程模块的`__wasm_mmap_v2`导出。这一版本
 仍落到既有direct allocator；非固定hint向下对齐到页边界后，只有完整请求区间位于该

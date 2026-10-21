@@ -128,12 +128,21 @@ POSIX_DONTNEED 保持非破坏性。文件副本不能补读时拒绝丢弃，�
 仍 no-op 成功，已集成为 `c46abc6` / `3cc2527`。双位宽定向目标现已核实原
 三阶段、唯一 pass 及关闭，与四路 `fc7e4a8` 浏览器和新增事务分别记录。
 
-当前增量 `bb8e564` / 集成 `8e71b1a` 接通有界 MREMAP_FIXED：Linux `dbc6a5054`、
+上一项增量 `bb8e564` / 集成 `8e71b1a` 接通有界 MREMAP_FIXED：Linux `dbc6a5054`、
 musl `0600f012`，源限单条活跃记录、目标限一个保留 backing，可同/跨 backing
 移动和扩大/缩小，保留邻区、传播文件来源限制。准备/验证失败不破坏旧映射，
 旧模块缺少内部事务导出时拒绝，不新增应用 API。329 项运行层、类型、精确源码
 sanitizer/静态分析和相关 native 检查通过；mremap 六阶段与原 MAP_FIXED 三阶段
 按同一新源码单独验收，DONTUNMAP、跨多源记录和页权限仍未完成。
+现已核实双位宽 mremap 六阶段、唯一 pass 和关闭；MAP_FIXED wasm32 回归三阶段
+也已核实。wasm64 初次为源码 HTTP 429、第 2 次尝试已核实完整三阶段及关闭，
+不将下载失败解释为运行时回归，也未取消其它任务。
+
+当前增量 `abebc79` / 集成 `ae75750` 使用 Linux `31234c7fd`，接受匿名 mmap
+的常见提示位并忽略无关 fd；入旧 allocator ABI 前规范化，保持 FIXED/NOREPLACE
+优先级。常规 Python 构造不再需要删除 STACK/POPULATE 等提示；不启用页保护、
+自动增长、共享、锁页或稀疏提交，不新增 musl API。精确源码/native、静态分析、
+sanitizer、Python 和浏览器模拟门禁通过；新双位宽 C 四阶段/Python 六阶段待验收。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

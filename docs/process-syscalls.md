@@ -855,6 +855,50 @@ GCC/Clang ASan/UBSan 与 Clang 静态分析通过。精确源码包含同记录�
 [MAP_FIXED wasm64](https://github.com/HighCWu/distro/actions/runs/39567424449) 已派发，
 当前在运行；不重复派发，也不把旧 `5115c9a` 或 `c46abc6` 的结果当作新事务验收。
 
+双位宽 mremap 现已成功，实际日志核实原四阶段、新同 backing 固定移动/扩大/
+缩小/旧洞复用、跨 backing 固定替换/零尾/完整源释放共六阶段、唯一 pass 及关闭。
+wasm32 MAP_FIXED 回归三阶段也已核实。wasm64 MAP_FIXED 的第 1 次尝试在获取
+Linux source 时连续 HTTP 429，尚未编译或运行，并非已证实的 allocator 回归。
+读取实际日志后仅重试 `39567424449` 的失败作业；第 2 次尝试保持同一 `bb8e564`，
+其它运行中的任务未取消或重派，目标结果仍须另行核实。
+
+第 2 次尝试现已成功，实际日志核实 wasm64 MAP_FIXED 完整三阶段、唯一 pass 与
+机器关闭门禁，补齐 `bb8e564` 共享事务重构的双位宽回归。未修改源码来规避
+429，也未将首轮下载失败视为运行失败或跳过目标验收。
+
+### 第二十二组：匿名 mmap 提示和无关 fd
+
+Linux `31234c7fd`、distro `abebc79` / 集成 `ae75750` 修正对匿名 mmap 参数的一概拒绝。
+核对固定 Linux 的 mmap/NOMMU 路径后，MAP_ANONYMOUS 不查询无关 fd；当前入口忽略该参数并在送入旧
+allocator ABI 前规范化为 -1。新增接受 MAP_NORESERVE、MAP_STACK、MAP_POPULATE、
+MAP_NONBLOCK、MAP_DENYWRITE、MAP_EXECUTABLE 及其组合，规范化后沿用旧匿名/
+NOREPLACE 入口；固定覆盖仍走独立事务，因此不削弱 NOREPLACE 的 EEXIST 优先级。
+文件路径保留原 fd/flags，默认仍不开放普通文件映射。
+
+提示位不等于新页能力：POPULATE 由已经清零、驻留的直接 backing 满足；NONBLOCK
+不新增缺页 I/O；NORESERVE 不保证稀疏保留、容量或延迟提交；STACK 不启用自动
+增长；历史 EXECUTABLE/DENYWRITE 提示不授予 PROT_EXEC 或文件写保护。仍拒绝
+PROT_NONE/只读/执行权限、GROWSDOWN、LOCKED、HUGETLB、共享语义和非零匿名 offset。
+没有新增 syscall、musl 公共接口、libc 包装或内核 softmmu。
+
+共享 C 目标增加提示位单独/组合、无效 fd、零初始化、读写/同步/清理阶段，并
+验证提示位与 FIXED/NOREPLACE 混用仍正确；原 fixed-mmap 现在要求四阶段。
+原版 CPython 使用已提供的 STACK/POPULATE/历史提示常量，经普通 mmap 构造验证
+零初始化、flush、resize、madvise 和关闭；目标 Python 增至六个 mmap 阶段，
+现有浏览器规范和独立模拟同步修改，不新增 Python 补丁或新浏览器用例。
+
+本地精确源码/native 检查、Clang 静态分析、allocator ASan/UBSan、双位宽 musl
+前端、Python 原生负载及 60 项浏览器门禁通过；这些不能代替新参数在 Wasm 上的
+执行与关闭结果。新源码 pin 和目标结果单独记录，不复用上一组的旧阶段通过。
+
+Linux 哈希由公开 prefetch `39569265125` 核实。同一 `abebc79` 已派发
+[C wasm32](https://github.com/HighCWu/distro/actions/runs/39570086630)、
+[C wasm64](https://github.com/HighCWu/distro/actions/runs/39570094754)、
+[Python wasm32](https://github.com/HighCWu/distro/actions/runs/39570103286) 与
+[Python wasm64](https://github.com/HighCWu/distro/actions/runs/39570111350)，仍在运行。
+C 需新增提示位阶段及原三阶段，Python 需新增提示位阶段及原五阶段，两者都要
+完整 pass 和机器关闭；没有新增浏览器结果，不改或重试旧的已通过任务。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
