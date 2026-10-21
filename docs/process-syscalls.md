@@ -1275,16 +1275,20 @@ C 栈地址；这些结果都不是 Wasm 内核目标证据。可选 fork 补丁
 固定源码哈希已由公开
 [Linux](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39597788439) 与
 [musl](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39597795570) prefetch 核实。
-双位宽主负载、无导出兼容负载及已有 fork runtime 均单独派发，真实阶段和关闭
-仍待验收；默认 CONFIG_SITE 的 sigaltstack 负向答案也尚未因此提前改为成功。
+双位宽主负载、无导出兼容负载及已有 fork runtime 均单独派发，阶段和关闭
+分别记录如下；默认 CONFIG_SITE 的 sigaltstack 负向答案也尚未因此提前改为成功。
 
-同一 `40ff62a` 的定向目标均已核对实际 Heavy 检查名，尚未计为通过：
+同一 `40ff62a` 的定向目标均已核对实际 Heavy 检查名：
 
 | 检查 | wasm32 | wasm64 |
 | --- | --- | --- |
-| 信号栈五阶段 | [运行](https://github.com/HighCWu/distro/actions/runs/39599563781) | [运行](https://github.com/HighCWu/distro/actions/runs/39599576739) |
-| 无栈导出模块 | [运行](https://github.com/HighCWu/distro/actions/runs/39599594972) | [运行](https://github.com/HighCWu/distro/actions/runs/39599607937) |
-| 原有 fork runtime | [运行](https://github.com/HighCWu/distro/actions/runs/39599617389) | [运行](https://github.com/HighCWu/distro/actions/runs/39599624459) |
+| 信号栈五阶段 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599563781) | [待验收](https://github.com/HighCWu/distro/actions/runs/39599576739) |
+| 无栈导出模块 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599594972) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599607937) |
+| 原有 fork runtime | [待验收](https://github.com/HighCWu/distro/actions/runs/39599617389) | [待验收](https://github.com/HighCWu/distro/actions/runs/39599624459) |
+
+wasm32 主负载实际日志已逐项核实全部五阶段和唯一 pass；双位宽无导出模块
+均已核实拒绝/普通回调阶段与唯一 pass，三项成功作业通过等待 machine.closed
+的关闭门禁。它们不替代尚未核实的 wasm64 主负载、fork 或浏览器结果。
 
 后续在 Node 构建期间接入既有浏览器门禁，不重复实现 syscall。必要真实目标
 通过后再单独移除 CONFIG_SITE 的相应否定项，让应用正常探测，而非预填成功；
