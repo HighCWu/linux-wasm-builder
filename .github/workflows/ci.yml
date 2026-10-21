@@ -93,6 +93,7 @@ jobs:
           node --test sources/distro/packages/browser-tests/fork-contract.test.js
           node --test sources/distro/packages/browser-tests/process-contract.test.js
           node --test sources/distro/distro/fork-continuation/process-control.test.js
+          node --test sources/distro/distro/fork-continuation/exec-fd.test.js
           node --test sources/distro/distro/fork-continuation/sdk.test.js
           node --test sources/distro/distro/fork-continuation/raw-clone.test.js
           node --test sources/distro/distro/fork-continuation/fault-contract.test.js
