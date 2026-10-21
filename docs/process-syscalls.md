@@ -745,6 +745,39 @@ Python 增加 madvise 后要求五个 mmap 阶段及原 ABI/安装路径、唯�
 前一批 msync 工作负载固定旧源码，自然运行完毕后独立核实，不取消或复用它们
 作为新增 madvise 的证明。
 
+### 第二十组：有界匿名 MAP_FIXED 替换
+
+Linux `b30bfebb0`、musl `e6543914`、distro `5115c9a` / 集成 `4cab302` 补齐
+此前完全拒绝的匿名 MAP_FIXED。只支持整个请求落在单个仍保留的 mmap backing
+中的情形；不覆盖栈、普通 malloc、自有元数据或未知地址。跨 backing、超出可管理
+范围的固定请求仍失败，不退回另一地址，也不引入 softmmu。文件固定映射、
+MREMAP_FIXED、PROT_NONE 和权限切换仍不在本轮范围。
+
+Linux 验证 flags、保护位、对齐、页取整与 TASK_SIZE 后，覆盖请求走独立内部
+user_v2.mmap_fixed；旧模块缺少 __wasm_mmap_fixed 时 ENOSYS，绝不把请求交给
+会忽略覆盖位的旧 v2 allocator。NOREPLACE 与 FIXED 同时给出时仍以 NOREPLACE
+为准，保留 EEXIST 和洞复用语义。没有新增 syscall 号或 musl 公共函数。
+
+内部实现锁外准备替换与拆分节点，锁内重新确认 backing，再一次性拆分/移除
+覆盖记录、清零目标并发布新记录。保留请求之外的两侧内容与文件副本来源标记；
+新匿名记录不继承旧文件来源。先持有新引用，防止移除最后一个旧记录时提前释放
+backing。分配失败或准备期间旧映射被撤销时不修改旧数据，没有永久地址保留。
+
+327 项运行层检查及双类型检查、14 项精确源码/native 检查、双位宽 musl 前端、
+GCC/Clang ASan/UBSan 和 Clang 静态分析通过；覆盖中间替换、跨多记录、完整替换、
+保留页洞、两个准备分配失败、源撤销、初始化来源拆分和最终资源计数归零。
+原生负载的“忽略 FIXED”反向控制必须失败；原生检查不尝试覆盖宿主栈。
+这些不代表 Wasm 已验收。公开 prefetch 为 musl `39560334281`、Linux `39560341933`。
+
+同一 `5115c9a` 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39560729491)
+与 [wasm64](https://github.com/HighCWu/distro/actions/runs/39560736823) 已派发，要求
+中间/跨记录替换、NOREPLACE 优先/洞复用/错误恢复、最后旧引用替换及继续使用三阶段，
+唯一 pass 和机器关闭。当前仍在运行，无新增固定替换浏览器结果。
+
+此前 `c2f1c5f` 的双位宽 Python msync 检查现已核实实际 ABI/安装路径、完整四阶段、
+唯一 pass 和机器关闭；`130f0f0` 的双位宽 C madvise 也已核实完整三阶段、唯一 pass
+与关闭。这些分别补齐对应旧源码的结果，不作为本组固定替换或浏览器验收。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

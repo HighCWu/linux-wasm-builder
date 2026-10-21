@@ -62,19 +62,27 @@ private-memory callback clone的eager-copy快照一起复制。该机制从明�
 宿主把Linux已校验的完整请求原样转发给当前进程模块的`__wasm_mmap_v2`导出。这一版本
 仍落到既有direct allocator；非固定hint向下对齐到页边界后，只有完整请求区间位于该
 allocator已经保留、但当前没有live mapping的backing页洞中才会采用，否则按Linux语义
-回退到普通分配。这一保守子集不会把任意数字变成可访问地址，也不开放覆盖式fixed或
-文件映射。
+回退到普通分配。这一保守子集不会把任意数字变成可访问地址，也不开放文件映射。
+
+后续有界匿名覆盖实现使用独立 `user_v2.mmap_fixed(addr, len)` import 和
+`__wasm_mmap_fixed` 内部导出，不把旧 v2 分配器误当作支持覆盖。只有整个请求位于
+单个仍被保留的 mmap backing 内才可替换；保留请求外两侧记录和内容，覆盖范围
+重新清零，最后一个旧引用移除时仍由新映射保活。准备元数据失败或锁内重新验证
+找不到 backing 时不更改旧映射。栈、malloc 自有区、未知或超出 backing 的范围
+返回错误；不扩展为任意 direct 地址覆盖。NOREPLACE 优先于同时提供的 FIXED。
+实现与目标验收状态见[标准 syscall 记录](process-syscalls.md)。
 旧内核继续使用`user.mmap(len)`，新宿主在旧用户模块缺少v2导出时可回退到
 `__wasm_mmap(len)`；宿主只允许private anonymous read/write、`fd=-1`、offset=0的请求
-进入该回退，非固定hint可以忽略。旧callback无法表达精确地址，因此宿主对
-`MAP_FIXED`和`MAP_FIXED_NOREPLACE`返回`ENOMEM`，且不调用分配器。这样旧用户模块不会
+进入该回退，非固定hint可以忽略。旧 callback 无法表达精确地址，因此在此旧 mmap
+回退路径中，fixed 请求返回 `ENOMEM`，且不调用分配器；新的覆盖路径
+缺少独立导出时则返回 ENOSYS。这样旧用户模块不会
 把fixed请求静默降级为其他地址的普通分配；使用精确页洞映射需要v2用户模块。无可用
 callback时返回`ENOSYS`，上述错误均保持wasm32/wasm64各自的返回值类型。
 
 `MAP_FIXED_NOREPLACE`现已在同一安全页洞子集内开放：地址必须页对齐且完整区间已经由
 allocator保留；精确空洞映射成功，live mapping冲突返回`EEXIST`，未保留或不可表示区间
-返回`ENOMEM`。普通`MAP_FIXED`仍返回`ENOMEM`，因为覆盖并拆分已有映射的生命周期语义
-尚未实现。
+返回`ENOMEM`。早期版本对普通 `MAP_FIXED` 一律返回 `ENOMEM`；当前独立覆盖路径
+仅开放上述有界 backing 内的匿名替换，目标验收与旧 NOREPLACE 结果分开记录。
 
 为扩大安全可用范围，allocator以8个Linux/Wasm页（当前共512 KiB）作为小型direct
 backing chunk。普通匿名映射优先从已有chunk的空闲区间做first-fit分配；新chunk预留失败
@@ -102,8 +110,9 @@ live mapping解除后释放整个malloc backing，不形成永久地址保留。
   可观察语义；
 - 在无关进程间可见的共享backing、写入传播和持久化路径全部存在以前，不开放
   `MAP_SHARED`；
-- `msync()`只有在请求范围的同步及异步持久化语义真实实现后才能成功。未实现时必须
-  返回明确错误，不能以no-op报告成功；
+- `msync()`必须区分 private 与 shared：Linux 的私有映射没有共享文件回写义务，
+  可在完整活跃范围及 flags 校验后成功且保持私有数据；共享文件持久化未实现时
+  必须返回明确错误，不能伪造落盘成功，也不能无条件接受空洞或释放范围；
 - `munmap()`、进程退出、文件截断和I/O失败的引用释放与回滚必须有独立测试。释放映射
   不得被错误表述为已经完成文件持久化。
 

@@ -80,3 +80,7 @@ musl `c4c3591d` / `08ab5ec6` 在上述基线上恢复直接上游已有的 GNU m
 madvise 声明仍保留原特性宏，POSIX 声明对 Wasm 恢复。特别保留原 posix_madvise
 对 POSIX_MADV_DONTNEED 的非破坏性处理及返回错误号、不设置 errno 的语义，
 不能错误转成 Linux MADV_DONTNEED 的破坏性清零。不增加上游没有的公共函数。
+
+后续 `e6543914` 只增加内部 `__wasm_mmap_fixed`：在 allocator 已拥有的 backing
+中替换映射，预分配/重新验证、记录拆分、引用保活和清零均为 Wasm 兼容实现。
+不新增公共头文件、公共函数或通用包装文件，也不扩展到任意 malloc/栈地址。
