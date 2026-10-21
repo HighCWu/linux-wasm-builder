@@ -291,6 +291,11 @@ wasm64 Chromium/Firefox 检查，不替换默认 Bash，不新增 musl 函数，
 [wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39541635978) 与
 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39541642469)。
 
+该批次现已核实通过。Chromium 149.0.7827.55 与 Firefox 151.0 的实际日志各有
+两轮完整四阶段及唯一 pass，每轮机器关闭和最终浏览器关闭标记齐全；wasm32 Node
+也核实完整四阶段、最终 pass 与等待 machine.closed 的退出门禁。此证据固定在
+`c7b299a`，不覆盖后续新内核的 PIDFD 回滚或用户 NULL 访问修复。
+
 Clang 静态分析还对 exec-fd 的重复 getenv 检查给出保守 nonnull 警告。本例没有
 证实并发环境修改缺陷；`5a366bf` / 集成 `7b70ef4` 将它改为单次读取并守卫同一个
 指针，增加缺失／错误 marker 的明确拒绝检查。新 C 契约与 exec-fd 现都通过宿主
@@ -329,11 +334,47 @@ fork+pidfd_open shim，因此只验证语料逻辑，不证明原子创建或 Wa
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39543181756) 已派发；实际
 新增阶段、失败后恢复及关闭结果尚未核实，浏览器尚未对这个版本派发。
 
+## 第九组：标准 syscall 的 NULL 用户指针
+
+静态 review 发现 user.read/write/write_zeroes 直接把用户地址交给通用线性内存
+view；Wasm 中存在第 0 字节，因此非零长度 NULL 地址可能被当作普通缓冲区读写，
+而不是向 Linux 返回未复制字节数。futex 的原子访问也有同样的零地址问题。
+
+distro `4aafe2f` / 集成 `08d7bd6` 将用户复制和原子 word 校验集中到内部模块：
+非零长度 NULL 用户指针返回全量未复制字节数，原子路径返回 EFAULT；内核据此决定
+syscall 错误。不更改通用 memory_bytes，不把内核自己的地址 0 误判为用户 NULL；
+零长度复制不触碰缓冲区。普通有效地址、对齐检查和既有边界检查保持不变。
+新增模块不由包的公共 exports 导出，没有新增应用 API、musl 函数或 Linux 改动。
+
+撤掉 NULL 校验后，双位宽标量的四项回归实际复现失败；恢复后完整 306 项内核侧
+检查、源码/测试 TypeScript、GCC/Clang 原生 syscall 语料及 Clang analyzer 通过。
+这不是实际 memory64 或 Linux/Wasm 执行证明。真实 C 语料检查 NULL read 不消费
+pipe 中原字节、NULL write 不额外排队、NULL 路径/结构输出/原子目标返回 EFAULT，
+零长度 read/write 成功，随后有效 uname 和 pipe 读写及 fd 清理仍正常。
+原生反向控制会拒绝伪造 uname 成功和先写入字节再伪造 EFAULT 的错误实现。
+
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39544430341) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39544435571) 已派发，要求
+实际两个阶段、最终 pass 和运行器关闭门禁；目前未核实，不由原生 Linux 结果推定。
+仍保留一个独立缺口：跨越当前线性内存末端的复制目前整段拒绝，尚未实现有效
+前缀复制及剩余字节计数；下一增量应补齐该行为，不把此处 NULL 修复泛化为完整
+Linux 用户访存、页权限或内存保护支持。
+
+### 同期 CI 检查修复
+
+主仓库 `39541628806` 和 `39543174124` 的实际日志确认：Python workflow 检查
+假定 native job 紧邻 jobs 标题，benchmark job 插入后触发 undefined.split；plan
+条件也已增加 benchmark 排斥，旧断言未跟进。这不是 Python 或 Wasm 目标执行失败。
+distro `84a3675` / 集成 `c4256ac` 改为按顶层 job 名定位，保留原只读权限、无发布
+凭据和不派发目标矩阵断言，并用插入前置 job、移除 guard、扩大权限、缺失 job
+的控制验证。19 项相关 Node 检查及 10 项源码包检查通过，主仓库 CI 已随 push 复验。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
-fd 与 limit 的 fork/exec 生命周期、错误后的原状态和默认模式兼容边界。本轮未
-据此修改内核；没有把“未发现缺陷”解释成完整系统正确性的证明。
+fd 与 limit 的 fork/exec 生命周期、错误后的原状态和默认模式兼容边界。此前纯
+语料增量没有修改内核；第八组发现的必要内核修复单独记录。没有把“未发现缺陷”
+解释成完整系统正确性的证明。
 
 发现并修正了具体的验收盲点：原 close_range 有界上界是已关闭的空洞，无法检出
 把上界误当不包含的实现。`d37732f` 增加首末相同的单 fd 区间、包含仍打开末端的
