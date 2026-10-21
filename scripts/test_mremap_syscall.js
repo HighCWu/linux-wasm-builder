@@ -295,6 +295,11 @@ static long response = 0x12340000;
 static long wasm_user_v2_mremap(unsigned long a, unsigned long b, unsigned long c, unsigned long d) {
   calls++; captured[0]=a; captured[1]=b; captured[2]=c; captured[3]=d; return response;
 }
+static unsigned fixed_calls;
+static long wasm_user_v2_mremap_fixed(unsigned long a, unsigned long b, unsigned long c, unsigned long d) {
+  assert(a == 65536 && b == PAGE_SIZE && c == PAGE_SIZE && d == 131072);
+  fixed_calls++; return d;
+}
 `;
     const fixture = `
 int main(void) {
@@ -303,7 +308,12 @@ int main(void) {
   assert(wasm_mremap(65536, 1, 1, 8, 0) == -EINVAL);
   assert(wasm_mremap(65536, 1, 1, 2, 0) == -EINVAL);
   assert(wasm_mremap(65536, 1, 1, 3, 1) == -EINVAL);
-  assert(wasm_mremap(65536, 1, 1, 3, 131072) == -EOPNOTSUPP);
+  assert(wasm_mremap(65536, 1, 1, 3, 131072) == 131072 && fixed_calls == 1);
+  assert(wasm_mremap(65536, PAGE_SIZE * 2, PAGE_SIZE, 3, 131072) == -EINVAL);
+  assert(wasm_mremap(65536, PAGE_SIZE, PAGE_SIZE, 3, 65536) == -EINVAL);
+  assert(wasm_mremap(65536, 1, 1, 3, TASK_SIZE) == -ENOMEM);
+  assert(wasm_mremap(65536, 1, 1, 3, 0) == -ENOMEM);
+  assert(wasm_mremap(65536, 1, 1, 7, 131072) == -EOPNOTSUPP && fixed_calls == 1);
   assert(wasm_mremap(65536, 0, 1, 0, 0) == -EOPNOTSUPP);
   assert(wasm_mremap(65536, ULONG_MAX, 1, 0, 0) == -EINVAL);
   assert(wasm_mremap(65536, 1, ULONG_MAX, 0, 0) == -ENOMEM);

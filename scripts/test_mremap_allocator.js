@@ -7,6 +7,48 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 for (const cc of ["gcc", "clang"])
+  test(`${cc}: native fixed-move workload validates copied data and exact destination`, (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "mremap-fixed-native-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const source = readFileSync(
+      new URL("../sources/distro/distro/toolchain-smoke/mremap.c", import.meta.url),
+      "utf8",
+    );
+    const anchor = "move, base + 5 * page) == base + 5 * page";
+    const wrong = source.replace(anchor, "MREMAP_MAYMOVE, base + 5 * page) == base + 5 * page");
+    assert.notEqual(source, wrong);
+    for (const [mode, body] of [
+      ["normal", source],
+      ["not-fixed", wrong],
+    ]) {
+      const input = join(dir, "test.c"),
+        binary = join(dir, "test");
+      writeFileSync(
+        input,
+        "#define main original_mremap_main\n" +
+          body +
+          '\n#undef main\nint main(void) { fixed_move(sysconf(_SC_PAGESIZE)); puts("native fixed move pass"); return 0; }\n',
+      );
+      const build = spawnSync(cc, ["-O2", "-Wall", "-Wextra", "-Werror", input, "-o", binary], {
+        encoding: "utf8",
+      });
+      assert.equal(build.status, 0, build.stderr);
+      const run = spawnSync(binary, [], { encoding: "utf8", timeout: 10000 });
+      assert.equal(run.error, undefined);
+      if (mode === "normal") {
+        assert.equal(run.status, 0, run.stdout + run.stderr);
+        assert.match(
+          run.stdout,
+          /fixed cross-backing replacement, zero expansion and full-source cleanup pass/,
+        );
+      } else {
+        assert.notEqual(run.status, 0);
+        assert.match(run.stdout, /fixed interior growth/);
+      }
+    }
+  });
+
+for (const cc of ["gcc", "clang"])
   test(`${cc}: restored Wasm libc wrapper passes six machine words and retains errno`, (t) => {
     const dir = mkdtempSync(join(tmpdir(), "wasm-mremap-wrapper-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
