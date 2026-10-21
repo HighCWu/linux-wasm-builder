@@ -10,6 +10,9 @@
 
 - 浏览器和 Node 同时验证，浏览器是首要产品环境。
 - 优先修复平台能力，避免用越来越多的应用补丁长期掩盖内核或 libc 缺口。
+- musl 以上游 `tombl/musl` 为比较基准，仅加入 Linux on Wasm 所需的兼容代码；
+  不新增上游没有的公共函数或通用 Linux 扩展。已有接口的 Wasm 声明门控与调用
+  适配可以修正；无 libc 包装的接口通过标准 syscall 验证。见[musl 变更边界](musl-compatibility.md)。
 - 每项能力都要有最小测试、真实应用测试和失败语义测试。
 - 项目自有实现优先 MIT；LLVM遵循 LLVM exception；Linux修改留在GPL边界。
 - 发布物必须可从固定源码重建，并附带许可证清单和对应源码。
