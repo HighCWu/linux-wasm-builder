@@ -253,6 +253,30 @@ bash-fork-wasm64；它们不替换原 Bash、默认 shell、SDK 或原有 callba
 新增配方、测试脚本为 MIT；Bash 自身保持 GNU GPLv3+，安装其 COPYING，固定源码、
 维护补丁、额外声明补丁、配置日志和 SDK 构建材料引用一同提供，不更改其许可证。
 
+### 独立的 C SjLj 执行前提
+
+`fa31773` / 集成 `651e4b1` 新增 bash-fork[-wasm64]-check-sjlj，直接使用同一个
+可选 SDK 编译一个独立静态 C 程序并进行 whole-link finalization，不依赖 Bash
+构建完成。它验证 Bash 所需的具体前提，而不是增加一项与实际程序无关的 syscall。
+
+程序在 sigsetjmp 保存的祖先 C 帧内 fork。父子分别改变 volatile 局部变量、私有
+TLS 和信号掩码，再从较深的普通用户 C 帧 siglongjmp 回保存点，核对返回值、身份、
+局部/TLS 私有性及恢复的掩码。父进程单次回收子进程，恢复原掩码；随后验证
+longjmp(env, 0) 返回 1，并再次 fork/wait，防止非局部跳转留下失效的 continuation 状态。
+
+setjmp 仅用于 switch 控制表达式；跨跳转读取的被修改自动变量均为 volatile。
+跳转发生于 syscall 返回后的普通用户执行，不从 signal handler 或内核回调跨出，
+也不跳转至已经返回的 C 帧。GCC/Clang 正常语料与伪造子返回值、丢失 mask 的反向
+控制通过；原生结果不能证明 Wasm EH/catchpad、SjLj lowering 与 Asyncify 已兼容。
+[独立 wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39538323649)
+已对 `5a366bf` 派发，仍不修改 SDK 的现有 SjLj/C++ 支持限制。
+
+Clang 静态分析还对 exec-fd 的重复 getenv 检查给出保守 nonnull 警告。本例没有
+证实并发环境修改缺陷；`5a366bf` / 集成 `7b70ef4` 将它改为单次读取并守卫同一个
+指针，增加缺失／错误 marker 的明确拒绝检查。新 C 契约与 exec-fd 现都通过宿主
+Clang analyzer，根仓库 CI 将相关 analyzer 警告作为错误；这不替代 Wasm 目标分析。
+候选材料同时补齐独立 C 源码和两套宿主检查源码。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

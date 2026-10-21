@@ -49,6 +49,9 @@ CI 不再作为每个独立增量的串行前置条件：实现与 review 持续
 trap 与错误恢复，不替换默认 callback Bash。候选的 C SjLj/Asyncify 组合仍待目标
 验证，不能由原生脚本通过推定支持。与此同时已根据实际 wasm32 CI 错误修正资源
 限额测试对 Linux32 saturation 的错误预期，保持上游内核语义，而非为通过测试改内核。
+现将 Bash 所需的 C sigsetjmp/siglongjmp 与 fork 组合拆为独立验收前提，核对父子帧、
+mask、TLS 及后续 fork 复用；宿主语料和 Clang 静态分析通过，wasm64 独立目标已派发。
+不从这一有限实验推定任意 C++ EH、信号回调跨内核跳转或整个 Bash 已可用。
 不把验收入口存在、宿主结果或单一目标通过扩大成全部 flags、线程创建及多线程支持。
 
 按当前项目决策，停止继续拆分 fork 性能指标、调整调度等待或试验 Worker 启动
