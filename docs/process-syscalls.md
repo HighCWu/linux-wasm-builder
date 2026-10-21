@@ -1133,6 +1133,38 @@ IPC_STAT 元数据与删除；信号量覆盖 SETALL/GETALL、多操作失败原
 当前目标待验收；不宣称 SHM、SEM_UNDO 的进程退出恢复、所有 IPC namespace、
 跨用户权限或浏览器已验证。架构细节见[musl 兼容性边界](musl-compatibility.md)。
 
+### 第二十八组：上游持久文件句柄 syscall
+
+Linux `5c25d2f4e` / distro `10d7c71` / 集成 `5983fa4` 将三套配置原先显式关闭的
+CONFIG_FHANDLE 改为启用，由上游选择 EXPORTFS，提供
+name_to_handle_at/open_by_handle_at 的真实内核实现。
+tombl/musl 已有两个函数及对应 GNU 声明，和当前源码逐文件比较无差异，不修改
+libc、公共函数集合、结构或编号；没有用新增包装代替内核接通。
+
+工作负载安装在可写 ext4 系统：先通过 EOVERFLOW 查询所需句柄长度，再编码
+文件路径和 AT_EMPTY_PATH fd，比较句柄/挂载 ID，重命名后按句柄重新打开，
+核对 inode、二进制内容与 CLOEXEC。零长度、超长、无效类型和坏 anchor 拒绝
+后仍可重开；临时移除有效 CAP_DAC_READ_SEARCH 时必须 EPERM，恢复能力后
+继续验证，保留内核原有权限模型。最后 unlink，核对仍打开 fd 可读，关闭最后
+引用后必须 ESTALE；清理全部完成才报告 pass。
+
+review 核对锚点使用普通目录 fd，而非被该内核 fdget 排除的 O_PATH；检查
+固定长度前缀、能力 ABI 的双32位数据字、原始 syscall 的完整 long 参数、
+句柄分配边界及恢复/关闭顺序。双位宽原样 musl 包装和 syscall_ret 小型 Wasm
+执行核对参数、指针和 errno，Clang 静态分析与 GCC/Clang sanitizer 检查通过。
+native 若缺少可编码文件系统或解码 capability，会明确报告目标仍需验证，
+Wasm 分支没有这一跳过路径。完整 ext4 目标与关闭仍待验收。
+
+固定源码哈希由公开
+[prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39588019258) 核实。
+同一 `10d7c71` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39588423184) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39588429206) 已派发，要求三个
+file-handle 阶段、最终唯一 pass 和机器关闭；不复用前一个 IPC 配置的运行结果。
+
+不把此配置解释成所有文件系统、跨重启/跨挂载稳定性或 NFS 服务已验收；句柄
+是上游不透明对象，不是线性内存地址，不改变 NOMMU/映射边界或隔离模型。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
