@@ -174,7 +174,10 @@ jobs:
           [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
           gh api "repos/HighCWu/linux/contents/arch/wasm/include/asm/syscall_wrapper.h?ref=$revision" \
             --jq .content | base64 --decode > "$RUNNER_TEMP/syscall-wrapper.h"
+          gh api "repos/HighCWu/linux/contents/arch/wasm/include/uapi/asm/sigcontext.h?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-sigcontext.h"
           WASM_SYSCALL_WRAPPER_SOURCE="$RUNNER_TEMP/syscall-wrapper.h" \
+            WASM_SIGCONTEXT_SOURCE="$RUNNER_TEMP/wasm-sigcontext.h" \
             python3 -B scripts/test_syscall_words.py
           python3 -B scripts/test_large_file.py
       - name: Check fork callback and flags-first Wasm imports link together

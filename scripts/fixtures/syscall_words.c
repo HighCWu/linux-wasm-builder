@@ -56,15 +56,15 @@ __SYSCALL_DEFINEx(6, _overfull, long long, a, long, b, long, c, long, d, long, e
 int run(void)
 {
 #if __SIZEOF_LONG__ == 4
-	struct pt_regs allocation = {{-7UL, 9, 0x89abcdefUL, 0x12345678UL, 0xfedcba98UL, 0x76543210UL}};
-	struct pt_regs advice = {{7, 0xffffffffUL, 0xfffffffeUL, 3, 2, -9UL}};
-	struct pt_regs pread = {{7, 0x1234, 17, 17, 1, 0}};
+	struct pt_regs allocation = {.syscall_args = {-7UL, 9, 0x89abcdefUL, 0x12345678UL, 0xfedcba98UL, 0x76543210UL}};
+	struct pt_regs advice = {.syscall_args = {7, 0xffffffffUL, 0xfffffffeUL, 3, 2, -9UL}};
+	struct pt_regs pread = {.syscall_args = {7, 0x1234, 17, 17, 1, 0}};
 #else
-	struct pt_regs allocation = {{-7UL, 9, 0x1234567889abcdefUL, 0x76543210fedcba98UL, 0, 0}};
-	struct pt_regs advice = {{7, -4294967297L, 0x200000003UL, -9UL, 0, 0}};
-	struct pt_regs pread = {{7, 0x1234, 17, 0x100000011UL, 0, 0}};
+	struct pt_regs allocation = {.syscall_args = {-7UL, 9, 0x1234567889abcdefUL, 0x76543210fedcba98UL, 0, 0}};
+	struct pt_regs advice = {.syscall_args = {7, -4294967297L, 0x200000003UL, -9UL, 0, 0}};
+	struct pt_regs pread = {.syscall_args = {7, 0x1234, 17, 0x100000011UL, 0, 0}};
 #endif
-	struct pt_regs plain = {{-1UL, 2, 3, 4, 5, -6UL}};
+	struct pt_regs plain = {.syscall_args = {-1UL, 2, 3, 4, 5, -6UL}};
 	if (sys_allocation(&allocation) != 71) return 1;
 	if (sys_advice(&advice) != 72) return 2;
 	if (sys_pread(&pread) != 73) return 3;

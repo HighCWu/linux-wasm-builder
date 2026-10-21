@@ -9,11 +9,15 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 source = pathlib.Path(os.environ.get("WASM_SYSCALL_WRAPPER_SOURCE",
                   ROOT / "sources/linux/arch/wasm/include/asm/syscall_wrapper.h")).read_text()
+context = pathlib.Path(os.environ.get("WASM_SIGCONTEXT_SOURCE",
+                   ROOT / "sources/linux/arch/wasm/include/uapi/asm/sigcontext.h")).read_text()
 with tempfile.TemporaryDirectory(prefix="syscall-words-") as tmp:
     path = pathlib.Path(tmp)
     (path / "asm").mkdir()
     (path / "linux").mkdir()
-    (path / "asm/ptrace.h").write_text("struct pt_regs { unsigned long syscall_args[6]; };\n")
+    # Like kernel/sys_ni.c, a caller may only have a forward declaration here.
+    (path / "asm/ptrace.h").write_text("struct pt_regs;\n")
+    (path / "asm/sigcontext.h").write_text(context)
     (path / "linux/errno.h").write_text("#define ENOSYS 38\n")
     (path / "wrapper.h").write_text(source)
     for bits, negative in ((32, False), (64, False), (32, True)):
