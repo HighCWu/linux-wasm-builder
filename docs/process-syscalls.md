@@ -440,7 +440,7 @@ uname 结构输出与 FUTEX_WAKE_OP 原子操作，然后继续原有效重试�
 上述 `0ba04b0` 两项 Node 现均成功，实际日志已核实：wasm32 的 NULL、前缀、
 upper-half、恢复四阶段及唯一最终 pass 完整，包含 0x80000040 以上的真实 pipe、
 结构输出和原子操作；wasm64 的原三阶段及唯一 pass 完整。两项均通过等待
-machine.closed 的退出门禁。尚未把这组访存语料接入浏览器，不用此前 pidfd 浏览器
+machine.closed 的退出门禁。当时尚未把这组访存语料接入浏览器，不用此前 pidfd 浏览器
 通过代替高地址或访问故障的浏览器验收。
 
 ### 同期 CI 检查修复
@@ -460,7 +460,7 @@ Chromium/Firefox。CPU 数从构建产物传入（访存 1 CPU，原进程语料
 upper32 专属阶段。四路 `39547734031`、`39547739983`、`39547746725`、
 `39547753636` 的实际日志均表明停在相同 treefmt 属性格式检查，未执行目标语料。
 `1ad6de6` 已修复为 `inherit (assets) cpus` 并更新断言，不将它记录为运行时失败
-或目标通过。最终源码 `d74784a` 重新派发四路，待核实。
+或目标通过。最终源码 `d74784a` 重新派发四路，已核实结果见下文。
 
 独立 review 发现 fork continuation 对原始 i32 栈、TLS、descriptor 仍使用非负
 地址解析。`d74784a` / 集成 `457f7ea` 改用原始指针位模式解码，JS 内存视图只用
@@ -505,9 +505,39 @@ write、clear 三个内核导入及无用户 context 时的完整 residue 返回
 
 随后派发同源码的 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39549366030)
 与 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39549372193) 普通访存
-回归，仍要求原三阶段、唯一 pass 和 machine.closed；目前待核实。Linux 的
+回归，两项现均成功，实际日志已核实原三阶段、唯一 pass，并通过运行器等待
+machine.closed 的退出门禁。它们是普通访存回归，不包含高布局 fork。Linux 的
 access_ok、MAX_RW_COUNT 等上层限制仍然生效，不将原始导入修复描述为放开 4 GiB
 单次 I/O 或浏览器容量保证。Linux、musl 固定版本与默认配置保持不变。
+
+### 第十四组：exec 装载边界与损坏模块后的恢复
+
+distro `0af5e3c` / 集成 `485a7cf` 修复内核 `compile_write` 导入对高位 i32 源指针
+的处理。旧入口把原始内核指针直接按非负 JS 偏移解析，可能抛异常而中断内核错误
+处理；现在先解码指针位模式，再完整检查源范围、u32 模块偏移及块长度。失败返回
+原有 EINVAL，暂存模块不接受部分写入，成功重试仍可写入。内核偏移 0 仍有效，
+不套用用户 NULL 策略；每次读取当前 kernel memory 范围，memory64 不做 32 位截断。
+
+这是内部 loader 修复，`compile_write` import 签名未变，没有新增 syscall 或 musl
+公共函数。Linux 的 `load_wasm_binary` 在 `begin_new_exec` 之前处理编译错误，通过
+既有 `compile_abort` 清理状态；本次不修改 Linux 的 exec 生命周期或不可逆边界。
+
+真实 exec-fd 语料新增第八阶段：创建有正确 Wasm magic、但类型段损坏的可执行文件，
+两次 execveat 都应返回 ENOEXEC，PID、TLS、CLOEXEC fd 和文件位置均保留，随后
+fork/fexecve 正常文件成功。文件先关闭写端再以只读 fd 执行，避免把 ETXTBSY 当成
+编译器错误。该阶段不代替已有 close_range、limit 及普通 exec 错误恢复阶段。
+
+本地 319 项内核侧检查和两套 TypeScript 检查通过；小 Wasm32 模块实测高位源/
+偏移/长度进入 JS 后是负 Number，错误导入返回 EINVAL 而不 trap，后续合法写入成功。
+小内存测试不证明真实内核已能在高半区分配 exec chunk。GCC/Clang 语料及协议检查
+15 项通过，包含错误关闭失败 exec 的 CLOEXEC fd 的反向控制；原生不认识 Wasm，
+因此这只是负载验证，不代替 Wasm 编译器 abort。Clang 静态分析通过。
+
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39549892599) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39549899461) exec-fd
+已按同一源码派发，要求完整八阶段、唯一 pass 和机器关闭；
+实际目标结果待核实，旧七阶段结果不覆盖新增 abort 恢复。浏览器合同也要求新增
+阶段，但不因此宣称本轮浏览器已验收。
 
 ## 本轮静态 review 与异步验收原则
 
