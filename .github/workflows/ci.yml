@@ -56,6 +56,8 @@ jobs:
           node-version: '24'
       - name: Check existing file-handle wrappers and workload analysis
         run: python3 -B scripts/test_file_handle.py
+      - name: Check directory notification workload and disabled-feature control
+        run: python3 -B scripts/test_dnotify.py
       - name: Check failed fork Worker lifetime with exact pinned kernel source
         # Host atomics/sanitizers and small Wasm codegen, not kernel execution.
         env:
