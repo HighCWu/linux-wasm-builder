@@ -1032,6 +1032,29 @@ SC2093，指出 large-file-test.sh 在 exec 后仍有语句，不是已经观察
 实际 musl 包装、native 大文件和双位宽前端重新通过；新目标仍需四阶段、最终
 pass 与关闭证据。首轮失败结果保留，不以宿主验证替代真实目标验收。
 
+`0e68343` 的 wasm64 现已成功，实际日志核实完整四阶段及唯一 pass，成功作业
+通过等待 machine.closed 的关闭门禁。wasm32 则在内核编译时失败，首个错误为
+syscall_wrapper.h 对尚未完整定义的 pt_regs 访问 syscall_args；失败翻译单元是
+kernel/sys_ni.c，不是已经观察到的文件读写错误。原小型测试在 ptrace shim 内
+提前给出了完整结构，掩盖了这一真实包含顺序。
+
+Linux `5bc1ee5e6` / distro `1459987` / 集成 `fb2eea5` 显式包含 asm/sigcontext.h。
+辅助函数在定义点取得完整 pt_regs；参数解码数学和 musl `59301bde` 不变。
+回归改为 ptrace 仅前置声明，并使用同一固定内核的真实 UAPI sigcontext.h，
+先复现相同编译错误，再核实双位宽执行和旧布局反向控制。CI 只提取两份确切
+固定头文件，无需本地构建或完整下载 Linux。源码哈希由
+[prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39578646883) 核实。
+
+同一 `1459987` 已定向派发
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39579254479) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39579262438)，仍要求四阶段、
+最终 pass 及关闭。旧 wasm64 结果仅属于 `0e68343`，不将其当作新 pin 的通过证明。
+
+同轮调度排查没有形成新接口增量：musl 的四个调度桩并非 Wasm 独有缺失，
+固定 BusyBox chrt 原本默认启用且直接调用 Linux syscall。已撤下未集成的重复
+构建选项/测试，不把它们计作能力进展。musl 实验只用后续撤回提交保留历史，
+SDK 与 gitlink 仍为原基线；审计见[musl 兼容性边界](musl-compatibility.md)。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

@@ -101,3 +101,17 @@ Linux 包装函数，也未重写已经发布的 musl 历史。
 同轮 Linux `2237e08ea` 在内核入口重组 wasm32 的连续 low/high 标量，musl 原有
 __SYSCALL_LL_E/O 约定不变。小型 Wasm 模块分别执行原样内核头文件和原样 musl
 同步包装；完整 ext4 大文件目标单独跟踪，不用这两项检查替代目标运行。
+
+## 调度接口：不把 Linux syscall 当作 POSIX libc 的替代语义
+
+后续审查起初误将四个 sched_getscheduler/setscheduler/getparam/setparam 的
+ENOSYS 函数体判断为 Wasm 专有调用缺口。固定 BusyBox chrt 源码明确说明 musl
+保留这些桩与 Linux/POSIX 语义差异有关，并已经选择直接 syscall 路径；该 applet
+默认也已启用。因此不把增加相同构建选项或相关测试当作新功能，更不改变 libc
+语义来制造“已支持”的表象。pthread 的内部 raw syscall 路径也不等于这些公共
+POSIX 函数应直接恢复为薄包装。
+
+musl 实验提交 `ab35b7d5` 已用后续 `f7f31459` 撤回；两者均保留公开 Git 历史，
+没有 force-push、删除或重排已发布提交。已核对撤回后整个源码树与 `59301bde`
+净差异为零。本项目 gitlink、distro rev/hash 和 SDK 从未切换到该实验，继续固定
+`59301bde`；本轮未新增任何公共函数、头文件或通用包装，也不宣称新的实时调度能力。
