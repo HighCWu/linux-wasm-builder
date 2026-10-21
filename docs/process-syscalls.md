@@ -199,8 +199,10 @@ distro `04724e7` / 集成 `f8a42c0` 扩展独立 exec-fd 语料，调用公开�
 - 两种位宽均静态断言 rlim_t 为 8 字节、struct rlimit 为 16 字节；NOFILE 查询时
   getrlimit 与 prlimit 一致；非法 resource、soft 大于 hard 和坏输入／输出指针分别
   返回 EINVAL 或 EFAULT，之后原 NOFILE 限额保持不变；
-- CORE soft 设置为 `0x100000007` 后往返核对完整高位与不变的 hard，再恢复原限额。
-  此测试要求独立测试机器原 CORE hard 至少为该值，并非发布平台的一般使用前提；
+- CORE soft 分别设置为 `0xfffffff0` 和 `0x100000007`，核对普通有限值以及按内核
+  位宽处理的高值和不变的 hard，再恢复原限额。测试要求独立机器原 CORE hard 为
+  infinity，并非发布平台的一般使用前提。Linux32 在 ULONG_MAX 饱和为 infinity，
+  Linux64 保留该高位有限值；两者的公开 rlim_t 结构均仍为 64 位；
 - fork 子进程用 prlimit 原子设置 NOFILE soft=32 并取回旧值，保留原 hard；实际 dup
   直到 EMFILE，再关闭全部临时 fd；不能只靠查询数值判断限额已经执行；
 - 随后从 fd exec 自身，替换后的程序核对 soft=32、原 hard、fd/TLS/身份与文件
@@ -212,6 +214,44 @@ distro `04724e7` / 集成 `f8a42c0` 扩展独立 exec-fd 语料，调用公开�
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39536460094)
 已对最终版本派发，尚不计为目标验收通过；不扩展为 RLIMIT_AS/CPU/
 NPROC 等所有资源的实现或完整权限模型验证，也不扩大多线程 fork 支持。
+
+wasm32 `39536454222` 的实际日志在 CORE 高值阶段失败。静态核对固定 Linux
+`6494640` 的 kernel/sys.c 发现：rlim64_is_infinity 在 BITS_PER_LONG<64 时使用
+`rlim64 >= ULONG_MAX`，是标准 Linux32 的饱和语义，不是本项目丢失高位。
+`5f69138` / 集成 `c8edd2e` 修正此前不正确的跨位宽测试预期，不修改内核；宿主
+测试额外模拟 Linux32 饱和分支，原窄化查询的反向控制仍须失败。修正后重新派发
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39537681796)，不能用旧失败结果或
+宿主模拟取代真实复验。
+
+## 第七组：使用普通 fork 的独立 Bash 候选
+
+`444d2b6`（随 `5f69138` / 集成 `c8edd2e` 发布）增加 bash-fork 和
+bash-fork-wasm64；它们不替换原 Bash、默认 shell、SDK 或原有 callback 程序。
+候选复用原 Bash 固定源码和相同九个 GNU 维护补丁，仅保留 anonfile 的标准声明
+修正，不使用 bash-clone、fork-shim 或应用回调改写，也不把 vfork 替换为 fork。
+完整程序使用可选编译器构建并执行一次 whole-link continuation finalization。
+
+候选的非交互真实程序语料覆盖：
+
+- 普通 subshell 的私有状态、函数 local 与嵌套 command substitution、外部命令和管道；
+- `/dev/fd` process substitution、coprocess 双向 pipe、复制 fd 的生命周期与 wait；
+- 后台子进程退出码、USR1 trap 和父状态保持；
+- exec 的 126/127、语法错误返回、错误后继续启动子程序。
+
+测试初始化只在目标机器挂载 devtmpfs/procfs，原生测试不修改宿主挂载点；coprocess
+先复制描述符再交互，避免 Bash 自动收尾 fd 造成测试自身竞态。原生完整四阶段及
+依赖失败的拒绝控制通过；ShellCheck、shfmt、oxfmt、nixfmt 与配方契约检查通过。
+这些仅证明语料和静态装配，不证明 Wasm 运行或 SjLj/Asyncify 兼容性。
+
+这比此前 Dash 更明确地触及 C setjmp/longjmp 与 continuation 的组合，因此仍是
+独立实验候选。保留 SjLj lowering，不以删除 trap、改成应用 callback 或宣称支持
+任意 C++ EH/SjLj 来回避问题。首轮只派发
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39537687874)；wasm32/浏览器尚未验收。
+本轮关闭 readline 以隔离非交互进程能力，不对交互式行编辑或完整终端 job control
+作支持声明，原默认 Bash 的 readline/交互构建保持原样。
+
+新增配方、测试脚本为 MIT；Bash 自身保持 GNU GPLv3+，安装其 COPYING，固定源码、
+维护补丁、额外声明补丁、配置日志和 SDK 构建材料引用一同提供，不更改其许可证。
 
 ## 本轮静态 review 与异步验收原则
 
