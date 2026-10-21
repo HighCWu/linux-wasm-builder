@@ -35,6 +35,8 @@ jobs:
         run: git submodule update --init --depth 1 sources/distro sources/musl
       - name: Check Wasm raw stat layouts
         run: bash scripts/check_wasm_kstat.sh
+      - name: Check inotify native workload and existing Wasm libc ABI
+        run: python3 -B scripts/test_inotify.py
       - name: Check named semaphore deadline admission with host shims
         # Fetch only the exact pinned function source, not a full Linux checkout.
         # This checks admission logic, not Wasm execution or scheduler behavior.
