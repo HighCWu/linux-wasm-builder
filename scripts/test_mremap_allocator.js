@@ -105,11 +105,11 @@ static void release(void *p) { if (p) { live_allocations--; free(p); } }
       const body = source.slice(start, end);
       const changed = broken
         ? body.replace(
-            "memcpy(prepared->address, mapping->address, old_length);",
+            "memcpy(prepared->address, (void *)begin, old_length);",
             "/* deliberately lose copied contents */",
           )
         : body;
-      if (broken) assert.notEqual(changed, body);
+      if (broken) assert.ok(changed !== body, "copy negative-control anchor must match");
       const input = join(dir, "test.c"),
         binary = join(dir, "test");
       writeFileSync(input, prefix + changed + fixture);
