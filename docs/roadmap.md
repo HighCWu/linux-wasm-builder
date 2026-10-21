@@ -18,6 +18,11 @@
 
 ## 当前工作重心：能力优先，暂停专项性能实验
 
+当前已核实 Dash wasm64 Node 的完整非交互进程语料与运行器关闭门禁，正在补
+双浏览器和 wasm32。并行新增[标准 pidfd 进程控制准入](process-syscalls.md)，核对
+pidfd_open、pidfd_send_signal、poll、waitid(P_PIDFD) 与单次回收的组合；宿主验证
+通过，真实 Wasm 待结果，不把新增测试入口宣称为已完成 syscall 支持。
+
 首个真实程序入口为[Dash 进程接口接入候选](dash-processes.md)：使用上游源码、
 显式的应用局部 vfork→fork 参数及现有可选执行 ABI，不做 callback 重写。相同源码
 的原生脚本验证通过；wasm64 目标构建与运行已接入公开 CI，尚未核实目标结果。

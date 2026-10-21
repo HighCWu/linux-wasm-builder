@@ -54,7 +54,7 @@ SC2030/SC2031 指向工作负载有意保留的 subshell 变量隔离检查，�
 已完成并失败：静态检查及构建机语料通过，目标编译在 `redir.c` 的
 `memfd_create()` 调用处报缺失声明，尚未链接、执行完整变换或运行脚本。
 
-musl 已存在该函数的普通 syscall 转发实现，但 `sys/mman.h` 把其 GNU 声明放在
+musl 已存在该函数的普通 syscall 转发实现，但 `sys/mman.h` 把其 `_GNU_SOURCE` 控制的声明放在
 Wasm 排除区间中。musl `c080f8e1` 将这一声明移到 Wasm 也可见的 `_GNU_SOURCE`
 区间，不改签名、不新增 syscall 或 memfd 实现，不额外开放 mprotect、mremap 等
 仍被隐藏的接口。新增原型编译断言先在 wasm32/wasm64 复现失败，修正后双位宽及
@@ -80,7 +80,19 @@ distro `7c559ac` / 集成 `0739967` 在目标脚本启动时挂载 devtmpfs，�
 重定向后台任务的 stdin 来绕过 shell 的默认行为，没有放宽 wait 状态断言或改变
 fork 实现。本地 ShellCheck、shfmt 和两项宿主回归通过。
 [补齐运行环境后的 wasm64 复验](https://github.com/HighCWu/distro/actions/runs/39516195908)
-已派发，仍须核实四阶段、最终 pass 及关机，才可记录本轮完整目标结果。
+已成功。实际日志逐项核实四阶段及最终 pass；本轮运行器在结束前执行
+`closeTestResources`，等待 `machine.closed`，关闭失败会令检查失败。结合目标作业
+成功及没有 cleanup 错误，确认本轮 Node 运行通过收尾门禁；日志没有另外打印
+独立的关机 pass 行，不将该结果说成浏览器或长期稳定性证明。
+
+distro `3ddc9d6` / 集成 `cec0a99` 新增浏览器独立运行入口，Chromium/Firefox 各要求
+同页两次完整机器运行、精确四阶段、最终 pass、机器关闭和浏览器关闭，迟到错误
+也必须使检查失败。宿主驱动模拟与阶段拒绝检查通过，但不代替真实页面运行。
+[Chromium](https://github.com/HighCWu/distro/actions/runs/39518891213)、
+[Firefox](https://github.com/HighCWu/distro/actions/runs/39518898108) 及
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39518882328) 已派发待验收。
+标准 pidfd 进程控制的独立工作见[syscall 准入记录](process-syscalls.md)，不混为
+Dash 已覆盖的 syscall 范围。
 
 ```sh
 gh workflow run ci.yml --repo HighCWu/distro --ref YOUR_PUSHED_BRANCH \
