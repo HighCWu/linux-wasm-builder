@@ -1237,9 +1237,63 @@ wasm32 随后也已核实同一 `8236b08` 的实际完整三阶段与唯一 pass
 通过相同关闭门禁。至此该 DNOTIFY 增量的双位宽 Node 验收齐全，旧的目录
 通知配置关闭路径不能再作为当前版本的能力描述；浏览器仍未新增验收。
 
-## 下一处确认的信号栈缺口（尚未实现）
+### 第三十组：标准 sigaltstack 与版本化信号 C 栈执行候选
 
-当前 sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
+Linux `ba9894d96` / musl `e12bb18e` / distro `40ff62a` / 集成 `9c339f0` 接回
+通用 sigaltstack syscall，记录当前用户 C 栈指针，不再跳入旧的 ENOSYS 替代。
+注册、查询、最小尺寸、flags 和在栈状态校验仍由 Linux 原实现负责。信号返回
+复用同一 do_sigaltstack：仅将它改为内核内部可见并声明，不复制或改变原校验
+函数体；这是 Linux 内的 GPL 变更，不是供用户程序链接的函数。
+
+内部 user_signal_v1 ABI 读取模块导出的可变整数 __stack_pointer，并在 SA_ONSTACK
+回调时切换该全局；引擎按导入类型验证精确 i32/i64 和 mutability，不凭数值
+猜测。区域范围、加法溢出、空基址和16字节对齐在进入回调前检查；共享内存
+包装可能滞后时只 grow(0) 刷新视图，不扩大内存。嵌套返回恢复本实例的栈，
+异常原样传播到编译器 SjLj catchpad；exec 替换实例不被旧回调覆盖。新增内核
+C 栈全局导出及 syscall 异常边界恢复，避免用户非局部退出遗留内核线性 C 栈深度。
+
+musl 只修改既有 Wasm 信号 trampoline：linux_signal_v1.frame/finish 复制并返回
+原有 ucontext 的 stack/mask 字段，context 仍在 C 对象生命周期内时即复制到
+内核帧，不保存失效的用户栈对象指针。正常返回使用通用校验恢复注册与掩码，
+保留在栈保护，过滤 SIGKILL/SIGSTOP；SS_AUTODISARM 和 SjLj 分别走正常恢复或
+跳出后保持禁用的路径。没有新增公共函数、公共头文件 API 或通用 libc 扩展；
+sigaltstack 原包装和声明不变。引擎寄存器仍不伪造，不宣称支持 setcontext、
+原生 rt_sigreturn、引擎 trap 转换或栈溢出恢复；协作式投递和 NOMMU 边界不变。
+
+普通 SDK 导出 C 栈全局；无导出的模块在 sigaltstack 返回 EOPNOTSUPP，普通
+一/三参数信号回调仍保留兼容路径。独立负载故意省去导出，并检查最终二进制
+实际没有该 export；主负载则检查 export 确实存在，避免仅凭链接参数宣称匹配。
+新内核需配套宿主的 user_signal_v1 导入；新宿主对缺少上下文扩展的旧内核保留
+最小 context fallback，不把版本缺失猜测成新的支持。
+
+主负载要求五阶段：注册/查询/错误；siginfo 和嵌套栈；自动撤销与正常恢复；
+16次 SjLj 跳出及原帧/掩码恢复；返回 context 的掩码和受保护/自动撤销注册修改、
+KILL/STOP 保护及清理。GCC/Clang native 与 ASan/UBSan 参考检查、双位宽前端
+及静态分析、339项运行层检查和源码/测试 TypeScript 检查通过。native ASan
+保留边界检查，但不预装自身信号栈或把局部变量搬到 fake stack，以便检查实际
+C 栈地址；这些结果都不是 Wasm 内核目标证据。可选 fork 补丁 dry-run 通过。
+固定源码哈希已由公开
+[Linux](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39597788439) 与
+[musl](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39597795570) prefetch 核实。
+双位宽主负载、无导出兼容负载及已有 fork runtime 均单独派发，真实阶段和关闭
+仍待验收；默认 CONFIG_SITE 的 sigaltstack 负向答案也尚未因此提前改为成功。
+
+同一 `40ff62a` 的定向目标均已核对实际 Heavy 检查名，尚未计为通过：
+
+| 检查 | wasm32 | wasm64 |
+| --- | --- | --- |
+| 信号栈五阶段 | [运行](https://github.com/HighCWu/distro/actions/runs/39599563781) | [运行](https://github.com/HighCWu/distro/actions/runs/39599576739) |
+| 无栈导出模块 | [运行](https://github.com/HighCWu/distro/actions/runs/39599594972) | [运行](https://github.com/HighCWu/distro/actions/runs/39599607937) |
+| 原有 fork runtime | [运行](https://github.com/HighCWu/distro/actions/runs/39599617389) | [运行](https://github.com/HighCWu/distro/actions/runs/39599624459) |
+
+后续在 Node 构建期间接入既有浏览器门禁，不重复实现 syscall。必要真实目标
+通过后再单独移除 CONFIG_SITE 的相应否定项，让应用正常探测，而非预填成功；
+随后应让现有 CPython faulthandler 等实际程序使用正常声明/探测路径验证，不能
+把上述 C 负载泛化成全部应用、引擎故障处理或浏览器已验收。
+
+## 信号栈缺口的前期核查记录
+
+在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
 arch/wasm/include/uapi/asm/ptrace.h 的 user_stack_pointer 仍是 trap；不能直接
 去掉 syscall 重定向就宣称支持。普通 SDK 配置没有显式请求导出 __stack_pointer，
 可选 fork profile 则显式导出该全局；新执行契约还需核查最终模块的实际导出。
@@ -1248,7 +1302,7 @@ arch/wasm/include/uapi/asm/ptrace.h 的 user_stack_pointer 仍是 trap；不能�
 全局后，原 C 局部帧内容不变。此实验不接入内核，也不证明 Linux sigaltstack
 已实现，更不证明 Wasm VM 自身调用栈、trap 或栈溢出可由该机制恢复。
 
-下一实现需在内部执行 ABI 中提供可靠的用户 C 栈指针，保留双位宽地址和旧
+当时确定的实现约束是在内部执行 ABI 中提供可靠的用户 C 栈指针，保留双位宽地址和旧
 模块拒绝行为，复用 Linux 的注册/查询/错误语义，并在信号回调中真正切换。
 必须一起处理嵌套 SA_ONSTACK、SS_ONSTACK 查询、SS_AUTODISARM、正常返回和
 SjLj 非局部退出，验证不会覆盖编译器在 catchpad 恢复的栈指针或破坏原掩码。

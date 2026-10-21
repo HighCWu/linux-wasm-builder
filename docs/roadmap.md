@@ -222,13 +222,24 @@ SysV IPC 首轮双位宽实际在 IPC_STAT 失败 EINVAL：原架构沿用旧式
 公开函数不变。双位宽 Node 现已核实实际完整三阶段、各自唯一 pass 和关闭
 门禁，包括未修改 BusyBox ipcs 元数据读取及阻塞信号量删除后的 EIDRM 恢复。
 
-当前增量 `8236b08` / 集成 `ad9704d` 使用 Linux `059800405`，删除三套配置
+上一增量 `8236b08` / 集成 `ad9704d` 使用 Linux `059800405`，删除三套配置
 额外关闭 DNOTIFY 的条目，让官方 default y 生效，并检查最终配置。现有
 fcntl(F_NOTIFY) 接通上游目录信号通知；musl 不再修改。native/sanitizer、
 双位宽静态分析与关闭功能后的失败控制通过；一次性/多次通知、掩码撤换、
 错误恢复、关闭撤销的 Node wasm32/wasm64 均已逐项核实实际完整三阶段、唯一
 pass 和关闭门禁。不是用新增测试
 代替内核能力，也不以官方默认值代替实际目标运行证据。
+
+当前候选 `40ff62a` / 集成 `9c339f0` 使用 Linux `ba9894d96` 和 musl `e12bb18e`，
+接回通用 sigaltstack，版本化执行 ABI 真正切换用户 C 栈并恢复正常/嵌套回调。
+复用内核原有注册与恢复校验，musl 仅适配已有 Wasm trampoline 的 stack/mask
+上下文，不新增公共函数或头文件 API。SS_AUTODISARM、16次 SjLj 跳出、内核 C
+栈异常恢复、返回 context 修改及 KILL/STOP 保护已进入同一候选；引擎原生栈、
+完整寄存器上下文和 trap→信号映射仍未实现。五阶段 native/sanitizer、双位宽
+静态分析、339项运行层与源码/测试类型检查通过，不作 Wasm 目标证明。
+双位宽主负载、无导出模块和旧 fork runtime 共六路 Node 检查已派发，实际阶段
+与关闭待验收；后续复用浏览器门禁，再取消 CONFIG_SITE 旧否定项并验证实际
+应用正常探测。细节与精确版本见[第三十组](process-syscalls.md#第三十组标准-sigaltstack-与版本化信号-c-栈执行候选)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

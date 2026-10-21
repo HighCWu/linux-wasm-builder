@@ -95,7 +95,8 @@ ENOSYS；只有 ABI 2 对象才接入下述解析与恢复。import 名称仍为
 88 字节；较短结构补零，较长结构的未知尾部必须为零，长度不得超过当前架构的
 64 KiB PAGE_SIZE。坏地址返回 EFAULT，过短或选定结构性错误返回 EINVAL，超长或
 非零未知尾部返回 E2BIG，其他未支持形态返回 EOPNOTSUPP。这里不是完整 Linux
-clone3 flags/错误优先级兼容承诺；不支持 alternate stack、tid/TLS、
+clone3 flags/错误优先级兼容承诺；不支持 clone3 的自定义子进程 stack/stack_size
+（不是 sigaltstack 的信号替代栈）、tid/TLS、
 cgroup、namespace、线程创建或多线程 fork。
 
 ### clone3 的 CLONE_PIDFD 增量
