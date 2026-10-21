@@ -273,6 +273,24 @@ setjmp 仅用于 switch 控制表达式；跨跳转读取的被修改自动变�
 [独立 wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39538323649)
 已对 `5a366bf` 派发，仍不修改 SDK 的现有 SjLj/C++ 支持限制。
 
+上述独立 SjLj 目标现已成功，实际日志核实两阶段与唯一最终 pass，运行器等待
+machine.closed 且关闭失败会使检查失败。Bash 的
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39537687874) 也已成功：
+实际四阶段完整、唯一最终 pass，并通过同一关闭门禁。它们分别证明有限 C 执行
+前提和非交互 Bash 工作负载，不扩大到任意 C++ EH 或完整终端作业控制。
+
+`c7b299a` / 集成 `d178195` 将同一普通-fork Bash 的 runtimeAssets 接入独立的
+wasm64 Chromium/Firefox 检查，不替换默认 Bash，不新增 musl 函数，也不重写应用
+为 callback clone。复用既有固定 Playwright 运行器和内核包，每个引擎在同一页面
+启动两次独立机器，要求全部四阶段、唯一 pass、每轮机器关闭、最终浏览器关闭，
+并拒绝关闭期间的迟到页面错误。本地相关 13 项检查和 Clang analyzer 通过；
+宿主模拟驱动与原生 Bash 结果不是浏览器证明。浏览器及 wasm32 Node 补验已派发，
+实际阶段与关闭结果仍待核实，不因验收入口存在就声明通过。
+本轮固定源码的任务为
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/39541630662)、
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/39541635978) 与
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39541642469)。
+
 Clang 静态分析还对 exec-fd 的重复 getenv 检查给出保守 nonnull 警告。本例没有
 证实并发环境修改缺陷；`5a366bf` / 集成 `7b70ef4` 将它改为单次读取并守卫同一个
 指针，增加缺失／错误 marker 的明确拒绝检查。新 C 契约与 exec-fd 现都通过宿主
