@@ -171,7 +171,8 @@ jobs:
             sources/distro/distro/bash-fork/sjlj.test.js \
             sources/distro/distro/fork-continuation/high32.test.js \
             sources/distro/distro/toolchain-smoke/msync.test.js \
-            sources/distro/distro/toolchain-smoke/madvise.test.js
+            sources/distro/distro/toolchain-smoke/madvise.test.js \
+            sources/distro/distro/toolchain-smoke/fixed-mmap.test.js
           clang --analyze -Xanalyzer -analyzer-werror -Xanalyzer -analyzer-output=text \
             sources/distro/distro/bash-fork/sjlj.c -o /dev/null
           clang --analyze -Xanalyzer -analyzer-werror -Xanalyzer -analyzer-output=text \

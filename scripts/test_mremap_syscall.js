@@ -9,6 +9,67 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 for (const cc of ["gcc", "clang"])
+  test(`${cc}: exact mmap routes FIXED separately and gives NOREPLACE priority`, (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "wasm-fixed-mmap-syscall-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const source = readFileSync(
+      process.env.WASM_MREMAP_SYSCALL_SOURCE ??
+        new URL("../sources/linux/arch/wasm/kernel/syscall.c", import.meta.url),
+      "utf8",
+    );
+    const start = source.indexOf("SYSCALL_DEFINE6(wasm_mmap,");
+    const end = source.indexOf("\n}\n", start);
+    assert.ok(start >= 0 && end > start);
+    const prefix = `
+#define _GNU_SOURCE
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
+#include <sys/mman.h>
+#define PAGE_SIZE 65536UL
+#define PAGE_ALIGNED(x) (!((x) & (PAGE_SIZE - 1)))
+#define ALIGN(x,n) (((x)+(n)-1)&~((n)-1))
+#define TASK_SIZE 0x400000000UL
+#define SYSCALL_DEFINE6(n,t0,a0,t1,a1,t2,a2,t3,a3,t4,a4,t5,a5) long n(t0 a0,t1 a1,t2 a2,t3 a3,t4 a4,t5 a5)
+static int fixed_calls, legacy_calls;
+static long wasm_user_v2_mmap_fixed(unsigned long a, unsigned long n) {
+  assert(a == 65536 && n == 65536); fixed_calls++; return a;
+}
+static long wasm_user_v2_mmap(unsigned long a, unsigned long n, unsigned long p,
+  unsigned long f, long fd, unsigned long o) {
+  assert(a == 65536 && n == 65536 && p == 3 && f == (MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED_NOREPLACE));
+  assert(fd == -1 && o == 0); legacy_calls++; return -EEXIST;
+}
+`;
+    const fixture = `
+int main(void) {
+  int f = MAP_PRIVATE | MAP_ANONYMOUS;
+  assert(wasm_mmap(65536, 1, 3, f | MAP_FIXED, -1, 0) == 65536 && fixed_calls == 1);
+  assert(wasm_mmap(65536, 1, 3, f | MAP_FIXED | MAP_FIXED_NOREPLACE, -1, 0) == -EEXIST);
+  assert(wasm_mmap(65536, 1, 3, f | MAP_FIXED_NOREPLACE, -1, 0) == -EEXIST && legacy_calls == 2);
+  assert(wasm_mmap(65537, 1, 3, f | MAP_FIXED, -1, 0) == -EINVAL);
+  assert(wasm_mmap(0, 1, 3, f | MAP_FIXED, -1, 0) == -ENOMEM);
+  assert(wasm_mmap(TASK_SIZE, 1, 3, f | MAP_FIXED, -1, 0) == -ENOMEM);
+  assert(wasm_mmap(65536, ULONG_MAX, 3, f | MAP_FIXED, -1, 0) == -ENOMEM);
+  assert(wasm_mmap(65536, 1, 1, f | MAP_FIXED, -1, 0) == -EINVAL);
+  assert(wasm_mmap(65536, 1, 3, f | MAP_FIXED | 0x80000000UL, -1, 0) == -EINVAL);
+  assert(fixed_calls == 1 && legacy_calls == 2);
+}
+`;
+    const input = join(dir, "test.c"),
+      binary = join(dir, "test");
+    writeFileSync(input, prefix + source.slice(start, end + 3) + fixture);
+    const build = spawnSync(
+      cc,
+      ["-O2", "-std=c11", "-Wall", "-Wextra", "-Werror", input, "-o", binary],
+      { encoding: "utf8" },
+    );
+    assert.equal(build.status, 0, build.stderr);
+    const run = spawnSync(binary, [], { encoding: "utf8", timeout: 10000 });
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+  });
+
+for (const cc of ["gcc", "clang"])
   test(`${cc}: exact madvise validates geometry and preserves typed advice`, (t) => {
     const dir = mkdtempSync(join(tmpdir(), "wasm-madvise-syscall-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));

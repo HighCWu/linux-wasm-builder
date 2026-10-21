@@ -222,6 +222,55 @@ static void discard_pages(void)
 	assert(live_allocations == 0 && mappings == NULL);
 }
 
+static void fixed_mapping(void)
+{
+	const int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED_NOREPLACE;
+	for (int failure = 0; failure < 2; failure++) {
+		long base = __wasm_mmap(6 * PAGESIZE);
+		assert(base > 0);
+		memset((void *)base, 71, 6 * PAGESIZE);
+		fail_after = failure;
+		assert(__wasm_mmap_fixed(base + 2 * PAGESIZE, PAGESIZE) == -ENOMEM);
+		fail_after = -1;
+		assert(__wasm_mmap_v2(base, 6 * PAGESIZE, 3, flags, -1, 0) == -EEXIST);
+		for (size_t i = 0; i < 6 * PAGESIZE; i++) assert(((unsigned char *)base)[i] == 71);
+		assert(__wasm_munmap(base, 6 * PAGESIZE) == 0);
+	}
+	long base = __wasm_mmap(6 * PAGESIZE);
+	assert(base > 0);
+	unsigned char *bytes = (void *)base;
+	memset(bytes, 71, 6 * PAGESIZE);
+	assert(__wasm_mmap_fixed(base + 2 * PAGESIZE, PAGESIZE) == base + 2 * PAGESIZE);
+	for (size_t i = 0; i < 6 * PAGESIZE; i++)
+		assert(bytes[i] == (i >= 2 * PAGESIZE && i < 3 * PAGESIZE ? 0 : 71));
+	assert(__wasm_mmap_fixed(base + PAGESIZE, 4 * PAGESIZE) == base + PAGESIZE);
+	assert(bytes[0] == 71 && bytes[5 * PAGESIZE] == 71);
+	for (size_t i = PAGESIZE; i < 5 * PAGESIZE; i++) assert(bytes[i] == 0);
+	assert(__wasm_mmap_fixed(base, 6 * PAGESIZE) == base);
+	for (size_t i = 0; i < 6 * PAGESIZE; i++) assert(bytes[i] == 0);
+	assert(__wasm_mmap_fixed(base + 6 * PAGESIZE, PAGESIZE) == base + 6 * PAGESIZE);
+	assert(bytes[6 * PAGESIZE] == 0);
+	assert(__wasm_munmap(base + 6 * PAGESIZE, PAGESIZE) == 0);
+	assert(__wasm_madvise(base, 6 * PAGESIZE, MADV_NORMAL) == 0);
+	assert(__wasm_mmap_fixed(base + 1, PAGESIZE) == -EINVAL);
+	assert(__wasm_mmap_fixed(base, 9 * PAGESIZE) == -ENOMEM);
+	assert(__wasm_mmap_fixed((uintptr_t)&base & -(uintptr_t)PAGESIZE, PAGESIZE) == -ENOMEM);
+	assert(__wasm_munmap(base, 6 * PAGESIZE) == 0);
+	invalidated = __wasm_mmap(2 * PAGESIZE);
+	assert(invalidated > 0);
+	allocation_hook = invalidate_source;
+	assert(__wasm_mmap_fixed(invalidated, PAGESIZE) == -ENOMEM);
+	assert(live_allocations == 0 && mappings == NULL);
+	long file = __wasm_mmap_initialized(3 * PAGESIZE, initialize, NULL);
+	assert(file > 0 && __wasm_mmap_fixed(file + PAGESIZE, PAGESIZE) == file + PAGESIZE);
+	assert(__wasm_madvise(file + PAGESIZE, PAGESIZE, MADV_DONTNEED) == 0);
+	assert(__wasm_madvise(file, PAGESIZE, MADV_DONTNEED) == -EOPNOTSUPP);
+	assert(__wasm_madvise(file + 2 * PAGESIZE, PAGESIZE, MADV_DONTNEED) == -EOPNOTSUPP);
+	assert(*(unsigned char *)file == 71 && *(unsigned char *)(file + 2 * PAGESIZE) == 71);
+	assert(__wasm_munmap(file, 3 * PAGESIZE) == 0);
+	assert(live_allocations == 0 && mappings == NULL);
+}
+
 int main(void)
 {
 	for (int i = 0; i < 16; i++) { scenario(0); scenario(1); }
@@ -230,6 +279,7 @@ int main(void)
 	partial_grow();
 	private_sync();
 	discard_pages();
+	fixed_mapping();
 	assert(__wasm_mmap_initialized(PAGESIZE, initialize, (void *)1) == -EIO);
 	assert(live_allocations == 0 && mappings == NULL);
 	long file = __wasm_mmap_initialized(3 * PAGESIZE, initialize, NULL);
