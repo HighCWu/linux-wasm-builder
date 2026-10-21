@@ -38,6 +38,13 @@ execveat/fexecve 的双位宽 Node 与 wasm64 双浏览器两轮及关闭也已�
 clone3 的 Firefox 双位宽各五种 profile 两轮及关闭已核实，Chromium 仍在运行。当前再补
 SIGSTOP/SIGCONT、waitid 的 WSTOPPED/WCONTINUED/WNOWAIT 和非退出状态消费；
 宿主语料通过，双位宽 Node 已派发，不扩大为终端作业控制或多线程支持声明。
+现继续接入 prlimit64/getrlimit/setrlimit 的完整位宽、NOFILE 实际 EMFILE 执行与
+fork/exec 限额继承组合，本地检查通过，真实目标异步验收中。自主静态 review 发现
+并补齐 close_range 有效末端的覆盖盲点，未据此重复改写已有内核实现。
+
+CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
+明确失败后回溯修复；待目标验收的支持范围保持明确标注。优先实际程序阻塞缺口，
+不以持续添加微测试代替能力交付，也不在重型任务积压时重复派发相同构建。
 不把验收入口存在、宿主结果或单一目标通过扩大成全部 flags、线程创建及多线程支持。
 
 按当前项目决策，停止继续拆分 fork 性能指标、调整调度等待或试验 Worker 启动

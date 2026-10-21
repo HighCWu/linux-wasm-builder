@@ -190,5 +190,43 @@ Wasm 证据，新增两阶段已纳入 pidfd 的严格浏览器阶段协议。
 终端 foreground process group、完整 shell 作业控制、多线程 group-stop 或任意
 纯用户态循环的即时抢占。默认 SDK、内核配置及 fork 执行 ABI 均不改变。
 
+## 第六组：prlimit64、fd 限额与 exec 继承
+
+distro `04724e7` / 集成 `f8a42c0` 扩展独立 exec-fd 语料，调用公开的
+`getrlimit/setrlimit/prlimit`，并用六机器字 raw syscall 检查坏指针返回。musl 已提供
+这些标准接口，新增代码只做组合验收，不增加私有应用 API 或重复实现内核路径。
+
+- 两种位宽均静态断言 rlim_t 为 8 字节、struct rlimit 为 16 字节；NOFILE 查询时
+  getrlimit 与 prlimit 一致；非法 resource、soft 大于 hard 和坏输入／输出指针分别
+  返回 EINVAL 或 EFAULT，之后原 NOFILE 限额保持不变；
+- CORE soft 设置为 `0x100000007` 后往返核对完整高位与不变的 hard，再恢复原限额。
+  此测试要求独立测试机器原 CORE hard 至少为该值，并非发布平台的一般使用前提；
+- fork 子进程用 prlimit 原子设置 NOFILE soft=32 并取回旧值，保留原 hard；实际 dup
+  直到 EMFILE，再关闭全部临时 fd；不能只靠查询数值判断限额已经执行；
+- 随后从 fd exec 自身，替换后的程序核对 soft=32、原 hard、fd/TLS/身份与文件
+  offset；父程序每轮仍保持原 NOFILE soft/hard。其余五种原 exec 模式继续保留。
+
+本地 298 项内核侧检查、13 项相关语料/工具检查通过；GCC/Clang 的正常和反向语料
+包含伪造 32 位 CORE 查询结果的拒绝控制。新增两阶段进入 execfd 严格阶段门禁。
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/39536454222) 与
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/39536460094)
+已对最终版本派发，尚不计为目标验收通过；不扩展为 RLIMIT_AS/CPU/
+NPROC 等所有资源的实现或完整权限模型验证，也不扩大多线程 fork 支持。
+
+## 本轮静态 review 与异步验收原则
+
+review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
+fd 与 limit 的 fork/exec 生命周期、错误后的原状态和默认模式兼容边界。本轮未
+据此修改内核；没有把“未发现缺陷”解释成完整系统正确性的证明。
+
+发现并修正了具体的验收盲点：原 close_range 有界上界是已关闭的空洞，无法检出
+把上界误当不包含的实现。`d37732f` 增加首末相同的单 fd 区间、包含仍打开末端的
+带空洞区间，以及原 UINT_MAX/UNSHARE 分支；故意把末端减一的反向控制必须失败。
+该修正已包含在 `04724e7`，旧 CI 不作为新末端分支的验收证据。
+
+后续 CI 作为异步验收：正在构建的增量不阻塞下一项独立实现和静态 review；明确
+失败时读取日志修复，不把等待或耗时长当作失败。实现、本地验证与各目标验收分别
+记录；对重型任务合并必要批次，不重复派发同版本同检查，不为测试数量无限扩展。
+
 Dash 的 wasm64 Node 结果和浏览器/wasm32 进度独立记录在
 [Dash 接入记录](dash-processes.md)，不将其中的 shell 通过泛化到 pidfd。
