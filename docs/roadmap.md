@@ -19,6 +19,10 @@
   FHANDLE、AIO、IO_URING、MEMBARRIER 都是 default y；后续恢复审查不能把 fork
   对这些选项的额外关闭视为官方默认。FHANDLE 已接通，其余仍需解决并验证实际
   执行、共享 ring 或跨 CPU 同步等相应前提，不靠配置开关宣称完成。
+  审查也覆盖 fork 对 Kconfig 依赖本身的修改，而不只比较 defconfig：当前
+  KALLSYMS 多了官方 v7.1 没有的 depends on !LD_IS_WASMLD，且 Wasm 强制使用
+  wasm-ld，因此 olddefconfig 也不会恢复它。应核查符号表生成、地址表示和
+  展开支持后接通，不把 fork 新增的条件误当作官方默认依赖。
 - musl 以上游 `tombl/musl` 为比较基准，仅加入 Linux on Wasm 所需的兼容代码；
   不新增上游没有的公共函数或通用 Linux 扩展。已有接口的 Wasm 声明门控与调用
   适配可以修正；无 libc 包装的接口通过标准 syscall 验证。见[musl 变更边界](musl-compatibility.md)。
@@ -207,20 +211,23 @@ Node 关闭门禁。
 上游 FHANDLE/EXPORTFS，接通 name_to_handle_at/open_by_handle_at，musl 完全不改。
 精确原样包装的双位宽 ABI、静态分析与 sanitizer 检查通过；宿主缺少解码能力时
 明确不算完整目标证明。可写 ext4 工作负载覆盖重命名后重开、格式错误/权限拒绝
-及恢复、unlink 最后关闭后陈旧句柄拒绝，双位宽 Node 的完整三阶段与关闭待验收。
+及恢复、unlink 最后关闭后陈旧句柄拒绝；修正测试镜像后的 `2cee432` 双位宽
+Node 已逐项核实完整三阶段、唯一 pass 和等待 machine.closed 的关闭门禁。
 不新增通用 libc 包装、不放宽 capability 检查，不改变直接线性内存与 NOMMU。
 
 SysV IPC 首轮双位宽实际在 IPC_STAT 失败 EINVAL：原架构沿用旧式 IPC_64
 命令位，而当前 asm-generic 原生入口要求命令2而非258。原小型检查也错误
 预期258；现直接执行固定内核分派函数和 UAPI 纠正这一盲点。musl `7eade118`
 / distro `ea37cb4` / 集成 `af5915f` 声明内部 IPC_64=0，原样包装、结构转换与
-公开函数不变，双位宽真实目标已重派，仍需完整阶段与关闭证明。
+公开函数不变。双位宽 Node 现已核实实际完整三阶段、各自唯一 pass 和关闭
+门禁，包括未修改 BusyBox ipcs 元数据读取及阻塞信号量删除后的 EIDRM 恢复。
 
 当前增量 `8236b08` / 集成 `ad9704d` 使用 Linux `059800405`，删除三套配置
 额外关闭 DNOTIFY 的条目，让官方 default y 生效，并检查最终配置。现有
 fcntl(F_NOTIFY) 接通上游目录信号通知；musl 不再修改。native/sanitizer、
 双位宽静态分析与关闭功能后的失败控制通过；一次性/多次通知、掩码撤换、
-错误恢复、关闭撤销的双位宽 Node 完整三阶段及关闭待验收。不是用新增测试
+错误恢复、关闭撤销的 Node wasm32/wasm64 均已逐项核实实际完整三阶段、唯一
+pass 和关闭门禁。不是用新增测试
 代替内核能力，也不以官方默认值代替实际目标运行证据。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，

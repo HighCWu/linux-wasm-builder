@@ -1149,6 +1149,13 @@ fork 补丁 dry-run 通过。同一 `ea37cb4` 的
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39590206054) 已定向重派；
 必须重新核实全部三阶段、最终 pass 与关闭，尚不宣称目标修复已验收。
 
+`ea37cb4` 双位宽现已核实实际日志：typed binary queues/metadata/errors/removal、
+semaphore atomicity/metadata/timeout/recovery、blocked removal/EIDRM/recovery/
+direct-memory boundary 全部三阶段及各自唯一 pass。原样 BusyBox ipcs 在阶段
+报告前必须成功读取队列/信号量元数据并正常退出；工作负载没有 native 跳过
+分支。成功作业通过等待 machine.closed 的关闭门禁，补齐该修复的 Node 目标
+验收。共享 backing 仍明确不可用，SEM_UNDO 和浏览器不在此验收范围内。
+
 ### 第二十八组：上游持久文件句柄 syscall
 
 Linux `5c25d2f4e` / distro `10d7c71` / 集成 `5983fa4` 将三套配置原先显式关闭的
@@ -1186,6 +1193,11 @@ one APK package：缺少 installedTest 镜像所需的基础软件包，尚未�
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39588740610) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39588747729)，完整目标待验收。
 
+`2cee432` 双位宽现已验收：实际日志逐项核实 size discovery/descriptor encoding/
+rename reopen、invalid handles/decode permissions/recovery、unlink lifetime/
+stale refusal 三阶段，各自唯一 pass；成功作业通过等待 machine.closed 的
+关闭门禁。此证据属于该源码的 Node ext4 工作负载，不扩大为浏览器或所有文件系统。
+
 不把此配置解释成所有文件系统、跨重启/跨挂载稳定性或 NFS 服务已验收；句柄
 是上游不透明对象，不是线性内存地址，不改变 NOMMU/映射边界或隔离模型。
 
@@ -1215,6 +1227,38 @@ GCC/Clang 的 native 实际三阶段和 ASan/UBSan、双位宽 Clang 前端及�
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39590288141) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39590295634) 已派发；目标须有
 完整三个 dnotify 阶段、最终唯一 pass 和关闭证据，当前仍为待验收。
+
+`8236b08` 的 wasm64 已核实实际三阶段：one-shot/descriptor/automatic disarm、
+multishot/mask replacement/removal、invalid descriptors/recovery/close cleanup，
+唯一 pass 与等待 machine.closed 的关闭门禁通过；wasm32 状态单独跟踪，不
+使用 wasm64 结果代替它，也不扩大为浏览器验收。
+
+wasm32 随后也已核实同一 `8236b08` 的实际完整三阶段与唯一 pass，成功作业
+通过相同关闭门禁。至此该 DNOTIFY 增量的双位宽 Node 验收齐全，旧的目录
+通知配置关闭路径不能再作为当前版本的能力描述；浏览器仍未新增验收。
+
+## 下一处确认的信号栈缺口（尚未实现）
+
+当前 sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
+arch/wasm/include/uapi/asm/ptrace.h 的 user_stack_pointer 仍是 trap；不能直接
+去掉 syscall 重定向就宣称支持。普通 SDK 配置没有显式请求导出 __stack_pointer，
+可选 fork profile 则显式导出该全局；新执行契约还需核查最终模块的实际导出。
+双位宽最小 C/JS 实验已核实：在暂停的 C 调用
+之间切换该全局，handler 的 C 局部帧可进入独立替代缓冲区，正常返回恢复旧
+全局后，原 C 局部帧内容不变。此实验不接入内核，也不证明 Linux sigaltstack
+已实现，更不证明 Wasm VM 自身调用栈、trap 或栈溢出可由该机制恢复。
+
+下一实现需在内部执行 ABI 中提供可靠的用户 C 栈指针，保留双位宽地址和旧
+模块拒绝行为，复用 Linux 的注册/查询/错误语义，并在信号回调中真正切换。
+必须一起处理嵌套 SA_ONSTACK、SS_ONSTACK 查询、SS_AUTODISARM、正常返回和
+SjLj 非局部退出，验证不会覆盖编译器在 catchpad 恢复的栈指针或破坏原掩码。
+不是新增 musl 公共函数，也不能只保存注册状态却仍在原栈执行 handler。
+
+同轮 wchan 审查撤回了尚未发布的工作负载和改动：当前 KALLSYMS 因 fork 的
+wasm-ld 依赖条件被关闭，fs/proc/base.c 也未编译 wchan 项。__get_wchan 的
+BUG 不能据此宣称为默认构建已可触发的 proc 读取漏洞；需先处理符号/展开支持
+和可达路径，再设计真实目标验证。本轮未将返回0替代桩或不存在的 proc 接口
+列为新能力，也未为该未实现项派发重型检查。
 
 ## 本轮静态 review 与异步验收原则
 
