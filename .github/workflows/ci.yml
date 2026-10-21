@@ -88,6 +88,9 @@ jobs:
               -o "$RUNNER_TEMP/sdk-runtime-cxx-host"
             timeout 30s "$RUNNER_TEMP/sdk-runtime-cxx-host"
           done
+      - name: Check NULL user-access syscall errors and side effects on native Linux
+        # Actual Wasm import behavior is covered by the separate target check.
+        run: node --test sources/distro/distro/toolchain-smoke/user-access.test.js
       - name: Check C++ filesystem consumer on the build host
         # Host libraries do not prove the Wasm libc++ filesystem implementation.
         run: node --test sources/distro/distro/sdk/filesystem-test.js
