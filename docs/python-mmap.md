@@ -24,7 +24,8 @@ with mmap.mmap(-1, 65536, flags=mmap.MAP_PRIVATE,
 
 上游 `mmap.mmap(-1, size)` 默认使用 `MAP_SHARED`，当前内核拒绝该请求；模块
 可导入不等于默认构造调用可用。默认内核同样拒绝文件映射。不能据此推导共享
-内存、跨进程映射、写回、写保护、固定地址替换、resize 或 flush 已获得支持。
+内存、跨进程映射、写回、写保护或固定地址替换已获得支持。resize 的已验收范围
+及新增私有 flush 的待验收状态见末尾记录。
 实验性 `WASM_FILE_MMAP` 仍关闭，不为 Python 检查启用它。
 
 保持 `--without-mimalloc`、`--with-ensurepip=no` 和 `_posixshmem` 禁用策略：
@@ -649,3 +650,20 @@ pyconfig.h 含 HAVE_MREMAP=1；缺失时不能把构建算为该能力通过。�
 模拟仍提供旧三阶段。distro `8ec790f` / 集成 `759e33f` 已同步模拟输出；完整该步 60 项检查及
 23 项 Python 宿主检查通过，缺失任一阶段的反向控制保留。不改真实负载或放宽
 浏览器要求，不重复派发已经运行中的 Python 重型任务；主仓库 push 单独复验。
+
+上述双位宽 Node 现均成功，实际日志确认 ABI/安装布局及全部四阶段、唯一 pass，
+并通过等待 machine.closed 的退出门禁。该固定版本仍要求 flush ENOSYS，不是
+下面新增私有 flush 的运行证明。主仓库修复版 `39555029885` 也已成功。
+
+## 标准 msync 接通后的私有 flush
+
+distro `c2f1c5f` / 集成 `1d5721e` 使用 Linux `a36fe0d0ab` 与 musl `c6e6b380`。
+原版 CPython mmap.flush() 调用标准 msync，私有匿名范围成功、不修改数据，
+未对齐范围返回 EINVAL。Linux 的共享文件回写条件不适用于 MAP_PRIVATE；这里
+没有承诺文件持久化或通过 fake success 绕过未实现的共享映射。分配器必须核实
+完整活跃记录覆盖，空洞和释放范围拒绝，旧执行对象缺少内部导出仍为 ENOSYS。
+
+fixture 将旧 ENOSYS 阶段替换为私有 flush 数据及错误语义检查，resize 和原有
+默认共享/文件拒绝保持。浏览器规范与独立模拟输出同步修改；32 项相关宿主检查
+和完整 60 项门禁通过，不代表实际浏览器结果。新的双位宽 Node 检查单独派发，
+不能拿 `809df7b` 的旧四阶段通过替代；没有新增 CPython 补丁或 musl 公共函数。

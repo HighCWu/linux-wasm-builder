@@ -662,6 +662,47 @@ LLVM `137009e2` 的 LLD Driver/Writer/Options：stack-first 默认启用，globa
 断言保留。[修正复验](https://github.com/HighCWu/distro/actions/runs/39554319163)
 固定 `ac46f14`，实际布局和 fork 结果仍待核实，不能据此提前宣称通过。
 
+该修正复验现已成功，实际日志为 stack=0x8088163c、tls=0x80000000、
+global=0x80000dc4、descriptor=0x80080e70，全部位于高半区；随后真实 fork 完成
+父子数据隔离、身份与单次子进程回收，输出两个必需阶段及唯一 pass。运行器
+等待 machine.closed，目标作业成功确认关闭门禁。仅证明该独立布局，不代表
+默认请求容量、所有高地址 ABI 或性能保证。
+
+上述 `809df7b` 的双位宽 Python Node 也均已成功，实际日志核实 ABI/安装路径、
+私有缓冲区、resize、旧 flush ENOSYS、共享/文件拒绝全部阶段和唯一 pass，
+并通过机器关闭门禁。主仓库模拟门禁修复后的 `39555029885` 成功；这些旧目标
+结果不覆盖下面新增的私有 msync。
+
+### 第十八组：标准 msync 的私有映射语义
+
+Linux `a36fe0d0ab`、musl `c6e6b380`、distro `c2f1c5f` / 集成 `1d5721e` 接通
+标准号 227。Linux 架构入口校验 flags、地址对齐、页取整溢出和 TASK_SIZE，
+经内部 user_v2.msync 桥交给进程分配器核实整个活跃范围；旧程序缺少内部导出时
+返回 ENOSYS，不凭线性内存仍可读猜测映射有效。musl 公共 msync 本来就存在于
+直接上游 tombl/musl，本轮只增加 Wasm 内部映射兼容代码，没有新增公共 API。
+
+已核对固定 Linux 的 mm/msync.c：同步文件回写要求 MS_SYNC、文件以及 VM_SHARED。
+当前 direct 映射仅接受 MAP_PRIVATE，因此有效私有范围成功而不回写、不丢弃数据；
+不能据此宣称共享文件落盘。支持 ASYNC/SYNC/INVALIDATE 的合法组合、零长请求、
+相邻多记录覆盖；拒绝冲突/未知 flags、未对齐地址、空洞、释放范围和溢出。
+不实现共享映射、mlock、页回收或内核 softmmu，文件初始化副本也不会发布私有修改。
+
+目标 C 工作负载三阶段检查范围与 flags、空洞及相邻记录恢复、释放后的拒绝。
+原版 CPython 的 mmap.flush() 直接复用该标准 syscall：私有数据不变，未对齐
+请求 EINVAL；没有 Python 私有兼容层。默认共享/文件映射拒绝仍保留。
+
+本地 323 项运行层检查及双类型检查、10 项精确源码/native 检查、双位宽 musl
+前端、Clang 静态分析和 GCC/Clang ASan/UBSan 通过。60 项浏览器门禁和 32 项
+Python/模拟/native 检查通过；这些不是目标或浏览器执行证据。源码哈希来自公开
+prefetch `39556482787` 与 `39556630858`，目标 CI 单独验收，不复用旧 ENOSYS 结果。
+
+同一 `c2f1c5f` 已派发 [C wasm32](https://github.com/HighCWu/distro/actions/runs/39557605298)、
+[C wasm64](https://github.com/HighCWu/distro/actions/runs/39557611325)、
+[Python wasm32](https://github.com/HighCWu/distro/actions/runs/39557618206) 与
+[Python wasm64](https://github.com/HighCWu/distro/actions/runs/39557624512)。仍在运行，
+C 要求完整三阶段，Python 要求含新 flush 的四阶段、ABI/安装布局，两者均须
+唯一 pass 及关闭；当前没有新增浏览器结果，不因等待而重复派发。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
