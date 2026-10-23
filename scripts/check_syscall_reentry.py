@@ -11,7 +11,7 @@ source = Path(os.environ.get("WASM_SYSCALL_SOURCE", ROOT / "sources/linux/arch/w
 header = Path(os.environ.get("WASM_SIGCONTEXT_SOURCE", ROOT / "sources/linux/arch/wasm/include/uapi/asm/sigcontext.h")).read_text()
 begin = source.index('__attribute__((export_name("syscall"))) long')
 body = source[begin:source.index("\n}\n", begin) + 3]
-snapshot = """else {
+snapshot = """else if (nr >= 0) {
 			struct pt_regs entered = *regs;
 			long result;"""
 assert snapshot in body
@@ -54,6 +54,7 @@ static long syscall_enter_from_user_mode(struct pt_regs *regs, long nr) {
     depth++;
     irq=1;
     if (nr == 0) regs->syscall_args[5] += 9; /* model ptrace edit */
+    if (mode == 3) { regs->syscall_return = -13; return -1; }
     return mode == 1 && nr == 0 ? 2 : nr;
 }
 static void wasm_timer_check(void) {}
@@ -126,11 +127,17 @@ for (const mode of [0,1,2]) {
     }
   }
 }
-for (const [number,error,expected] of [[98,0,-38],[99,-14,-14]]) {
+for (const [number,error,expected] of [[98,0,-38],[99,-14,-14],[-2,0,-38],[-1,0,-38]]) {
   api.configure(0,error); events=[];
   assert.equal(call_kernel_entry(api,wide ? 'i64' : 'i32',() =>
     api.syscall(p(number),p(0),p(0),p(0),p(0),p(0),p(0))),p(expected));
   assert.equal(events.length,1,'direct error paths remain bounded');
 }
+api.configure(3,0); events=[];
+assert.equal(call_kernel_entry(api,wide ? 'i64' : 'i32',() =>
+  api.syscall(p(0),p(10),p(11),p(12),p(13),p(14),p(15))),p(-13),
+  'tracer result must survive skip');
+assert.equal(events.length,1,'skipped syscall must not invoke handler or nested imports');
+assert.equal(events[0][0],p(-1));
 ''', str(binary), str(bits), str(fixed), str(ROOT / "sources/distro/packages/kernel/src/signal-stack.ts")], check=True)
         print(f"wasm{bits}: nested frame, ptrace edits, signed results, restart target and old-clobber control passed")
