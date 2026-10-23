@@ -538,8 +538,9 @@ distro `a8194ae` / 根仓库 `244689a` 单独集成。双位宽取消三阶段�
 distro `6f14171` 进一步只在显式 fork profile 恢复 tombl/musl 已有但 Wasm
 门控的 daemon/forkpty 声明及原实现，默认配置不变，没有补造公共函数。
 原生实际链接上游原函数及双位宽前端/分析通过；根仓库 `5a693b9` 已集成，
-双位宽 PTY/session/SIGWINCH、daemon 双次 fork/stdio/subreaper 收尾目标已
-异步派发，真实三阶段与关闭待验收，不等同于完整 shell job control。
+双位宽 PTY/session/SIGWINCH、daemon 双次 fork/stdio/subreaper 收尾的实际
+三阶段、唯一 pass 与固定运行器关闭门禁均已核实，接受 6f14171/264eb000 的
+有界 Node 验收；不等同于浏览器、后继 musl pin 或完整 shell job control。
 详见[第六十组](process-syscalls.md#第六十组恢复显式-fork-profile-中既有终端daemon-实现)。
 
 随后 musl `f949d1b1` 修复 detached thread 从仍在使用的栈上 free 自己的存储，
@@ -550,6 +551,13 @@ distro `b7cfd8a` 增加独立实际线程目标；双位宽 -Os/-O2 原样函数
 `a87f9c6` 单独集成，双位宽实际释放与取消点回归四项异步派发，真实阶段/关闭
 待完成；不把本地 poison 模型或旧版本通过当作新 pin 的 Worker 验收。
 详见[第六十一组](process-syscalls.md#第六十一组detached-thread-的栈释放与分配器锁生命周期)。
+
+下一内核审查方向是 CPU 时间分账/虚拟用户 CPU 定时器，而不是声称 CPU 总
+时钟完全缺失。源码显示 SCHED 总时钟、getrusage 缩放与 ITIMER_VIRTUAL 使用
+不同计数路径；通用 vtime 还要求完善首次用户进入、allocator 回调重入及异常
+退出的 context-tracking/RCU 边界，不能只开 Kconfig。此次未改配置、未计作
+新增能力；实施顺序和真实验收条件见
+[CPU 时间准入审查](process-syscalls.md#后续-cpu-时间记账准入审查尚未实现)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

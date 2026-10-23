@@ -2780,8 +2780,11 @@ unused-result 警告作局部放宽，应用负载仍严格编译。这些不是
 同一 `6f14171` 双位宽实际目标已派发：
 [wasm32 39984725651](https://github.com/HighCWu/distro/actions/runs/39984725651)、
 [wasm64 39984734768](https://github.com/HighCWu/distro/actions/runs/39984734768)。
-目前运行或排队，三阶段与机器关闭尚待核实。没有把原生参考、编译成功或恢复
-声明当作完整 Wasm 终端能力已验收；此前取消点/信号栈目标继续独立跟踪。
+两项实际 Heavy 日志均已核实上述三个阶段及唯一 ::vm-test::pass，任务退出成功。
+固定 6f14171 的 run-test.js/shutdown.js 在成功退出前等待 machine.closed，
+关闭失败会使目标失败；这两个文件相对已审查的 a8194ae 无差异。因此接受
+6f14171 / musl 264eb000 的双位宽有界 Node 验收，不以原生参考或恢复声明代替
+目标证据，也不扩大为浏览器、完整 job control 或后继 musl pin 的验收。
 
 ## 第六十一组：detached thread 的栈释放与分配器锁生命周期
 
@@ -2831,6 +2834,45 @@ distro `19e8fd0` 单独更新构建 pin，根仓库 `a87f9c6` 更新 musl/distro
 目前运行或排队，需核实实际 SP 释放、32 轮 destructor/分配并行、后续 joinable
 与清理三阶段、取消点原三阶段、唯一 pass 及 machine.closed；尚未宣称通过。
 旧版本取消/信号栈验收不直接覆盖这一新 pin，也不重复派发仍在运行的 PTY 目标。
+
+## 后续 CPU 时间记账准入审查（尚未实现）
+
+对固定 Linux bba354425 的源码审查区分了三条不能混为一谈的路径：
+
+- CLOCK_PROCESS/THREAD_CPUTIME_ID 的 SCHED clock 通过 task_sched_runtime 取调度器
+  运行时间；不能因用户态缺少异步 tick 就断言 CPU 总时钟没有实现。
+- getrusage 的 cputime_adjust 会按 sum_exec_runtime 缩放 utime/stime；总量可能
+  仍前进，不代表 user/system 分类准确。当前 Wasm run_irq 使用零值 dummy regs，
+  tick 的 user_mode 为0，account_process_tick 因而不会在该路径增加用户时间。
+- ITIMER_VIRTUAL 使用 CPUCLOCK_VIRT/utime，而不是上述 SCHED 总时钟；不能用
+  CLOCK_PROCESS_CPUTIME_ID 能读出非零值来证明虚拟用户 CPU 定时器正确。
+
+这些是源码风险及后续实测要求，不宣称已在真实 Worker 中完整复现每个现象，
+也不将本次审查算作新 syscall 能力。现有计时配置未修改，不添加 libc 包装。
+相关固定源码为 kernel/sched/cputime.c、kernel/time/posix-cpu-timers.c、
+kernel/time/itimer.c、kernel/time/tick-sched.c 和 arch/wasm/kernel/irq.c。
+
+优先研究复用官方 VIRT_CPU_ACCOUNTING_GEN/context tracking，而不是自造一套
+按宿主 wall time 累加 utime 的近似实现。但现在仅添加 Kconfig select 不安全：
+Wasm 首次 wasm_user_call 前还没有完整的用户上下文转换，分配器回调又可从
+仍在执行的内核帧重新调用 syscall；当前 call_kernel_entry 只管理 C 栈与 IRQ，
+没有管理 context-tracking 相位。已有 signal callback 虽显式转换，也必须一起
+审查 SjLj、exec 替换和 HALT_KERNEL。SMP 的 TREE_RCU 选择 CONTEXT_TRACKING_IDLE，
+因此这些不是仅影响统计数字的局部开关，还涉及 RCU 是否在观察内核代码。
+
+后续实施顺序与准入要求：
+
+1. 先定义并实现内核/用户回调的相位与异常恢复契约，覆盖首次启动、普通 syscall、
+   allocator 重入、两类 signal handler、exec/SjLj 和真实任务退出。保留 clone 的
+   “C 栈/TLS 准备后才处理 pending signal/ptrace”边界，不能提前执行返回工作。
+2. 再接入通用 vtime；检查调度切换、IRQ/idle、跨 Worker 时钟基准和远端读取。
+   64位默认 HAVE_VIRT_CPU_ACCOUNTING_GEN 不等于32位已具备支持；后者需要审查
+   64位字段的 seqcount/锁与读写规则，不因 Wasm 支持 i64 指令就直接宣布安全。
+3. 用真实标准接口分别验证 SCHED CPU 总时钟、getrusage user/system、
+   ITIMER_VIRTUAL/PROF、阻塞等待不计入用户 CPU，以及 signal handler 的计算。
+   有限用户计算后在正常边界检查投递，不宣称可异步打断纯用户无限循环。
+4. 与现有 callback 重入、信号栈、取消点、fork/exec、线程释放共同验收后再考虑
+   默认启用。模型与 Kconfig 可选本身不能证明这些真实阶段或 RCU 生命周期。
 
 ## 信号栈缺口的前期核查记录
 
