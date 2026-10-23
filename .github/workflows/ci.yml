@@ -58,6 +58,8 @@ jobs:
         run: python3 -B scripts/test_file_handle.py
       - name: Check directory notification workload and disabled-feature control
         run: python3 -B scripts/test_dnotify.py
+      - name: Check existing scheduler dispatch, machine words and false-success control
+        run: python3 -B scripts/test_scheduler.py
       - name: Check alternate signal-stack reference semantics and execution adapter
         run: |
           python3 -B scripts/test_signal_altstack.py
