@@ -262,13 +262,16 @@ Linux `64e7b1c6f` / distro `e766014` / 集成 `629012b` 接回通用 ptrace 请�
 移除分发/detach trap，修正通用追踪入口前的 syscall 编号记录。内存读写
 复用既有 remote-mm 桥；musl 仍为 `e12bb18e`，原 ptrace 内部宏无需另加包装
 或兼容分支。TRACEME、全宽 PEEK/POKE、信号信息与掩码、CONT、DETACH 和
-后续 fork 恢复的双位宽目标已启动，尚待实际验收；原生 sanitizer、伪写入
-控制和双位宽静态分析通过，不代替目标证据。不宣称调试器、寄存器/单步或
+后续 fork 恢复的双位宽初次目标明确失败：测试误将 musl raise 的临时屏蔽
+窗口当成持久掩码。`6fa36a1` / 集成 `2f7e852` 改为标准 tkill 精确停止边界，
+保留严格断言并由原生屏蔽窗口控制复现原失败，双位宽正在定向复验，尚未通过。
+原生 sanitizer、伪写入控制和双位宽静态分析不代替目标证据。不宣称寄存器/单步或
 完整 syscall tracing 支持。详见[第三十二组](process-syscalls.md#第三十二组接回通用-ptrace-请求与-detach)。
 
 distro `6f56e24` / 集成 `885c998` 增加原有 Vim 配方的匹配 wasm64 闭包，
 两位宽检查正常 configure 信号栈探测及最终二进制共享内存位宽/上限，复用
-现有安装系统编辑、保存、shell-out 与 xxd 语料，目标验收待核实。不修改
+现有安装系统编辑、保存、shell-out 与 xxd 语料；双位宽 Node 已逐项核实
+二进制真实位宽/上限、完整三阶段、唯一 pass 与关闭门禁，不扩展为浏览器。不修改
 Vim 信号实现或 musl，也不以编辑正常冒充备用栈注册/故障恢复证明。详见
 [第三十三组](process-syscalls.md#第三十三组vim-双位宽与正常信号栈探测)。
 

@@ -1441,6 +1441,20 @@ Linux [prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/3988
 寄存器视图、断点、单步、SECCOMP 或完整 syscall-tracing 验收；也不扩大
 多线程 fork 或对纯用户态计算的异步停止能力。
 
+上述 `e766014` 两项目标随后均明确失败于“generic event and original blocked
+mask”，errno=0，没有通过本组验收。源码复核发现 musl raise() 在 tkill 前临时
+屏蔽应用信号，并在返回后恢复旧掩码；测试却要求此窗口中仍为先前的精确掩码，
+并要求 tracer 的修改在 libc 恢复后保持，两项假设均不成立，不能修改 musl
+去迎合这个断言。
+
+`6fa36a1` / 集成 `2f7e852` 让单线程 tracee 直接通过标准 tkill syscall 停止，
+六参数均显式机器字宽，保留所有精确掩码、保护位和恢复断言，并分开 event/mask
+错误定位。原生 GCC/Clang 加入模拟 musl 临时屏蔽窗口的负向控制，明确在相同
+掩码检查失败；伪写入控制仍在读回处失败。双位宽前端和静态分析通过。
+修复后的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39886766208) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39886765701) 定向复验正在
+运行，尚不能将其写成目标通过。内核和 musl 未因该测试假设改变。
+
 ### 第三十三组：Vim 双位宽与正常信号栈探测
 
 distro `6f56e24` / 集成 `885c998` 新增 vim-wasm64，复用现有 Vim 9.1.2148
@@ -1459,7 +1473,10 @@ HAVE_SIGALTSTACK=1，而不是预填 yes 或新增 Vim 信号处理补丁。最�
 Nix 格式/语法、shell 语法、完整仓库元数据/文档检查和手工依赖闭包 review
 通过，[wasm32](https://github.com/HighCWu/distro/actions/runs/39885517985) 与
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39885518633) 的实际 Heavy
-检查已启动，完整三阶段、唯一 pass 及机器关闭仍待核实。原版 Vim 的 init_signal_stack 会
+日志均已核实 Vim 二进制分别为共享 memory32/4 GiB 和 memory64/16 GiB，以及
+全部三个运行阶段、各自唯一 pass；两项成功作业通过等待 machine.closed 的
+关闭门禁。这是固定 `6f56e24` 的双位宽 Node 应用证据，不扩展为浏览器或
+所有交互式终端模式。原版 Vim 的 init_signal_stack 会
 忽略 sigaltstack 返回值，因此“原路径编译启用且编辑正常”不是注册成功、
 异步信号或引擎栈溢出恢复的单独证明；后者不能从本项扩大宣称。
 
