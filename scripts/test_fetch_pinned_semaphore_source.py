@@ -4,7 +4,7 @@ import unittest
 import urllib.error
 import urllib.request
 
-from fetch_pinned_semaphore_source import NoRedirect, download
+from fetch_pinned_semaphore_source import NoRedirect, download, download_with_retry
 
 
 REVISION = "ab" * 20
@@ -107,6 +107,34 @@ class FetchTest(unittest.TestCase):
                      "kernel//core.c", "kernel/core.c?ref=main", "https://other.invalid/source", "kernel/core.c\n"):
             with self.subTest(path=path), self.assertRaises(ValueError):
                 download(REVISION, path=path, get=get)
+
+    def test_retry_remains_pinned_and_never_authenticates_raw_host(self):
+        calls, waits = [], []
+
+        def get(url, headers):
+            calls.append((url, dict(headers)))
+            if len(calls) <= 2:
+                raise urllib.error.HTTPError(url, 429, "rate limited", {}, None)
+            return b"exact source after retry"
+
+        self.assertEqual(download_with_retry(REVISION, get=get, wait=waits.append, token="test-only-token"),
+                         b"exact source after retry")
+        self.assertEqual(waits, [5])
+        self.assertEqual(calls[0][0], calls[2][0])
+        self.assertNotIn("Authorization", calls[2][1])
+
+    def test_retry_is_bounded_and_permanent_http_errors_fail_immediately(self):
+        for code, attempts, expected_waits in ((429, 6, [5, 15]), (503, 6, [5, 15]), (404, 2, [])):
+            calls, waits = [], []
+
+            def get(url, headers):
+                calls.append(url)
+                raise urllib.error.HTTPError(url, code, "unavailable", {}, None)
+
+            with self.subTest(code=code), self.assertRaises(OSError):
+                download_with_retry(REVISION, get=get, wait=waits.append)
+            self.assertEqual(len(calls), attempts)
+            self.assertEqual(waits, expected_waits)
 
 
 if __name__ == "__main__":

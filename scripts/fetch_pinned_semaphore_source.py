@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 
 
@@ -47,12 +49,28 @@ def download(revision, *, path="arch/wasm/kernel/semaphore.c", token=None, get=f
     return data
 
 
+def download_with_retry(revision, *, path="arch/wasm/kernel/semaphore.c", token=None,
+                        get=fetch, wait=time.sleep):
+    for delay in (0, 5, 15):
+        if delay:
+            print("Retrying the same pinned source after a transient download failure", file=sys.stderr)
+            wait(delay)
+        try:
+            return download(revision, path=path, token=token, get=get)
+        except urllib.error.HTTPError as error:
+            if error.code not in (429, 500, 502, 503, 504):
+                raise
+        except OSError:
+            pass
+    raise OSError("pinned source remains unavailable after bounded retries")
+
+
 def main():
     if len(sys.argv) not in (3, 4):
         raise SystemExit("usage: fetch_pinned_semaphore_source.py COMMIT OUTPUT [SOURCE_PATH]")
     try:
         path = sys.argv[3] if len(sys.argv) == 4 else "arch/wasm/kernel/semaphore.c"
-        data = download(sys.argv[1], path=path, token=os.environ.get("GH_TOKEN"))
+        data = download_with_retry(sys.argv[1], path=path, token=os.environ.get("GH_TOKEN"))
         Path(sys.argv[2]).write_bytes(data)
     except (OSError, ValueError):
         # Do not expose credentials or fall back to a moving branch/local file.
