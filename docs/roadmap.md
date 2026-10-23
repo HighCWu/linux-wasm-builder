@@ -476,7 +476,8 @@ Linux `4074db5aa` / distro `227d54e` / 根仓库 `b594462` 继续修复直接用
 编号直接从在线 CPU 集合格式化，避免另一 CPU 纯用户计算时阻塞读取。distro
 `2422afa` 的双 CPU 目标已发布，本地模型、原生程序与双位宽分析通过；精确源码
 hash 预取 39963218440 的实际 revision/SRI 已核实，distro `5c11fb4` / 根仓库
-`bd021e7` 完成独立 pin 集成。双位宽 cpuinfo 目标已派发，未宣称真实目标通过。
+`bd021e7` 完成独立 pin 集成。双位宽 cpuinfo 的实际两阶段、唯一 pass 与机器
+关闭门禁已核实，接受有界双 CPU Node 回归，不泛化到浏览器或异步抢占。
 详见[第五十三组](process-syscalls.md#第五十三组读取-cpuinfo-不等待正在计算的其它-cpu)。
 
 独立 review 继续修正 musl 原有 Wasm 轻量分配器：`b1c51ef9` 将增长失败时的
@@ -515,6 +516,12 @@ distro `2180b2a` 更新原 offsets 目标而非新增重复程序，原生参考
 已集成。双位宽 offsets 与 fixed-mmap 回归已异步派发，实际三阶段和关闭仍待
 验收；不是性能工作，不增加 libc 包装函数。
 详见[第五十七组](process-syscalls.md#第五十七组匿名-mmap-的-offset-入口兼容)。
+
+随后 Linux `bba354425` 允许匿名 PROT_WRITE，并向旧执行层归一为 READ|WRITE；
+不提供读取隔离，不放开 PROT_NONE/EXEC 或文件候选限制。distro `8d83b32`
+扩展原 mmap 程序，双位宽本地执行模型、前端/分析与负向控制通过；源码已发布，
+精确 hash/pin 和真实 WRITE 阶段待完成。musl 不变，未新增包装或应用 API。
+详见[第五十八组](process-syscalls.md#第五十八组匿名-mmap-的-write-请求兼容)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

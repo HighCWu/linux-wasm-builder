@@ -2434,6 +2434,12 @@ gitlink 并接入精确源码模型。两路 cpuinfo 目标异步派发，尚待
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39964348105)；重入
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39964358354)。
 
+两路 cpuinfo 的 Heavy 实际日志现已补核实：各包含三轮无 syscall 计算线程
+运行期间的完整读取阶段、线程释放/affinity 恢复/再次读取阶段，以及唯一
+`::vm-test::pass`。固定 5c11fb4 运行器在退出成功前等待 `machine.closed`，
+关闭错误使任务失败，两路均通过该门禁。因此接受双位宽、双 CPU 的有界 Node
+回归，不泛化为浏览器、异步抢占或任意 SMP 操作。
+
 上一批固定 227d54e 的 wasm32 信号栈任务 39961766108 已成功，实际日志逐项
 核实注册/错误、siginfo 嵌套、autodisarm、反复 SjLj、context 编辑/清理五阶段及
 唯一 pass；固定运行器关闭失败会使任务失败，关闭门禁通过。这只是该双位宽矩阵
@@ -2638,6 +2644,33 @@ GCC/Clang 的真实 Linux 参考、小型 Wasm 中的原样内核 mmap 入口、
 [39976735593](https://github.com/HighCWu/distro/actions/runs/39976735593)。
 目前运行或排队，真实 offsets 三阶段、唯一 pass 与机器关闭仍待核实；
 不把源码哈希预取或本地模型当作目标验收，也不等待它们才继续独立能力审查。
+
+## 第五十八组：匿名 mmap 的 WRITE 请求兼容
+
+Linux `bba354425ff9149f38daa3a8d7f98368e26b9307` 修复匿名 `PROT_WRITE`
+请求被架构白名单拒绝的问题。官方 NOMMU 的私有复制路径不要求 WRITE 同时
+携带 READ；本项目的直接线性 backing 可以提供写访问，但不能隔离读取。
+现允许非零且仅含 READ/WRITE 的匿名 protection，将 WRITE 归一为 READ|WRITE
+后传入既有分配器，兼容旧执行层的保护值白名单；不新增执行 ABI 或修改 musl。
+PROT_NONE、EXEC、未知位仍拒绝，文件候选路径保留原限制，固定地址范围与
+NOREPLACE 冲突规则不变。不把这种能力称为硬件式写独占或内存保护。
+
+distro `8d83b32` 扩展原 mmap 工作负载，通过 libc/raw WRITE 检查零初始化、
+首尾数据访问、discard 后清零、resize 和分段释放，不新增重复目标。
+Clang18/22 × Wasm32/64 原样入口模型、工作负载前端/静态分析通过；模型确认
+WRITE 向旧回调转成3、原拒绝分支不调用分配器，GCC/Clang 原生参考与固定映射
+回归通过。本地验证不替代实际 Linux/Wasm 运行。
+
+源码及工作负载已分别原子提交推送，精确
+[hash 预取 39978007643](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39978007643)
+已派发，核实后再单独集成；当前已发布
+根仓库 pin 仍为第五十七组，真实 WRITE 阶段尚未派发或验收。配套根仓库轻量
+检查暂留工作区，需随新 pin 一起提交，避免用旧内核跑新能力断言。
+
+raw SYS_brk 同轮核查仍未冒充实现：既有 musl brk/sbrk 的当前 break 是用户
+分配器状态，mmap 又使用同一 malloc arena。它仅允许单调增长；不能直接给
+内核入口接一个查询/增长回调就宣称支持 Linux 的收缩与映射避让。此项保持为
+实际缺口，没有为其新增公共函数或更改现有分配语义。
 
 ## 信号栈缺口的前期核查记录
 
