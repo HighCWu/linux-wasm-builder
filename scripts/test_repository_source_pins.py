@@ -8,6 +8,12 @@ import check_repository
 
 
 class SourcePinParserTests(unittest.TestCase):
+    def test_kernel_copy_models_and_python_share_the_same_gate(self):
+        recipe = (check_repository.ROOT / "sources/distro/distro/linux/package.nix").read_text()
+        self.assertIn("copyHostChecks = fileMmapCandidate || mmapCopyTest;", recipe)
+        self.assertIn("++ lib.optional copyHostChecks pkgs.python3;", recipe)
+        self.assertIn("${lib.optionalString copyHostChecks ''", recipe)
+
     def test_kernel_fetch_retry_keeps_mandatory_hash_and_pinned_mirrors(self):
         recipe = (check_repository.ROOT / "sources/distro/distro/linux/fetch-source.nix").read_text()
         self.assertIn("inherit hash;", recipe)
