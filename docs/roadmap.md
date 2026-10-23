@@ -489,6 +489,8 @@ trap 改为释放锁并返回 NULL/ENOMEM，未新增任何函数或 API。双�
 distro 93255d5 / 根仓库 4479e10 改为独立的固定源码、私有命名空间诊断对象，
 普通程序不再受它的门禁耦合；默认 SDK 分配器保持原状。诊断与普通 C runtime
 分开复验，不能将该 lite 修复包装成默认 mallocng 的能力进展。
+固定 93255d5 的四路 Node 现已核实实际阶段/唯一 pass 和关闭门禁，分别接受隔离
+lite 对象与普通 C runtime 回归；不推广为浏览器或默认 mallocng OOM 已验证。
 
 重入 wasm32 目标已暴露真实 EIO：GET_SYSCALL_INFO 被完整 tracehook/regset 门控
 排除。Linux `91ab8b356` 将 syscall-info 独立为隐藏能力选项，保留原 tracehook
@@ -496,13 +498,21 @@ distro 93255d5 / 根仓库 4479e10 改为独立的固定源码、私有命名空
 或 audit 架构号；补齐编号/参数访问器和 skip 结果保留。distro `e1047c4` 要求
 子程序实际观察 entry 改写、skip 和 exit 返回值。双位宽原样 helper 模型、
 配置预处理及分析通过；精确 SRI 已核实并由 distro 2243541 / 根仓库 c60ec83
-集成，双位宽重入/编辑目标已派发，真实阶段和关闭结果尚待验收。
+集成。两路固定 2243541 的实际三阶段、唯一 pass 和关闭门禁均已核实，接受有界 Node
+syscall-info/分配器重入结果，仍不提供完整 regset 或扩大 fork 支持范围。
 详见[第五十五组](process-syscalls.md#第五十五组独立-syscall-info-能力与标准-ptrace-编辑)。
 
 独立架构修正 Linux `67a716797` 纠正 on_thread_stack 的减法方向和 THREAD_SHIFT
-的算术，双位宽真实宏模型/负向控制与分析通过，精确 hash 预取中，尚未集成。
+的算术，双位宽真实宏模型/负向控制与分析通过，精确 hash 已核实并由 distro
+5839a9e / 根仓库 a87f595 集成。
 它不新增 syscall、栈 ABI 或默认未启用的调试功能；不据此宣称普通程序崩溃已被
 重现或调试配置已验收。详见[第五十六组](process-syscalls.md#第五十六组内核栈辅助判定的算术修正)。
+
+下一真实 syscall 兼容增量 Linux `3e2199eca` 保留 mmap/mmap2 入口对齐检查，
+但不再拒绝合格的非零匿名 offset；向既有分配器归一化为0，文件映射路径不变。
+distro `2180b2a` 更新原 offsets 目标而非新增重复程序，原生参考、实际入口模型
+和双位宽分析通过；精确 hash/pin 与真实三阶段尚待完成，不是性能工作。
+详见[第五十七组](process-syscalls.md#第五十七组匿名-mmap-的-offset-入口兼容)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

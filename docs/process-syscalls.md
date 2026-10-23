@@ -2514,6 +2514,13 @@ scope 覆盖；当前两位宽 .src 固定同一 b1c51ef9，未修改编译源�
 派发活任务。结构检查保证将来 scope 覆盖也保持匹配；上述目标仍按其实际 93255d5
 源码记账，不将后继提交偷换成已验收版本。
 
+固定 93255d5 的四路现均完成。两路 lite-oom 实际日志逐项核实首次/后续增长
+错误、锁与内容恢复，以及 getcwd/write 两阶段和唯一 pass；普通 C runtime
+两路各自唯一 pass 也已核实，其断言均位于该 marker 之前。已复查固定运行器
+确实 await machine.closed，关闭失败会使目标失败；四路关闭门禁通过。接受
+有界 Node 回归：lite 结果仅针对隔离的固定源码对象，不证明默认 mallocng OOM
+或浏览器大内存行为。
+
 ## 第五十五组：独立 syscall-info 能力与标准 ptrace 编辑
 
 先前 227d54e 的 wasm32 重入任务 39961744403 已失败。实际日志报
@@ -2561,6 +2568,12 @@ stop 类型；源文件和目标前端/静态分析通过。真实源文件预�
 结果替代本次验收。旧 5c11fb4 的 wasm64 重入实际日志也已取回，确认相同的
 syscall-info EIO，而非下载错误；新修复针对两位宽共同门控问题。
 
+两路固定 2243541 现已成功，实际日志均逐项核实完整三阶段：标准 entry 重定向/
+skip/exit 编辑；嵌套回调后的编号、六参数与 C 栈；实际分配器重入、mmap/munmap
+及 tracee 回收。各自唯一 pass 和固定运行器的机器关闭门禁通过。接受 Linux
+91ab8b356 的双位宽 Node syscall-info/重入能力，不扩大到完整 regset、未知
+audit 架构编号、任意异步抢占、浏览器或多线程 fork。
+
 ## 第五十六组：内核栈辅助判定的算术修正
 
 独立架构 review 发现两个确定的算术错误。on_thread_stack 原先计算
@@ -2582,8 +2595,38 @@ shift 的控制检出各自错误。新 shift/size 恒等式在 C 编译期断�
 
 源码已原子提交推送；精确预取
 [39973059533](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39973059533)
-已派发，后续独立更新 pin。主仓库当前仍固定 91ab8b356；未提前把新源码计入
+已派发，后续独立更新 pin。预取启动时主仓库仍固定 91ab8b356；未提前把新源码计入
 已经运行的 syscall-info、诊断或普通程序目标。
+
+该预取随后成功，实际日志已核实完整 revision 和 SRI
+`sha256-FpW4srxMEa7ZxpPtc6f0GYG7J66ywQ8uj6D7KiXsJwE=`；distro `5839a9e` /
+根仓库 `a87f595` 单独完成 pin 和精确宏检查集成。上述已验收任务仍按原 Linux
+91ab8b356 记账，不作为新源码或未启用调试配置的运行证明。
+
+## 第五十七组：匿名 mmap 的 offset 入口兼容
+
+Linux `3e2199eca60d5436bd32f40e47fe7e299632c1d0` 修正另一个真实 syscall 限制：
+原 Wasm 入口把所有非零匿名 offset 拒绝为 EINVAL。官方 Linux 的匿名映射不
+使用文件来源 offset，但入口仍检查 ABI 对齐；现 wasm64 mmap 按64 KiB页面
+检查字节 offset，wasm32 mmap2 按固定4096字节单位检查16单位对齐。合格请求
+才将匿名 fd/offset 归一为 -1/0，再调用既有分配器；不新增执行导出或更改 musl。
+
+实验文件映射在归一化之前继续走原文件 helper，原始 offset、范围、来源、EOF
+规则不变；默认文件映射拒绝也不放开。MAP_FIXED/NOREPLACE、保护位、地址上限
+及其它现有准入规则保持，不引入 MMU、共享 backing 或任意地址映射。
+
+distro `2180b2a` 更新既有 offsets 目标，不另造同类程序。它区分 libc 字节
+offset 与 raw ABI 单位，验证合格匿名 offset（含高位）得到独立零初始化 backing，
+无效对齐/无法表达的 libc offset 仍拒绝，文件请求仍拒绝且文件位置和活映射
+不变；成功对象均释放。offset 数值不是内存大小，不分配大文件或大内存。
+
+GCC/Clang 的真实 Linux 参考、小型 Wasm 中的原样内核 mmap 入口、Clang18/22
+双位宽前端/分析通过。模型覆盖文件能力开/关、对齐、最大对齐 raw offset、
+固定/NOREPLACE、旧拒绝分支控制和原文件 delegation；这些不替代实际 Wasm
+三阶段与关闭结果。源码已原子发布，待精确 hash 后单独集成并复验现有 offsets
+目标；不派发性能 benchmark，也不增加 libc 包装函数。
+精确预取 [39975423664](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39975423664)
+已派发；预取启动时集成 pin 仍为 67a716797，没有提前计入新匿名 offset 行为。
 
 ## 信号栈缺口的前期核查记录
 

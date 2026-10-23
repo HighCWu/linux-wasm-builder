@@ -52,6 +52,8 @@ fork 补丁 dry-run 当作所有程序 OOM 行为的证明。
 该路径；未把它记为 lite 验收通过。distro 93255d5 将同一固定源文件另编译为
 独立测试专用命名空间对象，不修改默认 SDK 选路、不安装新 API；普通 C runtime
 另行复验。这项源码修复只针对既有 lite 实现，不能当作默认 mallocng 的修复。
+固定 93255d5 的隔离 lite 双位宽两阶段及普通 C runtime 各自的实际 pass/关闭
+门禁现已核实，接受该有界 Node 回归，范围见第五十四组；未推广为浏览器 OOM。
 
 ## Wasm clone trampoline 的启动边界兼容
 
