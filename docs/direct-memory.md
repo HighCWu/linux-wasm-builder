@@ -64,6 +64,13 @@ DENYWRITE/EXECUTABLE 提示也会在验证后规范化，不要求应用删除�
 这不启用自动栈增长、锁页、执行权限、共享内存或稀疏/按需提交，也不解除容量
 限制；当前匿名 offset 仍要求 0。文件 fd 不受此匿名参数规范化影响。
 
+Linux `f45a2bd47` 将匿名数据映射的保护参数准入从仅 READ|WRITE 扩展到 READ
+或 READ|WRITE：官方 NOMMU 的匿名私有复制路径并不要求 PROT_WRITE，不能因
+Wasm 无逐页保护就把标准 PROT_READ 请求视为无效。新入口仍分配独立、零填充、
+可直接读取的 backing，不承诺违规写入会 fault；应用不应违规写入。PROT_NONE、
+仅 WRITE、含 EXEC 或未知保护位仍明确拒绝，不伪造 guard page、可执行装载或
+mprotect。该增量尚待双位宽默认内核正确性目标验收，不以文件 mmap 候选结果替代。
+
 映射执行边界使用版本化的`user_v2.mmap(addr, len, prot, flags, fd, pgoff)` import，
 宿主把Linux已校验的完整请求原样转发给当前进程模块的`__wasm_mmap_v2`导出。这一版本
 仍落到既有direct allocator；非固定hint向下对齐到页边界后，只有完整请求区间位于该
@@ -78,7 +85,7 @@ allocator已经保留、但当前没有live mapping的backing页洞中才会采�
 返回错误；不扩展为任意 direct 地址覆盖。NOREPLACE 优先于同时提供的 FIXED。
 实现与目标验收状态见[标准 syscall 记录](process-syscalls.md)。
 旧内核继续使用`user.mmap(len)`，新宿主在旧用户模块缺少v2导出时可回退到
-`__wasm_mmap(len)`；宿主只允许private anonymous read/write、`fd=-1`、offset=0的请求
+`__wasm_mmap(len)`；新宿主允许private anonymous READ或READ|WRITE、`fd=-1`、offset=0的请求
 进入该回退，非固定hint可以忽略。旧 callback 无法表达精确地址，因此在此旧 mmap
 回退路径中，fixed 请求返回 `ENOMEM`，且不调用分配器；新的覆盖路径
 缺少独立导出时则返回 ENOSYS。这样旧用户模块不会

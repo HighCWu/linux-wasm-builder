@@ -334,6 +334,14 @@ Linux `48adb6d39` 已实现任务所有的 quiescent callback 记录与退出收
 双位宽 callback 和既有取消点回归共四项 CI 正在运行，不将候选标为生产可用。
 详见[第三十八组](process-syscalls.md#第三十八组文件初始化异常的内核所有权候选)。
 
+Linux `f45a2bd47` 进一步接通匿名 PROT_READ 标准请求，遵循 NOMMU 数据映射
+不保证违规写入 fault 的边界；不支持的保护组合继续拒绝。musl 无需改动，既有
+allocator 已能提供独立零填充 backing。实际 wrapper 模型/反向对照和双位宽
+前端检查通过，默认 mmap 正确性语料已加入 libc/raw、discard、resize 和解除；
+已由 distro `7a1e3ad` / 集成 `0f41180` 接入，双位宽默认目标仍待验收，
+不能将本地检查当成真实内核通过。
+详见[第三十九组](process-syscalls.md#第三十九组匿名-prot_read-数据请求)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

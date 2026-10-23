@@ -1741,6 +1741,33 @@ exec、真实设备在途压力、用户分配器损坏恢复及默认 SDK 准�
 [wasm64 取消点回归](https://github.com/HighCWu/distro/actions/runs/39903008720)。
 这些任务尚未验收，不能用前一版本的取消点结果替代新所有权代码的通过证明。
 
+## 第三十九组：匿名 PROT_READ 数据请求
+
+Linux `f45a2bd47` / distro `7a1e3ad` / 集成 `0f41180` 接通原先被 Wasm
+wrapper 硬拒绝的匿名 PROT_READ 请求。对照
+通用 mm/nommu.c 的 validate_mmap_request 匿名复制路径及 NOMMU mmap 文档，
+这类请求不要求 PROT_WRITE；不能把没有逐页写保护误写成必须拒绝只读数据请求。
+标准请求仍为 MAP_PRIVATE|MAP_ANONYMOUS，零填充、直接可读、独立分配；不提供
+违规写入 fault 保证。PROT_NONE、仅 WRITE、包含 EXEC 或未知保护位继续拒绝。
+文件映射默认开关、MAP_SHARED、mprotect 和任意固定地址政策不改变。
+
+现有 musl 的内部 v2 allocator 已能承接该请求，无需更改 musl、添加函数或头文件。
+执行桥对 v2 原样保留 prot；对旧 length-only allocator 的回退也允许 READ 数据
+请求，但仍不允许它处理 fixed。NOREPLACE、受限 FIXED 的原保留区规则保持不变。
+
+既有默认内核 mmap 正确性程序增加 libc/raw 两条 READ 路径，核对页对齐和零填充，
+再执行标准 msync、MADV_DONTNEED、mremap 增长及部分 munmap；测试不违规写入
+READ 映射，也不把可读误记为硬件写保护。GCC/Clang 对实际内核 wrapper 验证参数
+保留和拒绝边界，恢复旧 RW-only 条件的对照必须在 READ 成功断言失败。
+双位宽目标前端/静态分析、源和测试 TS 项目及347项 kernel 宿主检查通过。
+这些不是完整内核运行证据；源码 hash 经
+[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39903686392)
+核实，新双位宽默认正确性目标已集成，尚待 CI 阶段与关闭验收。
+本轮 [wasm32](https://github.com/HighCWu/distro/actions/runs/39904062932)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39904072165) 不运行文件 mmap
+候选配置，必须核实新增 anonymous READ 阶段、原完整正确性程序和唯一 pass，
+以及 runner 等待 machine.closed 的门禁，不用已有 RW 或文件 READ 结果替代。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
