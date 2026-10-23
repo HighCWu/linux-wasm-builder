@@ -380,7 +380,8 @@ Linux `f7626f432` 修复 clone_fn 记录在 continuation 执行桥非局部退�
 的顺序问题：只复制 fn/arg 标量，释放该记录后再 handoff；异步 Worker 的
 task_bootstrap_args 仍按原 ack 协议回收。真实小 Wasm 模块的正常/异常/恢复与
 后释放对照通过，不新增 ABI 或错误恢复承诺。根仓库模型也补齐新增退出钩子，
-不再因模型缺字段而无法检查实际 exit_thread；已随 b8eafea09 集成，待目标验收。
+不再因模型缺字段而无法检查实际 exit_thread；b8eafea09 的双位宽 Node fork/
+pthread 原完整阶段、唯一 pass 与关闭门禁已核实，不泛化为全部异常注入验收。
 详见[第四十三组](process-syscalls.md#第四十三组clone-入口的元数据所有权)。
 
 Linux `b8eafea09` 继续补齐 vmsplice 用户到管道方向的真实执行路径：Wasm 用户
@@ -391,6 +392,8 @@ syscall 语料的本地检查通过，源码 hash 已实际核实，distro `ac84
 仍待完整内核阶段与关闭验收。源码预取也修复了下载429却因 tee 掩盖错误而假绿
 的问题，失败和非法 hash 现在必须使工作流失败，不用缺失的 hash 更新 pin。
 详见[第四十四组](process-syscalls.md#第四十四组vmsplice-的用户线性内存复制路径)。
+其中 ac84a1c 的 vmsplice 双位宽实际三阶段、唯一 pass 与机器关闭门禁均已核实，
+仅记 Node 有界验收；fork 回归完整日志也已核实，不据此放行后继内核或浏览器。
 
 Linux `7141e252e` 修正独立 Wasm 进程相同偏移的 futex key 碰撞：即便 NOMMU
 也保留 mm 身份，同 mm 线程仍匹配，传统 NOMMU/MMU 行为不变；不启用共享映射。
@@ -398,6 +401,13 @@ Linux `7141e252e` 修正独立 Wasm 进程相同偏移的 futex key 碰撞：即
 `977bf49` / 集成 `d9c0da2` 已推送，两个独立 futex-isolation 目标异步验收中。
 测试只在 fork 后创建线程，不放宽多线程 fork，不修改 musl。
 详见[第四十五组](process-syscalls.md#第四十五组独立线性内存的-futex-key-隔离)。
+
+Linux `d25423a8f` 继续修复 ptrace 跨页非对齐机器字被远程桥截短的问题：保留
+每次至多 PAGE_SIZE 的预算，允许有效连续字节跨页，并保留 TASK_SIZE 末端的
+有效前缀。小型双位宽 admission 模型及原生 ptrace 正/反向检查通过，源码已推送，
+尚待 hash/pin 与目标验收。根仓库源码下载429/瞬态失败也已单独修复安全 fallback
+与有界重试，不把轻量 CI 的输入下载失败误记为内核运行失败。
+详见[第四十六组](process-syscalls.md#第四十六组跨页的远程机器字访问)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

@@ -1918,8 +1918,9 @@ ack 等待屏障保持不变。原始异常继续传播，没有转换成 errno 
 语义由独立模型负责，只观察退出钩子调用及 metadata 清理；GCC/Clang sanitizer、
 早/晚 Worker ack、移除等待的失败对照与最终共享访问 codegen 再次通过。
 不以宿主桩代替真实 mmap 退出或完整 clone 验收。包含本修复的后继内核 b8eafea09
-已由 distro `ac84a1c` / 根仓库 pin `c98b13f` 集成，实际 fork/pthread 回归仍待
-双位宽目标验收。
+已由 distro `ac84a1c` / 根仓库 pin `c98b13f` 集成。双位宽 Node fork/pthread
+回归现已核实完整原阶段、唯一 pass 与关闭门禁；不把正常回归说成新增的完整
+Linux 非局部异常注入验收，异常释放顺序的证据仍限于前述实际函数小模块。
 
 首次[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39912187207)
 虽显示 success，实际日志却是下载反复429并最终失败，没有 hash。旧工作流的
@@ -1969,6 +1970,14 @@ GIFT、参数错误、Wasm 实际内存外范围及前缀、EPIPE 与失败后�
 回归需核实原有完整语料与关闭。未派发浏览器，不把宿主 sanitizer 或 Node 状态
 泛化为浏览器、零拷贝、所有页固定调用者或完整 syscall 兼容性验收。
 
+ac84a1c 的 vmsplice 双位宽任务现均成功，实际日志已分别核实上述三个完整阶段
+及各自唯一 pass，无 panic 或关闭错误，且既有 runner 成功返回须等待
+machine.closed。这是 b8eafea09 内核的 Node 验收。同版本 fork 双位宽实际日志
+也已核实：raw clone/clone3、PID/TLS/atfork/memory/fd/nested wait、信号隔离、
+失败 exec 恢复、默认 libc helper 的 exec 三阶段、exec 后 wait、多线程拒绝和
+恢复、旧/新 clone import 共存及 signal callback 拒绝恢复，各自唯一 pass 与
+关闭门禁均满足。四项只记录该版本的 Node 结果，不据此放行后继 futex 或浏览器。
+
 ## 第四十五组：独立线性内存的 futex key 隔离
 
 Linux `7141e252e` 修正通用 NOMMU 对单一地址空间的假设：原 get_futex_key 在
@@ -2007,6 +2016,44 @@ Clang 各三轮及双位宽前端/静态分析通过。未用延时掩盖初稿�
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39917071562)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39917078967)，须核实两个完整
 阶段、唯一 pass 和机器关闭；它们仍待目标验收，不把原生或小模块检查说成完成。
+
+## 第四十六组：跨页的远程机器字访问
+
+Linux `d25423a8f` 修正 wasm_access_remote_vm 将有效请求截到单页末端的问题。
+generic_ptrace_peekdata/pokedata 每次必须复制完整 sizeof(long)，而该桥在地址
+位于页末一个字节时只传一个字节，导致即使相邻内存有效也返回 EIO。线性内存
+复制并不需要逐页固定，因此改为限制 payload 至多 PAGE_SIZE，而不是限制地址
+的页内剩余容量；同时按 TASK_SIZE 剩余范围截出有效前缀，先排除起址越界与负长度。
+没有增加单次预算或更改 mailbox 的发布/认领/取消/DONE 生命周期、权限检查、
+syscall 号、musl 和 MMU 策略。真正的内存末端短复制仍由现有 uaccess residue
+处理，不把无效地址变成有效地址。
+
+实际 admission 前缀的 Clang18/22 小 Wasm 模块在双位宽验证完整跨页机器字、
+至多一页的 payload、高位偏移、TASK_SIZE 末端前缀、零/负长度及越界；重新加入
+旧页切割的对照确实只剩一字节。这不运行 mailbox 或目标 ptrace，也不声称能
+识别调用者已经在 wasm32 参数转换中丢掉的第33位。
+既有 ptrace 程序增加对齐的两页静态缓冲区，在页末一字节处执行非对齐 PEEK/
+POKE，再核对 child 恢复后读到完整新值、两侧邻接字节及 parent 原副本未变。
+原生 GCC/Clang sanitizer、无真实写入/错误信号掩码的原反向控制，以及双位宽
+前端/分析通过；源码已推送，hash 与目标集成仍待
+[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39917966328)
+完成，不计为 Wasm 验收。
+
+同轮处理已明确失败的根仓库 CI：
+[c98b13f](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39914944033) 与
+[d9c0da2](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39917065833)
+实际日志均在 GitHub API 取源码时遇429及 base64 错误；
+[a15dd3a](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39916952481)
+则在原 semaphore 的两个下载来源均失败后退出，日志没有保留 HTTP 码，不能也
+断言为同一429。这些是输入下载失败，不是目标内核运行错误。
+`673b5ef` 让所有轻量源码读取复用已有 raw-first 安全 fallback，`99f1fd4` 再加
+最多三轮及5/15秒间隔的瞬态失败重试；每次保持同一完整 commit 和相对路径，
+认证仅发往 GitHub API，禁止重定向转发认证、不改用分支/本地代码。非法路径、
+404等永久错误不继续重试。11项纯本地下载器检查通过，修复后的 CI 仍需异步复验。
+raw-first 的首项 [673b5ef CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39918322464)
+实际仍失败于两个来源均不可用，而非模型断言；有界重试版本的
+[99f1fd4 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39918516394)
+已在运行，不能提前写为下载恢复或 CI 通过。
 
 ## 信号栈缺口的前期核查记录
 
