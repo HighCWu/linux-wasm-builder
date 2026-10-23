@@ -511,7 +511,9 @@ syscall-info/分配器重入结果，仍不提供完整 regset 或扩大 fork �
 下一真实 syscall 兼容增量 Linux `3e2199eca` 保留 mmap/mmap2 入口对齐检查，
 但不再拒绝合格的非零匿名 offset；向既有分配器归一化为0，文件映射路径不变。
 distro `2180b2a` 更新原 offsets 目标而非新增重复程序，原生参考、实际入口模型
-和双位宽分析通过；精确 hash/pin 与真实三阶段尚待完成，不是性能工作。
+和双位宽分析通过；精确 hash 已核实，distro `8320989` / 根仓库 `92aa65e`
+已集成。双位宽 offsets 与 fixed-mmap 回归已异步派发，实际三阶段和关闭仍待
+验收；不是性能工作，不增加 libc 包装函数。
 详见[第五十七组](process-syscalls.md#第五十七组匿名-mmap-的-offset-入口兼容)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，

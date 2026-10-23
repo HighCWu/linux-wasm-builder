@@ -2623,10 +2623,21 @@ offset 与 raw ABI 单位，验证合格匿名 offset（含高位）得到独立
 GCC/Clang 的真实 Linux 参考、小型 Wasm 中的原样内核 mmap 入口、Clang18/22
 双位宽前端/分析通过。模型覆盖文件能力开/关、对齐、最大对齐 raw offset、
 固定/NOREPLACE、旧拒绝分支控制和原文件 delegation；这些不替代实际 Wasm
-三阶段与关闭结果。源码已原子发布，待精确 hash 后单独集成并复验现有 offsets
-目标；不派发性能 benchmark，也不增加 libc 包装函数。
+三阶段与关闭结果。源码已原子发布并单独集成；不派发性能 benchmark，
+也不增加 libc 包装函数。
 精确预取 [39975423664](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39975423664)
-已派发；预取启动时集成 pin 仍为 67a716797，没有提前计入新匿名 offset 行为。
+的实际日志已核实完整 revision 与
+`sha256-jFaO/DMlHpMe7i/PFISHJ0tNAvohhSD5RLU6T7ycm3c=`，distro `8320989`
+更新构建 pin，根仓库 `92aa65e` 更新 gitlink 并接入实际入口轻量模型。
+本轮重跑 Clang18/22 × Wasm32/64 模型、工作负载前端及静态分析均通过。
+
+同一 distro `8320989` 已派发两路 offsets 和两路 fixed-mmap 回归：
+[39976703172](https://github.com/HighCWu/distro/actions/runs/39976703172)、
+[39976713154](https://github.com/HighCWu/distro/actions/runs/39976713154)、
+[39976723594](https://github.com/HighCWu/distro/actions/runs/39976723594)、
+[39976735593](https://github.com/HighCWu/distro/actions/runs/39976735593)。
+目前运行或排队，真实 offsets 三阶段、唯一 pass 与机器关闭仍待核实；
+不把源码哈希预取或本地模型当作目标验收，也不等待它们才继续独立能力审查。
 
 ## 信号栈缺口的前期核查记录
 
