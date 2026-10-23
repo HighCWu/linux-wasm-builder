@@ -63,7 +63,9 @@ jobs:
       - name: Check directory notification workload and disabled-feature control
         run: python3 -B scripts/test_dnotify.py
       - name: Check existing Wasm break arithmetic without allocating large memories
-        run: python3 -B scripts/test_brk_bounds.py
+        run: |
+          python3 -B scripts/test_brk_bounds.py
+          python3 -B scripts/test_lite_malloc_failure.py
       - name: Check alternate signal-stack reference semantics and execution adapter
         run: |
           python3 -B scripts/test_signal_altstack.py
