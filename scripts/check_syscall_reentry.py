@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""Actual Wasm syscall dispatcher with nested imports, not target ptrace acceptance."""
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+source = Path(os.environ.get("WASM_SYSCALL_SOURCE", ROOT / "sources/linux/arch/wasm/kernel/syscall.c")).read_text()
+header = Path(os.environ.get("WASM_SIGCONTEXT_SOURCE", ROOT / "sources/linux/arch/wasm/include/uapi/asm/sigcontext.h")).read_text()
+begin = source.index('__attribute__((export_name("syscall"))) long')
+body = source[begin:source.index("\n}\n", begin) + 3]
+snapshot = """else {
+			struct pt_regs entered = *regs;
+			long result;"""
+assert snapshot in body
+old = body.replace("\t\t\tstruct pt_regs entered = *regs;\n", "").replace("\t\t\t*regs = entered;\n", "")
+irq_begin = source.index('__attribute__((export_name("callback_irq_save_v1")))')
+irq_end = source.index("\n}\n", source.index("wasm_callback_irq_restore_v1(", irq_begin)) + 3
+irq_body = source[irq_begin:irq_end]
+prefix = header + r'''
+__attribute__((optnone)) void *memcpy(void *destination, const void *source, __SIZE_TYPE__ length) {
+    unsigned char *to = destination;
+    const unsigned char *from = source;
+    for (__SIZE_TYPE__ i=0;i<length;i++) to[i]=from[i];
+    return destination;
+}
+#define false 0
+#define ENOSYS 38
+#define __NR_sigaltstack 99
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof((a)[0]))
+#define current ((void *)1)
+static struct pt_regs registers;
+static int depth, mode, sp_error, restart_pending, irq;
+static struct pt_regs *current_pt_regs(void) { return &registers; }
+static void local_irq_disable(void) { irq=0; }
+static unsigned long arch_local_save_flags(void) { return irq; }
+static void restore_irq(unsigned long flags) { irq=flags; }
+#define local_irq_restore(flags) do { \
+    _Static_assert(__builtin_types_compatible_p(__typeof__(flags),unsigned long),"native IRQ flag width"); \
+    restore_irq(flags); \
+} while (0)
+static void rcu_note_context_switch(int preempt) { if (preempt) __builtin_trap(); }
+static int wasm_user_signal_v1_stack_pointer(unsigned long *sp) {
+#if __SIZEOF_LONG__ == 8
+    *sp = 0x100000100UL + depth * 65536UL;
+#else
+    *sp = 0x80000100UL + depth * 65536UL;
+#endif
+    return sp_error;
+}
+static long syscall_enter_from_user_mode(struct pt_regs *regs, long nr) {
+    depth++;
+    irq=1;
+    if (nr == 0) regs->syscall_args[5] += 9; /* model ptrace edit */
+    return mode == 1 && nr == 0 ? 2 : nr;
+}
+static void wasm_timer_check(void) {}
+static void wasm_service_remote_request(void *task) { (void)task; }
+__attribute__((import_module("model"), import_name("nested"))) extern void nested(void);
+__attribute__((import_module("model"), import_name("exit")))
+extern void observe(long,long,long,long,long,long,long,long,long,int,int,int);
+static void syscall_exit_to_user_mode(struct pt_regs *r) {
+    observe(r->syscall_nr,r->user_sp,r->syscall_args[0],r->syscall_args[1],r->syscall_args[2],
+            r->syscall_args[3],r->syscall_args[4],r->syscall_args[5],r->syscall_return,r->user_mode,depth,irq);
+    if (r->syscall_return == -512) r->restart_syscall_nr = r->syscall_nr;
+    depth--;
+    irq=0;
+}
+static long outer(const struct pt_regs *r) {
+    (void)r; nested();
+    if (mode == 2 && restart_pending) { restart_pending = 0; return -512; }
+    return 101;
+}
+static long inner(const struct pt_regs *r) { return (long)r->syscall_args[0]; }
+static long redirected(const struct pt_regs *r) { (void)r; nested(); return 202; }
+static long (*syscall_table[])(const struct pt_regs *) = {outer,inner,redirected};
+void configure(int m, int e) { mode=m; sp_error=e; restart_pending=1; depth=0; irq=0; }
+'''
+with tempfile.TemporaryDirectory(prefix="syscall-reentry-") as tmp:
+    unit, binary = Path(tmp) / "dispatch.c", Path(tmp) / "dispatch.wasm"
+    for bits in (32, 64):
+        for implementation, fixed in ((body, True), (old, False)):
+            unit.write_text(prefix + implementation + irq_body)
+            subprocess.run([os.environ.get("WASM_CC", "clang"), f"--target=wasm{bits}", "-O2",
+                            "-nostdlib", "-ffreestanding", "-Wl,--no-entry", "-Wl,--export=configure", "-Wl,--export=__stack_pointer",
+                            str(unit), "-o", str(binary)], check=True)
+            subprocess.run(["node", "--input-type=module", "-e", r'''
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+const {call_kernel_entry} = await import(pathToFileURL(process.argv[4]));
+const wide = process.argv[2] === '64', fixed = process.argv[3] === 'True';
+const p = n => wide ? BigInt(n) : Number(n)|0;
+const base = wide ? 0x100000100n : (0x80000100|0);
+let api, events;
+({instance:{exports:api}} = await WebAssembly.instantiate(readFileSync(process.argv[1]), {model: {
+  nested() {
+    for (const value of [17,-14]) {
+      assert.equal(call_kernel_entry(api,wide ? 'i64' : 'i32',() =>
+        api.syscall(p(1),p(value),p(20),p(30),p(40),p(50),p(60))), p(value));
+    }
+  },
+  exit(...state) { events.push(state); },
+}}));
+for (const mode of [0,1,2]) {
+  api.configure(mode,0); events=[];
+  const result = call_kernel_entry(api,wide ? 'i64' : 'i32',() =>
+    api.syscall(p(0),p(10),p(11),p(12),p(13),p(14),p(15)));
+  assert.equal(result,p(mode === 1 ? 202 : mode === 2 && !fixed ? -14 : 101));
+  const outer = events.filter(e => e[10] === 1);
+  assert.equal(outer.length,mode === 2 ? 2 : 1);
+  for (let index=0;index<outer.length;index++) {
+    const [nr,sp,...rest] = outer[index];
+    assert.equal(rest[9],1,'live outer kernel callback resumes with its enabled IRQ state');
+    if (fixed) {
+      assert.equal(nr,p(mode === 1 ? 2 : 0));
+      assert.equal(sp,base);
+      assert.deepEqual(rest.slice(0,6),[10,11,12,13,14,24+index*9].map(p));
+      assert.equal(rest[7],0,'outer return processing remains in kernel mode');
+    } else {
+      assert.equal(nr,p(1),'old dispatcher exposes inner number');
+      assert.equal(sp,p(BigInt.asUintN(wide ? 64 : 32,BigInt(base))+65536n));
+      assert.deepEqual(rest.slice(0,6),[-14,20,30,40,50,60].map(p));
+    }
+  }
+}
+for (const [number,error,expected] of [[98,0,-38],[99,-14,-14]]) {
+  api.configure(0,error); events=[];
+  assert.equal(call_kernel_entry(api,wide ? 'i64' : 'i32',() =>
+    api.syscall(p(number),p(0),p(0),p(0),p(0),p(0),p(0))),p(expected));
+  assert.equal(events.length,1,'direct error paths remain bounded');
+}
+''', str(binary), str(bits), str(fixed), str(ROOT / "sources/distro/packages/kernel/src/signal-stack.ts")], check=True)
+        print(f"wasm{bits}: nested frame, ptrace edits, signed results, restart target and old-clobber control passed")
