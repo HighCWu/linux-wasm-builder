@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Execute actual Wasm lite allocator with bounded growth/stack-guard models."""
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -12,6 +13,12 @@ MUSL = ROOT / "sources/musl"
 
 
 class LiteFailure(unittest.TestCase):
+    def test_diagnostic_is_separate_from_ordinary_program_builds(self):
+        recipe = (ROOT / "sources/distro/distro/toolchain-smoke/package.nix").read_text()
+        self.assertIn('init = "${liteOomProgram}/lite-oom.wasm";', recipe)
+        self.assertIn('${musl.src}/src/malloc/lite_malloc.c', recipe)
+        self.assertNotIn('lite-oom.map', recipe[recipe.index('  programs ='):])
+
     def test_actual_allocator_and_old_trap_control(self):
         with tempfile.TemporaryDirectory(prefix="wasm-lite-oom-") as tmp:
             work = Path(tmp)
@@ -42,18 +49,41 @@ class LiteFailure(unittest.TestCase):
                     subprocess.run([*flags, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", workload], check=True)
                     subprocess.run([*flags, "--analyze", "-Xanalyzer", "-analyzer-werror", workload,
                                     "-o", "/dev/null"], check=True)
-                    for label, actual in (("fixed", source), ("old", old)):
+                    for label, actual in (("fixed", source), ("old", old), ("namespaced", source)):
                         binary = work / (label + ".wasm")
+                        inputs = [str(actual)]
+                        selected_exports = list(exports)
+                        map_flags = []
+                        if label == "namespaced":
+                            private = work / "lite-test.o"
+                            names = ["-D__libc_malloc_impl=__lite_test_impl", "-D__libc_malloc=__lite_test_malloc",
+                                     "-Dmalloc=__lite_test_public_malloc", "-D__bump_lockptr=__lite_test_lockptr"]
+                            subprocess.run([*flags, *names, "-O2", "-ffreestanding", "-c", str(actual), "-o", str(private)], check=True)
+                            nm = shutil.which("llvm-nm") or shutil.which("llvm-nm-18")
+                            self.assertIsNotNone(nm, "LLVM symbol inspector is required")
+                            defined = subprocess.run([nm, "--defined-only", str(private)], capture_output=True, text=True, check=True).stdout
+                            undefined = subprocess.run([nm, "--undefined-only", str(private)], capture_output=True, text=True, check=True).stdout
+                            self.assertRegex(defined, r"(?m) [Ww] __lite_test_impl$")
+                            self.assertNotRegex(undefined, r"(?m) (__libc_malloc_impl|__libc_malloc|malloc|calloc|realloc|free)$")
+                            inputs = [str(private)]
+                            selected_exports[0] = "__lite_test_malloc"
+                            map_flags = ["-Wl,-Map," + str(work / "link.map")]
                         subprocess.run([*flags, "-O2", "-nostdlib", "-ffreestanding", "-Wl,--no-entry",
-                                        "-Wl,-z,stack-size=8192", *["-Wl,--export=" + name for name in exports],
-                                        str(actual), str(ROOT / "scripts/fixtures/lite_malloc_model.c"),
+                                        "-Wl,-z,stack-size=8192", *map_flags, *["-Wl,--export=" + name for name in selected_exports],
+                                        *inputs, str(ROOT / "scripts/fixtures/lite_malloc_model.c"),
                                         "-o", str(binary)], check=True)
+                        if label == "namespaced":
+                            self.assertTrue(any("lite-test.o" in line and "(__lite_test_malloc)" in line
+                                                for line in (work / "link.map").read_text().splitlines()))
                         subprocess.run(["node", "--input-type=module", "-e", r'''
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const mod = await WebAssembly.compile(readFileSync(process.argv[1]));
 const wide = process.argv[2] === '64', word = n => wide ? BigInt(n) : Number(n);
-const fresh = async () => (await WebAssembly.instantiate(mod)).exports;
+const fresh = async () => {
+  const api=(await WebAssembly.instantiate(mod)).exports;
+  return {...api,__libc_malloc:api.__libc_malloc ?? api.__lite_test_malloc};
+};
 let api = await fresh();
 if (process.argv[3] === 'old') {
   assert.throws(() => api.__libc_malloc(word(32)), WebAssembly.RuntimeError);
