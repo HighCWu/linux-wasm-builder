@@ -2072,7 +2072,11 @@ d25423a8f 的首次预取现已明确失败：实际日志为 codeload 反复429
 该设置语义核对了 [Nix 官方说明](https://nix.dev/manual/nix/2.34/command-ref/conf-file.html#conf-download-attempts)。
 真实 shell 的原有失败/非法 hash 门禁与同 revision 回退检查共五项通过。只在原
 任务终态且读取错误后派发[同源码新预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39920679240)，
-不取消慢任务，不接受缺失 hash，不改用本地推算值；pin 仍待此结果。
+不取消慢任务，不接受缺失 hash，不改用本地推算值。
+该新任务现也已终态失败，实际日志确认两端点各两次均429，没有有效 hash，故没有
+更新 pin 或派发跨页目标；不再立即重复请求同一受限下载。后续可继续独立实现和
+review，待下载条件恢复后再完成该已发布源码的集成。79795f2 的轻量 CI 本身已
+成功，不将其误写为预取成功。
 
 ## 信号栈缺口的前期核查记录
 
