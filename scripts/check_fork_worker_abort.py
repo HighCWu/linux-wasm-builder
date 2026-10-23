@@ -51,8 +51,12 @@ prefix = r"""
 #define WASM_CPU_FORK_ABORT (-3)
 typedef struct { _Atomic int counter; } atomic_t;
 struct task_bootstrap_args;
-struct thread_info { atomic_t running_cpu; struct task_bootstrap_args *bootstrap_args; };
+struct thread_info { atomic_t running_cpu; struct task_bootstrap_args *bootstrap_args;
+  void *active_siginfo, *active_signal_frame; };
 struct task_struct { struct thread_info info; const char *comm; int pid; };
+static int retired;
+/* Separate mmap tests own resource semantics; this shim observes invocation. */
+static void wasm_mmap_copy_abort_task(struct task_struct *p) { assert(p); retired++; }
 struct task_bootstrap_args { struct task_struct *task; atomic_t aborted; };
 #define task_thread_info(p) (&(p)->info)
 #define atomic_read(p) atomic_load(&(p)->counter)
@@ -94,12 +98,17 @@ static void *worker(void *pointer) {
 }
 int main(void) {
   struct task_struct normal = {0};
+  normal.info.active_siginfo = (void *)1;
+  normal.info.active_signal_frame = (void *)2;
   exit_thread(&normal); /* A running/exited task has no pending Worker. */
+  assert(retired == 1 && !normal.info.active_siginfo && !normal.info.active_signal_frame);
   for (int i = 0; i < 128; i++) {
     struct task_struct *task = calloc(1, sizeof *task);
     struct task_bootstrap_args *args = calloc(1, sizeof *args);
     assert(task && args);
     task->info.bootstrap_args = args;
+    task->info.active_siginfo = (void *)1;
+    task->info.active_signal_frame = (void *)2;
     atomic_store(&task->info.running_cpu.counter, WASM_CPU_PARKED);
     args->task = task;
     atomic_store(&entered, 0);
@@ -108,6 +117,7 @@ int main(void) {
     assert(!pthread_create(&thread, 0, worker, args));
     if (!delay_entry) while (!atomic_load(&entered)) sched_yield();
     exit_thread(task);
+    assert(retired == i+2 && !task->info.active_siginfo && !task->info.active_signal_frame);
     assert(!task->info.bootstrap_args);
     assert(atomic_load(&task->info.running_cpu.counter) == WASM_CPU_FORK_ABORT);
     free(task); /* Even if the host Worker has not finished pthread_exit. */
