@@ -1680,8 +1680,17 @@ review 又发现原稳定屏障资源查询只在零请求时检查预算；dist
 集成 `bf3073b` 补充 SIGKILL 排队后明确检查仍预留恰好双份页长度，不能只从
 请求/staging 数量推导预算保留。此前 aed297b 的
 [wasm32][fatal-mmap-initial32]、[wasm64][fatal-mmap-initial64] 不覆盖这条断言，
-保留运行、不取消；新版本 [wasm32][fatal-mmap32]、[wasm64][fatal-mmap64]
-已派发，尚待核实
+保留运行、不取消；`d372d68` 的 [wasm32][fatal-mmap-budget32]、
+[wasm64][fatal-mmap-budget64] 已派发，但不作为后续构建修正版本的验收。
+
+aed297b 的 wasm32 实际日志明确失败于 Nix 内核构建沙盒：
+`python3: command not found`，退出127，尚未执行目标程序，不是 fatal 断言失败。
+原因是把模型检查扩展到 mmapCopyTest 后，Python 依赖仍只受 fileMmapCandidate
+控制。distro `2784222` / 集成 `df70a39` 用同一 copyHostChecks 条件控制
+依赖和构建步骤，保留默认不检查配置的最小依赖；没有更改内核、运行断言或来源 hash。
+静态配方约束和 Nix 语法/格式检查通过，不代替真实构建闭包或运行证据。
+
+修正版 [wasm32][fatal-mmap32]、[wasm64][fatal-mmap64] 已派发，尚待核实
 生产者保留阶段、八轮完成标记、无初始化回调/恢复阶段、唯一 pass 与关闭。
 该目标使用真实 Linux 受控 inode 和共用 VFS 路径，不是 EROFS/virtio 实际设备
 在途压力，也不单独满足默认文件 mmap 的全部生产准入门槛。
@@ -1689,8 +1698,10 @@ review 又发现原稳定屏障资源查询只在零请求时检查预算；dist
 [fatal-mmap-prefetch]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39898917489
 [fatal-mmap-initial32]: https://github.com/HighCWu/distro/actions/runs/39899413464
 [fatal-mmap-initial64]: https://github.com/HighCWu/distro/actions/runs/39899419274
-[fatal-mmap32]: https://github.com/HighCWu/distro/actions/runs/39899822579
-[fatal-mmap64]: https://github.com/HighCWu/distro/actions/runs/39899830583
+[fatal-mmap-budget32]: https://github.com/HighCWu/distro/actions/runs/39899822579
+[fatal-mmap-budget64]: https://github.com/HighCWu/distro/actions/runs/39899830583
+[fatal-mmap32]: https://github.com/HighCWu/distro/actions/runs/39900385267
+[fatal-mmap64]: https://github.com/HighCWu/distro/actions/runs/39900390783
 
 ## 信号栈缺口的前期核查记录
 
