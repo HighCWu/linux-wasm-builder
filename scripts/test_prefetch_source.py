@@ -32,6 +32,7 @@ class PrefetchSource(unittest.TestCase):
                 ''' + BODY], capture_output=True, text=True,
                 env={**os.environ, "RUNNER_TEMP": tmp, "GITHUB_STEP_SUMMARY": str(summary),
                      "SOURCE_REPOSITORY": repository, "SOURCE_REVISION": revision,
+                     "BASELINE_REVISION": "", "BASELINE_HASH": "",
                      "PREFETCH_FIXTURE": fixture, "PREFETCH_STATUS": str(status),
                      "PREFETCH_RAW_FAILURE": str(int(raw_failure))})
             return result.returncode, summary.read_text() if summary.exists() else ""

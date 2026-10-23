@@ -16,6 +16,14 @@ on:
         description: Full 40-character commit SHA
         required: true
         type: string
+      git-baseline-revision:
+        description: Optional verified immediate parent for Linux Git-archive experiment
+        required: false
+        type: string
+      git-baseline-hash:
+        description: Optional independently verified archive SRI, required with Git baseline
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -23,12 +31,20 @@ permissions:
 jobs:
   prefetch:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
+      - uses: actions/checkout@v6
+        if: ${{ inputs['git-baseline-revision'] != '' || inputs['git-baseline-hash'] != '' }}
+        with:
+          persist-credentials: false
+          submodules: false
       - uses: nixbuild/nix-quick-install-action@v35
       - name: Compute unpacked source hash
         env:
           SOURCE_REPOSITORY: ${{ inputs.repository }}
           SOURCE_REVISION: ${{ inputs.revision }}
+          BASELINE_REVISION: ${{ inputs['git-baseline-revision'] }}
+          BASELINE_HASH: ${{ inputs['git-baseline-hash'] }}
         run: |
           set -euo pipefail
           case "$SOURCE_REPOSITORY" in
@@ -36,6 +52,11 @@ jobs:
             *) exit 1 ;;
           esac
           [[ "$SOURCE_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          if [[ -n ${BASELINE_REVISION:-} || -n ${BASELINE_HASH:-} ]]; then
+            [[ "$SOURCE_REPOSITORY" == linux ]]
+            bash scripts/prefetch_linux_git.sh
+            exit 0
+          fi
           source_hash=""
           # Same immutable tree as the build fetcher; avoid spending all
           # retries at one rate-limited endpoint before trying its mirror.
