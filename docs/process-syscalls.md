@@ -1515,12 +1515,15 @@ GCC/Clang sanitizer 使用实际 C 函数体和短/空/满长度旧宿主模型�
 读取 syslog、检查本任务身份及其他任务明确不可用，再清理 fd/mount 并继续
 执行 syscall。构建宿主只运行模型和前端分析，绝不运行宿主 SysRq。
 cfda708 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39889070509) 与
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39889071887) 实际检查进行中。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39889071887) 作业已成功结束，
+但不以工作流状态代替阶段/关闭证据，也不能覆盖后续 READ_CLEAR 条件。
 
 最新 `c9b05d1` / 集成 `2ec49ed` 将驱动改为 READ_CLEAR：仅清理本隔离测试
 内核的日志，让每轮必须读到新诊断，避免借用上一轮标记。前端/分析已通过，
-但当前 cfda708 任务不包含这一条件；它们终态后需以新版本单独复验同名双位宽
-检查，核实全部三阶段、唯一 pass 与关闭。当前不宣称诊断目标已验收。
+但 cfda708 任务不包含这一条件；它们终态后已从 c9b05d1 派发同名新版本
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39890210382) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39890211826) 实际 Heavy，
+须核实全部三阶段、唯一 pass 与关闭。当前不宣称诊断目标已验收。
 
 ## 信号栈缺口的前期核查记录
 
