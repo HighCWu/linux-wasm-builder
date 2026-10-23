@@ -1523,7 +1523,27 @@ cfda708 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39889070509)
 但 cfda708 任务不包含这一条件；它们终态后已从 c9b05d1 派发同名新版本
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39890210382) 和
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39890211826) 实际 Heavy，
-须核实全部三阶段、唯一 pass 与关闭。当前不宣称诊断目标已验收。
+现已逐项核实全部三阶段、各自唯一 pass 与运行器关闭门禁。每项在同一机器内
+执行两轮 SysRq/READ_CLEAR，不是两次启动；第二轮不能借用第一轮日志。两项
+Node 目标验收通过，不扩展为浏览器结果或远程任务栈展开支持。
+
+### 调度候选复核与撤回（不计为新增能力）
+
+本轮再次误将已有四个 sched_* 的 ENOSYS 当成 Wasm 缺口，发布 musl
+`ae2f7e47`、distro `8d14095` 和集成 `5d598c1`。复读已有兼容性审计后发现
+这是官方 musl 有意保留的 POSIX 进程级语义，而非 tombl 的 Wasm 实现缺失。
+本地 raw syscall/薄包装对照通过不能证明这样的 libc 语义变更正确。
+
+musl `631d5a2e`、distro `128b1e6`、集成 `b534377` 追加撤回，保留所有公开
+提交，不 force-push。已核实 musl 整树与 `e12bb18e`、distro 整树与
+`c9b05d1` 净差异为零；集成重新固定 `e12bb18e`，移除候选语料和构建入口。
+两个已派发任务 [wasm32][scheduler-withdrawn32]、[wasm64][scheduler-withdrawn64]
+属于撤回版本，即使成功也不能计作验收或新能力，不重复派发。它们不因耗时被取消。
+后续选择 libc 缺口前必须先核对[既有语义审计](musl-compatibility.md)，不能仅凭
+函数中的 ENOSYS 或 raw syscall 可用就恢复调用。
+
+[scheduler-withdrawn32]: https://github.com/HighCWu/distro/actions/runs/39892427024
+[scheduler-withdrawn64]: https://github.com/HighCWu/distro/actions/runs/39892433063
 
 ## 信号栈缺口的前期核查记录
 
