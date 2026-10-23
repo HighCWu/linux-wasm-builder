@@ -2439,6 +2439,36 @@ gitlink 并接入精确源码模型。两路 cpuinfo 目标异步派发，尚待
 唯一 pass；固定运行器关闭失败会使任务失败，关闭门禁通过。这只是该双位宽矩阵
 中的一路 Node 回归，不泛化为其余重入、fork/exec 或浏览器目标已验收。
 
+同一 227d54e 的 wasm64 信号栈 39961775132 也已读取实际日志，五阶段和唯一 pass
+齐全，关闭门禁通过。wasm32 fork/exec 39961785386 的实际日志已核实 raw clone、
+clone3、信号隔离、continuation/继承、失败 exec 恢复、未变换程序拒绝、成功 exec、
+多线程/信号回调拒绝及后续恢复全部既有阶段和唯一 pass；关闭门禁通过。仍不据此
+宣称专门的 syscall-reentry 目标或 wasm64 fork/exec 已验收。
+
+## 第五十四组：Wasm 轻量分配器的可恢复耗尽
+
+静态 review 发现，tombl/musl 既有 lite_malloc.c 在 Wasm 无法通过 sbrk 增长时
+直接 a_crash。其它平台可回退到 mmap，但 Wasm mmap 与此处共用分配路径，不能
+递归照搬。这是已有架构实现中的错误收尾，不是缺少一个 libc 公共函数；也不能
+把修正该路径说成增加了内核 SYS_brk。
+
+musl `b1c51ef9096167aacf5bcccc22a0684146937392` 只将该 Wasm trap 分支改为释放
+原锁、设置 ENOMEM 并返回 NULL。非 Wasm fallback、函数/头文件集合与分配政策
+不变；没有新增包装、公共声明或辅助执行入口，没有改写历史。正常启动所需的
+不可恢复 TLS 分配仍由启动代码决定，不把该局部修复推广为所有 OOM 都能恢复。
+
+实际源文件的小型 wasm32/64 模型由 Clang 18/22 编译执行，覆盖首次/后续增长
+失败、锁释放、break 不变、剩余尾部保留、后续增长、过大请求和原栈交叉保护。
+恢复旧 trap 分支的控制在同一调用处触发 RuntimeError 并保留锁，不能假通过。
+源文件与目标程序的双位宽前端/静态分析均通过；模型使用假的容量，不申请巨大
+内存，也不是默认 libc 链接选择或真实内核的验收证明。
+
+distro `75cad05` 发布 lite-oom 独立目标：链接期对既有 sbrk 做受控失败注入，
+通过已有 malloc/getcwd/write 验证错误、恢复和已分配内容。构建要求链接 map
+选中 lite_malloc.o 且未选中完整 malloc.o，防止由 mallocng 的类似错误路径代跑。
+故障包装只在该测试程序，未加入 libc 或应用 SDK。源码 hash 预取后另行集成，
+真实双位宽阶段和关闭结果尚未验收。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

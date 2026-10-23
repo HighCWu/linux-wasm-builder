@@ -37,6 +37,15 @@ wasm32 满容量查询分别明确失败。模型不等于浏览器大内存承�
 固定 `11ee975` 的两位宽实际目标已核实三阶段、唯一 pass 与关闭门禁；这不将
 小内存回归扩展为浏览器4 GiB承载或完整内核 SYS_brk 支持。
 
+## Wasm 轻量分配器的错误收尾
+
+后续独立修复 `b1c51ef9` 仅修改既有 lite_malloc.c 的 Wasm 增长失败分支：不再
+直接 trap，改为释放锁并返回 NULL/ENOMEM。没有新增函数、声明、头文件、包装或
+执行导出；非 Wasm fallback 不变。该路径不能直接使用原 mmap fallback，因为
+Wasm 的 mmap 分配共用此堆。小型模型与分析通过，默认链接及真实程序验收另记
+于[第五十四组](process-syscalls.md#第五十四组wasm-轻量分配器的可恢复耗尽)；
+未据此宣称内核 SYS_brk 已支持。
+
 ## Wasm clone trampoline 的启动边界兼容
 
 `09a90c1a70ea569aa6649449274c6031a143a01c` 相对 bf26831e 的净差异仅为
