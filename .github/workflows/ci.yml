@@ -86,6 +86,17 @@ jobs:
             "$revision" "$RUNNER_TEMP/wasm-futex-core.c" kernel/futex/core.c
           python3 -B scripts/check_futex_identity.py "$RUNNER_TEMP/wasm-futex-core.c"
           python3 -B scripts/test_futex_isolation.py
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-remote-vm.c" arch/wasm/kernel/remote_vm.c
+          python3 -B scripts/check_remote_vm_range.py "$RUNNER_TEMP/wasm-remote-vm.c"
+          mkdir -p "$RUNNER_TEMP/wasm-socket-zc/net/ipv4" "$RUNNER_TEMP/wasm-socket-zc/net/ipv6"
+          for file in net/ipv4/tcp.c net/ipv4/ip_output.c net/ipv6/ip6_output.c; do
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$RUNNER_TEMP/wasm-socket-zc/$file" "$file"
+          done
+          WASM_SOCKET_ZEROCOPY_ROOT="$RUNNER_TEMP/wasm-socket-zc" \
+            python3 -B scripts/check_socket_zc_selection.py
+          python3 -B scripts/test_socket_zerocopy.py
           mkdir -p "$RUNNER_TEMP/wasm-membarrier/kernel" "$RUNNER_TEMP/wasm-membarrier/configs"
           cp "$RUNNER_TEMP/wasm-process.c" "$RUNNER_TEMP/wasm-membarrier/kernel/process.c"
           for config in defconfig wasm32_defconfig wasm64_defconfig; do

@@ -22,7 +22,7 @@ class Ptrace(unittest.TestCase):
                 subprocess.run([*flags, "-o", str(binary)], check=True)
                 result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=20)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertEqual(result.stdout.count(" pass\n"), 3)
+                self.assertEqual(result.stdout.count(" pass\n"), 4)
                 self.assertEqual(result.stdout.count("::vm-test::pass"), 1)
                 for fixture, wrapped, reason in (("ptrace_no_write.c", "ptrace", "read back full-width remote data"),
                                                  ("ptrace_masked_stop.c", "syscall", "original stopped mask")):
