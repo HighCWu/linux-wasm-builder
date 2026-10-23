@@ -133,7 +133,7 @@ Linux `2c0f7ce` 在 `CONFIG_WASM_MMAP_COPY_TEST` 的实际文件读取路径新�
 默认生产配置和 libc 不变，Linux 的候选/共用读取实现遵循 GPL-2.0。
 新测试与文档采用 MIT，上游 Zstd 补丁保持原有许可。
 
-## 初始化异常仍会绕过内核清理
+## 初始化异常的清理边界
 
 对 Linux `50abafbb5` / distro `2784222` 的实际共用复制函数和 JS 执行桥，
 [小型 Wasm 复现](../experiments/file-mmap-trap/README.md)已确认一个未修复缺口：
@@ -159,6 +159,9 @@ CPU 前收尾。桥在异常传播前撤销租约、调用内部 abort export，
 同时改为向共用复制函数移交文件引用，避免外层 fput 被旁路或发生重复释放。
 
 小型模块现已核实修复路径归零、旁路清理时泄漏、退出钩子回收及后续映射恢复；
-真实内核 vfs-callback 目标仍待验收，覆盖 trap、嵌套 exit 和 siglongjmp。
+真实内核 vfs-callback 目标现已核实双位宽 Node 的全部三阶段和唯一 pass，覆盖
+trap、嵌套 exit、siglongjmp 及嵌套 EBUSY；同源码双位宽取消点各八轮也已通过。
+四项均通过等待 machine.closed 的门禁，结果固定在 distro `d36fbc4`，
+详见[第三十八组](process-syscalls.md#第三十八组文件初始化异常的内核所有权候选)。
 该记录没有接管仍在读取中的生产者，也未证明 exec、实际设备或损坏分配器恢复。
 此前已通过的 SIGKILL 取消点目标不覆盖这里的非局部异常修复。

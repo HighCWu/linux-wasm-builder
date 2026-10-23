@@ -327,11 +327,12 @@ Linux `50abafbb5` / distro `aed297b` / 集成 `a9638e9` 在共用文件复制中
 绕过内核 C 的 staging/预算清理，即使桥租约与 C 栈指针已恢复。双编译器/双位宽
 均复现；这是未修复缺口，不是新增能力或真实内核验收。保留默认关闭，修复需覆盖
 外层文件引用、异常来源与终止语义，不能吞异常或只重置计数。
-详见[异常清理边界](file-mmap-readiness.md#初始化异常仍会绕过内核清理)。
+详见[异常清理边界](file-mmap-readiness.md#初始化异常的清理边界)。
 Linux `48adb6d39` 已实现任务所有的 quiescent callback 记录与退出收尾，执行桥
 在原样重抛前清理，死任务不再被重入。小型模块已确认资源归零、异常保持及恢复，
 已在 distro `d36fbc4` / 集成 `3325f9b` 接入 vfs-callback 真实内核目标；
-双位宽 callback 和既有取消点回归共四项 CI 正在运行，不将候选标为生产可用。
+双位宽 callback 的三阶段和取消点回归各八轮，四项实际 Node 日志与关闭均已核实，
+但仍不将候选标为生产可用；exec、实际设备压力和默认 SDK 协商仍有独立门槛。
 详见[第三十八组](process-syscalls.md#第三十八组文件初始化异常的内核所有权候选)。
 
 Linux `f45a2bd47` 进一步接通匿名 PROT_READ 标准请求，遵循 NOMMU 数据映射
@@ -341,6 +342,13 @@ allocator 已能提供独立零填充 backing。实际 wrapper 模型/反向对�
 已由 distro `7a1e3ad` / 集成 `0f41180` 接入，双位宽默认目标仍待验收，
 不能将本地检查当成真实内核通过。
 详见[第三十九组](process-syscalls.md#第三十九组匿名-prot_read-数据请求)。
+
+Linux `8ec99f62d` 修正内层 SjLj 落回外层 handler 时丢失外层 signal frame 的
+问题，回调收尾改为逐层恢复；handler 退出后也不再进入已交出 CPU 的内核实例。
+新语料验证保留外层 uc_sigmask 编辑、两种 handler 形态各八轮、子任务 handler
+exit 与父端恢复。原生参考、实际 helper 模型和反向对照已通过；
+distro `6ae2ac5` / 集成 `44bcf55` 已接入，双位宽新目标和原 altstack 回归待验收。
+详见[第四十组](process-syscalls.md#第四十组嵌套-signal-handler-的局部-sjlj-收尾)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

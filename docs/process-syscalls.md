@@ -1739,7 +1739,11 @@ exec、真实设备在途压力、用户分配器损坏恢复及默认 SDK 准�
 [wasm64 callback](https://github.com/HighCWu/distro/actions/runs/39902998433)，以及
 [wasm32 取消点回归](https://github.com/HighCWu/distro/actions/runs/39903003400)、
 [wasm64 取消点回归](https://github.com/HighCWu/distro/actions/runs/39903008720)。
-这些任务尚未验收，不能用前一版本的取消点结果替代新所有权代码的通过证明。
+四项均已成功结束，实际日志已逐项核实：双位宽 callback 各有 trap/exit、SjLj
+恢复、嵌套 EBUSY 三阶段及唯一 pass；取消点回归各有保留阶段、八轮独立完成标记、
+恢复与唯一 pass。四项通过既有 runner 等待 machine.closed 的门禁，且无关闭错误
+或 kernel panic。这是 d36fbc4 的 Node 有界验收，不扩大为浏览器、exec、真实
+设备压力或默认文件 mmap 放行，也不能由较早版本的成功代替。
 
 ## 第三十九组：匿名 PROT_READ 数据请求
 
@@ -1767,6 +1771,39 @@ READ 映射，也不把可读误记为硬件写保护。GCC/Clang 对实际内�
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39904072165) 不运行文件 mmap
 候选配置，必须核实新增 anonymous READ 阶段、原完整正确性程序和唯一 pass，
 以及 runner 等待 machine.closed 的门禁，不用已有 RW 或文件 READ 结果替代。
+
+## 第四十组：嵌套 signal handler 的局部 SjLj 收尾
+
+Linux `8ec99f62d` / distro `6ae2ac5` / 集成 `44bcf55` 修正信号回调结束时的
+元数据恢复。此前 clear_siginfo 无条件
+清空 active frame/info；若内层 siglongjmp 只跳回仍在执行的外层 handler，外层
+restorer 随后就找不到自己的 frame，finish 返回 EINVAL，可能触发错误 SIGSEGV。
+这不同于此前从最外层 handler 一次跳回普通程序的语料，后者本来就应清空全部层。
+
+每个内部 C frame 现在保存前一层 frame/info，JS 每结束一个回调只退一层。正常
+C 返回的原恢复路径保持幂等；异常仍到原 compiler catchpad，不转换为 errno。
+链指针不复制到公共 ucontext；stack/mask 用户布局、syscall 号和 musl 均不改变。
+handler 内 SYS_exit 则在 exit_thread 清空元数据，JS 看到 HALT_KERNEL 不再调用
+任何 C 清理函数，避免在交出 CPU 后通过失效实例访问任务状态。
+
+新 signal-nested-jump 语料用普通和 SA_SIGINFO 内层 handler 各跳转八轮，落点在
+外层 handler 内；外层正常返回并通过 uc_sigmask 修改 SIGWINCH，主程序验证修改
+及 USR1/USR2 掩码恢复。另创建共享 mm、独立线程组的子任务，分别从普通/siginfo
+handler 用标准 SYS_exit 退出，核对79/80退出码、回收及父进程后续投递。
+只用现有公开接口，不扩大私有 fork 或多线程 fork 能力。
+
+GCC/Clang 的原生信号语料与 UBSan 通过；实际内核 clear/copy/finish helper 的
+宿主 uaccess 模型及 ASan/UBSan 通过，恢复旧清空行为的对照在外层 frame 断言失败。
+双位宽 Wasm 前端/分析、两个 TS 工程和348项 kernel 宿主检查通过。这些不证明
+Wasm 内核信号投递、任务 CPU 所有权或浏览器结果；新目标及既有 altstack 回归
+已集成并派发真实目标验收，默认 SDK 与 CONFIG_MMU=n 保持不变。源码 hash 由
+[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39905286954)
+核实；不把较早的普通 signal-altstack 通过记录当作本次内层局部跳转的证据。
+本轮新语料的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39905810842)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39905816629)，以及原 altstack 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39905822360)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39905827167) 均固定同一源码。
+新语料须核实两个完整阶段、唯一 pass 与关闭；回归须核实原五阶段与关闭。
 
 ## 信号栈缺口的前期核查记录
 
