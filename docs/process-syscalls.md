@@ -1452,8 +1452,9 @@ mask”，errno=0，没有通过本组验收。源码复核发现 musl raise() �
 错误定位。原生 GCC/Clang 加入模拟 musl 临时屏蔽窗口的负向控制，明确在相同
 掩码检查失败；伪写入控制仍在读回处失败。双位宽前端和静态分析通过。
 修复后的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39886766208) 与
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39886765701) 定向复验正在
-运行，尚不能将其写成目标通过。内核和 musl 未因该测试假设改变。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39886765701) 定向复验均已
+核实实际完整三阶段和各自唯一 pass，两项成功作业通过等待 machine.closed 的
+关闭门禁。内核和 musl 未因该测试假设改变；不扩大为寄存器、单步或浏览器验收。
 
 ### 第三十三组：Vim 双位宽与正常信号栈探测
 
@@ -1479,6 +1480,47 @@ Nix 格式/语法、shell 语法、完整仓库元数据/文档检查和手工�
 所有交互式终端模式。原版 Vim 的 init_signal_stack 会
 忽略 sigaltstack 返回值，因此“原路径编译启用且编辑正常”不是注册成功、
 异步信号或引擎栈溢出恢复的单独证明；后者不能从本项扩大宣称。
+
+### 第三十四组：有界内核栈诊断
+
+Linux `562df5ddb` / distro `b0b3bff` / 集成 `1dba055` 修复默认诊断路径：
+旧 show_stack 在 kmalloc 失败后仍继续使用指针，宿主复制不保证 NUL 终止，
+且用块设备专用的 %pg 打印 task 指针，并将当前 Worker 的栈标成其他任务。
+新实现使用内核栈上固定1024字节零初始化缓冲区，无 GFP_KERNEL 分配，末字节
+强制 NUL 以兼容旧宿主；只将当前 Worker 的引擎栈标给当前任务，其他任务明确
+输出 unavailable。PID 以整数打印，不把 task 指针解释为 block_device。
+不宣称恢复远程栈、KALLSYMS/寄存器展开，或保证宿主引擎自身耗尽内存后仍能输出。
+旧 %pg 的含义参见[官方 printk 格式说明](https://docs.kernel.org/core-api/printk-formats.html)。
+
+MIT 宿主桥保留原导入签名，按无符号机器字解码指针和容量，校验完整缓冲区，
+为非零容量保留 NUL，截断时点号也不覆盖终止符；零容量不写。没有新 syscall
+号、应用 API 或内核 softmmu。内核改动继续留在 GPL 边界。
+
+GCC/Clang sanitizer 使用实际 C 函数体和短/空/满长度旧宿主模型，删除末尾
+终止防线的负向控制明确产生 ASan 越界读；它不是实际内核编译。宿主全套343项
+和源码/测试类型检查通过，新负载的双位宽前端与静态分析通过。最终 review
+发现 PID helper 的直接头依赖，Linux `9d8422855` 显式包含 linux/pid.h；宿主
+模型不能证明真实头依赖，检查也因此补充了该直接依赖约束。
+
+首轮 b0b3bff 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39888040995)
+实际日志确认 task_pid_nr 未声明，和上述补充依赖对应；
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39888043286) 则未进入内核
+编译/运行，两个源码镜像均 HTTP 429。不能将两种失败混称为目标功能结果。
+新修订 [prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39888301245)
+核实固定 hash；cfda708 / 集成001ca24 接入头依赖修正及间隔15秒、5次、180秒
+重试窗口的下载退避，仍强制相同40位修订和解包 hash，不降级校验或换版本。
+重试窗口不等于成功传输的总时限。
+
+标准 C 驱动只允许编译到 Wasm，在隔离测试内核挂载 proc、两次写 SysRq t、
+读取 syslog、检查本任务身份及其他任务明确不可用，再清理 fd/mount 并继续
+执行 syscall。构建宿主只运行模型和前端分析，绝不运行宿主 SysRq。
+cfda708 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39889070509) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39889071887) 实际检查进行中。
+
+最新 `c9b05d1` / 集成 `2ec49ed` 将驱动改为 READ_CLEAR：仅清理本隔离测试
+内核的日志，让每轮必须读到新诊断，避免借用上一轮标记。前端/分析已通过，
+但当前 cfda708 任务不包含这一条件；它们终态后需以新版本单独复验同名双位宽
+检查，核实全部三阶段、唯一 pass 与关闭。当前不宣称诊断目标已验收。
 
 ## 信号栈缺口的前期核查记录
 
