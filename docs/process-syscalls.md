@@ -2482,6 +2482,43 @@ distro `db46ac8` 固定该源码，根仓库 `d61efcd` 单独更新 musl/distro 
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39966388876)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39966402001)。
 
+## 第五十五组：独立 syscall-info 能力与标准 ptrace 编辑
+
+先前 227d54e 的 wasm32 重入任务 39961744403 已失败。实际日志报
+`syscall-info wire size errno=5`，不是下载故障。审查确认内核未选择
+HAVE_ARCH_TRACEHOOK，通用 PTRACE_GET_SYSCALL_INFO 分支根本未构建，请求返回
+EIO；/proc/PID/syscall 及其 task_current_syscall 实现也被同一门控排除。
+不能通过放宽 wire-size 断言宣称重入验收通过。
+
+Linux `91ab8b356c3bfc052d9d64a7fe9f5158728da8df` 增加内核内部能力选项
+HAVE_ARCH_SYSCALL_INFO，已有 HAVE_ARCH_TRACEHOOK 架构默认保持开启；Wasm 单独
+选择该能力。通用 GET/SET_SYSCALL_INFO、proc syscall 文件与收集器改由它控制；
+GET/SETREGSET 与 task_user_regset_view 仍只受原 tracehook 条件控制，不为 Wasm
+虚构完整 regset ABI。原有未定义 audit 架构编号仍为0，不发明新编号或 syscall。
+
+Wasm 为通用 SET 实现补齐现有 pt_regs 的编号/参数访问器。dispatcher 在 entry
+工作前初始化 ENOSYS，entry 返回 -1 时不执行 handler，也不覆盖 tracer 留下的
+返回值；其它非法编号仍返回 ENOSYS。外层重入帧保存和 IRQ 桥接保持原设计。
+这修复了真实标准 syscall 能力，而不是新增 libc 包装；musl 本增量不变。
+
+distro `e1047c4` 扩展原重入目标，使用完整88字节标准 syscall-info 结构：让
+getpgid 被改为 getpid、getsid 被跳过，再在 exit stop 把 ENOSYS 改为42，子程序
+必须实际收到对应结果。跳过状态的 proc 文件按标准短记录核对；其它状态仍
+核对全部六参数、编号和 C 栈。Wasm 新增编辑阶段，原生参考保留旧两阶段，不把
+宿主对较新 SET 请求的支持作为本机验证前提。
+
+Clang18/22 的 wasm32/64 模型执行实际通用 GET/SET helper、真实 UAPI 布局及
+Wasm 访问器，覆盖读写、编号/参数范围、错误结果、保留位、长度、坏地址及不匹配
+stop 类型；源文件和目标前端/静态分析通过。真实源文件预处理检查覆盖无能力、
+原 tracehook 架构和仅 syscall-info 架构，确认没有连带启用 regset。dispatcher
+模型另验证 tracer 自定义返回值在 skip 路径保留、无 handler/nested 调用。
+这些不替代实际 Wasm ptrace 阶段或完整 Linux 构建。
+
+源码已原子提交推送；精确预取
+[39968495583](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39968495583)
+已派发，待取得 SRI 后单独更新 pin 并定向复验。旧 5c11fb4 的 wasm64 重入任务
+39964358354 不包含本修复，不能据其结果宣称 syscall-info 新能力已通过。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

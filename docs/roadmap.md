@@ -486,6 +486,14 @@ trap 改为释放锁并返回 NULL/ENOMEM，未新增任何函数或 API。双�
 双位宽 lite-oom 与默认 C runtime 目标异步验收。不是新增 SYS_brk，
 也不以另一套分配器的 OOM 返回替代轻量路径验收。
 
+重入 wasm32 目标已暴露真实 EIO：GET_SYSCALL_INFO 被完整 tracehook/regset 门控
+排除。Linux `91ab8b356` 将 syscall-info 独立为隐藏能力选项，保留原 tracehook
+架构的默认行为，让 Wasm 支持通用 GET/SET 及 /proc/PID/syscall，不虚构 regset
+或 audit 架构号；补齐编号/参数访问器和 skip 结果保留。distro `e1047c4` 要求
+子程序实际观察 entry 改写、skip 和 exit 返回值。双位宽原样 helper 模型、
+配置预处理及分析通过；源码已发布，hash/pin 集成与真实目标复验尚待完成。
+详见[第五十五组](process-syscalls.md#第五十五组独立-syscall-info-能力与标准-ptrace-编辑)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。
