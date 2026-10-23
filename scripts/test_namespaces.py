@@ -9,13 +9,15 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "sources/distro/distro/fork-continuation/namespaces.c"
+HOLDER = ROOT / "sources/distro/distro/busybox/namespace-holder.c"
 
 
 class Namespaces(unittest.TestCase):
     def test_native_execution_is_not_permitted(self):
-        result = subprocess.run(["cc", "-fsyntax-only", str(SOURCE)], capture_output=True, text=True)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("never the build host", result.stderr)
+        for source in (SOURCE, HOLDER):
+            result = subprocess.run(["cc", "-fsyntax-only", str(source)], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("never the build host", result.stderr)
 
     def test_wasm_frontends_and_static_analysis(self):
         musl = ROOT / "sources/musl"
@@ -37,9 +39,10 @@ class Namespaces(unittest.TestCase):
             for cc in (os.environ.get("WASM_CC", "clang"),):
                 for bits in (32, 64):
                     flags = [cc, f"--target=wasm{bits}", "-nostdinc", *includes]
-                    subprocess.run([*flags, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(SOURCE)], check=True)
-                    subprocess.run([*flags, "--analyze", "-Xanalyzer", "-analyzer-werror", str(SOURCE),
-                                    "-o", "/dev/null"], check=True)
+                    for source in (SOURCE, HOLDER):
+                        subprocess.run([*flags, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(source)], check=True)
+                        subprocess.run([*flags, "--analyze", "-Xanalyzer", "-analyzer-werror", str(source),
+                                        "-o", "/dev/null"], check=True)
 
     def test_no_vdso_commit_freezes_under_the_writer_lock(self):
         source = Path(os.environ.get("WASM_TIME_NAMESPACE_SOURCE", ROOT / "sources/linux/kernel/time/namespace.c")).read_text()
