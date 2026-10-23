@@ -82,6 +82,14 @@ jobs:
             python3 -B scripts/test_membarrier.py
           gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/syscall.c?ref=$revision" \
             --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-syscall.c"
+          mkdir -p "$RUNNER_TEMP/wasm-membarrier/include/uapi/asm"
+          cp "$RUNNER_TEMP/wasm-syscall.c" "$RUNNER_TEMP/wasm-membarrier/kernel/syscall.c"
+          for file in kernel/ptrace.c include/uapi/asm/ptrace.h; do
+            gh api "repos/HighCWu/linux/contents/arch/wasm/$file?ref=$revision" \
+              --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-membarrier/$file"
+          done
+          WASM_PTRACE_ARCH_SOURCE="$RUNNER_TEMP/wasm-membarrier" \
+            python3 -B scripts/test_ptrace.py
           WASM_MREMAP_SYSCALL_SOURCE="$RUNNER_TEMP/wasm-syscall.c" \
             node --test scripts/test_mremap_syscall.js
           node --test scripts/test_mremap_allocator.js
