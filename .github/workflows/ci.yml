@@ -87,6 +87,7 @@ jobs:
           python3 -B scripts/fetch_pinned_semaphore_source.py \
             "$revision" "$RUNNER_TEMP/wasm-futex-core.c" kernel/futex/core.c
           python3 -B scripts/check_futex_identity.py "$RUNNER_TEMP/wasm-futex-core.c"
+          python3 -B scripts/check_futex_fault.py "$RUNNER_TEMP/wasm-futex-core.c"
           python3 -B scripts/test_futex_isolation.py
           python3 -B scripts/fetch_pinned_semaphore_source.py \
             "$revision" "$RUNNER_TEMP/wasm-time-namespace.c" kernel/time/namespace.c
