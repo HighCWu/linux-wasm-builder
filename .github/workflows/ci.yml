@@ -119,6 +119,7 @@ jobs:
           done
           WASM_PTRACE_ARCH_SOURCE="$RUNNER_TEMP/wasm-membarrier" \
             python3 -B scripts/test_ptrace.py
+          python3 -B scripts/test_ptrace_entry.py
           WASM_STACKTRACE_SOURCE="$RUNNER_TEMP/wasm-membarrier/kernel/stacktrace.c" \
             python3 -B scripts/test_stacktrace.py
           python3 -B scripts/fetch_pinned_semaphore_source.py \
