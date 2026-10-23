@@ -2423,7 +2423,21 @@ GCC/Clang 原生程序、真实 formatter 的稀疏在线编号模型及旧同�
 拒绝，不伪称本地重现了真实 Wasm 死锁；原生测试也不能证明协作式 Worker 行为。
 源码已原子提交推送；公开源码预取
 [39963218440](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39963218440)
-已派发，取得精确 SRI 后再单独集成 pin 和派发真实目标。本段不表示已集成或验收。
+现已成功。实际日志核实完整 revision 及 unpacked SRI
+`sha256-zNz3opyVl76ZYIA9mrNbP/24k9rtbPgVJhzNQdGVVjo=`，未使用猜测或移动 ref。
+distro `5c11fb4` 固定源码与 hash；根仓库 `bd021e7` 单独更新 Linux/distro
+gitlink 并接入精确源码模型。两路 cpuinfo 目标异步派发，尚待真实阶段与关闭验收。
+已结束于下载429的 wasm64 重入目标也对该后继源码定向重试；该源码保留此前全部
+重入修复，没有改写 IRQ/寄存器实现来处理取源失败，其余活任务不重复派发。
+本次固定 5c11fb4 的目标：cpuinfo
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39964338534)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39964348105)；重入
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39964358354)。
+
+上一批固定 227d54e 的 wasm32 信号栈任务 39961766108 已成功，实际日志逐项
+核实注册/错误、siginfo 嵌套、autodisarm、反复 SjLj、context 编辑/清理五阶段及
+唯一 pass；固定运行器关闭失败会使任务失败，关闭门禁通过。这只是该双位宽矩阵
+中的一路 Node 回归，不泛化为其余重入、fork/exec 或浏览器目标已验收。
 
 ## 信号栈缺口的前期核查记录
 

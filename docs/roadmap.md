@@ -475,7 +475,8 @@ Linux `4074db5aa` / distro `227d54e` / 根仓库 `b594462` 继续修复直接用
 下一独立增量 Linux `7258cf2c6` 移除读取 /proc/cpuinfo 时不必要的同步远端 IPI：
 编号直接从在线 CPU 集合格式化，避免另一 CPU 纯用户计算时阻塞读取。distro
 `2422afa` 的双 CPU 目标已发布，本地模型、原生程序与双位宽分析通过；精确源码
-hash 预取 39963218440 尚在执行，未更新集成 pin、未宣称真实目标通过。
+hash 预取 39963218440 的实际 revision/SRI 已核实，distro `5c11fb4` / 根仓库
+`bd021e7` 完成独立 pin 集成。双位宽 cpuinfo 目标已派发，未宣称真实目标通过。
 详见[第五十三组](process-syscalls.md#第五十三组读取-cpuinfo-不等待正在计算的其它-cpu)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
