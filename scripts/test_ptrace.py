@@ -24,12 +24,14 @@ class Ptrace(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(result.stdout.count(" pass\n"), 3)
                 self.assertEqual(result.stdout.count("::vm-test::pass"), 1)
-                subprocess.run([*flags, str(ROOT / "scripts/fixtures/ptrace_no_write.c"),
-                                "-Wl,--wrap=ptrace", "-o", str(binary)], check=True)
-                negative = subprocess.run([str(binary)], capture_output=True, text=True, timeout=20)
-                self.assertNotEqual(negative.returncode, 0)
-                self.assertIn("read back full-width remote data", negative.stdout)
-                self.assertNotIn("::vm-test::pass", negative.stdout)
+                for fixture, wrapped, reason in (("ptrace_no_write.c", "ptrace", "read back full-width remote data"),
+                                                 ("ptrace_masked_stop.c", "syscall", "original stopped mask")):
+                    subprocess.run([*flags, str(ROOT / "scripts/fixtures" / fixture),
+                                    f"-Wl,--wrap={wrapped}", "-o", str(binary)], check=True)
+                    negative = subprocess.run([str(binary)], capture_output=True, text=True, timeout=20)
+                    self.assertNotEqual(negative.returncode, 0)
+                    self.assertIn(reason, negative.stdout)
+                    self.assertNotIn("::vm-test::pass", negative.stdout)
 
     def test_wasm_frontends_and_existing_libc_call_path(self):
         with tempfile.TemporaryDirectory(prefix="ptrace-abi-") as tmp:
