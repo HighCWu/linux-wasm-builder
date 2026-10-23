@@ -534,6 +534,13 @@ distro `a8194ae` / 根仓库 `244689a` 单独集成。双位宽取消目标与�
 已异步派发，实际 Worker 阶段/关闭待完成，不宣称目标已验收。
 详见[第五十九组](process-syscalls.md#第五十九组阻塞取消点的-wasm-返回路径)。
 
+distro `6f14171` 进一步只在显式 fork profile 恢复 tombl/musl 已有但 Wasm
+门控的 daemon/forkpty 声明及原实现，默认配置不变，没有补造公共函数。
+原生实际链接上游原函数及双位宽前端/分析通过；根仓库 `5a693b9` 已集成，
+双位宽 PTY/session/SIGWINCH、daemon 双次 fork/stdio/subreaper 收尾目标已
+异步派发，真实三阶段与关闭待验收，不等同于完整 shell job control。
+详见[第六十组](process-syscalls.md#第六十组恢复显式-fork-profile-中既有终端daemon-实现)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

@@ -6,6 +6,18 @@
 子进程得到 0。已有 private-memory callback clone 不是这一接口，不能改名冒充。
 保持 `CONFIG_MMU=n`、direct memory 和明确的能力边界，不加入内核 softmmu。
 
+## 当前可选 profile 的既有接口恢复
+
+distro `6f14171` 在现有显式 fork profile 的补丁中恢复直接上游 tombl/musl
+已经提供、仅被 Wasm 门控的 `forkpty()` 和 `daemon()`。没有添加 libc 公共
+函数或自创应用接口；默认 musl 及默认 SDK 不启用此补丁。仍需相同的完整链接
+变换、配套执行层与单线程静态 C 前提，不支持 vfork 或多线程 fork。
+
+forkpty 依赖实际 devpts/TTY 与 session/ioctl 路径，daemon 沿用上游双次 fork、
+cwd/stdio 行为。原样实现的本地参考和双位宽分析通过，真实 Wasm 目标三阶段
+与关闭尚待核实，不宣称完整交互式作业控制。版本和异步目标见
+[第六十组](process-syscalls.md#第六十组恢复显式-fork-profile-中既有终端daemon-实现)。
+
 ## 已实现的独立机制实验
 
 `experiments/fork-continuation` 使用固定 Binaryen 132.0.0 的 Asyncify 编译后变换，

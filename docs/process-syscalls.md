@@ -2742,6 +2742,43 @@ restore.c 放宽原有 inline 的 unused-parameter 警告，应用负载仍保�
 不等待这些 CI 才推进其它独立 syscall 审查，也不据此扩大多线程 fork。
 较早 ccd9d346 的预取 39981476691 不覆盖后续编译策略，不拿它更新 pin。
 
+## 第六十组：恢复显式 fork profile 中既有终端/daemon 实现
+
+核对直接上游 tombl/musl 后，forkpty 和 daemon 不是缺少的函数：源码和其它平台
+声明均存在，只是 Wasm 被 #ifndef 门控。distro `6f14171` 扩展原可选
+fork-continuation.patch，恢复这两个既有声明及原实现；函数体逐字保留，没有
+补造公共函数、头文件 API 或 Linux 扩展。默认 musl 源码/构建不打该补丁，
+仍保持原声明门控；只有显式 fork profile 的 WASM_FORK_CONTINUATION 分支启用。
+根仓库 `5a693b9` 单独更新 gitlink 和轻量验证，musl pin 仍为 264eb000。
+
+这是依托已有 fork syscall 恢复标准程序调用路径的兼容增量，不是新增 syscall
+编号。底层仍由 Linux 的 setsid、TTY ioctl、dup2、信号、poll/read/write、wait
+和 subreaper 机制实现；不以项目专有应用接口替代这些调用。范围仍限显式 profile
+的单线程静态 C，不开放默认 fork、不扩大多线程 fork，也不宣称完整交互式 job
+control、vfork 或动态链接支持。
+
+独立 terminal-process 目标验证：forkpty/login_tty 将子进程置为 session leader
+和前台进程组，三条标准描述符均接到 slave；检查初始 winsize、canonical 输入/
+echo/输出、master TIOCSWINSZ 触发前台组 SIGWINCH 和更新尺寸，再 wait/reap。
+窗口信号在握手前阻塞，sigsuspend 原子解除阻塞等待，避免 pause 的丢失唤醒窗口。
+daemon(0,0) 从非根 cwd 开始，经原双次 fork 后检查新 session、非 session-leader
+最终进程、根 cwd 与 /dev/null 标准描述符；测试进程只在自身启用 subreaper，
+回收 launcher 和两级后代恰好各一次，恢复原设置。Wasm 挂载的 devpts/devtmpfs
+最终卸载，原生参考不修改宿主挂载；子分支失败也不向测试父进程伪造 pass。
+
+Clang18/22 × Wasm32/64 前端与静态分析通过，声明负向控制确认默认配置仍隐藏；
+原样实现校验确认只改 profile 门控。GCC/Clang 原生负载实际链接 tombl/musl 的
+daemon、forkpty、login_tty，而非误测 glibc daemon 的不同 fork 策略，三阶段
+与唯一 pass 均通过。原生仅对未修改上游错误管道 write 的 glibc fortified
+unused-result 警告作局部放宽，应用负载仍严格编译。这些不是 Wasm Worker 证据。
+原 SDK/finalizer 五项检查、完整可选补丁 dry-run、Nix 格式及 actionlint 通过。
+
+同一 `6f14171` 双位宽实际目标已派发：
+[wasm32 39984725651](https://github.com/HighCWu/distro/actions/runs/39984725651)、
+[wasm64 39984734768](https://github.com/HighCWu/distro/actions/runs/39984734768)。
+目前运行或排队，三阶段与机器关闭尚待核实。没有把原生参考、编译成功或恢复
+声明当作完整 Wasm 终端能力已验收；此前取消点/信号栈目标继续独立跟踪。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
