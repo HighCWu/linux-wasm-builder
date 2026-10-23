@@ -1584,13 +1584,30 @@ GCC/Clang ASan/UBSan、原样 NOMMU helper 模型、去掉迭代器回退的精�
 
 [固定来源预取][process-vm-prefetch] 已核实精确修订及 unpacked hash。
 同一 distro `726d797` 的 [wasm32][process-vm32] 和 [wasm64][process-vm64]
-已派发，须核实三阶段、唯一 pass 和关闭，不以工作流状态代替运行证据。
+均已成功结束；两位宽实际日志均已逐项核实全部三阶段、各自唯一 pass 及不变
+运行器的关闭门禁。这是上述固定版本的 Node 验收，不泛化为浏览器结果。
 继承直接内存的权限边界、远程邮箱5秒未认领超时和协作式执行限制；不承诺原生
 零拷贝性能、原子快照、对纯用户计算循环的异步抢占，或扩大多线程 fork 支持。
+
+后续 review 发现新的长传输循环没有显式调度检查点，尤其当前 mm 的复制不经
+其他 Worker 等待，也不会发生普通用户页缺页。Linux `a0811a8e0` 在每个最多
+4 KiB块开始前轮询 Wasm 定时器并执行 cond_resched；此时没有远程请求或
+mmap 锁持有，上一块已同步完成，不会把仍被远端引用的缓冲区交给调度/释放。
+不改变权限、部分成功计数或错误规则，也不把 syscall 内检查点泛化为纯用户循环抢占。
+
+原样 helper 的 GCC/Clang sanitizer 模型与分析通过；另一个删除条件调度的
+反向控制必须在检查点计数断言失败。该模型证明调用路径覆盖，不证明真实调度
+延迟或多任务公平性。[预取][process-vm-poll-prefetch] 已核实精确源码和 hash；
+distro `bcd1637` / 集成 `977090b` 完成 pin 更新。旧任务终态后已派发
+[wasm32][process-vm-poll32] 与 [wasm64][process-vm-poll64] 定向复验，仍须
+核实实际全部三阶段、唯一 pass 与关闭；旧版本结果不能替代新增路径的目标验收。
 
 [process-vm-prefetch]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39893540026
 [process-vm32]: https://github.com/HighCWu/distro/actions/runs/39893965748
 [process-vm64]: https://github.com/HighCWu/distro/actions/runs/39893971173
+[process-vm-poll-prefetch]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39894992836
+[process-vm-poll32]: https://github.com/HighCWu/distro/actions/runs/39896332106
+[process-vm-poll64]: https://github.com/HighCWu/distro/actions/runs/39896336670
 
 ## 信号栈缺口的前期核查记录
 
