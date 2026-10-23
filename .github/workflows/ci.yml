@@ -84,12 +84,15 @@ jobs:
             --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-syscall.c"
           mkdir -p "$RUNNER_TEMP/wasm-membarrier/include/uapi/asm"
           cp "$RUNNER_TEMP/wasm-syscall.c" "$RUNNER_TEMP/wasm-membarrier/kernel/syscall.c"
-          for file in kernel/ptrace.c include/uapi/asm/ptrace.h; do
+          for file in kernel/ptrace.c kernel/stacktrace.c include/uapi/asm/ptrace.h; do
             gh api "repos/HighCWu/linux/contents/arch/wasm/$file?ref=$revision" \
               --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-membarrier/$file"
           done
           WASM_PTRACE_ARCH_SOURCE="$RUNNER_TEMP/wasm-membarrier" \
             python3 -B scripts/test_ptrace.py
+          WASM_STACKTRACE_SOURCE="$RUNNER_TEMP/wasm-membarrier/kernel/stacktrace.c" \
+            python3 -B scripts/test_stacktrace.py
+          node --test sources/distro/packages/kernel/test/stacktrace.test.ts
           WASM_MREMAP_SYSCALL_SOURCE="$RUNNER_TEMP/wasm-syscall.c" \
             node --test scripts/test_mremap_syscall.js
           node --test scripts/test_mremap_allocator.js
