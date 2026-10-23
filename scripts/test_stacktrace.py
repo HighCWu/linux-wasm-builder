@@ -37,6 +37,8 @@ class Stacktrace(unittest.TestCase):
     def test_exact_kernel_body_and_unterminated_control(self):
         source = pathlib.Path(os.environ.get("WASM_STACKTRACE_SOURCE",
                               ROOT / "sources/linux/arch/wasm/kernel/stacktrace.c")).read_text()
+        # The host model cannot validate Linux header transitive includes.
+        self.assertIn("#include <linux/pid.h>", source)
         body = re.sub(r"^#include[^\n]*\n", "", source, flags=re.M)
         self.assertNotIn("kmalloc", body)
         self.assertNotIn("%pg", body)
