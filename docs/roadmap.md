@@ -446,6 +446,18 @@ ptrace stop。没有新函数、声明、包装或执行 import；不是把任�
 独立目标和默认线程/TLS 回归异步验收，不预先记阶段成功。
 详见[第五十组](process-syscalls.md#第五十组clone-栈tls-初始化后的应用入口检查点)。
 
+固定 41e7245 的八路目标现均完成：双位宽 namespace 六阶段、nsenter 三阶段、
+ptrace-entry 三阶段及默认 C runtime 的实际 pass 已逐项核实，均通过机器关闭
+门禁。接受有界 Node 结果，不推广为浏览器或任意 raw callback 的支持证明。
+
+Linux `ed725e29c` 继续修复 PI futex 的真实错误路径：Wasm 无效用户 offset
+不能调用含 BUG 的 NOMMU fixup_user_fault，现返回 EFAULT；其它架构路径不变。
+distro `e7746d4` 验证三类 PI 操作的坏地址、owner、死锁与有效锁恢复。原生正/反
+控制、双位宽模型与分析通过；公开 hash 预取实际因双入口429失败，尚未更新 pin
+或派发新目标，不用推测 hash 代替校验。此前八路验收与本待集成修复分开。
+轻量 CI 的旧 IPC API 下载429也已独立修复为共同固定版本下载器 ec7f0b0。
+详见[第五十一组](process-syscalls.md#第五十一组pi-futex-无效线性地址的-nommu-错误恢复)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

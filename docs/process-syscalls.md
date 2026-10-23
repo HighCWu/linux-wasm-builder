@@ -2259,6 +2259,55 @@ GCC/Clang 原生三阶段通过；故意跳过 birth stop 的控制必须失败�
 新目标必须读取实际阶段和最终 pass，并核实关闭门禁。旧 namespace 四阶段不能
 替代修正后的完整六阶段，旧格式失败也不能代替 nsenter 工具运行结果。
 
+上述八项现均成功，已读取每个 Heavy 的实际日志：namespace 两路完整六阶段、
+nsenter 两路三阶段、ptrace-entry 两路三阶段及各自唯一 pass 均齐全。默认 C runtime
+两路的唯一 pass 位于全部断言之后，已核对对应源码必须完成 pthread 创建/回收、
+TLS 隔离、信号、匿名内存和文件系统检查后才能输出它。固定 41e7245 的 runner
+等待 machine.closed，并把关闭错误计入非零退出；八项均通过该关闭门禁。
+因此接受这些有界 Node 目标，尚未扩大到浏览器、任意 raw callback 或多线程 fork。
+
+## 第五十一组：PI futex 无效线性地址的 NOMMU 错误恢复
+
+静态审查追到一条不同于原 WAKE_OP 的可达路径：PI LOCK/TRYLOCK 的用户原子
+访问返回 EFAULT 后，pi.c 的 uaddr_faulted 会调用 fault_in_user_writeable；后者
+无条件调用 fixup_user_fault，而当前通用 NOMMU stub 内是 BUG。Wasm 的用户
+内存独立于内核，即使 offset 小于 TASK_SIZE，也可能是 NULL 或超出当前容量，
+不能因 NOMMU 就假设原子访问不会失败。原 WAKE_OP 的错误路径已有 !MMU
+提前返回，不能用此前它的 NULL 检查证明 PI 路径安全。
+
+Linux `ed725e29cf6f82a21c1da5ff24fac2bbc3f4a5a9` 在实际 repair helper 内仅为
+CONFIG_WASM 返回 EFAULT，不试图补内核页表；其它架构/MMU 的锁、修复和结果
+处理不变。没有禁用 PI futex、吞掉错误或把所有有效操作也改为 EFAULT。
+
+distro `e7746d4` 扩展现有 user-access 目标：普通/private 两模式下分别验证
+LOCK_PI、TRYLOCK_PI、LOCK_PI2 对 NULL 和当前线性容量外 offset 的 EFAULT；
+随后用有效字验证 owner TID、自身重复获取的 EDEADLK、unlock/trylock/lock2
+及最终释放。新增第四阶段；原部分复制、文件位置/pipe 前缀和恢复阶段仍保留。
+Clang22 分析还要求将原测试的失败分支明确标为 noreturn，避免把失败后无限等待
+误认为可能返回并继续使用无效 fd/地址；没有屏蔽分析器错误。
+
+原生 GCC/Clang 工作负载和伪造 PI 成功的负向控制通过。Clang18/22 双位宽
+前端、静态分析以及提取实际 helper 函数体的小型 Wasm 执行通过；恢复原函数体
+会进入模拟通用 NOMMU stub 的 trap，而新 Wasm 分支不取锁、不调用 repair。
+非 Wasm/MMU 的原锁/返回分支保持，非 Wasm/NOMMU 的原行为也不被模型偷偷改变。
+这不是实际旧内核 panic 注入或新内核通过证明，目标需核实四阶段、唯一 pass 与关闭。
+
+源码已分别推送，公开内核 hash 预取
+[39952334659](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39952334659)
+实际失败于两个下载入口的 HTTP 429；两路均已按既有有界次数尝试，未取得 SRI。
+未为缺少 hash 的源码更新集成 pin 或派发重型目标，也未立即重复派发同一预取。
+本地 `scripts/check_futex_fault.py` 模型及其 CI 接线待新源码 pin 可核实后一同集成，
+当前默认 CI 不对旧 pin 运行要求新分支的模型。目标源码与工作负载已公开，
+集成尚未完成，不能把它写成用户已获得 PI 错误修复或新目标已通过。
+
+同轮轻量 CI
+[39933625633](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39933625633)
+的实际日志显示旧 IPC 取样脚本直接调用 Contents API，在首个 ipcbuf.h 下载时
+遭 HTTP 429，未运行 IPC 语料。根仓库 `ec7f0b0` 将其迁移到共同的固定 SHA
+下载器：raw 无认证优先、同一版本 API 后备、无跨域认证转发、有界瞬态重试；
+七个输入全部获取成功后才发布文件，失败不混合新旧头文件。三项 wrapper 检查
+及共同下载器十二项检查通过，未放宽 source pin 或把网络失败记为 syscall 失败。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

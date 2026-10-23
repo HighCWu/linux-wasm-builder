@@ -58,6 +58,12 @@ callback 边界，不声称所有任意原始 Wasm callback 或第一条 Wasm �
 [第五十组](process-syscalls.md#第五十组clone-栈tls-初始化后的应用入口检查点)
 单独跟踪真实目标验收，不把上述宿主/模型检查当作 Wasm 内核运行证明。
 
+固定 distro 41e7245 的双位宽 ptrace-entry 已核实三阶段、唯一 pass 与关闭门禁：
+停止发生在应用 store 之前，SIGTERM 后 marker 保持未写，真实父进程正确回收，
+随后普通 fork 恢复。默认 C runtime 双位宽也已核实实际 pass，并检查固定程序
+必须完成 pthread/TLS/信号等断言才输出成功；关闭失败会使 runner 非零退出。
+接受这组有界 Node 结果，不因此声明任意 raw callback 或浏览器已通过。
+
 ## 2026-10-21 审计
 
 通过直接查询远端 HEAD，确认 tombl/musl 的默认分支 master 为
