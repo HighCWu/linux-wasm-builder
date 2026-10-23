@@ -1297,7 +1297,21 @@ pending signal、PID/TLS/atfork/mask/memory/fd/nested wait、拒绝 exec 后恢�
 作业通过同一关闭门禁；至此本候选六路 Node 验收齐全，不扩展为新 fork 支持
 范围或浏览器结果。
 
-后续接入既有浏览器门禁，不重复实现 syscall。必要真实目标
+浏览器门禁已在 distro `92eb6b1` / 集成 `5e8791b` 接入既有 process runner，
+复用以上同一标准负载及无栈导出负载，不重复实现 syscall。两类均要求精确、
+有序且不重复的阶段、唯一 pass，同一页面两轮启动、各轮 machine.closed、
+浏览器关闭后无迟到错误。本地控制器及负向门禁 18 项通过，不作浏览器证明。
+
+2026-10-23 已确认以下八项实际 Heavy 检查均在运行，结果待核实：
+
+| 负载 | 位宽 | Chromium | Firefox |
+|---|---|---|---|
+| 信号栈五阶段 | wasm32 | [CI](https://github.com/HighCWu/distro/actions/runs/39881687103) | [CI](https://github.com/HighCWu/distro/actions/runs/39881688862) |
+| 信号栈五阶段 | wasm64 | [CI](https://github.com/HighCWu/distro/actions/runs/39881691449) | [CI](https://github.com/HighCWu/distro/actions/runs/39881693540) |
+| 无栈导出兼容 | wasm32 | [CI](https://github.com/HighCWu/distro/actions/runs/39881695121) | [CI](https://github.com/HighCWu/distro/actions/runs/39881696874) |
+| 无栈导出兼容 | wasm64 | [CI](https://github.com/HighCWu/distro/actions/runs/39881699057) | [CI](https://github.com/HighCWu/distro/actions/runs/39881700447) |
+
+必要真实目标
 通过后再单独移除 CONFIG_SITE 的相应否定项，让应用正常探测，而非预填成功；
 随后应让现有 CPython faulthandler 等实际程序使用正常声明/探测路径验证，不能
 把上述 C 负载泛化成全部应用、引擎故障处理或浏览器已验收。
