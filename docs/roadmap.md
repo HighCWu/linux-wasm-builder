@@ -392,6 +392,13 @@ syscall 语料的本地检查通过，源码 hash 已实际核实，distro `ac84
 的问题，失败和非法 hash 现在必须使工作流失败，不用缺失的 hash 更新 pin。
 详见[第四十四组](process-syscalls.md#第四十四组vmsplice-的用户线性内存复制路径)。
 
+Linux `7141e252e` 修正独立 Wasm 进程相同偏移的 futex key 碰撞：即便 NOMMU
+也保留 mm 身份，同 mm 线程仍匹配，传统 NOMMU/MMU 行为不变；不启用共享映射。
+实际 key 分支对照、原生线程/进程语料和双位宽分析通过，hash 已核实。distro
+`977bf49` / 集成 `d9c0da2` 已推送，两个独立 futex-isolation 目标异步验收中。
+测试只在 fork 后创建线程，不放宽多线程 fork，不修改 musl。
+详见[第四十五组](process-syscalls.md#第四十五组独立线性内存的-futex-key-隔离)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

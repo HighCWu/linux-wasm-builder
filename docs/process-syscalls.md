@@ -1969,6 +1969,45 @@ GIFT、参数错误、Wasm 实际内存外范围及前缀、EPIPE 与失败后�
 回归需核实原有完整语料与关闭。未派发浏览器，不把宿主 sanitizer 或 Node 状态
 泛化为浏览器、零拷贝、所有页固定调用者或完整 syscall 兼容性验收。
 
+## 第四十五组：独立线性内存的 futex key 隔离
+
+Linux `7141e252e` 修正通用 NOMMU 对单一地址空间的假设：原 get_futex_key 在
+无 MMU 时将 private.mm 清为 NULL，仅用地址及页内偏移区分队列。Wasm 的不同
+进程却有独立线性内存，相同数值偏移不代表同一 futex；必须保留 current->mm。
+新条件仅增加 CONFIG_WASM，传统 NOMMU 和 MMU 分支保持原行为。CLONE_VM
+线程仍有相同 mm，因此继续匹配，而普通 fork 的不同 mm 不再因偏移相同碰撞。
+这是既有标准 syscall 的隔离修复，不是新增 libc 包装或项目专有接口。
+
+NOMMU 的 FLAGS_SHARED 仍为零，普通 futex 与 PRIVATE 模式均走地址 key 路径；
+不捏造文件页 key，不启用跨进程共享映射或 SysV SHM，不宣称实现新的进程共享
+backing。内存边界、原子操作和 CONFIG_MMU=n 保持原策略，musl pin 仍为 bf26831。
+
+实际 key 选择分支在 Clang18/22 的 wasm32/64 小模块通过：相同 mm/地址匹配、
+不同 mm 的同地址不匹配、不同地址不匹配，并保留高位偏移。恢复旧条件的对照
+实际重新得到跨 mm 碰撞；传统 NOMMU 与 MMU 配置各自结果不变。这些只检查
+key 选择，不是 hash、调度或完整 syscall 的 Wasm 验收。
+
+独立可选 fork profile 目标分别检查 PRIVATE 与普通模式：父子在相同静态偏移
+保有独立数据；子进程线程通过 WAIT 入队，以非 PI 同 key CMP_REQUEUE 的计数
+确认已排队后才通知父进程。父进程重复 WAKE 必须为零，子进程本地 WAKE 必须为
+一，随后 join、退出42并被父回收；父进程也执行同 mm 线程唤醒正向控制。
+所有 fork 均在父线程控制之前完成，避免将 join 后最后 mm 引用释放的窗口误作
+受支持的多线程 fork，不修改内核的 mm_users 拒绝规则。
+
+初稿把等待者移到另一个地址后假定它一直留在那里；原生未跟踪运行曾失败，实际
+补充 WAKE 观察到等待者回到原 key，而跟踪运行通过。通用 __futex_wait 明确允许
+spurious wake 后重新从原 uaddr 入队，因此该假设不可用于测试门禁。修正版只用
+合法的非 PI 同 key 计数，不改变等待地址；GCC sanitizer 连续八轮、最终 GCC/
+Clang 各三轮及双位宽前端/静态分析通过。未用延时掩盖初稿失败或改内核适配错误测试。
+
+源码 hash 已在[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39916242109)
+实际日志核实；distro `d0da6c4` / 根仓库 `a15dd3a` 集成，再由 distro `977bf49`
+/ 根仓库 `d9c0da2` 单独固定 fork-before-thread 测试顺序。源码及 pin 均已推送，
+没有改写历史。独立目标已派发
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39917071562)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39917078967)，须核实两个完整
+阶段、唯一 pass 和机器关闭；它们仍待目标验收，不把原生或小模块检查说成完成。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
