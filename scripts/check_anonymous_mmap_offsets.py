@@ -12,6 +12,9 @@ start = source.index("SYSCALL_DEFINE6(wasm_mmap,")
 body = source[start:source.index("\n}\n", start) + 3]
 old = body.replace("if (!len || (flags & MAP_TYPE)", "if (!len || pgoff || (flags & MAP_TYPE)")
 assert old != body
+old_write = body.replace("!prot || (prot & ~(PROT_READ | PROT_WRITE))",
+                         "(prot != PROT_READ && prot != (PROT_READ | PROT_WRITE))")
+assert old_write != body
 compilers = os.environ.get("WASM_OFFSET_COMPILERS", "clang").split()
 assert compilers, "at least one Wasm compiler must execute anonymous admission"
 prefix = r'''
@@ -41,11 +44,11 @@ typedef __SIZE_TYPE__ size_t;
 #define PROT_WRITE 2
 #define EINVAL 22
 #define ENOMEM 12
-static unsigned normal_count,fixed_count,file_count;
+static unsigned normal_count,fixed_count,file_count,saved_prot;
 static unsigned long saved_offset,saved_flags;
 static long saved_fd;
 static long wasm_user_v2_mmap(unsigned long a,unsigned long n,unsigned int p,unsigned int f,int fd,unsigned long off) {
-    (void)a;(void)n;(void)p;normal_count++;saved_offset=off;saved_flags=f;saved_fd=fd;return 0x40000;
+    (void)a;(void)n;saved_prot=p;normal_count++;saved_offset=off;saved_flags=f;saved_fd=fd;return 0x40000;
 }
 static long wasm_user_v2_mmap_fixed(unsigned long a,unsigned long n) {(void)n;fixed_count++;return a;}
 static long wasm_mmap_file(unsigned long a,unsigned long n,unsigned long p,unsigned long f,long fd,unsigned long off) {
@@ -53,6 +56,7 @@ static long wasm_mmap_file(unsigned long a,unsigned long n,unsigned long p,unsig
 }
 void reset(void) { normal_count=fixed_count=file_count=0;saved_offset=saved_flags=0;saved_fd=0; }
 unsigned normal(void) {return normal_count;}
+unsigned protection(void) {return saved_prot;}
 unsigned fixed(void) {return fixed_count;}
 unsigned files(void) {return file_count;}
 unsigned long offset(void) {return saved_offset;}
@@ -72,12 +76,13 @@ int main(void) {
     long page=sysconf(_SC_PAGESIZE);
     FILE *file=tmpfile(); assert(file && lseek(fileno(file),7,SEEK_SET)==7);
     uintptr_t offsets[]={0,(uintptr_t)page,1ULL<<32,UINTPTR_MAX&-(uintptr_t)page};
+    for (int prot=PROT_WRITE;prot<=(PROT_READ|PROT_WRITE);prot++)
     for (unsigned i=0;i<sizeof offsets/sizeof offsets[0];i++) {
-        unsigned char *p=(void *)syscall(SYS_mmap,0L,page,(long)(PROT_READ|PROT_WRITE),
+        unsigned char *p=(void *)syscall(SYS_mmap,0L,page,(long)prot,
             (long)(MAP_PRIVATE|MAP_ANONYMOUS),(long)fileno(file),(long)offsets[i]);
         assert(p!=MAP_FAILED);
         for (long j=0;j<page;j++) assert(!p[j]);
-        p[0]=0x5a;assert(!munmap(p,page));
+        p[0]=0x5a;p[page-1]=0xa5;assert(p[0]==0x5a && p[page-1]==0xa5);assert(!munmap(p,page));
     }
     errno=0;
     assert(syscall(SYS_mmap,0L,page,(long)(PROT_READ|PROT_WRITE),
@@ -100,28 +105,30 @@ with tempfile.TemporaryDirectory(prefix="wasm-anon-offset-") as tmp:
         subprocess.run([cc,"-O2","-Wall","-Wextra","-Werror",str(unit),"-o",str(binary)],check=True)
         subprocess.run([str(binary)],check=True,timeout=10)
     for cc in compilers:
+        resource=subprocess.check_output([cc,"-print-resource-dir"],text=True).strip()
         for bits in (32,64):
-            workload=str(ROOT/"sources/distro/distro/basic-init/tests/mmap-offsets.c")
             includes=["-I",tmp,"-I",str(musl/"arch/wasm32"),"-I",str(musl/"arch/generic"),"-I",str(musl/"include")]
-            frontend=[cc,f"--target=wasm{bits}","-nostdinc",*includes]
-            subprocess.run([*frontend,"-fsyntax-only","-Wall","-Wextra","-Werror",workload],check=True)
-            subprocess.run([*frontend,"--analyze","-Xanalyzer","-analyzer-werror",workload,"-o","/dev/null"],check=True)
+            frontend=[cc,f"--target=wasm{bits}","-nostdinc",*includes,"-isystem",str(Path(resource)/"include")]
+            for name in ("mmap-offsets.c", "mmap.c"):
+                workload=str(ROOT/"sources/distro/distro/basic-init/tests"/name)
+                subprocess.run([*frontend,"-fsyntax-only","-Wall","-Wextra","-Werror",workload],check=True)
+                subprocess.run([*frontend,"--analyze","-Xanalyzer","-analyzer-werror",workload,"-o","/dev/null"],check=True)
             for file_mode in (False,True):
-                for actual,fixed in ((body,True),(old,False)):
+                for actual,fixed,write in ((body,True,True),(old,False,True),(old_write,True,False)):
                     unit,binary=work/"map.c",work/"map.wasm"
                     config=("#define CONFIG_64BIT 1\n" if bits==64 else "")
                     config+=("#define CONFIG_WASM_FILE_MMAP 1\n" if file_mode else "")
                     unit.write_text(config+prefix+actual)
                     flags=[cc,f"--target=wasm{bits}","-ffreestanding"]
                     subprocess.run([*flags,"--analyze","-Xanalyzer","-analyzer-werror",str(unit),"-o","/dev/null"],check=True)
-                    exports=["wasm_mmap","reset","normal","fixed","files","offset","flags","fd"]
+                    exports=["wasm_mmap","reset","normal","protection","fixed","files","offset","flags","fd"]
                     subprocess.run([*flags,"-O2","-nostdlib","-Wl,--no-entry",*["-Wl,--export="+x for x in exports],
                                     str(unit),"-o",str(binary)],check=True)
                     subprocess.run(["node","--input-type=module","-e",r'''
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const {instance:{exports:a}}=await WebAssembly.instantiate(readFileSync(process.argv[1]));
-const wide=process.argv[2]==='64', good=process.argv[3]==='True', file=process.argv[4]==='True';
+const wide=process.argv[2]==='64', good=process.argv[3]==='True', file=process.argv[4]==='True', write=process.argv[5]==='True';
 const p=n=>wide ? BigInt(n) : Number(n)|0, unit=wide ? 65536n : 16n;
 const max=(1n<<(wide?64n:32n))-1n;
 const call=(off,fl=0x22,addr=0,len=65536,prot=3)=>a.wasm_mmap(p(addr),p(len),p(prot),p(fl),p(12345),p(off));
@@ -140,8 +147,13 @@ a.reset();assert.equal(call(unit,0x100032,8*65536),p(good?0x40000:-22));
 if (good) {assert.equal(a.flags(),p(0x100022));assert.equal(a.offset(),p(0));}
 a.reset();assert.equal(call(1n,2),p(file?-95:-22));assert.equal(a.files(),file?1:0);
 if (file) {assert.equal(a.offset(),p(1));assert.equal(a.fd(),p(12345));}
-for (const [len,prot] of [[0,3],[65536,0]]) {
+for (const prot of [1,2,3]) {
+  a.reset();assert.equal(call(0n,0x22,0,65536,prot),p(prot===2 && !write ? -22 : 0x40000));
+  if (prot===2 && !write) {assert.equal(a.normal(),0);continue;}
+  assert.equal(a.protection(),prot===2 ? 3 : prot,'WRITE must reach old allocators as READ|WRITE');
+}
+for (const [len,prot] of [[0,3],[65536,0],[65536,4],[65536,6],[65536,8]]) {
   a.reset();assert.equal(call(0n,0x22,0,len,prot),p(-22));assert.equal(a.normal(),0);
 }
-''',str(binary),str(bits),str(fixed),str(file_mode)],check=True)
+''',str(binary),str(bits),str(fixed),str(file_mode),str(write)],check=True)
             print(f"{cc} wasm{bits}: actual anonymous admission, raw units, unchanged file delegation and old rejection control passed")

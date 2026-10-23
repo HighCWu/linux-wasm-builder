@@ -149,20 +149,26 @@ int main(void) {
   assert(wasm_mmap(65536, 1, 1, f|MAP_FIXED, -1, 0) == 65536);
   expected_flags = f|MAP_FIXED_NOREPLACE;
   assert(wasm_mmap(65536, 1, 1, f|MAP_FIXED_NOREPLACE, -1, 0) == -EEXIST);
-  unsigned long protections[] = {PROT_NONE, PROT_WRITE, PROT_EXEC,
+  expected_prot = PROT_READ|PROT_WRITE;
+  expected_flags = f;
+  assert(wasm_mmap(65536, 1, PROT_WRITE, f, 12345, 0) == 65536);
+  assert(wasm_mmap(65536, 1, PROT_WRITE, f|MAP_FIXED, -1, 0) == 65536);
+  expected_flags = f|MAP_FIXED_NOREPLACE;
+  assert(wasm_mmap(65536, 1, PROT_WRITE, f|MAP_FIXED_NOREPLACE, -1, 0) == -EEXIST);
+  unsigned long protections[] = {PROT_NONE, PROT_EXEC,
     PROT_READ|PROT_EXEC, PROT_WRITE|PROT_EXEC, PROT_READ|PROT_WRITE|PROT_EXEC, 0x80000000UL};
   for (unsigned i = 0; i < sizeof protections / sizeof protections[0]; i++) {
     assert(wasm_mmap(65536, 1, protections[i], f, -1, 0) == -EINVAL);
     assert(wasm_mmap(65536, 1, protections[i], f|MAP_FIXED, -1, 0) == -EINVAL);
   }
-  assert(fixed_calls == 3 && legacy_calls == 13);
+  assert(fixed_calls == 4 && legacy_calls == 15);
 }
 `;
     const input = join(dir, "test.c"),
       binary = join(dir, "test");
     const original = source.slice(start, end + 3);
     const strict = original.replace(
-      "(prot != PROT_READ && prot != (PROT_READ | PROT_WRITE))",
+      "!prot || (prot & ~(PROT_READ | PROT_WRITE))",
       "prot != (PROT_READ | PROT_WRITE)",
     );
     assert.notEqual(strict, original);
