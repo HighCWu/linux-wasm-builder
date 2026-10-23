@@ -265,6 +265,10 @@ jobs:
             WASM_SIGCONTEXT_SOURCE="$RUNNER_TEMP/wasm-sigcontext.h" \
             python3 -B scripts/check_syscall_reentry.py
           python3 -B scripts/test_syscall_reentry.py
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-cpuinfo.c" arch/wasm/kernel/cpuinfo.c
+          WASM_CPUINFO_SOURCE="$RUNNER_TEMP/wasm-cpuinfo.c" \
+            python3 -B scripts/check_cpuinfo.py
           python3 -B scripts/test_large_file.py
       - name: Check SysV IPC runtime workload and exact kernel UAPI layout
         env:
