@@ -48,6 +48,10 @@ Wasm 的 mmap 分配共用此堆。小型模型与分析通过，默认链接及
 精确源码预取已核实 revision/SRI；distro db46ac8 / 根仓库 d61efcd 完成 pin 集成。
 双位宽真实轻量分配器与默认 C runtime 的运行证据仍单独验收，不把模型成功或
 fork 补丁 dry-run 当作所有程序 OOM 行为的证明。
+后续 CI 链接 map 明确显示普通程序选中了完整 mallocng，旧 lite 诊断门禁拒绝了
+该路径；未把它记为 lite 验收通过。distro 93255d5 将同一固定源文件另编译为
+独立测试专用命名空间对象，不修改默认 SDK 选路、不安装新 API；普通 C runtime
+另行复验。这项源码修复只针对既有 lite 实现，不能当作默认 mallocng 的修复。
 
 ## Wasm clone trampoline 的启动边界兼容
 

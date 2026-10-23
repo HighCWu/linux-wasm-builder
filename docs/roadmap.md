@@ -485,13 +485,18 @@ trap 改为释放锁并返回 NULL/ENOMEM，未新增任何函数或 API。双�
 门禁的真实目标，实际 hash 已核实并由 distro db46ac8 / 根仓库 d61efcd 集成，
 双位宽 lite-oom 与默认 C runtime 目标异步验收。不是新增 SYS_brk，
 也不以另一套分配器的 OOM 返回替代轻量路径验收。
+随后实际 map 确认原目标选中 mallocng，门禁拒绝且共同 programs 构建受阻。
+distro 93255d5 / 根仓库 4479e10 改为独立的固定源码、私有命名空间诊断对象，
+普通程序不再受它的门禁耦合；默认 SDK 分配器保持原状。诊断与普通 C runtime
+分开复验，不能将该 lite 修复包装成默认 mallocng 的能力进展。
 
 重入 wasm32 目标已暴露真实 EIO：GET_SYSCALL_INFO 被完整 tracehook/regset 门控
 排除。Linux `91ab8b356` 将 syscall-info 独立为隐藏能力选项，保留原 tracehook
 架构的默认行为，让 Wasm 支持通用 GET/SET 及 /proc/PID/syscall，不虚构 regset
 或 audit 架构号；补齐编号/参数访问器和 skip 结果保留。distro `e1047c4` 要求
 子程序实际观察 entry 改写、skip 和 exit 返回值。双位宽原样 helper 模型、
-配置预处理及分析通过；源码已发布，hash/pin 集成与真实目标复验尚待完成。
+配置预处理及分析通过；精确 SRI 已核实并由 distro 2243541 / 根仓库 c60ec83
+集成，双位宽重入/编辑目标已派发，真实阶段和关闭结果尚待验收。
 详见[第五十五组](process-syscalls.md#第五十五组独立-syscall-info-能力与标准-ptrace-编辑)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，

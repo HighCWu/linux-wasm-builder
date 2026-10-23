@@ -2482,6 +2482,38 @@ distro `db46ac8` 固定该源码，根仓库 `d61efcd` 单独更新 musl/distro 
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39966388876)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39966402001)。
 
+### 链接选择失败后的修正
+
+这批四路工作流均失败，不能列为目标验收通过。已读取 wasm32 lite-oom
+39966367935 和 wasm64 C runtime 39966402001 的实际 Heavy 日志：链接 map 同时
+包含 lite_malloc.o 的公共转发入口和 malloc.o 的真正 __libc_malloc_impl，门禁
+正确拒绝了由 mallocng 代跑。此前关于该程序能保留默认 lite backend 的推断不
+成立；不能把 lite 源码修复泛化为默认 mallocng 的错误修复，也不能靠移除门禁
+冒充验收成功。由于旧诊断被放在公共 programs 构建中，它也阻断了 C runtime
+目标的构建，未到程序运行阶段。
+
+distro `93255d5` 将 lite-oom 移到独立 derivation，普通 programs 不再构建该诊断。
+独立目标从同一固定 musl.src 的 lite_malloc.c 编译测试专用命名空间对象，不改
+源文件正文，不替换 SDK 默认分配器，也不安装任何新函数或头文件。符号检查要求
+该对象定义自己的 weak backend、不得引用正常 malloc/calloc/realloc/free
+backend；链接 map 必须选中该对象的私有入口。目标程序明确调用这个仅测试用的
+入口，再通过已有 getcwd/write 验证恢复。它是对既有轻量实现的隔离验证，不是
+默认 mallocng 的行为证明。
+
+本地 Clang18/22 双位宽实际源文件、私有命名空间对象、符号与 map 门禁以及旧 trap
+控制均通过；追加构建隔离检查，防止诊断再次耦合普通程序。根仓库 `4479e10`
+单独更新 distro pin 和验证脚本；Linux 91ab8b356、musl b1c51ef9 没有再改动。
+双位宽诊断和默认 C runtime 分别定向复验，仍需实际阶段及关闭结果。
+固定 93255d5：lite-oom
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39970507248)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39970515370)；普通 C runtime
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39970524942)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39970532018)。
+后继 distro `7c3699f` / 根仓库 `75b0232` 为新 musl 源依赖显式补上 wasm64
+scope 覆盖；当前两位宽 .src 固定同一 b1c51ef9，未修改编译源或执行逻辑，未重复
+派发活任务。结构检查保证将来 scope 覆盖也保持匹配；上述目标仍按其实际 93255d5
+源码记账，不将后继提交偷换成已验收版本。
+
 ## 第五十五组：独立 syscall-info 能力与标准 ptrace 编辑
 
 先前 227d54e 的 wasm32 重入任务 39961744403 已失败。实际日志报
@@ -2518,6 +2550,16 @@ stop 类型；源文件和目标前端/静态分析通过。真实源文件预�
 [39968495583](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39968495583)
 已派发，待取得 SRI 后单独更新 pin 并定向复验。旧 5c11fb4 的 wasm64 重入任务
 39964358354 不包含本修复，不能据其结果宣称 syscall-info 新能力已通过。
+
+精确预取现已成功，实际日志核实完整 91ab8b356 revision 和 SRI
+`sha256-jHrNPU4788e7llT9h7HKgwKxWoTN0baDBIveJkC7sl4=`。distro `2243541` /
+根仓库 `c60ec83` 已独立集成，并将配置/通用 helper 模型接入固定源码轻量检查。
+该修订的重入目标
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39969281730)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39969292353)
+已派发；这次要求新增编辑阶段、原两阶段、唯一 pass 与机器关闭，不据旧版本
+结果替代本次验收。旧 5c11fb4 的 wasm64 重入实际日志也已取回，确认相同的
+syscall-info EIO，而非下载错误；新修复针对两位宽共同门控问题。
 
 ## 信号栈缺口的前期核查记录
 
