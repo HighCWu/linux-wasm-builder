@@ -16,6 +16,7 @@ class Stacktrace(unittest.TestCase):
         musl = ROOT / "sources/musl"
         source = ROOT / "sources/distro/distro/toolchain-smoke/stacktrace.c"
         self.assertIn("#ifndef __wasm__\n#error", source.read_text())
+        self.assertIn("syscall(SYS_syslog, 4L,", source.read_text())
         with tempfile.TemporaryDirectory(prefix="stacktrace-abi-") as tmp:
             path = pathlib.Path(tmp)
             (path / "bits").mkdir()
