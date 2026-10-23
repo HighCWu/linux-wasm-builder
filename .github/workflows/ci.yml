@@ -264,6 +264,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          python3 -B scripts/test_fetch_kernel_ipc_uapi.py
           python3 -B scripts/fetch_kernel_ipc_uapi.py "$revision" "$RUNNER_TEMP/ipc-uapi"
           WASM_IPC_UAPI_DIR="$RUNNER_TEMP/ipc-uapi" python3 -B scripts/test_sysv_ipc.py
       - name: Check fork callback and flags-first Wasm imports link together
