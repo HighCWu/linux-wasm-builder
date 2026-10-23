@@ -2663,9 +2663,17 @@ WRITE 向旧回调转成3、原拒绝分支不调用分配器，GCC/Clang 原生
 
 源码及工作负载已分别原子提交推送，精确
 [hash 预取 39978007643](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39978007643)
-已派发，核实后再单独集成；当前已发布
-根仓库 pin 仍为第五十七组，真实 WRITE 阶段尚未派发或验收。配套根仓库轻量
-检查暂留工作区，需随新 pin 一起提交，避免用旧内核跑新能力断言。
+已成功，实际日志核实完整 revision 与
+`sha256-vd75NUbMIHzlyuLgIrsGYHdgEPy0oFknN14keA26m9E=`。
+distro `0ff3b06` 单独更新构建 pin，根仓库 `6525559` 更新 Linux/distro
+gitlink 并提交配套检查；没有用旧内核跑新能力断言。
+
+固定同一 `0ff3b06` 的既有 mmap correctness 目标已派发：
+[wasm32 39978400559](https://github.com/HighCWu/distro/actions/runs/39978400559)、
+[wasm64 39978409127](https://github.com/HighCWu/distro/actions/runs/39978409127)。
+这些是正确性检查，不运行 benchmark。验收需核实新增 WRITE libc/raw 阶段、
+全部既有 mmap 阶段、唯一 pass 与机器关闭；目前运行或排队，尚未宣称通过。
+第五十七组的四项旧目标继续运行，不重复派发或取消。
 
 raw SYS_brk 同轮核查仍未冒充实现：既有 musl brk/sbrk 的当前 break 是用户
 分配器状态，mmap 又使用同一 malloc arena。它仅允许单调增长；不能直接给

@@ -519,8 +519,9 @@ distro `2180b2a` 更新原 offsets 目标而非新增重复程序，原生参考
 
 随后 Linux `bba354425` 允许匿名 PROT_WRITE，并向旧执行层归一为 READ|WRITE；
 不提供读取隔离，不放开 PROT_NONE/EXEC 或文件候选限制。distro `8d83b32`
-扩展原 mmap 程序，双位宽本地执行模型、前端/分析与负向控制通过；源码已发布，
-精确 hash/pin 和真实 WRITE 阶段待完成。musl 不变，未新增包装或应用 API。
+扩展原 mmap 程序，双位宽本地执行模型、前端/分析与负向控制通过；精确 hash
+已核实，distro `0ff3b06` / 根仓库 `6525559` 单独集成。双位宽既有 correctness
+目标已异步派发，真实 WRITE 阶段及关闭待验收。musl 不变，未新增包装或应用 API。
 详见[第五十八组](process-syscalls.md#第五十八组匿名-mmap-的-write-请求兼容)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
