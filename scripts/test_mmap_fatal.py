@@ -48,8 +48,22 @@ class MmapFatal(unittest.TestCase):
             for bits in (32, 64):
                 common = ["clang", f"--target=wasm{bits}", "-nostdinc", *includes]
                 for source in sources:
-                    subprocess.run([*common, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(source)], check=True)
-                    subprocess.run([*common, "--analyze", "-Xanalyzer", "-analyzer-werror", str(source),
+                    compile_source = source
+                    command = common
+                    if source.name == "shared-user-growth.c":
+                        recipe = (ROOT / "sources/distro/distro/toolchain-smoke/package.nix").read_text()
+                        self.assertIn("clang ${compileFlags} -I${../basic-init/tests} -pthread", recipe)
+                        # Nix interpolates the individual C path into the store;
+                        # quoted includes cannot rely on its repository siblings.
+                        compile_source = path / "isolated-growth.c"
+                        compile_source.write_text(source.read_text())
+                        refused = subprocess.run([*common, "-fsyntax-only", str(compile_source)],
+                                                 capture_output=True, text=True)
+                        self.assertNotEqual(refused.returncode, 0)
+                        self.assertIn("'test.h' file not found", refused.stderr)
+                        command = [*common, "-I", str(source.parent)]
+                    subprocess.run([*command, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(compile_source)], check=True)
+                    subprocess.run([*command, "--analyze", "-Xanalyzer", "-analyzer-werror", str(compile_source),
                                     "-o", "/dev/null"], check=True)
 
 
