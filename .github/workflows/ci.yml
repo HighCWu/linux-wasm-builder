@@ -70,6 +70,8 @@ jobs:
         run: |
           python3 -B scripts/test_signal_altstack.py
           node --test sources/distro/packages/kernel/test/signal-stack.test.ts
+      - name: Check existing fork-profile terminal and daemon bodies
+        run: WASM_TERMINAL_COMPILERS=clang python3 -B scripts/check_terminal_process.py
       - name: Check failed fork Worker lifetime with exact pinned kernel source
         # Host atomics/sanitizers and small Wasm codegen, not kernel execution.
         env:
