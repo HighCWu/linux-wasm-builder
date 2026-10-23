@@ -2469,6 +2469,19 @@ distro `75cad05` 发布 lite-oom 独立目标：链接期对既有 sbrk 做受�
 故障包装只在该测试程序，未加入 libc 或应用 SDK。源码 hash 预取后另行集成，
 真实双位宽阶段和关闭结果尚未验收。
 
+公开预取 [39965887373](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39965887373)
+实际日志现已核实完整 b1c51ef9 revision 及 SRI
+`sha256-z0dhmwlHMueAb/V8grw4q5gzUFhPyPwPRqoSLjuMa/Q=`。
+distro `db46ac8` 固定该源码，根仓库 `d61efcd` 单独更新 musl/distro gitlink 和
+轻量模型门禁，Linux 仍为 7258cf2c6。可选 fork 补丁对新基线 dry-run 通过。
+双位宽 lite-oom 与默认 C runtime 回归异步派发，真实阶段/关闭结果待验收；
+未新增 syscall、公共函数、头文件 API 或通用包装，也未改写已发布历史。
+固定 db46ac8 的真实目标：lite-oom
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39966367935)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39966378171)；默认 C runtime
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39966388876)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39966402001)。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

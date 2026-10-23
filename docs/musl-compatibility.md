@@ -45,6 +45,9 @@ wasm32 满容量查询分别明确失败。模型不等于浏览器大内存承�
 Wasm 的 mmap 分配共用此堆。小型模型与分析通过，默认链接及真实程序验收另记
 于[第五十四组](process-syscalls.md#第五十四组wasm-轻量分配器的可恢复耗尽)；
 未据此宣称内核 SYS_brk 已支持。
+精确源码预取已核实 revision/SRI；distro db46ac8 / 根仓库 d61efcd 完成 pin 集成。
+双位宽真实轻量分配器与默认 C runtime 的运行证据仍单独验收，不把模型成功或
+fork 补丁 dry-run 当作所有程序 OOM 行为的证明。
 
 ## Wasm clone trampoline 的启动边界兼容
 

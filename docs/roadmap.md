@@ -482,7 +482,8 @@ hash 预取 39963218440 的实际 revision/SRI 已核实，distro `5c11fb4` / �
 独立 review 继续修正 musl 原有 Wasm 轻量分配器：`b1c51ef9` 将增长失败时的
 trap 改为释放锁并返回 NULL/ENOMEM，未新增任何函数或 API。双位宽原样源文件
 执行、旧 trap 对照及 Clang 18/22 分析通过；distro `75cad05` 发布链接选择受
-门禁的真实目标，精确 hash/pin 集成与目标验收另行完成。不是新增 SYS_brk，
+门禁的真实目标，实际 hash 已核实并由 distro db46ac8 / 根仓库 d61efcd 集成，
+双位宽 lite-oom 与默认 C runtime 目标异步验收。不是新增 SYS_brk，
 也不以另一套分配器的 OOM 返回替代轻量路径验收。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
