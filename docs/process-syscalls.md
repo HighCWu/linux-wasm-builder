@@ -1609,6 +1609,37 @@ distro `bcd1637` / 集成 `977090b` 完成 pin 更新。旧任务终态后已派
 [process-vm-poll32]: https://github.com/HighCWu/distro/actions/runs/39896332106
 [process-vm-poll64]: https://github.com/HighCWu/distro/actions/runs/39896336670
 
+### 第三十六组：既有 Wasm break 算术与增长兼容修复
+
+musl `bf26831e` / distro `11ee975` / 集成 `3979c20` 修正原 Wasm brk/sbrk
+实现。直接基线上已有这两个函数及 Wasm 内存增长代码，本轮只修改该架构分支，
+无新增函数、公共头文件、声明或执行 import；非 Wasm 分支不变。内核 SYS_brk
+仍未实现，不计为新增 raw syscall，也不把单调 allocator 说成支持缩小 break。
+
+修正两类边界：先拒绝负 sbrk 增量和正增量地址溢出，再计算新指针；以页面数量
+比较容量，避免 wasm32 的4 GiB字节末端回绕为零，同时避免舍入加法溢出。
+查询使用当前已提交容量，失败不改 current，所有返回路径仍释放同一互斥锁。
+不绕过已有 malloc/mmap 共用堆策略，不更改 CONFIG_MMU=n 或直接内存上限。
+
+Clang18/22 对实际函数体的双位宽小型 Wasm 执行与分析通过，测试替换的只有
+memory.size/grow 和互斥/errno 支撑，用模型验证容量边界，不分配数 GiB内存。
+原 `e12bb18e` 源码对照分别复现负增量错误和 wasm32 满容量查询错误；高位数值
+模型不代表真实宿主能承载相应内存。另已分析实际 SDK 负载及可选 fork 补丁
+dry-run，新增独立测试和文档 MIT，沿用 musl 本身的 MIT 许可。
+
+真实 Wasm 驱动只运行于隔离目标，不在宿主原生 libc 上修改 break。三阶段检查：
+既有查询/负增量拒绝不改状态；普通64 KiB增长后与 malloc、匿名 mmap 字节独立；
+释放库分配、再次分配后，主动保留的 break 字节仍完好。模型证明的4 GiB边界
+不由这个小内存负载冒充验收。
+
+[源码预取][brk-prefetch] 已核实精确修订和 unpacked hash。默认 SDK 的
+[wasm32][brk32]、[wasm64][brk64] 已派发，仍须核实实际三阶段、唯一 pass 和关闭。
+这两项不覆盖所有依赖包、浏览器或多线程压力，已有 process_vm 任务不取消或重派。
+
+[brk-prefetch]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39897485596
+[brk32]: https://github.com/HighCWu/distro/actions/runs/39897700718
+[brk64]: https://github.com/HighCWu/distro/actions/runs/39897705996
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
