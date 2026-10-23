@@ -1600,7 +1600,9 @@ mmap 锁持有，上一块已同步完成，不会把仍被远端引用的缓冲
 延迟或多任务公平性。[预取][process-vm-poll-prefetch] 已核实精确源码和 hash；
 distro `bcd1637` / 集成 `977090b` 完成 pin 更新。旧任务终态后已派发
 [wasm32][process-vm-poll32] 与 [wasm64][process-vm-poll64] 定向复验，仍须
-核实实际全部三阶段、唯一 pass 与关闭；旧版本结果不能替代新增路径的目标验收。
+核实新增路径而非沿用旧版本结果。两项现已成功，实际日志逐项核实全部三阶段、
+各自唯一 pass 及不变运行器的关闭门禁；这是该修订的有界 Node 正确性验收，
+不宣称实际调度延迟/公平性已测量，也不泛化为浏览器。
 
 [process-vm-prefetch]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39893540026
 [process-vm32]: https://github.com/HighCWu/distro/actions/runs/39893965748
@@ -1633,12 +1635,62 @@ dry-run，新增独立测试和文档 MIT，沿用 musl 本身的 MIT 许可。
 不由这个小内存负载冒充验收。
 
 [源码预取][brk-prefetch] 已核实精确修订和 unpacked hash。默认 SDK 的
-[wasm32][brk32]、[wasm64][brk64] 已派发，仍须核实实际三阶段、唯一 pass 和关闭。
+[wasm32][brk32]、[wasm64][brk64] 均已成功，实际日志逐项核实全部三阶段、
+各自唯一 pass 及不变运行器的关闭门禁。
 这两项不覆盖所有依赖包、浏览器或多线程压力，已有 process_vm 任务不取消或重派。
 
 [brk-prefetch]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39897485596
 [brk32]: https://github.com/HighCWu/distro/actions/runs/39897700718
 [brk64]: https://github.com/HighCWu/distro/actions/runs/39897705996
+
+### 第三十七组：文件复制的可见 SIGKILL 取消点
+
+Linux `50abafbb5` / distro `aed297b` / 集成 `a9638e9` 修正已有候选共用
+复制路径：原 kernel_read 完整返回后会无条件进入用户初始化器，即使当前任务
+已有可见的 SIGKILL。现在每次 VFS 读取前和完整读取后、初始化前检查
+fatal_signal_pending，返回 EINTR 并走原 staging/预算清理。不在 kernel_read
+仍执行时释放其目标缓冲，不把取消请求当成生产者已完成。
+
+这是特定取消点的改进，不是把最终检查和未来信号入队做成原子事务。检查之后才
+到来的信号仍有窗口；不能宣称任意时刻取消、全部用户分配器重入或真实块设备
+在途 I/O 生命周期已解决。默认文件映射开关、来源政策、大小预算和执行 ABI 不变。
+没有新增应用接口、libc 函数或 softmmu；内核实现保留 GPL。
+
+原默认关闭私有测试内核增加 mode6 受控 VFS 生产者：entered 后用不可中断
+completion 等待 controller，SIGKILL 不能自行结束读取。测试内核专有统计
+selector0x100 只计初始化回调尝试，不能被 caller 重置；生产内核不编译该计数。
+原无效 selector4 保持拒绝。这些均不加入 Linux 公共 UAPI 或 SDK 头文件。
+
+扩展既有 vfs-exit 目标，每轮保留两种可中断读取，并加入不可中断生产者，共八轮：
+
+- 等 entered 且请求、staging、来源各一份，向独立线程组的共享 mm 子任务发送
+  SIGKILL；WNOHANG 必须表明它尚未退出，资源和初始化尝试计数保持原值。
+- 显式 PROCEED 后 VFS 返回完整数据，子任务按 SIGKILL 退出，不回到用户回调，
+  初始化器尝试计数仍不变；不得先取消生产者就假报安全回收。
+- 来源 fd 位置、父映射内容不变，原来源再读取和新请求恢复，最终请求/staging/
+  来源及预算回到基线；每轮单独输出完成标记，拒绝旧请求迟到返回。
+
+GCC/Clang 原样候选 C 的宿主模型、分别绕过读取前/发布前检查的失败对照、真实
+函数体模型分析及双位宽 controller 前端/分析通过。模型覆盖初始可见 SIGKILL、
+短读后和完整读取后取消，不证明 Linux 调度或真实 VFS。构建候选或私有测试内核
+均会运行相同模型；新 controller、检查与文档 MIT。
+
+[源码预取][fatal-mmap-prefetch] 已核实精确修订和 hash。
+review 又发现原稳定屏障资源查询只在零请求时检查预算；distro `d372d68` /
+集成 `bf3073b` 补充 SIGKILL 排队后明确检查仍预留恰好双份页长度，不能只从
+请求/staging 数量推导预算保留。此前 aed297b 的
+[wasm32][fatal-mmap-initial32]、[wasm64][fatal-mmap-initial64] 不覆盖这条断言，
+保留运行、不取消；新版本 [wasm32][fatal-mmap32]、[wasm64][fatal-mmap64]
+已派发，尚待核实
+生产者保留阶段、八轮完成标记、无初始化回调/恢复阶段、唯一 pass 与关闭。
+该目标使用真实 Linux 受控 inode 和共用 VFS 路径，不是 EROFS/virtio 实际设备
+在途压力，也不单独满足默认文件 mmap 的全部生产准入门槛。
+
+[fatal-mmap-prefetch]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39898917489
+[fatal-mmap-initial32]: https://github.com/HighCWu/distro/actions/runs/39899413464
+[fatal-mmap-initial64]: https://github.com/HighCWu/distro/actions/runs/39899419274
+[fatal-mmap32]: https://github.com/HighCWu/distro/actions/runs/39899822579
+[fatal-mmap64]: https://github.com/HighCWu/distro/actions/runs/39899830583
 
 ## 信号栈缺口的前期核查记录
 
