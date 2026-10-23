@@ -1690,8 +1690,10 @@ aed297b 的 wasm32 实际日志明确失败于 Nix 内核构建沙盒：
 依赖和构建步骤，保留默认不检查配置的最小依赖；没有更改内核、运行断言或来源 hash。
 静态配方约束和 Nix 语法/格式检查通过，不代替真实构建闭包或运行证据。
 
-修正版 [wasm32][fatal-mmap32]、[wasm64][fatal-mmap64] 已派发，尚待核实
-生产者保留阶段、八轮完成标记、无初始化回调/恢复阶段、唯一 pass 与关闭。
+修正版 [wasm32][fatal-mmap32]、[wasm64][fatal-mmap64] 均已通过，实际日志逐项
+核实生产者保留阶段、各八轮完成标记、无初始化回调/恢复阶段、各自唯一 pass。
+两项 Heavy 作业均成功，未变的 runner 仍在成功返回前等待 machine.closed，
+没有 runner cleanup failed 或 Kernel panic；这是该版本的有界验收。
 该目标使用真实 Linux 受控 inode 和共用 VFS 路径，不是 EROFS/virtio 实际设备
 在途压力，也不单独满足默认文件 mmap 的全部生产准入门槛。
 
@@ -1702,6 +1704,42 @@ aed297b 的 wasm32 实际日志明确失败于 Nix 内核构建沙盒：
 [fatal-mmap-budget64]: https://github.com/HighCWu/distro/actions/runs/39899830583
 [fatal-mmap32]: https://github.com/HighCWu/distro/actions/runs/39900385267
 [fatal-mmap64]: https://github.com/HighCWu/distro/actions/runs/39900390783
+
+## 第三十八组：文件初始化异常的内核所有权候选
+
+Linux `48adb6d39` / distro `d36fbc4` / 集成 `3325f9b` 修复上轮小型复现
+确认的 C 清理旁路。共用复制函数现在消耗
+调用者传入的一个文件引用；标准入口和私有 VFS 调用者都不再在它返回后重复 fput。
+只在 kernel_read 已结束、即将调用用户初始化器时建立任务所有的堆记录，持有
+staging、文件引用和预算。普通返回释放该记录；执行桥撤销租约后，在重抛原异常前
+调用内部 abort_file_mmap_v1 export。该 export 不是用户 import、Linux syscall
+或公共应用 API，亦不把异常转成 errno。内核异常不被重新分类为用户分配失败。
+
+初始化器若调用 exit，exit_thread 在交出 CPU 前释放记录；JS 遇 HALT_KERNEL
+不再进入已死亡任务的内核实例。fork 创建任务时清空此所有权链，不复制父记录。
+记录不在被跳过的 C 栈上；SjLj/exec 非局部退出后也不会留下悬空栈指针。
+读取中的生产者不挂入链，退出钩子不能据此提前回收其仍可写入的缓冲区。
+
+本地 Clang18/22、wasm32/64 对实际共用函数与 JS 桥的小型模块均确认 trap 后
+资源归零、原异常传播和恢复请求；旁路 abort 的对照仍泄漏，随后退出钩子可清理。
+GCC/Clang 的普通/失败返回模型、记录分配失败、致命取消点反向控制及静态分析通过；
+两项 TS 工程检查和345项 kernel 宿主检查通过。它们不代替完整内核运行证据。
+
+新增默认关闭测试配置中的独立 vfs-callback 目标：实际初始化器 trap 子任务必须
+按 SIGSEGV 退出；嵌套 SYS_exit 必须保留73退出码，两类各四轮；父端确认未正常
+返回、资源归零、关闭最后 fd 后来源释放，并能再次读取。另在父任务中从初始化器
+siglongjmp 到原 catchpad，检查37返回值及后续映射恢复；重入文件复制须返回
+EBUSY，不得撤销外层所有权或阻止外层完成复制。仅测试内替换可选初始化
+archive member，不修改 musl 或新增公共函数。目标已集成，尚待 CI 验收；
+exec、真实设备在途压力、用户分配器损坏恢复及默认 SDK 准入仍不在已验证范围内。
+
+源码 hash 由[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39902572370)
+核实；途中429由原任务自行重试成功，没有重复派发。已集成并派发同源码的
+[wasm32 callback](https://github.com/HighCWu/distro/actions/runs/39902993436)、
+[wasm64 callback](https://github.com/HighCWu/distro/actions/runs/39902998433)，以及
+[wasm32 取消点回归](https://github.com/HighCWu/distro/actions/runs/39903003400)、
+[wasm64 取消点回归](https://github.com/HighCWu/distro/actions/runs/39903008720)。
+这些任务尚未验收，不能用前一版本的取消点结果替代新所有权代码的通过证明。
 
 ## 信号栈缺口的前期核查记录
 
