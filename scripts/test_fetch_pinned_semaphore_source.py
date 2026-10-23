@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 import unittest
+from pathlib import Path
 import urllib.error
 import urllib.request
 
@@ -11,6 +12,12 @@ REVISION = "ab" * 20
 
 
 class FetchTest(unittest.TestCase):
+    def test_workflow_has_no_remaining_direct_kernel_contents_api_pipeline(self):
+        workflow = (Path(__file__).resolve().parents[1] / ".github/workflows/ci.yml").read_text()
+        self.assertNotIn('gh api "repos/HighCWu/linux/contents/', workflow)
+        self.assertIn('"$revision" "$RUNNER_TEMP/syscall-wrapper.h" arch/wasm/include/asm/syscall_wrapper.h', workflow)
+        self.assertIn('"$revision" "$RUNNER_TEMP/wasm-sigcontext.h" arch/wasm/include/uapi/asm/sigcontext.h', workflow)
+
     def test_raw_success_does_not_send_token_or_call_api(self):
         calls = []
 
