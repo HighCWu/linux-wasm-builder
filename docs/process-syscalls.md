@@ -2817,8 +2817,20 @@ SDK 或 libc 公共接口。GCC/Clang 原生参考通过两个公共阶段，不
 
 源码已分别原子提交推送，精确预取
 [39987636348](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39987636348)
-已派发。构建/主仓库 musl pin 仍为264eb000；核实完整 hash 后再单独集成、提交
-根仓库模型/门禁并派发双位宽目标。尚未宣称真实线程释放三阶段或机器关闭通过。
+已成功；实际日志核实完整 revision 和
+`sha256-2de32oGY1FG8F8QOWHJCE/N85QAcC8u5tw0wK0vdlTk=`。
+distro `19e8fd0` 单独更新构建 pin，根仓库 `a87f9c6` 更新 musl/distro gitlink，
+提交原样函数模型和轻量 CI 门禁。Linux pin 未变，没有将 libc 架构兼容修复
+描述为新增内核 syscall。模型、源码/负载前端与分析、原生参考再次通过。
+
+固定同一 `19e8fd0` 的双位宽 thread-reclaim 和取消点回归共四项已派发：
+[39988479944](https://github.com/HighCWu/distro/actions/runs/39988479944)、
+[39988488638](https://github.com/HighCWu/distro/actions/runs/39988488638)、
+[39988496691](https://github.com/HighCWu/distro/actions/runs/39988496691)、
+[39988504426](https://github.com/HighCWu/distro/actions/runs/39988504426)。
+目前运行或排队，需核实实际 SP 释放、32 轮 destructor/分配并行、后续 joinable
+与清理三阶段、取消点原三阶段、唯一 pass 及 machine.closed；尚未宣称通过。
+旧版本取消/信号栈验收不直接覆盖这一新 pin，也不重复派发仍在运行的 PTY 目标。
 
 ## 信号栈缺口的前期核查记录
 
