@@ -2041,9 +2041,8 @@ syscall 号、musl 和 MMU 策略。真正的内存末端短复制仍由现有 u
 既有 ptrace 程序增加对齐的两页静态缓冲区，在页末一字节处执行非对齐 PEEK/
 POKE，再核对 child 恢复后读到完整新值、两侧邻接字节及 parent 原副本未变。
 原生 GCC/Clang sanitizer、无真实写入/错误信号掩码的原反向控制，以及双位宽
-前端/分析通过；源码已推送，hash 与目标集成仍待
-[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39917966328)
-完成，不计为 Wasm 验收。
+前端/分析通过；独立源码的预取曾失败，现已随包含该修复的后继 22cdbc317 集成，
+见下一组的实际 hash/pin 记录。仍待跨页目标验收，不计本地检查为 Wasm 通过。
 
 同轮处理已明确失败的根仓库 CI：
 [c98b13f](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39914944033) 与
@@ -2074,9 +2073,54 @@ d25423a8f 的首次预取现已明确失败：实际日志为 codeload 反复429
 任务终态且读取错误后派发[同源码新预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39920679240)，
 不取消慢任务，不接受缺失 hash，不改用本地推算值。
 该新任务现也已终态失败，实际日志确认两端点各两次均429，没有有效 hash，故没有
-更新 pin 或派发跨页目标；不再立即重复请求同一受限下载。后续可继续独立实现和
-review，待下载条件恢复后再完成该已发布源码的集成。79795f2 的轻量 CI 本身已
-成功，不将其误写为预取成功。
+更新 pin 或派发跨页目标；没有立即重复请求同一受限下载。其后继续完成独立的
+socket 修复，并取得包含两项增量的后继源码 hash，现已集成，详见下一组。
+79795f2 的轻量 CI 本身已成功，不将其误写为旧源码预取成功。
+
+## 第四十七组：socket MSG_ZEROCOPY 的标准复制回退
+
+Linux `22cdbc317` 为 Wasm 的 TCP 及 IPv4/IPv6 UDP 用户迭代器选择已有复制路径，
+而不是尝试将用户线性内存偏移固定为内核 struct page。MSG_ZEROCOPY 是可退回
+复制的 Linux 提示，但仍须提供完成通知；原网络代码已具有复制及 COPIED 通知
+逻辑，本次只修正可固定页的选择条件，不自建通知或伪造零拷贝。保留 SO_ZEROCOPY、
+资源限制、错误收尾、发送序号和原引用释放路径，不承诺零拷贝或性能收益。
+
+条件只限制 CONFIG_WASM 的 user_backed_iter；内核迭代器、非 Wasm 构建和
+MSG_SPLICE_PAGES 路径不变。datagram 的非 ip_generic_getfrag 回调不一定接收
+msghdr，选择条件短路后不得读取该未知类型，不能在所有回调前盲目解引用 from。
+未改 syscall 号、musl、公共头文件或执行 ABI，CONFIG_MMU=n 和 fork 范围不变。
+Linux 内修改保留 GPL；新独立验证程序及模型为 MIT，不把内核实现链接进用户 SDK。
+
+实际选择表达式在 GCC/Clang18/22 sanitizer 模型中通过用户/内核迭代器、非 Wasm
+及不同 getfrag 来源检查；强制允许用户固定、移除回调类型保护的对照须失败。
+该模型不执行真实网络发送或通知。标准 socket 程序另检查 IPv4/IPv6 的 TCP/UDP：
+每种组合连续两次 sendmsg 散集发送16KiB二进制数据，核对错误队列 origin、COPIED
+标志、完整 cmsg 和准确的0/1发送序号；先等通知，覆盖原发送缓冲区，再让接收端
+读出并与独立期望数据比较。之后普通发送不得生成零拷贝通知，所有 fd 必须关闭。
+
+原生 GCC/Clang ASan/UBSan 的完整四阶段通过；篡改复制标志或发送序号均必须失败，
+不得出现最终 pass。Wasm 双位宽前端及静态分析通过。测试只在 Wasm 隔离机器上
+拉起 loopback，不改宿主网络；使用已有 libc 接口，错误队列结构只在测试内按
+标准 Linux wire format 声明。旧 libc 的 CMSG_NXTHDR 宏存在 signedness 警告，
+仅在测试私有 helper 中局部屏蔽该宏诊断，不改 musl 或全局关闭代码警告。
+
+新源码已推送，包含第四十六组跨页修复。
+[22cdbc317 公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39922877966)
+实际日志已核实完整 revision 及对应 SHA256 SRI，不只看状态。distro `9bb1bb3`
+加入独立 socket 目标，`f4da7a8` 固定新内核，根仓库 `e7759e2` 单独更新两个
+gitlink 和轻量门禁；musl 仍是 bf26831，没有更改历史。未拿新 hash 冒充失败的
+d25423a8f archive hash，而是完整构建、验证明确包含两项修复的后继版本。
+
+同一 f4da7a8 已派发：
+
+- ptrace 跨页：[wasm32](https://github.com/HighCWu/distro/actions/runs/39923928508)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/39923937955)。
+- socket 复制通知：[wasm32](https://github.com/HighCWu/distro/actions/runs/39923948685)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/39923958794)。
+
+两类均须核实各自四个完整阶段、唯一 pass 与机器关闭；现仍待目标验收，不把宿主
+程序或选择表达式模型当成 Wasm 执行。尚未派发浏览器或外部网络目标，也不扩大为
+RDS、DMA、io_uring、所有零拷贝接口、全部 cmsg 组合或真实页固定支持。
 
 ## 信号栈缺口的前期核查记录
 
