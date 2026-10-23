@@ -25,6 +25,20 @@ class SignalAltstack(unittest.TestCase):
                 self.assertEqual(result.stdout.count(" pass\n"), 2)
                 self.assertEqual(result.stdout.count("::vm-test::pass"), 1)
 
+                # Sending to the controller must fail as a fixture identity
+                # error, never kill the native runner or masquerade as a pass.
+                original = SOURCE.with_name("signal-nested-jump.c").read_text()
+                wrong = original.replace("syscall(SYS_tkill, (unsigned long)tid,",
+                                         "syscall(SYS_tkill, (unsigned long)controller_tid,")
+                self.assertNotEqual(wrong, original)
+                subprocess.run([cc, "-xc", "-O2", "-Wall", "-Wextra", "-Werror", "-fsanitize=undefined",
+                                "-o", str(binary), "-"], input=wrong, text=True, check=True)
+                refused = subprocess.run([str(binary)], capture_output=True, text=True, timeout=20,
+                                         env={**os.environ, "UBSAN_OPTIONS": "halt_on_error=1"})
+                self.assertNotEqual(refused.returncode, 0, refused.stdout + refused.stderr)
+                self.assertIn("handler=8", refused.stdout)
+                self.assertNotIn("::vm-test::pass", refused.stdout)
+
     def test_native_reference_and_sanitizers(self):
         for cc in ("gcc", "clang"):
             with self.subTest(cc=cc), tempfile.TemporaryDirectory(prefix="altstack-native-") as tmp:
