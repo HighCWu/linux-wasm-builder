@@ -45,6 +45,7 @@ elif tool == "nix":
     value = os.environ["BASELINE_HASH"] if baseline else "sha256-"+"B"*43+"="
     if baseline and os.environ.get("MODEL_HASH_MISMATCH"): value = "sha256-"+"C"*43+"="
     if not baseline and os.environ.get("MODEL_BAD_SRI"): value = "invalid"
+    if not baseline and os.environ.get("MODEL_SAME_HASH"): value = os.environ["BASELINE_HASH"]
     print(value)
 else: sys.exit(98)
 '''
@@ -84,13 +85,13 @@ class GitHashPrefetch(unittest.TestCase):
                        {"MODEL_MODE": "1"}, {"MODEL_HASH_MISMATCH": "1"},
                        {"MODEL_SUBST": "1"}, {"MODEL_ATTR_FAIL": "1"},
                        {"MODEL_ARCHIVE_FAIL": "1"}, {"MODEL_NIX_FAIL": "1"},
-                       {"MODEL_BAD_SRI": "1"}):
+                       {"MODEL_BAD_SRI": "1"}, {"MODEL_SAME_HASH": "1"}):
             with self.subTest(inputs=inputs):
                 result, calls, summary = self.run_model(inputs)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn("Candidate hash:", result.stdout)
                 self.assertEqual(summary, "")
-                if "MODEL_BAD_SRI" not in inputs:
+                if "MODEL_BAD_SRI" not in inputs and "MODEL_SAME_HASH" not in inputs:
                     self.assertFalse(any(call[0] == "nix" and Path(call[1][-1]).name == "candidate" for call in calls))
 
 

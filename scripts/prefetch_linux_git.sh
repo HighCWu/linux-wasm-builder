@@ -38,6 +38,7 @@ git -C "$source_work/git" archive --format=tar "$SOURCE_REVISION" |
   tar --extract --directory="$source_work/candidate"
 candidate_hash=$(nix hash path --type sha256 "$source_work/candidate")
 [[ $candidate_hash =~ ^sha256-[A-Za-z0-9+/]{43}=$ ]]
+[[ $candidate_hash != "$verified_baseline" ]]
 
 printf 'Verified baseline revision: %s\nVerified baseline hash: %s\n' "$BASELINE_REVISION" "$verified_baseline"
 printf 'Candidate revision: %s\nCandidate hash: %s\n' "$SOURCE_REVISION" "$candidate_hash"
