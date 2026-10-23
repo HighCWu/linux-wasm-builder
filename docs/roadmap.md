@@ -364,14 +364,33 @@ distro `1a903a2` / 集成 `9a27f54` 修复 shared-memory 扩容后的旧视图�
 
 a1e4bd4 的四项复验均失败；已核实两路 wasm32 日志停于共用 toolchain-smoke
 构建缺少 test.h，没有运行目标。distro `a576e9f` / 集成 `01dc041` 显式声明
-头文件输入，并增加模拟 Nix 单文件源布局的缺失/正确 include 路径对照；仍待 CI。
+头文件输入，并增加模拟 Nix 单文件源布局的缺失/正确 include 路径对照。
+现有日志确认共享增长和新嵌套信号在双位宽各自的完整两阶段、唯一 pass 与关闭
+门禁；wasm64 信号日志曾下载中断，重取后核实，不以工作流状态代替验收。
 不要把这个构建失败回溯为已经修复的 TID 误投或 shared-copy 语义失败。
 
 distro `86b775a` / 集成 `94e8cfe` 继续修正 kernel Worker 名称、boot console
 及 trace 导入：原始指针位模式解码、过期 shared view 刷新、完整范围校验和同步
 复制快照。真实越界保留 kernel/host 错误，不变成 errno。旧源码模型确认缺口，
-新检查通过，但尚未证明实际高 kernel 地址复制或浏览器运行。
+新检查通过；stacktrace 双位宽实际三阶段、唯一 pass 与关闭门禁也已核实。
+这些尚未证明实际高 kernel 地址复制或浏览器运行。
 详见[第四十二组](process-syscalls.md#第四十二组内核-worker-名称与诊断导入的-direct-指针)。
+
+Linux `f7626f432` 修复 clone_fn 记录在 continuation 执行桥非局部退出时被遗留
+的顺序问题：只复制 fn/arg 标量，释放该记录后再 handoff；异步 Worker 的
+task_bootstrap_args 仍按原 ack 协议回收。真实小 Wasm 模块的正常/异常/恢复与
+后释放对照通过，不新增 ABI 或错误恢复承诺。根仓库模型也补齐新增退出钩子，
+不再因模型缺字段而无法检查实际 exit_thread；已随 b8eafea09 集成，待目标验收。
+详见[第四十三组](process-syscalls.md#第四十三组clone-入口的元数据所有权)。
+
+Linux `b8eafea09` 继续补齐 vmsplice 用户到管道方向的真实执行路径：Wasm 用户
+内存不能当作内核页固定，改经现有 uaccess 复制到有界 pipe-owned 页；管道等待、
+通知及非 Wasm 路径不变，不新增 libc API 或承诺零拷贝。独立所有权模型和标准
+syscall 语料的本地检查通过，源码 hash 已实际核实，distro `ac84a1c` / 集成
+`c98b13f` 已推送；双位宽 fork/pthread 回归和 vmsplice 新目标已异步派发，
+仍待完整内核阶段与关闭验收。源码预取也修复了下载429却因 tee 掩盖错误而假绿
+的问题，失败和非法 hash 现在必须使工作流失败，不用缺失的 hash 更新 pin。
+详见[第四十四组](process-syscalls.md#第四十四组vmsplice-的用户线性内存复制路径)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

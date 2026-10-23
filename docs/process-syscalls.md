@@ -1885,8 +1885,89 @@ shared grow 后的刷新。新逻辑按原始指针位宽解码，必要时只�
 - 既有诊断/Worker 回归：[wasm32](https://github.com/HighCWu/distro/actions/runs/39910411455)、
   [wasm64](https://github.com/HighCWu/distro/actions/runs/39910419541)。
 
-各自仍需完整阶段、唯一 pass 与机器关闭。诊断回归仅证明普通运行范围，不能替代
-未执行的真实高 kernel 地址分配、所有 import 审计或浏览器旧视图压力验证。
+六项工作流与 Heavy 均已成功结束，但验收另按实际日志记录：共享增长双位宽各有
+两个完整阶段；stacktrace 双位宽各有三个完整阶段；signal-nested 的 wasm32
+有两个完整阶段。上述五项各有唯一 pass，未见 panic 或 runner cleanup failed，
+成功返回还受既有 runner 等待 machine.closed 的门禁约束。wasm64 信号日志下载
+曾以 unexpected EOF 终止；重取后已确认同样的两个完整阶段与唯一 pass，六项现均
+具备实际阶段与关闭门禁证据，不仅凭工作流状态补作验收。
+诊断回归仅证明普通运行范围，不能替代真实高 kernel 地址分配、所有 import 审计
+或浏览器旧视图压力验证。
+
+## 第四十三组：clone 入口的元数据所有权
+
+Linux `f7626f432` 将 clone_fn 的两个标量先复制到局部变量，再释放该记录，最后
+调用 user.switch_entry 执行桥。后者在 continuation 验证/恢复中可以非局部退出；
+旧顺序把 kfree 放在桥之后，会在这种异常下跳过释放。桥只接收 fn/arg 数值，
+不需要保留原记录。正常 callback 的非法函数表项检查发生在后续 user.call，
+不能误把它描述成这里新修复的 Linux 错误返回路径。
+
+不改变 clone 参数、task 创建/失败处理或 fork 支持范围。这里提前释放的只是
+clone_fn，不是仍可能被异步 Worker 读取的 task_bootstrap_args；后者的 abort/
+ack 等待屏障保持不变。原始异常继续传播，没有转换成 errno 或新增恢复承诺。
+
+实际函数体在 Clang18/22 的 wasm32/64 小模块中验证：释放会覆盖原字段，但桥
+仍收到完整 fn/arg 位模式；正常返回、桥抛 RuntimeError 和后续恢复调用都只释放
+一次。把释放移回桥之后的对照必须失败。高位值仅验证数值传递，不调用真实高位
+函数表项；临时模块包含 GPL 内核实现，不是 MIT 用户 SDK 构件或 Linux slab 证明。
+
+同时修正根仓库 fork-abort 宿主模型：先前加入实际 mmap 退出钩子与 signal
+元数据清理后，模型缺少相应桩/字段，root CI
+[39910385115](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39910385115)
+已实际失败于该模型编译，而不是 Worker 运行。修正 `2f59fbc` 保留 mmap 资源
+语义由独立模型负责，只观察退出钩子调用及 metadata 清理；GCC/Clang sanitizer、
+早/晚 Worker ack、移除等待的失败对照与最终共享访问 codegen 再次通过。
+不以宿主桩代替真实 mmap 退出或完整 clone 验收。包含本修复的后继内核 b8eafea09
+已由 distro `ac84a1c` / 根仓库 pin `c98b13f` 集成，实际 fork/pthread 回归仍待
+双位宽目标验收。
+
+首次[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39912187207)
+虽显示 success，实际日志却是下载反复429并最终失败，没有 hash。旧工作流的
+管道未启用 pipefail，tee 掩盖 nix 的错误，摘要中的 jq 错误也未中止任务。
+根仓库 `216fb59` 改为 codeload、严格 shell 失败传播和 SHA256 SRI 字符串校验；
+实际 shell 的正常 JSON、缺失/错误 hash、下载失败即使输出合法 JSON、非法源码
+标识四类轻量检查通过。不使用失败下载产生的空值更新 pin，也不把该假绿记为
+源码 hash 验收；修正后的[新任务](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39914413999)
+固定同一 f7626f432；它仍较慢时不取消。后继 b8eafea09 的独立预取已取得实际
+hash，直接集成包含两项修复的完整版本，避免为中间版本重复重型构建。
+
+## 第四十四组：vmsplice 的用户线性内存复制路径
+
+Linux `b8eafea09` 为 CONFIG_WASM 单独实现 iter_to_pipe：用户偏移通过现有
+copy_page_from_iter/uaccess 复制到内核分配页，只有实际复制的长度进入 pipe。
+原因是通用实现走 iov_iter_get_pages2/GUP；NOMMU GUP 查 VMA 后用用户地址
+计算内核 struct page，不能将分离的 Wasm 用户线性内存按此方式固定。不仅因
+syscall 表存在就声称可用，也不把源代码核查写成已在完整旧内核复现故障。
+
+外层 vmsplice 的 iovec 导入、管道锁、阻塞/信号等待、唤醒、通知及反向复制不变；
+非 Wasm 构建仍使用原路径。每轮至多复制一内核页，管道满时不再读取用户数据。
+初始 fault/分配失败返回错误；已发布前缀优先返回长度；add_to_pipe 失败由原函数
+释放页，并撤回尚未发布的迭代器进度。沿用 pipe 页引用与 GIFT 标志，允许复制的
+内核页继续走已有 tee/splice/steal 规则，不承诺用户页别名、零拷贝或性能收益。
+未改 musl、syscall 号、公共 API、MMU 配置或 fork 支持范围。
+
+本地实际 helper 的 GCC/Clang18/22 ASan/UBSan 检查覆盖多页数据、独立副本、短
+复制、零复制 fault、分配失败与部分成功、管道满不读用户数据、插入失败和后续恢复；
+删除迭代器回滚的对照必须失败。该模型替代页/uaccess/pipe 原语，不证明实际 VFS。
+新标准 syscall 语料在原生 Linux 通过三阶段及唯一 pass，Wasm 双位宽前端与分析
+通过：vectored vmsplice、tee、pipe-to-pipe splice、反向 vmsplice、容量与 EAGAIN、
+GIFT、参数错误、Wasm 实际内存外范围及前缀、EPIPE 与失败后恢复。Wasm 专有越界
+分支未在原生执行；完整内核构建、目标阶段及关闭仍待异步验收。
+
+最终源码 hash 已在[公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39914590414)
+实际日志中核实为 b8eafea09 和对应 SRI 值，不只看状态。distro `ac84a1c` 增加
+独立 vmsplice 目标并更新 kernel pin，根仓库 `c98b13f` 单独更新 gitlink 与模型
+门禁；musl 仍为 bf26831，源码仓库各自保留独立提交，没有删除或重写历史。
+同一 ac84a1c 已派发：
+
+- fork/pthread 回归：[wasm32](https://github.com/HighCWu/distro/actions/runs/39914957554)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/39914965093)。
+- vmsplice 新目标：[wasm32](https://github.com/HighCWu/distro/actions/runs/39914973931)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/39914982260)。
+
+新目标必须核实三个完整阶段、唯一 pass 以及既有 runner 的机器关闭门禁；fork
+回归需核实原有完整语料与关闭。未派发浏览器，不把宿主 sanitizer 或 Node 状态
+泛化为浏览器、零拷贝、所有页固定调用者或完整 syscall 兼容性验收。
 
 ## 信号栈缺口的前期核查记录
 
