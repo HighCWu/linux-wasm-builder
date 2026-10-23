@@ -73,47 +73,47 @@ jobs:
         run: |
           revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
           [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
-          gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/process.c?ref=$revision" \
-            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-process.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-process.c" arch/wasm/kernel/process.c
           python3 -B scripts/check_fork_worker_abort.py "$RUNNER_TEMP/wasm-process.c"
-          gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/fork.c?ref=$revision" \
-            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-clone.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-clone.c" arch/wasm/kernel/fork.c
           python3 -B scripts/check_clone_entry.py "$RUNNER_TEMP/wasm-clone.c"
-          gh api "repos/HighCWu/linux/contents/fs/splice.c?ref=$revision" \
-            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-splice.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-splice.c" fs/splice.c
           python3 -B scripts/check_vmsplice_copy.py "$RUNNER_TEMP/wasm-splice.c"
-          gh api "repos/HighCWu/linux/contents/kernel/futex/core.c?ref=$revision" \
-            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-futex-core.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-futex-core.c" kernel/futex/core.c
           python3 -B scripts/check_futex_identity.py "$RUNNER_TEMP/wasm-futex-core.c"
           python3 -B scripts/test_futex_isolation.py
           mkdir -p "$RUNNER_TEMP/wasm-membarrier/kernel" "$RUNNER_TEMP/wasm-membarrier/configs"
           cp "$RUNNER_TEMP/wasm-process.c" "$RUNNER_TEMP/wasm-membarrier/kernel/process.c"
           for config in defconfig wasm32_defconfig wasm64_defconfig; do
-            gh api "repos/HighCWu/linux/contents/arch/wasm/configs/$config?ref=$revision" \
-              --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-membarrier/configs/$config"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$RUNNER_TEMP/wasm-membarrier/configs/$config" "arch/wasm/configs/$config"
           done
           WASM_MEMBARRIER_ARCH_SOURCE="$RUNNER_TEMP/wasm-membarrier" \
             python3 -B scripts/test_membarrier.py
-          gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/syscall.c?ref=$revision" \
-            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-syscall.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-syscall.c" arch/wasm/kernel/syscall.c
           mkdir -p "$RUNNER_TEMP/wasm-membarrier/include/uapi/asm"
           cp "$RUNNER_TEMP/wasm-syscall.c" "$RUNNER_TEMP/wasm-membarrier/kernel/syscall.c"
           for file in kernel/ptrace.c kernel/stacktrace.c include/uapi/asm/ptrace.h; do
-            gh api "repos/HighCWu/linux/contents/arch/wasm/$file?ref=$revision" \
-              --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-membarrier/$file"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$RUNNER_TEMP/wasm-membarrier/$file" "arch/wasm/$file"
           done
           WASM_PTRACE_ARCH_SOURCE="$RUNNER_TEMP/wasm-membarrier" \
             python3 -B scripts/test_ptrace.py
           WASM_STACKTRACE_SOURCE="$RUNNER_TEMP/wasm-membarrier/kernel/stacktrace.c" \
             python3 -B scripts/test_stacktrace.py
-          gh api "repos/HighCWu/linux/contents/mm/process_vm_access.c?ref=$revision" \
-            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-process-vm.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-process-vm.c" mm/process_vm_access.c
           WASM_PROCESS_VM_SOURCE="$RUNNER_TEMP/wasm-process-vm.c" \
             python3 -B scripts/test_process_vm.py
           mkdir -p "$RUNNER_TEMP/wasm-mmap-fatal/kernel" "$RUNNER_TEMP/wasm-mmap-fatal/tests"
           for file in kernel/mmap_file.c tests/mmap-file-host.h tests/mmap-file-host.c tests/run-mmap-file-host.py; do
-            gh api "repos/HighCWu/linux/contents/arch/wasm/$file?ref=$revision" \
-              --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-mmap-fatal/$file"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$RUNNER_TEMP/wasm-mmap-fatal/$file" "arch/wasm/$file"
           done
           WASM_MMAP_FATAL_ARCH="$RUNNER_TEMP/wasm-mmap-fatal" \
             python3 -B scripts/test_mmap_fatal.py
@@ -121,8 +121,8 @@ jobs:
             python3 -B experiments/file-mmap-trap/run.py
           WASM_MMAP_COPY_SOURCE="$RUNNER_TEMP/wasm-mmap-fatal/kernel/mmap_file.c" \
             python3 -B experiments/file-mmap-trap/run.py --expect-leak
-          gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/signal.c?ref=$revision" \
-            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-signal.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-signal.c" arch/wasm/kernel/signal.c
           WASM_SIGNAL_METADATA_SOURCE="$RUNNER_TEMP/wasm-signal.c" \
             python3 -B scripts/test_signal_metadata.py
           node --test sources/distro/packages/kernel/test/stacktrace.test.ts \

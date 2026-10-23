@@ -83,6 +83,31 @@ class FetchTest(unittest.TestCase):
         self.assertIsNone(NoRedirect().redirect_request(
             request, None, 302, "redirect", {}, "https://other.invalid/"))
 
+    def test_other_kernel_paths_keep_identical_commit_on_fallback(self):
+        for path in ("arch/wasm/kernel/remote_vm.c", "kernel/futex/core.c", "fs/splice.c"):
+            calls = []
+
+            def get(url, headers):
+                calls.append((url, dict(headers)))
+                if len(calls) == 1:
+                    raise urllib.error.HTTPError(url, 429, "rate limited", {}, None)
+                return b"pinned C source\n"
+
+            self.assertEqual(download(REVISION, path=path, token="test-only-token", get=get), b"pinned C source\n")
+            self.assertEqual(calls[0][0], f"https://raw.githubusercontent.com/HighCWu/linux/{REVISION}/{path}")
+            self.assertEqual(calls[1][0], f"https://api.github.com/repos/HighCWu/linux/contents/{path}?ref={REVISION}")
+            self.assertNotIn("Authorization", calls[0][1])
+            self.assertEqual(calls[1][1]["Authorization"], "Bearer test-only-token")
+
+    def test_invalid_paths_never_download(self):
+        def get(*_):
+            self.fail("invalid path must not trigger a download")
+
+        for path in ("", "/etc/passwd", "../kernel/core.c", "kernel/../secret", "kernel/./core.c",
+                     "kernel//core.c", "kernel/core.c?ref=main", "https://other.invalid/source", "kernel/core.c\n"):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                download(REVISION, path=path, get=get)
+
 
 if __name__ == "__main__":
     unittest.main()

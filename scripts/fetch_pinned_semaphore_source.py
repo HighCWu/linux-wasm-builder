@@ -20,10 +20,12 @@ def fetch(url, headers):
         return response.read()
 
 
-def download(revision, *, token=None, get=fetch):
+def download(revision, *, path="arch/wasm/kernel/semaphore.c", token=None, get=fetch):
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("expected an exact 40-character Linux commit ID")
-    path = "arch/wasm/kernel/semaphore.c"
+    if (not re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_.-]+)*", path) or
+            any(part in (".", "..") for part in path.split("/"))):
+        raise ValueError("expected a repository-relative kernel source path")
     headers = {"User-Agent": "linux-wasm-builder-source-check"}
     try:
         data = get(f"https://raw.githubusercontent.com/HighCWu/linux/{revision}/{path}", headers)
@@ -46,10 +48,11 @@ def download(revision, *, token=None, get=fetch):
 
 
 def main():
-    if len(sys.argv) != 3:
-        raise SystemExit("usage: fetch_pinned_semaphore_source.py COMMIT OUTPUT")
+    if len(sys.argv) not in (3, 4):
+        raise SystemExit("usage: fetch_pinned_semaphore_source.py COMMIT OUTPUT [SOURCE_PATH]")
     try:
-        data = download(sys.argv[1], token=os.environ.get("GH_TOKEN"))
+        path = sys.argv[3] if len(sys.argv) == 4 else "arch/wasm/kernel/semaphore.c"
+        data = download(sys.argv[1], path=path, token=os.environ.get("GH_TOKEN"))
         Path(sys.argv[2]).write_bytes(data)
     except (OSError, ValueError):
         # Do not expose credentials or fall back to a moving branch/local file.
