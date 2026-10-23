@@ -2295,10 +2295,9 @@ Clang22 分析还要求将原测试的失败分支明确标为 noreturn，避免
 源码已分别推送，公开内核 hash 预取
 [39952334659](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39952334659)
 实际失败于两个下载入口的 HTTP 429；两路均已按既有有界次数尝试，未取得 SRI。
-未为缺少 hash 的源码更新集成 pin 或派发重型目标，也未立即重复派发同一预取。
-本地 `scripts/check_futex_fault.py` 模型及其 CI 接线待新源码 pin 可核实后一同集成，
-当前默认 CI 不对旧 pin 运行要求新分支的模型。目标源码与工作负载已公开，
-集成尚未完成，不能把它写成用户已获得 PI 错误修复或新目标已通过。
+当时未为缺少 hash 的源码更新集成 pin 或派发重型目标，也未立即重复派发同一预取。
+模型及 CI 接线保留到新源码 pin 可核实后一同集成，当时默认 CI 未对旧 pin 运行
+要求新分支的模型。下述 Git 等价实验通过后才完成集成，不将源码推送冒充目标通过。
 
 同轮轻量 CI
 [39933625633](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39933625633)
@@ -2332,7 +2331,24 @@ Clang22 分析还要求将原测试的失败分支明确标为 noreturn，避免
 Linux，也不能以 stub 证明 NAR 等价。ShellCheck、shfmt、actionlint 和原预取
 路径控制通过。公开实验
 [39954310300](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39954310300)
-已派发，尚待真实结果；当前 pin 不变，未因实验启动就声称 PI 修复已集成。
+已派发，实验启动时 pin 未变，没有预先声称 PI 修复已集成。
+
+该实验随后成功。已读取实际日志，核实完整 baseline/candidate revision，基线
+NAR SRI 与上面的独立 archive SRI 完全相同，候选实际计算结果为
+`sha256-p3GPsfG8h/Ye1Op6D0gR0uaVn7hnVRMDNbQToiDcZP4=`，与基线不同。
+这证明该受限变更的 Git 取源计算通过了基线门禁；并非放宽固定输出检查。
+普通 fetcher 构建时仍须用此 SRI 核实新 archive，若不一致必须失败。
+
+distro `d7089fc` 固定 ed725e29c 和此 SRI；根仓库 `3e84e06` 单独更新 Linux/distro
+gitlink，将 `check_futex_fault.py` 和现有的精确源码下载接入轻量 CI。musl 仍为
+09a90c1a，没有再次变更。额外加入“有内容变更但候选 hash 等于基线也必须拒绝”
+的门禁及负向控制 b3bb030；实际候选值已独立核实为不同，未为该小门禁重派大取源。
+目标运行结果另记，不能把 hash 获取成功当作 PI syscall 已运行通过。
+已对固定 d7089fc 派发 user-access
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39955080607) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39955087526)，要求完整四阶段、
+唯一 pass 和机器关闭；现为异步待验收。没有为此次修复再次要求大内存 upper32
+目标，也没有派发整个旧矩阵或性能任务。
 
 ## 信号栈缺口的前期核查记录
 
