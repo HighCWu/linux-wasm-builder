@@ -239,6 +239,7 @@ jobs:
         # Native execution checks the workload, not the target kernel boundaries.
         run: |
           node --test sources/distro/distro/python/mmap-host.test.js \
+            sources/distro/distro/python/faulthandler-host.test.js \
             sources/distro/distro/python/width-host.test.js \
             sources/distro/distro/python/root-host.test.js
           python3 -B sources/distro/distro/python/source-bundle-test.py
