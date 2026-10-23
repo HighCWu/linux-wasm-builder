@@ -14,7 +14,8 @@ HASH = "sha256-" + "A" * 43 + "="
 
 
 class PrefetchSource(unittest.TestCase):
-    def invoke(self, fixture, status=0, revision="a" * 40, repository="linux", raw_failure=False):
+    def invoke(self, fixture, status=0, revision="a" * 40, repository="linux", raw_failure=False,
+               baseline="", baseline_hash=""):
         with tempfile.TemporaryDirectory(prefix="prefetch-shell-") as tmp:
             summary = Path(tmp) / "summary"
             result = subprocess.run(["bash", "-c", r'''
@@ -32,7 +33,7 @@ class PrefetchSource(unittest.TestCase):
                 ''' + BODY], capture_output=True, text=True,
                 env={**os.environ, "RUNNER_TEMP": tmp, "GITHUB_STEP_SUMMARY": str(summary),
                      "SOURCE_REPOSITORY": repository, "SOURCE_REVISION": revision,
-                     "BASELINE_REVISION": "", "BASELINE_HASH": "",
+                     "BASELINE_REVISION": baseline, "BASELINE_HASH": baseline_hash,
                      "PREFETCH_FIXTURE": fixture, "PREFETCH_STATUS": str(status),
                      "PREFETCH_RAW_FAILURE": str(int(raw_failure))})
             return result.returncode, summary.read_text() if summary.exists() else ""
@@ -68,6 +69,16 @@ class PrefetchSource(unittest.TestCase):
         self.assertEqual(status, 0)
         self.assertIn("Revision: " + "a" * 40, summary)
         self.assertIn("Hash: " + HASH, summary)
+
+    def test_invalid_git_mode_cannot_fall_back_to_archive_success(self):
+        for inputs in ({"repository": "musl", "baseline": "b" * 40, "baseline_hash": HASH},
+                       {"baseline": "b" * 40}, {"baseline_hash": HASH},
+                       {"baseline": "main", "baseline_hash": HASH},
+                       {"baseline": "a" * 40, "baseline_hash": HASH}):
+            with self.subTest(inputs=inputs):
+                status, summary = self.invoke('{"hash":"' + HASH + '"}', **inputs)
+                self.assertNotEqual(status, 0)
+                self.assertEqual(summary, "")
 
 
 if __name__ == "__main__":
