@@ -36,12 +36,21 @@ jobs:
             *) exit 1 ;;
           esac
           [[ "$SOURCE_REVISION" =~ ^[0-9a-f]{40}$ ]]
-          nix store prefetch-file --unpack --json \
+          source_hash=""
+          # Same immutable tree as the build fetcher; avoid spending all
+          # retries at one rate-limited endpoint before trying its mirror.
+          for source_url in \
             "https://codeload.github.com/HighCWu/$SOURCE_REPOSITORY/tar.gz/$SOURCE_REVISION" \
-            | tee "$RUNNER_TEMP/source-hash.json"
-          source_hash=$(jq --exit-status --raw-output \
-            '.hash | select(type == "string" and test("^sha256-[A-Za-z0-9+/]{43}=$"))' \
-            "$RUNNER_TEMP/source-hash.json")
+            "https://github.com/HighCWu/$SOURCE_REPOSITORY/archive/$SOURCE_REVISION.tar.gz"; do
+            if nix store prefetch-file --unpack --json --option download-attempts 2 \
+              "$source_url" | tee "$RUNNER_TEMP/source-hash.json"; then
+              source_hash=$(jq --exit-status --raw-output \
+                '.hash | select(type == "string" and test("^sha256-[A-Za-z0-9+/]{43}=$"))' \
+                "$RUNNER_TEMP/source-hash.json")
+              break
+            fi
+          done
+          [[ -n "$source_hash" ]]
           {
             echo "Repository: HighCWu/$SOURCE_REPOSITORY"
             echo "Revision: $SOURCE_REVISION"

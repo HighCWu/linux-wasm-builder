@@ -14,19 +14,26 @@ HASH = "sha256-" + "A" * 43 + "="
 
 
 class PrefetchSource(unittest.TestCase):
-    def invoke(self, fixture, status=0, revision="a" * 40, repository="linux"):
+    def invoke(self, fixture, status=0, revision="a" * 40, repository="linux", raw_failure=False):
         with tempfile.TemporaryDirectory(prefix="prefetch-shell-") as tmp:
             summary = Path(tmp) / "summary"
             result = subprocess.run(["bash", "-c", r'''
                 nix() {
-                    [[ "$*" == *"https://codeload.github.com/HighCWu/linux/tar.gz/"* ]] || return 63
+                    [[ "$*" == *"--option download-attempts 2"* ]] || return 64
+                    case "$*" in
+                      *"https://codeload.github.com/HighCWu/linux/tar.gz/$SOURCE_REVISION"*)
+                        if [[ "$PREFETCH_RAW_FAILURE" == 1 ]]; then return 71; fi ;;
+                      *"https://github.com/HighCWu/linux/archive/$SOURCE_REVISION.tar.gz"*) ;;
+                      *) return 63 ;;
+                    esac
                     printf '%s\n' "$PREFETCH_FIXTURE"
                     return "$PREFETCH_STATUS"
                 }
                 ''' + BODY], capture_output=True, text=True,
                 env={**os.environ, "RUNNER_TEMP": tmp, "GITHUB_STEP_SUMMARY": str(summary),
                      "SOURCE_REPOSITORY": repository, "SOURCE_REVISION": revision,
-                     "PREFETCH_FIXTURE": fixture, "PREFETCH_STATUS": str(status)})
+                     "PREFETCH_FIXTURE": fixture, "PREFETCH_STATUS": str(status),
+                     "PREFETCH_RAW_FAILURE": str(int(raw_failure))})
             return result.returncode, summary.read_text() if summary.exists() else ""
 
     def test_valid_json_records_exact_source_hash(self):
@@ -54,6 +61,12 @@ class PrefetchSource(unittest.TestCase):
             status, summary = self.invoke('{"hash":"' + HASH + '"}', **identity)
             self.assertNotEqual(status, 0)
             self.assertEqual(summary, "")
+
+    def test_failed_codeload_uses_same_revision_archive_endpoint(self):
+        status, summary = self.invoke('{"hash":"' + HASH + '"}', raw_failure=True)
+        self.assertEqual(status, 0)
+        self.assertIn("Revision: " + "a" * 40, summary)
+        self.assertIn("Hash: " + HASH, summary)
 
 
 if __name__ == "__main__":
