@@ -1283,9 +1283,16 @@ C 栈地址；这些结果都不是 Wasm 内核目标证据。可选 fork 补丁
 
 | 检查 | wasm32 | wasm64 |
 | --- | --- | --- |
-| 信号栈五阶段 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599563781) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599576739) |
-| 无栈导出模块 | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599594972) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599607937) |
-| 原有 fork runtime | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599617389) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39599624459) |
+| 信号栈五阶段 | [阶段与关闭已核实][alt-node32] | [阶段与关闭已核实][alt-node64] |
+| 无栈导出模块 | [阶段与关闭已核实][alt-legacy-node32] | [阶段与关闭已核实][alt-legacy-node64] |
+| 原有 fork runtime | [阶段与关闭已核实][alt-fork-node32] | [阶段与关闭已核实][alt-fork-node64] |
+
+[alt-node32]: https://github.com/HighCWu/distro/actions/runs/39599563781
+[alt-node64]: https://github.com/HighCWu/distro/actions/runs/39599576739
+[alt-legacy-node32]: https://github.com/HighCWu/distro/actions/runs/39599594972
+[alt-legacy-node64]: https://github.com/HighCWu/distro/actions/runs/39599607937
+[alt-fork-node32]: https://github.com/HighCWu/distro/actions/runs/39599617389
+[alt-fork-node64]: https://github.com/HighCWu/distro/actions/runs/39599624459
 
 wasm32/wasm64 主负载实际日志均已逐项核实全部五阶段和各自唯一 pass；双位宽
 无导出模块均已核实拒绝/普通回调阶段与唯一 pass，四项成功作业通过等待
@@ -1303,18 +1310,28 @@ pending signal、PID/TLS/atfork/mask/memory/fd/nested wait、拒绝 exec 后恢�
 有序且不重复的阶段、唯一 pass，同一页面两轮启动、各轮 machine.closed、
 浏览器关闭后无迟到错误。本地控制器及负向门禁 18 项通过，不作浏览器证明。
 
-2026-10-23 已确认以下八项实际 Heavy 检查均在运行，结果待核实：
+2026-10-23 已逐项核实以下八项实际 Heavy 日志和关闭结果：
 
 | 负载 | 位宽 | Chromium | Firefox |
 |---|---|---|---|
-| 信号栈五阶段 | wasm32 | [两轮及关闭已核实](https://github.com/HighCWu/distro/actions/runs/39881687103) | [CI](https://github.com/HighCWu/distro/actions/runs/39881688862) |
-| 信号栈五阶段 | wasm64 | [CI](https://github.com/HighCWu/distro/actions/runs/39881691449) | [CI](https://github.com/HighCWu/distro/actions/runs/39881693540) |
-| 无栈导出兼容 | wasm32 | [CI](https://github.com/HighCWu/distro/actions/runs/39881695121) | [CI](https://github.com/HighCWu/distro/actions/runs/39881696874) |
-| 无栈导出兼容 | wasm64 | [CI](https://github.com/HighCWu/distro/actions/runs/39881699057) | [CI](https://github.com/HighCWu/distro/actions/runs/39881700447) |
+| 信号栈五阶段 | wasm32 | [两轮及关闭已核实][alt32-chromium] | [两轮及关闭已核实][alt32-firefox] |
+| 信号栈五阶段 | wasm64 | [两轮及关闭已核实][alt64-chromium] | [两轮及关闭已核实][alt64-firefox] |
+| 无栈导出兼容 | wasm32 | [两轮及关闭已核实][legacy32-chromium] | [两轮及关闭已核实][legacy32-firefox] |
+| 无栈导出兼容 | wasm64 | [两轮及关闭已核实][legacy64-chromium] | [两轮及关闭已核实][legacy64-firefox] |
 
-wasm32 Chromium 149.0.7827.55 的实际 Heavy 日志已核实两轮各五阶段、各自
-唯一 pass、每轮 machine shutdown 及最终 browser shutdown。只关闭这一项
-验收门禁，其余位宽、引擎和无导出兼容结果仍须分别核实。
+[alt32-chromium]: https://github.com/HighCWu/distro/actions/runs/39881687103
+[alt32-firefox]: https://github.com/HighCWu/distro/actions/runs/39881688862
+[alt64-chromium]: https://github.com/HighCWu/distro/actions/runs/39881691449
+[alt64-firefox]: https://github.com/HighCWu/distro/actions/runs/39881693540
+[legacy32-chromium]: https://github.com/HighCWu/distro/actions/runs/39881695121
+[legacy32-firefox]: https://github.com/HighCWu/distro/actions/runs/39881696874
+[legacy64-chromium]: https://github.com/HighCWu/distro/actions/runs/39881699057
+[legacy64-firefox]: https://github.com/HighCWu/distro/actions/runs/39881700447
+
+双位宽 Chromium 149.0.7827.55 和 Firefox 151.0 的实际 Heavy 日志均已核实
+主负载每轮五阶段、无导出负载每轮一阶段，各项均有两轮各自唯一 pass、每轮
+machine shutdown 及最终 browser shutdown。这关闭固定 `92eb6b1` 的八项
+浏览器门禁，不将它扩大为 CPython 浏览器或后续内核版本的完成证明。
 
 `f404198` / 集成 `9a2a516` 在上述六路 Node 真实语义验收基础上移除共享
 CONFIG_SITE 的 `sigaltstack=no`，不预填 yes；此应用增量与浏览器验收异步推进。
@@ -1333,8 +1350,13 @@ configure 生成 HAVE_SIGALTSTACK，不添加 CPython 私有补丁或编译宏�
 
 | 检查 | wasm32 | wasm64 |
 |---|---|---|
-| CPython faulthandler | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39882160137) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39882162040) |
-| SDK Autoconf 消费者 | [检测及运行已核实](https://github.com/HighCWu/distro/actions/runs/39882164072) | [检测及运行已核实](https://github.com/HighCWu/distro/actions/runs/39882165733) |
+| CPython faulthandler | [阶段与关闭已核实][python-alt32] | [阶段与关闭已核实][python-alt64] |
+| SDK Autoconf 消费者 | [检测及运行已核实][sdk-alt32] | [检测及运行已核实][sdk-alt64] |
+
+[python-alt32]: https://github.com/HighCWu/distro/actions/runs/39882160137
+[python-alt64]: https://github.com/HighCWu/distro/actions/runs/39882162040
+[sdk-alt32]: https://github.com/HighCWu/distro/actions/runs/39882164072
+[sdk-alt64]: https://github.com/HighCWu/distro/actions/runs/39882165733
 
 双位宽 SDK 实际日志均已确认真实 Autoconf 消费者检查通过（其中断言正常探测
 sigaltstack=yes）、目标 allocation 阶段和唯一 pass。双位宽 CPython 实际日志
