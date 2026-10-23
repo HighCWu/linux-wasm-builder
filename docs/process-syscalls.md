@@ -2704,22 +2704,42 @@ distro `137c6e6` 提供 linux_signal_cancel_v1.abi 私有执行导入及普通 h
 trampoline 分派，缺少配套导出的新模块在准入时拒绝。新运行器保留旧模块直接
 调用路径；旧运行器不会静默接纳要求该新协议的取消实现。
 
+| 内部执行契约 | 形状与含义 |
+| --- | --- |
+| import `linux_signal_cancel_v1.abi` | `() -> i32`，返回1承诺一参数 handler 也经过配套 trampoline；不执行 Linux syscall |
+| export `__wasm_signal_handler_v2` | `(uintptr_t table_index, i32 signal) -> void`，保留 Wasm32/64 函数表索引位宽，调用前后维护取消点状态 |
+
+这两项由 libc/运行器使用，普通程序仍只调用标准 pthread/read/futex 路径。
+
 Clang22 双位宽原样取消/restore 函数及真实 SjLj helper 的小型执行模型通过，
 旧“返回后才取消”和不清除嵌套标记两种控制可区分；包含 close、disabled、raw、
 两类普通 handler、handler 自己的取消点和 masked 返回。模型没有执行 Linux
 调度，不以替代真实 Worker 返回边界。GCC/Clang 原生负载通过三阶段；源码/
-目标前端与静态分析、运行器 src/test 两套类型检查、363 项既有 host 检查通过。
+目标前端与静态分析、运行器 src/test 两套类型检查、363 项运行器 host 检查通过。
 可选 fork 补丁对候选 musl dry-run 通过，但不据此宣称 fork 已实际回归。
 
 独立 deferred-cancel 目标不耦合普通 programs 构建：先通过 /proc/task syscall
 观察真正阻塞的 read/futex，再请求取消。普通 libc read 不发送数据或 EOF 来
 “救出”取消；raw/disabled read 要完成实际 I/O，条件等待则验证 cleanup 时
 mutex 已重新取得且其后仍可锁。每次 join 有截止时间，fd/proc 均清理。
-当前源码已推送，构建 pin 仍为 b1c51ef9，等待完整候选的精确 hash 后集成并
-派发双位宽目标；尚未宣称真实 Linux/Wasm 取消阶段通过。根仓库模型暂留本地，
-将随 pin 独立提交；不等待这些 CI 才推进其它 syscall 审查。
-完整候选的精确预取：
-[39981879968](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39981879968)。
+完整候选的精确预取
+[39981879968](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39981879968)
+已成功；实际日志核实完整 revision 与
+`sha256-leZrlNNzyfVaoSekg8D9XewoAMa8PWK0s8qPZJaZ4TU=`。
+distro `a8194ae` 单独更新构建 pin，根仓库 `244689a` 更新 gitlink 和模型。
+轻量模型命令为 `python3 -B scripts/check_deferred_cancel.py`，需要 Clang22 的
+原生 Wasm SjLj；不提供 Emscripten JavaScript shim 冒充真实非局部返回。
+后续 root `0be826c` 修正信号栈前端检查：仅对包含现有 private TCB header 的
+restore.c 放宽原有 inline 的 unused-parameter 警告，应用负载仍保持严格警告。
+该既有信号栈脚本的三项原生/双位宽检查再次通过，没有修改 libc 来消除此警告。
+
+同一 `a8194ae` 的实际目标已异步派发：取消
+[wasm32 39982289264](https://github.com/HighCWu/distro/actions/runs/39982289264)、
+[wasm64 39982297387](https://github.com/HighCWu/distro/actions/runs/39982297387)；信号栈回归
+[wasm32 39982306882](https://github.com/HighCWu/distro/actions/runs/39982306882)、
+[wasm64 39982314549](https://github.com/HighCWu/distro/actions/runs/39982314549)。
+目前均在运行，尚未宣称真实 Linux/Wasm 取消三阶段或信号栈五阶段/机器关闭通过。
+不等待这些 CI 才推进其它独立 syscall 审查，也不据此扩大多线程 fork。
 较早 ccd9d346 的预取 39981476691 不覆盖后续编译策略，不拿它更新 pin。
 
 ## 信号栈缺口的前期核查记录

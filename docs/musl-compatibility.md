@@ -264,6 +264,7 @@ helper，不增加公共函数、公共头文件 API 或通用 Linux 包装；�
 
 新协议明确要求配套 host，避免旧运行器不清除一参数 handler 的外层取消点标记。
 SjLj 返回包装而非直接退出 handler，保留 cond_wait 的 masked ECANCELED/重新
-加锁步骤；不移除 SA_RESTART，不虚构原生 PC。源码已发布，本地模型/分析通过，
-当前集成仍固定 b1c51ef9，精确 hash/pin 和真实 Worker 验收待完成，详见
+加锁步骤；不移除 SA_RESTART，不虚构原生 PC。本地模型/分析通过，精确 hash
+已核实，distro a8194ae / 根仓库 244689a 现固定完整候选 264eb000；双位宽取消
+及信号栈回归已异步派发，真实 Worker 阶段与关闭仍待验收，详见
 [第五十九组](process-syscalls.md#第五十九组阻塞取消点的-wasm-返回路径)。
