@@ -1276,7 +1276,8 @@ C 栈地址；这些结果都不是 Wasm 内核目标证据。可选 fork 补丁
 [Linux](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39597788439) 与
 [musl](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39597795570) prefetch 核实。
 双位宽主负载、无导出兼容负载及已有 fork runtime 均单独派发，阶段和关闭
-分别记录如下；默认 CONFIG_SITE 的 sigaltstack 负向答案也尚未因此提前改为成功。
+分别记录如下；`40ff62a` 阶段默认 CONFIG_SITE 仍保留 sigaltstack 负向答案，
+后续移除及应用验证见本节末尾。
 
 同一 `40ff62a` 的定向目标均已核对实际 Heavy 检查名：
 
@@ -1311,10 +1312,25 @@ pending signal、PID/TLS/atfork/mask/memory/fd/nested wait、拒绝 exec 后恢�
 | 无栈导出兼容 | wasm32 | [CI](https://github.com/HighCWu/distro/actions/runs/39881695121) | [CI](https://github.com/HighCWu/distro/actions/runs/39881696874) |
 | 无栈导出兼容 | wasm64 | [CI](https://github.com/HighCWu/distro/actions/runs/39881699057) | [CI](https://github.com/HighCWu/distro/actions/runs/39881700447) |
 
-必要真实目标
-通过后再单独移除 CONFIG_SITE 的相应否定项，让应用正常探测，而非预填成功；
-随后应让现有 CPython faulthandler 等实际程序使用正常声明/探测路径验证，不能
-把上述 C 负载泛化成全部应用、引擎故障处理或浏览器已验收。
+`f404198` / 集成 `9a2a516` 在上述六路 Node 真实语义验收基础上移除共享
+CONFIG_SITE 的 `sigaltstack=no`，不预填 yes；此应用增量与浏览器验收异步推进。
+SDK Autoconf 消费者须通过真实链接检测发现该函数，CPython 构建须由原有
+configure 生成 HAVE_SIGALTSTACK，不添加 CPython 私有补丁或编译宏强制项，
+也不改变 musl。Vim 配方关于 ENOSYS 的旧说明已同步撤除，但不宣称新版 Vim
+运行已验收。
+
+实际 CPython 负载使用 `-X faulthandler` 启动，核实正常配置和备用栈注册，
+由原有 faulthandler.register 在 SA_ONSTACK 上执行 16 次 SIGUSR1 traceback，
+检查确切 Python 帧、取消注册后的原 handler 恢复、无效注册及 enable/disable
+恢复与文件清理。当前线程及 all_threads 输出均只针对该单线程解释器；不宣称
+多线程信号备用栈、引擎 trap、原生栈溢出或完整故障恢复支持。
+本地含关闭特性/未启用启动选项的负向对照及现有兼容检查共 32 项通过，非目标
+证据。四项实际 Heavy 检查已派发，完成后仍须核实实际阶段、唯一 pass 和关闭：
+
+| 检查 | wasm32 | wasm64 |
+|---|---|---|
+| CPython faulthandler | [待验收](https://github.com/HighCWu/distro/actions/runs/39882160137) | [待验收](https://github.com/HighCWu/distro/actions/runs/39882162040) |
+| SDK Autoconf 消费者 | [待验收](https://github.com/HighCWu/distro/actions/runs/39882164072) | [待验收](https://github.com/HighCWu/distro/actions/runs/39882165733) |
 
 ## 信号栈缺口的前期核查记录
 

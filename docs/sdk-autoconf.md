@@ -39,14 +39,15 @@ Autoconf运行探针由项目的
 
 `91480f7` 起默认 CONFIG_SITE 指向 SDK 安装的 `share/linux-wasm-sdk/config.site`，
 与 distro/stdenv 共用同一源码，不继承宿主站点文件。它仅给出已知不支持能力的
-负向答案：fork/vfork 及 works 探测、完整固定/文件 mmap、dlopen 搜索/链接与
-sigaltstack。匿名私有读写映射不被禁用，普通 `mmap`/`msync` 链接探测和未知能力
+负向答案：fork/vfork 及 works 探测、完整固定/文件 mmap、dlopen 搜索/链接。
+早期版本还禁用了 sigaltstack，该项已在 `f404198` 移除。匿名私有读写映射不被禁用，普通 `mmap`/`msync` 链接探测和未知能力
 仍不预填；标准符号存在也不等于内核支持全部语义。
 
-后续 sigaltstack 已形成内核/执行 ABI 候选，见[第三十组](process-syscalls.md#第三十组标准-sigaltstack-与版本化信号-c-栈执行候选)。
-上述负向答案属于先前基线的保守设置，不是永久关闭上游已有接口。待候选完成
-必要真实目标验收后，应单独移除相应否定项，让应用正常探测；本轮尚未把该
-运行语义预填为成功，也不能因 C 符号可链接就提前扩大支持声明。
+sigaltstack 的内核/执行 ABI 已完成双位宽六路 Node 验收，见[第三十组](process-syscalls.md#第三十组标准-sigaltstack-与版本化信号-c-栈执行候选)。
+`f404198` 让该函数恢复正常编译/链接探测，不预填 yes；SDK Autoconf 消费者
+同时验证检测结果，CPython 原有 faulthandler 的实际使用另行进行双位宽验收。
+这些任务与浏览器验收异步推进，未完成的目标仍明确标为待核实，不把符号可链接
+视为任意故障恢复语义已实现。无 C 栈导出的旧模块仍明确返回 EOPNOTSUPP。
 
 原因是 `AC_FUNC_MMAP` 对 Linux 交叉编译会默认回答成功，musl 的动态加载 stub
 也可能链接成功；两者都不足以证明所需运行语义。SDK 先前默认 `/dev/null` 没有
