@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: MIT
+name: Verify Git-derived Linux source hash
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Exact candidate Linux commit, changing only kernel/futex/core.c
+        required: true
+        type: string
+      baseline:
+        description: Exact immediate parent with an independently verified archive hash
+        required: true
+        type: string
+      baseline-hash:
+        description: Independently verified unpacked baseline SRI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+      - uses: nixbuild/nix-quick-install-action@v35
+      - name: Verify baseline archive equivalence before candidate hashing
+        env:
+          SOURCE_REVISION: ${{ inputs.revision }}
+          BASELINE_REVISION: ${{ inputs.baseline }}
+          BASELINE_HASH: ${{ inputs['baseline-hash'] }}
+        run: bash scripts/prefetch_linux_git.sh

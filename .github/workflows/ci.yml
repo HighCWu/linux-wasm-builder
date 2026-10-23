@@ -36,7 +36,9 @@ jobs:
       - name: Check Wasm raw stat layouts
         run: bash scripts/check_wasm_kstat.sh
       - name: Check source hash prefetch failures cannot report success
-        run: python3 -B scripts/test_prefetch_source.py
+        run: |
+          python3 -B scripts/test_prefetch_source.py
+          python3 -B scripts/test_prefetch_linux_git.py
       - name: Check inotify native workload and existing Wasm libc ABI
         run: python3 -B scripts/test_inotify.py
       - name: Check existing fchmodat flags path and native descriptor permissions
