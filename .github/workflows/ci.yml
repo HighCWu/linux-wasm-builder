@@ -35,6 +35,8 @@ jobs:
         run: git submodule update --init --depth 1 sources/distro sources/musl
       - name: Check Wasm raw stat layouts
         run: bash scripts/check_wasm_kstat.sh
+      - name: Check source hash prefetch failures cannot report success
+        run: python3 -B scripts/test_prefetch_source.py
       - name: Check inotify native workload and existing Wasm libc ABI
         run: python3 -B scripts/test_inotify.py
       - name: Check existing fchmodat flags path and native descriptor permissions
@@ -74,6 +76,12 @@ jobs:
           gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/process.c?ref=$revision" \
             --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-process.c"
           python3 -B scripts/check_fork_worker_abort.py "$RUNNER_TEMP/wasm-process.c"
+          gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/fork.c?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-clone.c"
+          python3 -B scripts/check_clone_entry.py "$RUNNER_TEMP/wasm-clone.c"
+          gh api "repos/HighCWu/linux/contents/fs/splice.c?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-splice.c"
+          python3 -B scripts/check_vmsplice_copy.py "$RUNNER_TEMP/wasm-splice.c"
           mkdir -p "$RUNNER_TEMP/wasm-membarrier/kernel" "$RUNNER_TEMP/wasm-membarrier/configs"
           cp "$RUNNER_TEMP/wasm-process.c" "$RUNNER_TEMP/wasm-membarrier/kernel/process.c"
           for config in defconfig wasm32_defconfig wasm64_defconfig; do
