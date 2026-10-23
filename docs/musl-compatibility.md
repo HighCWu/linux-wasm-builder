@@ -37,6 +37,27 @@ wasm32 满容量查询分别明确失败。模型不等于浏览器大内存承�
 固定 `11ee975` 的两位宽实际目标已核实三阶段、唯一 pass 与关闭门禁；这不将
 小内存回归扩展为浏览器4 GiB承载或完整内核 SYS_brk 支持。
 
+## Wasm clone trampoline 的启动边界兼容
+
+`09a90c1a70ea569aa6649449274c6031a143a01c` 相对 bf26831e 的净差异仅为
+既有 `src/thread/wasm32/clone.c` 中的五行：clone_entry 设置 C 栈和 TLS 后，
+clone_entry_inner 在调用应用 callback 之前执行已有 `SYS_gettid`。这让 Linux
+通用 syscall 返回工作先处理待投递信号和 ptrace newborn stop，而不是等应用
+callback 自己第一次调用 syscall。没有新增函数、公共声明、头文件、包装、
+syscall 号或执行 import；其它架构不变，已发布历史保留。
+
+不能直接在当前内核的启动回调之前执行用户 signal handler：此时 Wasm 的栈和
+TLS 尚未由该 trampoline 初始化。此修复只保证该既有 libc clone 路径的应用
+callback 边界，不声称所有任意原始 Wasm callback 或第一条 Wasm 指令都已具备
+原生 CPU 的内核返回模型。新增一次 gettid 是架构兼容检查点，不使用其返回值，
+不写 errno；没有启用 seccomp，也未证明未来 syscall filter 与此检查点的组合。
+
+原生 tracing 正/反向检查、双位宽前端及静态分析、提取实际 trampoline 函数体的
+小型 Wasm 执行和移除检查点的对照均通过。公开源码预取实际日志已核实该版本
+与 `sha256-PBeE+zw7yhknEJtCgcs1d20r5gROdLARjCr+eV02ZTs=`；
+[第五十组](process-syscalls.md#第五十组clone-栈tls-初始化后的应用入口检查点)
+单独跟踪真实目标验收，不把上述宿主/模型检查当作 Wasm 内核运行证明。
+
 ## 2026-10-21 审计
 
 通过直接查询远端 HEAD，确认 tombl/musl 的默认分支 master 为

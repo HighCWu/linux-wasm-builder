@@ -2147,7 +2147,7 @@ distro `4db9ae7` 加入独立 `fork-continuation-check-namespaces` 和 wasm64
 - mount namespace 的 ramfs 可见性、重新进入与卸载清理。
 - SysV 消息队列隔离、独立消息及对象清理。
 - network namespace 的相同 UDP 地址独立绑定，以及 socket fd 保留所属网络。
-- monotonic 偏移、raw clock 不受影响、首次加入后禁止写偏移及恢复。
+- monotonic 与 raw clock 的偏移、realtime 不受影响、首次加入后禁止写偏移及恢复。
 - NEWPID 只影响后续子进程、子 PID 为1/不可见父 PID、普通 fork/wait 与单次回收。
 
 测试仅在隔离 Wasm 机器执行，明确禁止宿主原生构建，避免改动宿主 namespace。
@@ -2160,12 +2160,19 @@ distro `4db9ae7` 加入独立 `fork-continuation-check-namespaces` 和 wasm64
 实际日志已核实完整 revision 与
 `sha256-sgBMvc8ToYbcAQFI5yLKNw6kEn10bEJeLYNphNdzq90=`。distro `02bf190`
 固定该版本，并对解析后的 Kconfig 检查六个 namespace 配置开启、USER_NS 关闭、
-MMU 未启用；根仓库 `65d6dc1` 单独更新 gitlink 与轻量门禁。musl pin 保持
+MMU 未启用；根仓库 `65d6dc1` 单独更新 gitlink 与轻量门禁。当时 musl pin 保持
 bf26831，未修改或重写历史。目标运行结果另记，不能把预取或配置检查当作验收。
 后续须核实六阶段、唯一 pass 与机器关闭。
 已对同一 02bf190 异步派发
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39929257117) 与
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39929264789)，尚待实际目标结果。
+
+两项后续均失败。实际日志确认前四阶段已完成，并通过首次加入后写偏移返回
+EACCES 的冻结检查，随后失败于测试的错误假设：Linux 也会给
+CLOCK_MONOTONIC_RAW 加 monotonic namespace 偏移（见该版本
+kernel/time/posix-timers.c 的 posix_get_monotonic_raw），并非内核漏加偏移。
+distro `3bc3ba5` 修正为 MONOTONIC/RAW 相对 REALTIME 都平移，再验证两者恢复；
+未通过修改 Linux 的标准时钟行为来迎合测试。原失败任务不作为完整六阶段验收。
 
 ## 第四十九组：现有 BusyBox nsenter 的真实工具接入
 
@@ -2195,6 +2202,62 @@ distro `674242a` / 集成 `ca474b4` 在双位宽 BusyBox 配方开启原有 `NSE
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39930813043)，均固定
 674242a，异步验收中；不把配置或前端通过当成实际工具运行通过。
 第四十八组原有两个 C 目标继续运行，不重复派发、不取消慢任务。
+
+后续两项 BusyBox 目标均在 treefmt/ShellCheck 阶段失败，尚未执行 applet。
+wasm32 的实际日志确认是两个 sh -c 单引号脚本的 SC2016 提示；变量有意在
+setns 后的子 shell 展开，不能改为父 shell 预先展开。distro `41e7245` 仅在
+这两个命令加局部注释，完整 ShellCheck 0.11 检查通过，不全局关闭诊断。
+修正后与新 musl 一同复验；原失败不能记为 namespace syscall 运行失败或通过。
+
+## 第五十组：clone 栈/TLS 初始化后的应用入口检查点
+
+审查发现 arch/wasm/kernel/process.c 在内核启动回调准备后直接调用 user.call，
+没有原生 ret_from_fork 的通用 syscall 返回工作。任意 callback 若先写内存再
+直接 exit，就可能在 ptrace newborn stop 前进入应用代码。直接在这一位置调用
+完整 signal 返回处理也不安全：Wasm libc clone_entry 此时还没设置 C 栈/TLS。
+
+musl `09a90c1a` 仅修改既有 Wasm clone_entry_inner：栈/TLS 准备后、应用 callback
+前调用标准 SYS_gettid，让当前 Linux syscall 返回路径完成待处理工作。不新增
+公共函数、包装或执行接口，也不修改其它架构或重写历史。该选择补齐的是 libc
+clone 的应用 callback 边界，不声称任意原始 Wasm callback、第一条 VM 指令、
+上下文追踪 CPU 记账或未来 seccomp filter 已获得相同保证。
+
+新增 ptrace-entry 工作负载先 TRACEME，再以标准 clone 的 CLONE_VM|SIGCHLD
+创建有独立退出身份、共享 marker 的子进程；没有 CLONE_THREAD 或扩大私有
+多线程 fork。tracer 要求 fork event、准确的 newborn PID 和初始停止，读取共享
+marker 仍为0，再投递 SIGTERM，要求应用 callback 第一条 store 永不执行。
+真实父进程必须观察一致终止状态并回收；tracer 明确转发 SIGCHLD 的 signal stop，
+最后普通 fork/wait 恢复、单次回收，共三个阶段及唯一 pass。
+
+GCC/Clang 原生三阶段通过；故意跳过 birth stop 的控制必须失败。Clang 18/22
+双位宽前端和静态分析通过，实际 trampoline 函数体的小型 Wasm 模型核对检查点
+在 callback 之前，移除 gettid 后 pending-fatal 情况确实执行了错误的 callback。
+这些都不是实际 Wasm 目标通过证据。可选 fork patch 已针对新 musl 做 dry-run，
+未增改其公共声明。源码预取
+[39932927721](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39932927721)
+日志已核实完整 revision 与 SRI。distro `898e2e4` 固定新 libc 并加入独立目标，
+`41e7245` 补上述脚本诊断；根仓库 `83432e4` 单独更新 pin 与轻量门禁。
+
+以下均固定 41e7245，异步运行，不重复派发：
+
+| 目标 | wasm32 | wasm64 |
+| --- | --- | --- |
+| ptrace-entry 三阶段 | [39933848569][entry32] | [39933857702][entry64] |
+| 修正后的 namespace 六阶段 | [39933866168][namespace32] | [39933875691][namespace64] |
+| BusyBox nsenter 三阶段 | [39933884669][nsenter32] | [39933893413][nsenter64] |
+| 默认 C runtime 线程/TLS 回归 | [39933904341][clone-c32] | [39933912004][clone-c64] |
+
+[entry32]: https://github.com/HighCWu/distro/actions/runs/39933848569
+[entry64]: https://github.com/HighCWu/distro/actions/runs/39933857702
+[namespace32]: https://github.com/HighCWu/distro/actions/runs/39933866168
+[namespace64]: https://github.com/HighCWu/distro/actions/runs/39933875691
+[nsenter32]: https://github.com/HighCWu/distro/actions/runs/39933884669
+[nsenter64]: https://github.com/HighCWu/distro/actions/runs/39933893413
+[clone-c32]: https://github.com/HighCWu/distro/actions/runs/39933904341
+[clone-c64]: https://github.com/HighCWu/distro/actions/runs/39933912004
+
+新目标必须读取实际阶段和最终 pass，并核实关闭门禁。旧 namespace 四阶段不能
+替代修正后的完整六阶段，旧格式失败也不能代替 nsenter 工具运行结果。
 
 ## 信号栈缺口的前期核查记录
 

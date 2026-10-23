@@ -426,14 +426,25 @@ USER_NS 默认关闭和 NOMMU；同时修复无 vDSO 的时间 namespace 首次�
 清理，不扩大多线程 fork。双位宽前端、静态分析和冻结函数正/反向模型通过；
 源码已推送，实际 hash 已核实；distro `02bf190` / 根仓库 `65d6dc1` 完成集成，
 真实目标验收另记，不把单纯配置开启当作能力完成。
+旧双位宽目标实际通过前四阶段和冻结检查，但失败于测试把 raw clock 误当成不受
+namespace 偏移影响；`3bc3ba5` 已按 Linux 行为修正，不改内核来迎合错误断言。
 详见[第四十八组](process-syscalls.md#第四十八组恢复标准-namespace-配置与无-vdso-的时间偏移冻结)。
 
 distro `674242a` / 集成 `ca474b4` 继续开启固定 BusyBox 源码现有的 nsenter，
 不增加应用补丁或 libc 函数；真实 applet 目标验证 namespace 身份、exec、原有
 子进程退出码、错误恢复及清理。UNSHARE 的 !NOMMU 条件仍保留，用独立测试
 helper 调用标准 unshare 创建目标。双位宽分析和轻量检查通过，两路公开 Node
-目标异步运行，未提前记实际工具验收完成。
+目标随后均在 ShellCheck 的 SC2016 阶段失败，未执行工具；`41e7245` 已对两处
+有意在子 shell 展开的命令局部注明，完整 ShellCheck 通过，实际工具需复验。
 详见[第四十九组](process-syscalls.md#第四十九组现有-busybox-nsenter-的真实工具接入)。
+
+musl `09a90c1a` 在既有 Wasm clone trampoline 设置栈/TLS 后、调用应用 callback
+前增加标准 gettid 检查点，使 Linux syscall 返回工作先处理待投递信号与 newborn
+ptrace stop。没有新函数、声明、包装或执行 import；不是把任意 Wasm raw callback
+都视为原生 CPU 返回入口。原生 tracing、跳过 stop 的对照、双位宽实际函数体模型
+及前端分析通过。源码 hash 已核实，distro `898e2e4` / 根仓库 `83432e4` 已集成，
+独立目标和默认线程/TLS 回归异步验收，不预先记阶段成功。
+详见[第五十组](process-syscalls.md#第五十组clone-栈tls-初始化后的应用入口检查点)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
