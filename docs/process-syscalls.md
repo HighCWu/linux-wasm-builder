@@ -2398,6 +2398,11 @@ fork/exec 回归异步派发，实际阶段和关闭结果待核实，不以本�
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39961785386)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39961797715)。
 
+其中 wasm64 重入任务 39961754938 已失败；实际 Heavy 日志确认，固定 Linux
+4074db5aa 的 codeload/archive 两个入口均连续 HTTP 429，source derivation 无法
+构建，未运行目标程序。这不是 syscall 断言或 hash mismatch；其余活任务不取消、
+不重复派发。根仓库 b594462 的轻量 CI 39961751947 已成功，仍不替代目标验收。
+
 ## 第五十三组：读取 cpuinfo 不等待正在计算的其它 CPU
 
 Linux `7258cf2c632190dc4fe9b2541b0fa2a0b521cc39` 修复 proc 读取的架构阻塞路径。
