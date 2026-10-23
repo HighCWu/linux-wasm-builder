@@ -362,6 +362,17 @@ distro `1a903a2` / 集成 `9a27f54` 修复 shared-memory 扩容后的旧视图�
 验证通过；a1e4bd4 的独立线程增长目标已派发 Node 双位宽，浏览器尚未验证。
 详见[第四十一组](process-syscalls.md#第四十一组shared-memory-扩容后的用户复制边界)。
 
+a1e4bd4 的四项复验均失败；已核实两路 wasm32 日志停于共用 toolchain-smoke
+构建缺少 test.h，没有运行目标。distro `a576e9f` / 集成 `01dc041` 显式声明
+头文件输入，并增加模拟 Nix 单文件源布局的缺失/正确 include 路径对照；仍待 CI。
+不要把这个构建失败回溯为已经修复的 TID 误投或 shared-copy 语义失败。
+
+distro `86b775a` / 集成 `94e8cfe` 继续修正 kernel Worker 名称、boot console
+及 trace 导入：原始指针位模式解码、过期 shared view 刷新、完整范围校验和同步
+复制快照。真实越界保留 kernel/host 错误，不变成 errno。旧源码模型确认缺口，
+新检查通过，但尚未证明实际高 kernel 地址复制或浏览器运行。
+详见[第四十二组](process-syscalls.md#第四十二组内核-worker-名称与诊断导入的-direct-指针)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

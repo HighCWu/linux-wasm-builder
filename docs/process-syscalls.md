@@ -1849,6 +1849,45 @@ raw capacity，不宣称建立了 mmap 登记；握手期间不让线程析构/�
 两个完整阶段、唯一 pass 和机器关闭。尚未派发浏览器目标，不把 Node 或模型当作
 Chromium/Firefox 运行证明；原有内存上限及 CONFIG_MMU=n 不变。
 
+a1e4bd4 的上述四项任务后来均失败。已读取 wasm32 信号与增长两项实际日志，
+共同失败于 toolchain-smoke 程序集合构建：shared-user-growth.c 的 `test.h` 找不到。
+Nix 插值单个 C 文件后源目录不再含相邻头文件，而本地直接编译原路径未暴露此点。
+这两项尚未运行目标程序，不能当作新的信号或复制运行失败。wasm64 两项也已失败，
+其具体日志仍在补取，不以源码推断替代独立运行证据。
+
+distro `a576e9f` / 集成 `01dc041` 在该编译命令中显式加入现有测试头文件目录，
+不复制新实现或改 libc。轻量回归现在将相同 C 文件移到没有相邻头文件的临时目录，
+先确认缺少 include 路径确实失败，再用配方的显式目录完成双位宽前端与分析；
+同时约束 Nix 配方包含该输入。实际 Nix 构建与目标复验仍待 CI，不凭本地补丁放行。
+
+## 第四十二组：内核 Worker 名称与诊断导入的 direct 指针
+
+distro `86b775a` / 集成 `94e8cfe` 将内核 boot console、Worker 名称及 trace 输出
+统一到受检的 kernel byte view。Worker/console 指针原先按非负 JS 地址解析，会
+在访问 buffer 之前拒绝合法的 wasm32 高半区位模式；直接构造视图也遗漏了此前
+shared grow 后的刷新。新逻辑按原始指针位宽解码，必要时只做零增量刷新，然后
+校验完整区间，不截断或局部发布 kernel 数据。console/名称仍在同步边界复制，
+不把 C 栈缓冲区借给异步 Worker。trace 的截断与 NUL 收尾保持不变。
+
+这些是可信内核指针，不是应用提供的虚拟地址；真正不可用的范围仍抛 kernel/host
+错误，不伪装成应用 errno。没有改 Linux、musl、导入签名或公开应用接口。
+实际旧版 a1e4bd4 的 kernel_imports 已在受控旧视图与高半区输入上复现两类错误；
+新双位宽模型通过，还确认刷新失败不调用 host 消费者、不改坏数据。高半区检查
+仅证明进入 buffer 访问前正确解码，没有分配 GiB 内存，不是实际高地址复制证明。
+两个 TS 工程、355项 kernel 宿主检查及格式检查通过，仍不代替浏览器或内核目标。
+
+包含头文件输入修正的 a576e9f 已统一派发：
+
+- 嵌套信号复验：[wasm32](https://github.com/HighCWu/distro/actions/runs/39910385000)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/39910394654)。
+- 共享增长：[wasm32](https://github.com/HighCWu/distro/actions/runs/39910400296)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/39910405285)。
+- 既有诊断/Worker 回归：[wasm32](https://github.com/HighCWu/distro/actions/runs/39910411455)、
+  [wasm64](https://github.com/HighCWu/distro/actions/runs/39910419541)。
+
+各自仍需完整阶段、唯一 pass 与机器关闭。诊断回归仅证明普通运行范围，不能替代
+未执行的真实高 kernel 地址分配、所有 import 审计或浏览器旧视图压力验证。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
