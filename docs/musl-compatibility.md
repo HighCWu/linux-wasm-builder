@@ -170,5 +170,10 @@ stack 与 mask；引擎寄存器仍保持不透明。回调返回前复制对象
 接口，SDK 链接配置负责导出可变的 C 栈全局。
 
 真实的注册/在栈校验与回调栈切换分别属于 Linux 和宿主执行 ABI，不是在 libc
-假装 syscall 成功。主负载五阶段、无栈导出模块及已有 fork 的双位宽 Node 目标
-待验收，边界与实际证据见[第三十组](process-syscalls.md#第三十组标准-sigaltstack-与版本化信号-c-栈执行候选)。
+假装 syscall 成功。主负载五阶段、无栈导出模块及已有 fork 的双位宽六路 Node
+均已核实阶段和关闭门禁；浏览器和应用结果分别记录，边界与实际证据见
+[第三十组](process-syscalls.md#第三十组标准-sigaltstack-与版本化信号-c-栈执行候选)。
+
+后续通用 ptrace 的接入只修改内核，不需要改动现有 libc：src/linux/ptrace.c
+使用的内部 syscall 宏本来就转换机器字参数，不能将其误判为公共 varargs
+函数而另加冗余 Wasm 分支。本次集成仍固定 `e12bb18e`，不新增函数/声明。

@@ -1333,12 +1333,15 @@ configure 生成 HAVE_SIGALTSTACK，不添加 CPython 私有补丁或编译宏�
 
 | 检查 | wasm32 | wasm64 |
 |---|---|---|
-| CPython faulthandler | [待验收](https://github.com/HighCWu/distro/actions/runs/39882160137) | [待验收](https://github.com/HighCWu/distro/actions/runs/39882162040) |
-| SDK Autoconf 消费者 | [检测及运行已核实](https://github.com/HighCWu/distro/actions/runs/39882164072) | [待验收](https://github.com/HighCWu/distro/actions/runs/39882165733) |
+| CPython faulthandler | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39882160137) | [阶段与关闭已核实](https://github.com/HighCWu/distro/actions/runs/39882162040) |
+| SDK Autoconf 消费者 | [检测及运行已核实](https://github.com/HighCWu/distro/actions/runs/39882164072) | [检测及运行已核实](https://github.com/HighCWu/distro/actions/runs/39882165733) |
 
-wasm32 SDK 的实际日志已确认真实 Autoconf 消费者检查通过（其中断言正常探测
-sigaltstack=yes），目标 allocation 阶段和唯一 pass；成功作业通过原有等待
-machine.closed 的关闭门禁。这不代替 CPython 或 wasm64 结果。
+双位宽 SDK 实际日志均已确认真实 Autoconf 消费者检查通过（其中断言正常探测
+sigaltstack=yes）、目标 allocation 阶段和唯一 pass。双位宽 CPython 实际日志
+均核实 ABI/安装布局、全部三个 faulthandler 阶段及唯一 pass；四项成功作业
+通过原有等待 machine.closed 的关闭门禁。CPython 没有新增该功能的私有补丁，
+这也是原有应用通过正常探测实际使用恢复后的 syscall 的证据，不扩展为 trap
+恢复、Vim 或浏览器 Python 的验收。
 
 ### 第三十一组：恢复官方默认 membarrier 与任务切换屏障
 
@@ -1374,8 +1377,47 @@ Wasm 内核目标结果。原线程循环定期 sched_yield 以服务当前 Wasm
 源码 [prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39882589630)
 已核实对应修订及 unpacked hash。固定 `0083011` 的
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39882973622) 和
-[wasm64](https://github.com/HighCWu/distro/actions/runs/39882975247) 已进入实际
-Heavy 检查，需核实完整三阶段、最终唯一 pass 及机器关闭，当前尚未验收。
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39882975247) 均已成功。
+实际 Heavy 日志逐项核实全部三阶段和各自唯一 pass；两项成功作业经同一
+未改变的运行器等待 machine.closed，确认关闭门禁通过。此为两 CPU Node 的
+有界负载证据，不泛化为浏览器、任意 CPU 数、sync-core/rseq 或实时完成延迟。
+
+### 第三十二组：接回通用 ptrace 请求与 detach
+
+Linux `64e7b1c6f` / distro `e766014` / 集成 `629012b` 将 arch_ptrace 接到
+Linux 已有 ptrace_request，去掉旧的分发和 ptrace_disable BUG。没有硬件单步
+或调试寄存器需要撤销时，后者不应使通用 detach 崩溃。syscall 入口同时在通用
+追踪工作之前保存当前 syscall_nr，避免读取上一笔编号。通用权限、停止、信号
+及恢复实现不重写；内存请求经 generic_ptrace_peekdata/pokedata 和现有
+Wasm remote-mm 桥访问子进程独立线性内存，不把数值地址当成内核指针。
+
+musl 保持 `e12bb18e`，现有 ptrace 实现不变。复核了它包含的内部 syscall 宏
+本来就完成机器字转换，不为此新增包装、分支或公共声明。内核改动保留 GPL，
+新独立检查和语料 MIT，不增加项目专有应用 API。
+
+标准 C 负载使用既有可选单线程 fork profile 创建 tracee，三阶段验证：
+
+1. TRACEME/SIGSTOP 的 wait 与 GETSIGINFO/GETEVENTMSG；全1 PEEKDATA 不误判
+   errno，POKEDATA 全宽往返（wasm64 含高于32位的值）和父进程内存隔离；
+   GETSIGMASK/SETSIGMASK 的精确8字节内核布局、KILL/STOP 保护，以及无效
+   长度/指针/远程地址/未知 request 的标准错误。
+2. CONT 后子程序实际看到修改过的数据和掩码，退出码及单次回收一致。
+3. 第二个 tracee 的 DETACH 不触发架构 trap，恢复后实际验证修改；随后普通
+   fork/wait 可继续执行，父进程掩码保持原值。
+
+GCC/Clang native ASan/UBSan（诊断即失败）、伪造 POKEDATA 成功却不写入的
+负向对照、双位宽前端及原样 libc/工作负载的 Clang 静态分析通过。检查仅在
+临时头文件副本恢复既有可选 fork 声明，不改默认 musl；libc 按真实内部
+include 顺序检查，避免把其 syscall 宏误判为公共 varargs 函数。负向失败
+只清理仍属于该父进程的子进程，不按已回收 PID 盲目发信号。
+
+Linux [prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39883561288)
+已核实完整修订和 hash；固定 `e766014` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39884130096) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39884132618) 实际 Heavy
+检查已启动，尚待三阶段、唯一 pass 及机器关闭证据。不宣称 GDB/strace、
+寄存器视图、断点、单步、SECCOMP 或完整 syscall-tracing 验收；也不扩大
+多线程 fork 或对纯用户态计算的异步停止能力。
 
 ## 信号栈缺口的前期核查记录
 

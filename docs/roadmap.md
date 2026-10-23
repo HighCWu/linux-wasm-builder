@@ -17,8 +17,9 @@
   也不机械套用 x86 的硬件配置。此原则与 tombl/musl 的 libc 比较基线分别适用。
   已直接核对 [Linux 官方 v7.1 的 init/Kconfig](https://github.com/torvalds/linux/blob/v7.1/init/Kconfig)：
   FHANDLE、AIO、IO_URING、MEMBARRIER 都是 default y；后续恢复审查不能把 fork
-  对这些选项的额外关闭视为官方默认。FHANDLE 已接通，其余仍需解决并验证实际
-  执行、共享 ring 或跨 CPU 同步等相应前提，不靠配置开关宣称完成。
+  对这些选项的额外关闭视为官方默认。FHANDLE 和 MEMBARRIER 已接通并验收
+  指定双位宽目标；AIO、IO_URING 仍需解决实际执行和共享 ring 等相应前提，
+  不靠配置开关宣称完成。
   审查也覆盖 fork 对 Kconfig 依赖本身的修改，而不只比较 defconfig：当前
   KALLSYMS 多了官方 v7.1 没有的 depends on !LD_IS_WASMLD，且 Wasm 强制使用
   wasm-ld，因此 olddefconfig 也不会恢复它。应核查符号表生成、地址表示和
@@ -245,17 +246,25 @@ pass 和关闭门禁。不是用新增测试
 结果。本地控制器与负向检查 18 项通过，不代替真实浏览器。
 `f404198` / 集成 `9a2a516` 基于六路 Node 验收移除共享 CONFIG_SITE 旧否定项，
 让应用正常探测，而非强制成功；CPython 原有 faulthandler 的启动注册、16次
-信号回溯、恢复/清理，以及 SDK 真实 Autoconf 消费者双位宽均已派发，结果待
-核实。本地兼容/负向检查 32 项通过，不代替目标运行。此增量不修改 CPython
+信号回溯、恢复/清理，以及 SDK 真实 Autoconf 消费者双位宽均已核实实际阶段、
+唯一 pass 与关闭门禁。本地兼容/负向检查 32 项通过，不代替目标运行。此增量不修改 CPython
 实现或 musl，不宣称引擎故障恢复。细节与精确版本见[第三十组](process-syscalls.md#第三十组标准-sigaltstack-与版本化信号-c-栈执行候选)。
 
 Linux `2b572a9a0` / distro `0083011` / 集成 `b9d305a` 接续恢复官方默认
 MEMBARRIER，删除 Wasm 额外关闭项，并在实例间任务切换返回前显式提供完整
 屏障，保留通用 syscall 与 IPI 实现；不启用 sync-core/rseq。双位宽两 CPU
-真实验收已启动，三阶段含命令/注册拒绝、注册状态和跨 CPU 线程顺序/恢复，
-尚未核实目标结果。原生 sanitizer、故意禁用/伪造成功对照及双位宽静态分析
+真实验收均已逐项核实三阶段、唯一 pass 及关闭，包含命令/注册拒绝、注册状态
+和跨 CPU 线程顺序/恢复。原生 sanitizer、故意禁用/伪造成功对照及双位宽静态分析
 通过，不代替目标证据；纯用户计算循环的异步 IPI 限制仍存在。详见
 [第三十一组](process-syscalls.md#第三十一组恢复官方默认-membarrier-与任务切换屏障)。
+
+Linux `64e7b1c6f` / distro `e766014` / 集成 `629012b` 接回通用 ptrace 请求，
+移除分发/detach trap，修正通用追踪入口前的 syscall 编号记录。内存读写
+复用既有 remote-mm 桥；musl 仍为 `e12bb18e`，原 ptrace 内部宏无需另加包装
+或兼容分支。TRACEME、全宽 PEEK/POKE、信号信息与掩码、CONT、DETACH 和
+后续 fork 恢复的双位宽目标已启动，尚待实际验收；原生 sanitizer、伪写入
+控制和双位宽静态分析通过，不代替目标证据。不宣称调试器、寄存器/单步或
+完整 syscall tracing 支持。详见[第三十二组](process-syscalls.md#第三十二组接回通用-ptrace-请求与-detach)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
