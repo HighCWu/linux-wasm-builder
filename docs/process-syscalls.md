@@ -1441,6 +1441,28 @@ Linux [prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/3988
 寄存器视图、断点、单步、SECCOMP 或完整 syscall-tracing 验收；也不扩大
 多线程 fork 或对纯用户态计算的异步停止能力。
 
+### 第三十三组：Vim 双位宽与正常信号栈探测
+
+distro `6f56e24` / 集成 `885c998` 新增 vim-wasm64，复用现有 Vim 9.1.2148
+配方，明确选择匹配的 stdenv、platform、ncurses、BusyBox 和 vm-test；默认
+wasm32 不替换。两种位宽都由原 configure 检测 sigaltstack，构建核查生成的
+HAVE_SIGALTSTACK=1，而不是预填 yes 或新增 Vim 信号处理补丁。最终 src/vim
+由既有字节解析器检查共享 env.memory 的真实位宽和平台内存上限，不能仅凭
+包名认为是 wasm64。
+
+原有安装系统 editing 检查继续执行版本/功能、默认启动及安装 runtime、
+多行替换和文件字节、shell-out 捕获/过滤/外部命令、xxd 二进制往返；新增
+三条确切阶段输出以便核实日志，不用单个 pass 推定所有步骤运行。
+源码修改为集成 MIT，不改变 Vim 自有许可；既有 USE_SYSTEM/posix_spawn
+策略和唯一 sys/wait 头文件补丁保持不变，不扩展默认 fork 或终端作业控制。
+
+Nix 格式/语法、shell 语法、完整仓库元数据/文档检查和手工依赖闭包 review
+通过，[wasm32](https://github.com/HighCWu/distro/actions/runs/39885517985) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39885518633) 的实际 Heavy
+检查已启动，完整三阶段、唯一 pass 及机器关闭仍待核实。原版 Vim 的 init_signal_stack 会
+忽略 sigaltstack 返回值，因此“原路径编译启用且编辑正常”不是注册成功、
+异步信号或引擎栈溢出恢复的单独证明；后者不能从本项扩大宣称。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
