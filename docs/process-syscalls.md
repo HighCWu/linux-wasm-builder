@@ -2347,8 +2347,56 @@ gitlink，将 `check_futex_fault.py` 和现有的精确源码下载接入轻量 
 已对固定 d7089fc 派发 user-access
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39955080607) 与
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39955087526)，要求完整四阶段、
-唯一 pass 和机器关闭；现为异步待验收。没有为此次修复再次要求大内存 upper32
+唯一 pass 和机器关闭。两路实际日志现均已核实四阶段与唯一 pass，任务通过现有
+机器关闭门禁，接受此有界 Node 结果。没有为此次修复再次要求大内存 upper32
 目标，也没有派发整个旧矩阵或性能任务。
+
+## 第五十二组：用户分配器重入时保留外层 syscall 状态
+
+直接分配路径会回调用户分配器；分配器在互斥锁竞争等情况下又可能调用 Linux。
+嵌套调用复用同一 task_pt_regs，原 dispatcher 只写回外层返回值，外层退出时的
+syscall 编号、六个参数、用户 C 栈和模式仍可能属于内层。这不是 libc 包装缺口：
+它影响 ptrace 退出观察、信号栈选择及 syscall restart 的实际执行状态。
+
+Linux `4074db5aa1bdb0bc7c80fdd23acd802dab22e4d3` 在 entry/ptrace 修改完成后、
+执行 handler 前保存寄存器帧，正常返回后恢复该帧并单独写入结果。任务信号掩码、
+restart_block 等其它状态不回滚；退出信号处理与重启仍走原 Linux 路径。非局部
+退出不登记持久快照，不留下堆对象或悬空注册项。
+
+嵌套退出还会关闭 IRQ，故仅恢复寄存器不够。内核新增私有执行导出
+callback_irq_save_v1 / callback_irq_restore_v1，固定 i32 标志 ABI；执行层只在
+嵌套入口且两个导出均存在时保存/恢复调用者 IRQ，在返回活的分配器前完成恢复。
+HALT_KERNEL 后不得再进入 C；异常路径恢复线性 C 栈并保持异常传播。旧内核缺少
+导出对时保留旧行为，不宣称获得新保证。这不是公开应用 API，也不表示已完善
+CPU accounting、vtime、抢占或多线程 fork。
+
+distro `188ff21` 实现桥接与独立目标 syscall-reentry。测试通过链接期包裹现有
+pthread_mutex_lock，在真实 mmap/munmap 分配器回调内发起 getpid；Wasm 必须实际
+观察至少两次嵌套调用，否则失败。父端使用标准 ptrace 和 /proc/PID/syscall，
+逐层核对退出编号、全部六个参数及 C 栈；再核对映射数据、释放和子进程回收。
+650b70c 另修正原生诊断失败清理：仅对仍可 wait 的自有 tracee 发信号，避免已回收
+PID 的复用风险；Wasm 路径不受此原生清理调整影响。
+
+轻量验证包括完整宿主测试 361 项、源/测试两套 TypeScript 检查、Clang 18/22
+双位宽前端与静态分析。实际 dispatcher 与 IRQ 导出的小型 Wasm 模型覆盖嵌套、
+ptrace 参数修改、带符号结果、重启目标及旧实现负向控制；原生参考另独立破坏
+编号、参数、SP 验证拒绝。原生 mmap 不经过 Wasm 用户分配器，不能替代真实嵌套
+目标；异常/IRQ 模型也不等于全部目标压力验收。
+
+普通源码预取 [39960080381](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39960080381)
+实际日志核实完整 revision 及 SRI
+`sha256-TIVj77Fp9i5Eo3IB45ZVxbfsGC/hpRoO+Eb7Z8m7SGw=`。
+distro `227d54e` 固定该源码，根仓库 `b594462` 单独更新 gitlink 并接入轻量模型。
+musl 仍为 09a90c1a，没有新增函数、头文件 API 或包装。双位宽真实重入、信号栈及
+fork/exec 回归异步派发，实际阶段和关闭结果待核实，不以本地验证或取源成功代替。
+
+固定 227d54e 的派发记录：重入
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39961744403)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39961754938)；信号栈
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39961766108)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39961775132)；fork/exec
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39961785386)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39961797715)。
 
 ## 信号栈缺口的前期核查记录
 
