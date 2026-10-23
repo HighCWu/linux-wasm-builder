@@ -2738,7 +2738,11 @@ restore.c 放宽原有 inline 的 unused-parameter 警告，应用负载仍保�
 [wasm64 39982297387](https://github.com/HighCWu/distro/actions/runs/39982297387)；信号栈回归
 [wasm32 39982306882](https://github.com/HighCWu/distro/actions/runs/39982306882)、
 [wasm64 39982314549](https://github.com/HighCWu/distro/actions/runs/39982314549)。
-目前均在运行，尚未宣称真实 Linux/Wasm 取消三阶段或信号栈五阶段/机器关闭通过。
+四项实际 Heavy 日志现已核实：取消各有阻塞 read 无数据/EOF 的取消收尾、raw/
+disabled 真实 I/O、masked cond-wait mutex 重取得三阶段；信号栈各有原五阶段，
+均包含唯一 pass。固定 a8194ae 运行器退出成功前等待 machine.closed，关闭错误
+会使任务失败，四项均通过该门禁。因此接受 musl 264eb000 / distro a8194ae 的
+双位宽有界 Node 验收，不泛化为浏览器、所有取消窗口或后继线程释放修复。
 不等待这些 CI 才推进其它独立 syscall 审查，也不据此扩大多线程 fork。
 较早 ccd9d346 的预取 39981476691 不覆盖后续编译策略，不拿它更新 pin。
 
@@ -2778,6 +2782,43 @@ unused-result 警告作局部放宽，应用负载仍严格编译。这些不是
 [wasm64 39984734768](https://github.com/HighCWu/distro/actions/runs/39984734768)。
 目前运行或排队，三阶段与机器关闭尚待核实。没有把原生参考、编译成功或恢复
 声明当作完整 Wasm 终端能力已验收；此前取消点/信号栈目标继续独立跟踪。
+
+## 第六十一组：detached thread 的栈释放与分配器锁生命周期
+
+静态 review 在 tombl/musl 的 Wasm __unmapself 路径确认两个相关缺口：它从
+仍在使用的用户 C 栈上 free 自己的 stack/TLS 存储，再进入 SYS_exit；分配器
+发布复用后，另一线程可以清零/改写旧栈。同时 __pthread_exit 在减掉最后一条
+额外线程后提前设置 need_locks=-1，这在原生 munmap 退出路径不使用 malloc，
+但 Wasm 的后续 free 仍须和剩余线程的 malloc 串行，不能提前停用锁。
+
+musl `f949d1b1612f1b4cbc42a4924d59bd13f7728e6a` 修改这两个既有架构路径：
+先把 __stack_pointer 切到进程内专用静态退出栈，再进入 noinline/noreturn
+内部 helper 释放旧存储并调用 SYS_exit；即使 tracer 跳过 exit，也不返回旧调用
+帧。原线程列表锁一直保持到内核 clear_child_tid 清零，因此同一地址空间内的
+退出栈复用仍串行，不新增锁或内核执行协议。退出栈大小取既有 DEFAULT_STACK_SIZE
+（当前128 KiB），是链接该路径时的固定开销，不是每个线程另分配128 KiB。
+Wasm 退出不再使用最后线程的停锁优化，保留无争用锁开销以保证共享分配器安全；
+非 Wasm 分支保持。没有新增公共函数、头文件 API、syscall 或 softmmu。
+
+Clang18/22 × Wasm32/64、-Os/-O2 的小型模型执行原样 __unmapself，free 回调
+立即 poison 旧栈，再执行真实 C 调用帧写入：修复后旧范围保持 poison，恢复旧
+路径的控制会在已释放范围写入。两次有序退出验证静态栈可复用；原样计数分支
+另验证 Wasm 保留锁和传统平台行为不变。这不执行实际 malloc/内核/Worker，
+不伪称本地重现了整机并发崩溃。实际源文件与目标双位宽前端/静态分析通过；
+pthread_create 既有的通用 stack 赋值后被 wasm_tls 覆盖会触发 DeadStores，
+该文件只关闭此检查器，内存检查保留，未为过检查修改无关代码。
+
+distro `b7cfd8a` 提供独立 thread-reclaim 目标，32 轮 detached 返回/TLS destructor
+与主线程分配写入并行。测试私有链接 wrapper 在真实 free 前检查当前 C SP 已离开
+释放范围，且不在 free 后读取旧 TLS；观察计数后还创建/回收 joinable 线程，通过
+已有线程列表同步等待最后释放完成，再删除 key 并验证分配器可用。wrapper 不进入
+SDK 或 libc 公共接口。GCC/Clang 原生参考通过两个公共阶段，不能代跑 Wasm 的
+私有 SP 检查。可选 fork 补丁 dry-run、Nix 格式及 actionlint 通过。
+
+源码已分别原子提交推送，精确预取
+[39987636348](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39987636348)
+已派发。构建/主仓库 musl pin 仍为264eb000；核实完整 hash 后再单独集成、提交
+根仓库模型/门禁并派发双位宽目标。尚未宣称真实线程释放三阶段或机器关闭通过。
 
 ## 信号栈缺口的前期核查记录
 

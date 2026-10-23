@@ -530,8 +530,9 @@ distro `2180b2a` 更新原 offsets 目标而非新增重复程序，原生参考
 收尾和 disabled/close 边界；distro `137c6e6` 增加私有执行协议及独立目标。
 无新增公共函数/头文件 API，Linux syscall 语义与 CONFIG_MMU=n 不变。
 本地原生参考、双位宽模型/静态分析和运行器检查通过；精确 hash 已核实，
-distro `a8194ae` / 根仓库 `244689a` 单独集成。双位宽取消目标与信号栈回归均
-已异步派发，实际 Worker 阶段/关闭待完成，不宣称目标已验收。
+distro `a8194ae` / 根仓库 `244689a` 单独集成。双位宽取消三阶段、信号栈五阶段
+及各自唯一 pass 已核实，固定运行器 machine.closed 关闭门禁均通过，接受
+264eb000/a8194ae 的有界 Node 验收；不覆盖后继线程释放修复。
 详见[第五十九组](process-syscalls.md#第五十九组阻塞取消点的-wasm-返回路径)。
 
 distro `6f14171` 进一步只在显式 fork profile 恢复 tombl/musl 已有但 Wasm
@@ -540,6 +541,14 @@ distro `6f14171` 进一步只在显式 fork profile 恢复 tombl/musl 已有但 
 双位宽 PTY/session/SIGWINCH、daemon 双次 fork/stdio/subreaper 收尾目标已
 异步派发，真实三阶段与关闭待验收，不等同于完整 shell job control。
 详见[第六十组](process-syscalls.md#第六十组恢复显式-fork-profile-中既有终端daemon-实现)。
+
+随后 musl `f949d1b1` 修复 detached thread 从仍在使用的栈上 free 自己的存储，
+以及过早关闭共享分配器锁的问题：先切换到线程列表锁串行保护的专用退出栈，
+Wasm 退出保留 allocator 锁。无新增公共函数/执行协议，非 Wasm 路径保持。
+distro `b7cfd8a` 增加独立实际线程目标；双位宽 -Os/-O2 原样函数模型、旧写入
+控制、源码/目标分析和原生参考通过。源码已发布，精确 hash/pin 与真实三阶段/
+关闭待完成；不把本地 poison 模型当作实际 Worker 已验收。
+详见[第六十一组](process-syscalls.md#第六十一组detached-thread-的栈释放与分配器锁生命周期)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

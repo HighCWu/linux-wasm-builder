@@ -266,5 +266,16 @@ helper，不增加公共函数、公共头文件 API 或通用 Linux 包装；�
 SjLj 返回包装而非直接退出 handler，保留 cond_wait 的 masked ECANCELED/重新
 加锁步骤；不移除 SA_RESTART，不虚构原生 PC。本地模型/分析通过，精确 hash
 已核实，distro a8194ae / 根仓库 244689a 现固定完整候选 264eb000；双位宽取消
-及信号栈回归已异步派发，真实 Worker 阶段与关闭仍待验收，详见
+及信号栈回归的实际三/五阶段、唯一 pass 与机器关闭门禁已核实，接受该版本的
+双位宽有界 Node 验收，不泛化到浏览器或后继修改，详见
 [第五十九组](process-syscalls.md#第五十九组阻塞取消点的-wasm-返回路径)。
+
+## detached 线程存储释放候选
+
+`f949d1b1` 只修改已有 __unmapself 和 __pthread_exit 的 Wasm 路径：从专用退出
+栈释放原栈/TLS，再走原 SYS_exit；继续使用内核 clear_child_tid 前保持的线程
+列表锁串行化退出栈，并保留 allocator 加锁。原生路径不变，没有公共函数或
+头文件 API 增量。128 KiB 静态退出栈是链接该路径时的有界开销，不是每线程开销。
+本地双位宽原样函数/poison 模型和源码分析通过；源码已发布，当前 pin 仍为
+264eb000，精确 hash 与实际线程目标待验收，见
+[第六十一组](process-syscalls.md#第六十一组detached-thread-的栈释放与分配器锁生命周期)。
