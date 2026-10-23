@@ -2398,6 +2398,28 @@ fork/exec 回归异步派发，实际阶段和关闭结果待核实，不以本�
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39961785386)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39961797715)。
 
+## 第五十三组：读取 cpuinfo 不等待正在计算的其它 CPU
+
+Linux `7258cf2c632190dc4fe9b2541b0fa2a0b521cc39` 修复 proc 读取的架构阻塞路径。
+原 c_show 通过同步 smp_call_function_single 在每个在线 CPU 上执行 seq_printf，
+却只读取 smp_processor_id。Wasm CPU 正在执行不进入内核的用户代码时，无法
+服务该 IPI；读取方会等待与输出内容无关的远端执行。现由读取线程直接遍历在线
+CPU 编号，输出格式与编号顺序不变，不读远端局部状态、不新增锁或远端请求。
+这修复普通 read(/proc/cpuinfo) 的可用性，不表示新增抢占或支持全部 SMP 场景。
+
+distro `2422afa` 增加独立双 CPU 目标：将读取线程与计算线程固定在不同 CPU，
+计算线程发布 ready 后只执行原子循环，不调用 Linux；读取方完整读取三轮 CPU
+记录，核对两颗 CPU 均出现且无重复，然后释放/回收线程、恢复 affinity 并再次
+读取。仅在 Wasm 测试机挂载 proc，原生参考不修改宿主挂载。与 fork 无关，使用
+默认 SDK 的既有 pthread/affinity/read 接口，musl 没有变更。
+
+GCC/Clang 原生程序、真实 formatter 的稀疏在线编号模型及旧同步 IPI 负向控制
+通过；Clang 18/22 的 wasm32/64 前端和静态分析通过。模型里的远端 IPI 被受控
+拒绝，不伪称本地重现了真实 Wasm 死锁；原生测试也不能证明协作式 Worker 行为。
+源码已原子提交推送；公开源码预取
+[39963218440](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39963218440)
+已派发，取得精确 SRI 后再单独集成 pin 和派发真实目标。本段不表示已集成或验收。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
