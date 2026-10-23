@@ -18,7 +18,7 @@ class Membarrier(unittest.TestCase):
             with self.subTest(cc=cc), tempfile.TemporaryDirectory(prefix="membarrier-native-") as tmp:
                 binary = pathlib.Path(tmp) / "test"
                 flags = [cc, "-O2", "-pthread", "-Wall", "-Wextra", "-Werror",
-                         "-fsanitize=address,undefined", str(SOURCE)]
+                         "-fsanitize=address,undefined", "-fno-sanitize-recover=all", str(SOURCE)]
                 subprocess.run([*flags, "-o", str(binary)], check=True)
                 result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=30)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
