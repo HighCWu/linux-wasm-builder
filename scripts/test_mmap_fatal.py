@@ -31,7 +31,7 @@ class MmapFatal(unittest.TestCase):
     def test_wasm_controller_frontends(self):
         musl = ROOT / "sources/musl"
         sources = [ROOT / "sources/distro/distro/basic-init/tests" / name for name in
-                   ("mmap-vfs-exit.c", "mmap-vfs-callback.c")]
+                   ("mmap-vfs-exit.c", "mmap-vfs-callback.c", "mmap.c")]
         with tempfile.TemporaryDirectory(prefix="mmap-fatal-abi-") as tmp:
             path = Path(tmp)
             (path / "bits").mkdir()

@@ -102,12 +102,13 @@ for (const cc of ["gcc", "clang"])
 #define SYSCALL_DEFINE6(n,t0,a0,t1,a1,t2,a2,t3,a3,t4,a4,t5,a5) long n(t0 a0,t1 a1,t2 a2,t3 a3,t4 a4,t5 a5)
 static int fixed_calls, legacy_calls;
 static unsigned long expected_flags = MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED_NOREPLACE;
+static unsigned long expected_prot = 3;
 static long wasm_user_v2_mmap_fixed(unsigned long a, unsigned long n) {
   assert(a == 65536 && n == 65536); fixed_calls++; return a;
 }
 static long wasm_user_v2_mmap(unsigned long a, unsigned long n, unsigned long p,
   unsigned long f, long fd, unsigned long o) {
-  assert(a == 65536 && n == 65536 && p == 3 && f == expected_flags);
+  assert(a == 65536 && n == 65536 && p == expected_prot && f == expected_flags);
   assert(fd == -1 && o == 0); legacy_calls++;
   return f & MAP_FIXED_NOREPLACE ? -EEXIST : 65536;
 }
@@ -122,7 +123,7 @@ int main(void) {
   assert(wasm_mmap(0, 1, 3, f | MAP_FIXED, -1, 0) == -ENOMEM);
   assert(wasm_mmap(TASK_SIZE, 1, 3, f | MAP_FIXED, -1, 0) == -ENOMEM);
   assert(wasm_mmap(65536, ULONG_MAX, 3, f | MAP_FIXED, -1, 0) == -ENOMEM);
-  assert(wasm_mmap(65536, 1, 1, f | MAP_FIXED, -1, 0) == -EINVAL);
+  assert(wasm_mmap(65536, 1, 0, f | MAP_FIXED, -1, 0) == -EINVAL);
   assert(wasm_mmap(65536, 1, 3, f | MAP_FIXED | 0x80000000UL, -1, 0) == -EINVAL);
   assert(fixed_calls == 1 && legacy_calls == 2);
   unsigned long hints[] = {MAP_NORESERVE, MAP_STACK, MAP_POPULATE, MAP_NONBLOCK,
@@ -142,19 +143,47 @@ int main(void) {
   assert(wasm_mmap(65536, 1, 3, MAP_PRIVATE, 12345, 0) == -EINVAL);
   assert(wasm_mmap(65536, 1, 3, f|MAP_NORESERVE, 12345, 1) == -EINVAL);
   assert(fixed_calls == 2 && legacy_calls == 11);
+  expected_prot = PROT_READ;
+  expected_flags = f;
+  assert(wasm_mmap(65536, 1, 1, f, 12345, 0) == 65536);
+  assert(wasm_mmap(65536, 1, 1, f|MAP_FIXED, -1, 0) == 65536);
+  expected_flags = f|MAP_FIXED_NOREPLACE;
+  assert(wasm_mmap(65536, 1, 1, f|MAP_FIXED_NOREPLACE, -1, 0) == -EEXIST);
+  unsigned long protections[] = {PROT_NONE, PROT_WRITE, PROT_EXEC,
+    PROT_READ|PROT_EXEC, PROT_WRITE|PROT_EXEC, PROT_READ|PROT_WRITE|PROT_EXEC, 0x80000000UL};
+  for (unsigned i = 0; i < sizeof protections / sizeof protections[0]; i++) {
+    assert(wasm_mmap(65536, 1, protections[i], f, -1, 0) == -EINVAL);
+    assert(wasm_mmap(65536, 1, protections[i], f|MAP_FIXED, -1, 0) == -EINVAL);
+  }
+  assert(fixed_calls == 3 && legacy_calls == 13);
 }
 `;
     const input = join(dir, "test.c"),
       binary = join(dir, "test");
-    writeFileSync(input, prefix + source.slice(start, end + 3) + fixture);
-    const build = spawnSync(
-      cc,
-      ["-O2", "-std=c11", "-Wall", "-Wextra", "-Werror", input, "-o", binary],
-      { encoding: "utf8" },
+    const original = source.slice(start, end + 3);
+    const strict = original.replace(
+      "(prot != PROT_READ && prot != (PROT_READ | PROT_WRITE))",
+      "prot != (PROT_READ | PROT_WRITE)",
     );
-    assert.equal(build.status, 0, build.stderr);
-    const run = spawnSync(binary, [], { encoding: "utf8", timeout: 10000 });
-    assert.equal(run.status, 0, run.stdout + run.stderr);
+    assert.notEqual(strict, original);
+    for (const [mode, body] of [
+      ["normal", original],
+      ["old-read-refusal", strict],
+    ]) {
+      writeFileSync(input, prefix + body + fixture);
+      const build = spawnSync(
+        cc,
+        ["-O2", "-std=c11", "-Wall", "-Wextra", "-Werror", input, "-o", binary],
+        { encoding: "utf8" },
+      );
+      assert.equal(build.status, 0, build.stderr);
+      const run = spawnSync(binary, [], { encoding: "utf8", timeout: 10000 });
+      if (mode === "normal") assert.equal(run.status, 0, run.stdout + run.stderr);
+      else {
+        assert.notEqual(run.status, 0);
+        assert.match(run.stderr, /wasm_mmap\(65536, 1, 1/);
+      }
+    }
   });
 
 for (const cc of ["gcc", "clang"])
