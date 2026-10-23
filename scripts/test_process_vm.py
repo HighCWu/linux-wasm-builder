@@ -57,6 +57,7 @@ class ProcessVm(unittest.TestCase):
                     run = subprocess.run([str(binary)], capture_output=True, text=True, env=ENV, timeout=15)
                     if old:
                         self.assertNotEqual(run.returncode, 0)
+                        self.assertIn("iter.done == 777", run.stderr)
                         self.assertNotIn("cleanup pass", run.stdout)
                     else:
                         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
