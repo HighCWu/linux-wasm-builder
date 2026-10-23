@@ -92,6 +92,10 @@ jobs:
             python3 -B scripts/test_ptrace.py
           WASM_STACKTRACE_SOURCE="$RUNNER_TEMP/wasm-membarrier/kernel/stacktrace.c" \
             python3 -B scripts/test_stacktrace.py
+          gh api "repos/HighCWu/linux/contents/mm/process_vm_access.c?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-process-vm.c"
+          WASM_PROCESS_VM_SOURCE="$RUNNER_TEMP/wasm-process-vm.c" \
+            python3 -B scripts/test_process_vm.py
           node --test sources/distro/packages/kernel/test/stacktrace.test.ts
           WASM_MREMAP_SYSCALL_SOURCE="$RUNNER_TEMP/wasm-syscall.c" \
             node --test scripts/test_mremap_syscall.js
