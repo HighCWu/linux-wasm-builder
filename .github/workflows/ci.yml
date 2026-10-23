@@ -267,6 +267,8 @@ jobs:
             WASM_SIGCONTEXT_SOURCE="$RUNNER_TEMP/wasm-sigcontext.h" \
             python3 -B scripts/check_syscall_reentry.py
           python3 -B scripts/test_syscall_reentry.py
+          WASM_SYSCALL_SOURCE="$RUNNER_TEMP/wasm-syscall.c" \
+            python3 -B scripts/check_anonymous_mmap_offsets.py
           syscall_info_root="$RUNNER_TEMP/wasm-syscall-info"
           mkdir -p "$syscall_info_root/kernel" "$syscall_info_root/arch/wasm/include/uapi/asm"
           cp "$RUNNER_TEMP/wasm-membarrier/kernel/ptrace.c" "$syscall_info_root/kernel/ptrace.c"
