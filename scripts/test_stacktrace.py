@@ -54,7 +54,7 @@ class Stacktrace(unittest.TestCase):
                 # The negative control needs an actual sanitizer diagnostic,
                 # not an external symbolizer walking a slow mounted checkout.
                 env = {**os.environ, "ASAN_OPTIONS": os.environ.get("ASAN_OPTIONS", "") +
-                       ":symbolize=0:halt_on_error=1:abort_on_error=1"}
+                       ":symbolize=0:halt_on_error=1:abort_on_error=1:disable_coredump=1"}
                 subprocess.run(flags, check=True)
                 result = subprocess.run([str(binary)], env=env, capture_output=True, text=True, timeout=10)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
