@@ -428,6 +428,13 @@ USER_NS 默认关闭和 NOMMU；同时修复无 vDSO 的时间 namespace 首次�
 真实目标验收另记，不把单纯配置开启当作能力完成。
 详见[第四十八组](process-syscalls.md#第四十八组恢复标准-namespace-配置与无-vdso-的时间偏移冻结)。
 
+distro `674242a` / 集成 `ca474b4` 继续开启固定 BusyBox 源码现有的 nsenter，
+不增加应用补丁或 libc 函数；真实 applet 目标验证 namespace 身份、exec、原有
+子进程退出码、错误恢复及清理。UNSHARE 的 !NOMMU 条件仍保留，用独立测试
+helper 调用标准 unshare 创建目标。双位宽分析和轻量检查通过，两路公开 Node
+目标异步运行，未提前记实际工具验收完成。
+详见[第四十九组](process-syscalls.md#第四十九组现有-busybox-nsenter-的真实工具接入)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

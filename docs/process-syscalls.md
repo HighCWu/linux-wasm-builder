@@ -2167,6 +2167,35 @@ bf26831，未修改或重写历史。目标运行结果另记，不能把预取�
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39929257117) 与
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39929264789)，尚待实际目标结果。
 
+## 第四十九组：现有 BusyBox nsenter 的真实工具接入
+
+distro `674242a` / 集成 `ca474b4` 在双位宽 BusyBox 配方开启原有 `NSENTER`，
+并检查 oldconfig 后该项仍为 y。固定源码、默认 libc 和 ABI 均不变，未给工具
+增加应用补丁。固定源码的 PID 选项本身已有 callback child/wait 路径，本组
+不将它写成已迁移至普通双返回 fork，也不扩大 fork 支持范围。
+
+审查同时确认固定 BusyBox 的 `UNSHARE` 仍有 `depends on !NOMMU`，所以没有
+强行写入一个会被 oldconfig 丢弃的 y，更没有关闭 NOMMU 来满足工具条件。
+独立 MIT 测试 helper 只调用标准 `unshare`、`sethostname` 和管道文件操作，
+创建 UTS/IPC/network 目标并用 FIFO 明确通知就绪。它只进入测试镜像，不安装
+进 BusyBox 生产包；原生构建明确报错，不能借轻量检查修改宿主 namespace。
+
+`busybox-check-namespaces` 及 wasm64 对应目标执行真实 `nsenter` applet，要求：
+
+- 进入目标三类 namespace 后 exec shell，读取的 namespace 身份及 hostname
+  与目标相同，与父进程不同；父进程保持原 namespace。
+- 使用 PID 选项走已有子进程管理路径，继承目标 UTS，并准确传回退出码42。
+  此处目标仍在原 PID namespace，不把它冒充新 PID namespace 的运行证据。
+- 普通文件被 setns 拒绝，之后仍可进入并 exec；释放并回收 holder，清理文件
+  和 proc 挂载，输出三个完整阶段、唯一 pass，再由 runner 完成机器关闭。
+
+双位宽 Clang 18/22 前端、静态分析、Shell 语法、格式、原有 source-bundle
+宿主回归及根仓库元数据检查通过；没有本地执行 namespace 操作。实际目标为
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39930804736) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39930813043)，均固定
+674242a，异步验收中；不把配置或前端通过当成实际工具运行通过。
+第四十八组原有两个 C 目标继续运行，不重复派发、不取消慢任务。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
