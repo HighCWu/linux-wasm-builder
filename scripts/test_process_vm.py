@@ -51,13 +51,20 @@ class ProcessVm(unittest.TestCase):
                 unit, binary = path / "main.c", path / "test"
                 flags = [cc, "-O2", "-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter",
                          "-fsanitize=address,undefined", "-fno-sanitize-recover=all", str(unit), "-o", str(binary)]
-                for old in (False, True):
-                    unit.write_text(harness.replace(marker, body.replace(guard, "(void)iov_iter_revert;") if old else body))
+                for fault in ("none", "rollback", "scheduling"):
+                    changed = body
+                    if fault == "rollback":
+                        changed = body.replace(guard, "(void)iov_iter_revert;")
+                    if fault == "scheduling":
+                        self.assertEqual(body.count("cond_resched();"), 1)
+                        changed = body.replace("cond_resched();", "(void)cond_resched;")
+                    unit.write_text(harness.replace(marker, changed))
                     subprocess.run(flags, check=True)
                     run = subprocess.run([str(binary)], capture_output=True, text=True, env=ENV, timeout=15)
-                    if old:
+                    if fault != "none":
                         self.assertNotEqual(run.returncode, 0)
-                        self.assertIn("iter.done == 777", run.stderr)
+                        self.assertIn("iter.done == 777" if fault == "rollback" else
+                                      "schedule_checks == timer_polls", run.stderr)
                         self.assertNotIn("cleanup pass", run.stdout)
                     else:
                         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)

@@ -12,6 +12,7 @@
 #define min_t(t, a, b) ((t)(a) < (t)(b) ? (t)(a) : (t)(b))
 #define GFP_KERNEL 0
 #define FOLL_WRITE 1
+#define CONFIG_WASM 1
 #define REMOTE_BASE 0x10000000UL
 struct page;
 struct task_struct;
@@ -21,6 +22,9 @@ static unsigned char remote_data[160000], local[70001];
 static size_t remote_accessible, committed;
 static int allocations;
 static bool allocation_failure;
+static unsigned timer_polls, schedule_checks;
+static void wasm_timer_check(void) { ++timer_polls; }
+static void cond_resched(void) { ++schedule_checks; }
 
 static size_t iov_iter_count(const struct iov_iter *iter) { return iter->total - iter->done; }
 static void *kmalloc(size_t size, int flags)
@@ -72,6 +76,7 @@ static void reset(void)
 	remote_accessible = sizeof remote_data;
 	allocation_failure = false;
 	committed = 0;
+	timer_polls = schedule_checks = 0;
 	for (size_t i = 0; i < sizeof remote_data; ++i) remote_data[i] = (unsigned char)(i * 37 + 11);
 	memset(local, 0, sizeof local);
 }
@@ -87,6 +92,7 @@ int main(void)
 	assert(process_vm_rw_single_vec(REMOTE_BASE + 65503, sizeof local, &iter, NULL, &mm, NULL, 1) == 0);
 	assert(iter.done == sizeof local && committed == sizeof local &&
 	       !memcmp(local, remote_data + 65503, sizeof local) && allocations == 0);
+	assert(timer_polls >= 36 && schedule_checks == timer_polls);
 
 	for (int write = 0; write < 2; ++write) {
 		reset();
@@ -113,5 +119,6 @@ int main(void)
 	assert(process_vm_rw_single_vec(REMOTE_BASE, sizeof local, &iter, NULL, &mm, NULL, 1) == -ENOMEM);
 	assert(iter.done == 0 && committed == 0 && allocations == 0);
 	assert(process_vm_rw_single_vec(REMOTE_BASE, 0, &iter, NULL, &mm, NULL, 0) == 0);
+	assert(timer_polls == 0 && schedule_checks == 0);
 	puts("process-vm model: bounded copies, partial counts, rollback and allocation cleanup pass");
 }
