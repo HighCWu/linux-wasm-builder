@@ -2017,6 +2017,12 @@ Clang 各三轮及双位宽前端/静态分析通过。未用延时掩盖初稿�
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39917078967)，须核实两个完整
 阶段、唯一 pass 和机器关闭；它们仍待目标验收，不把原生或小模块检查说成完成。
 
+977bf49 的两项 Node 目标现均成功。实际日志已逐位宽核实 PRIVATE 和普通模式
+两个完整阶段及唯一 pass，没有 panic 或 runner cleanup failed；固定版本的
+runner 在 closeTestResources 中等待 machine.closed，关闭失败不得返回成功。
+因此记录 7141e252e 内核的双位宽 futex 有界隔离验收，不扩大为跨进程共享 backing、
+PI/全部 futex 操作、浏览器或尚未集成的后继内核验收。
+
 ## 第四十六组：跨页的远程机器字访问
 
 Linux `d25423a8f` 修正 wasm_access_remote_vm 将有效请求截到单页末端的问题。
@@ -2046,14 +2052,27 @@ POKE，再核对 child 恢复后读到完整新值、两侧邻接字节及 paren
 [a15dd3a](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39916952481)
 则在原 semaphore 的两个下载来源均失败后退出，日志没有保留 HTTP 码，不能也
 断言为同一429。这些是输入下载失败，不是目标内核运行错误。
-`673b5ef` 让所有轻量源码读取复用已有 raw-first 安全 fallback，`99f1fd4` 再加
+`673b5ef` 让主要轻量源码读取复用已有 raw-first 安全 fallback，`99f1fd4` 再加
 最多三轮及5/15秒间隔的瞬态失败重试；每次保持同一完整 commit 和相对路径，
 认证仅发往 GitHub API，禁止重定向转发认证、不改用分支/本地代码。非法路径、
-404等永久错误不继续重试。11项纯本地下载器检查通过，修复后的 CI 仍需异步复验。
+404等永久错误不继续重试。下载器的纯本地检查通过，修复后的 CI 仍需异步复验。
 raw-first 的首项 [673b5ef CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39918322464)
 实际仍失败于两个来源均不可用，而非模型断言；有界重试版本的
 [99f1fd4 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39918516394)
-已在运行，不能提前写为下载恢复或 CI 通过。
+后来在更靠后的 syscall_wrapper.h / sigcontext.h 步骤再次实际遇429；主要检查
+步骤已完成，但还漏改了这两个直连 API 的读取点。`1eaab01` 补齐，并新增覆盖整个
+工作流的直接 contents API 管道检查；现12项下载器检查通过。不把上一次局部替换
+描述为完整恢复，不用输入下载失败倒推 syscall 实现回归。
+[1eaab01 复验](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39919698368)
+现已成功结束，记录轻量 CI 恢复，不代替任何尚未运行的 Wasm 目标阶段。
+
+d25423a8f 的首次预取现已明确失败：实际日志为 codeload 反复429，没有 hash。
+`79795f2` 使预取与构建下载器一样保留同 commit 的 codeload/archive 两端点，
+每端点通过 Nix 的 download-attempts 限为两次；仍须成功解包并校验 SHA256 SRI。
+该设置语义核对了 [Nix 官方说明](https://nix.dev/manual/nix/2.34/command-ref/conf-file.html#conf-download-attempts)。
+真实 shell 的原有失败/非法 hash 门禁与同 revision 回退检查共五项通过。只在原
+任务终态且读取错误后派发[同源码新预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39920679240)，
+不取消慢任务，不接受缺失 hash，不改用本地推算值；pin 仍待此结果。
 
 ## 信号栈缺口的前期核查记录
 
