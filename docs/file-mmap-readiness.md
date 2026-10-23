@@ -132,3 +132,22 @@ Linux `2c0f7ce` 在 `CONFIG_WASM_MMAP_COPY_TEST` 的实际文件读取路径新�
 
 默认生产配置和 libc 不变，Linux 的候选/共用读取实现遵循 GPL-2.0。
 新测试与文档采用 MIT，上游 Zstd 补丁保持原有许可。
+
+## 初始化异常仍会绕过内核清理
+
+对 Linux `50abafbb5` / distro `2784222` 的实际共用复制函数和 JS 执行桥，
+[小型 Wasm 复现](../experiments/file-mmap-trap/README.md)已确认一个未修复缺口：
+用户初始化器执行 unreachable，异常从内核 import 传播出去，会跳过 C 函数后面的
+kfree、请求计数和预算归还。JS finally 只撤销复制租约；call_kernel_entry 恢复
+C 栈指针也不会执行跳过的清理。正常返回和 ENOMEM 对照均归零，trap 后则残留
+一个请求、一个 staging、一个模型分配和128 KiB预留。Clang18/22 的 wasm32/64
+均复现；默认命令要求资源归零，故当前明确失败，不将诊断模式通过列为功能验收。
+
+这是实际函数体的控制流证据，不是完整 Linux 分配器/VFS/调度证据；模型未执行
+外层标准 mmap 的 fget/fput，不能据此量化来源引用泄漏。修复必须同时覆盖该层
+所有权，不能仅清零计数。先前信号取消点只处理普通 C 返回路径，不能解决此缺口。
+
+异常边界必须保留原异常及其来源：用户 trap 不应变成可继续运行损坏分配器的普通
+errno，嵌套 syscall 的内核异常也不能伪装成用户分配失败；SjLj 须到达原 catchpad。
+还需核对初始化器内 exec/exit、信号非局部退出和重入。没有这些清理/终止边界的
+实际目标证据前，继续保持文件 mmap 默认关闭；不因其他正常生命周期通过而放行。
