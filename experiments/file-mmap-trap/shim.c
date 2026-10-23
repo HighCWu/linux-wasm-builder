@@ -37,19 +37,38 @@ struct file { struct inode *inode; };
 static struct inode *file_inode(struct file *file) { return file->inode; }
 static bool erofs_is_single_bdev(struct super_block *sb) { (void)sb; return false; }
 static bool wasm_bdev_has_snapshot_source(void *device) { (void)device; return false; }
-#define current NULL
+struct wasm_mmap_callback;
+struct thread_info { struct wasm_mmap_callback *mmap_callbacks; };
+struct task_struct { struct thread_info info; };
+static struct task_struct task;
+#define current (&task)
+#define task_thread_info(t) (&(t)->info)
 static bool fatal_signal_pending(void *task) { (void)task; return false; }
 static u8 buffer[2 * PAGE_SIZE];
+static union { __UINT64_TYPE__ align; u8 bytes[256]; } control;
 static volatile int allocated;
+static volatile int control_allocated;
+static int pins;
+static void fput(struct file *file) { (void)file; if (pins != 1) __builtin_trap(); pins--; }
 static void *kmalloc(size_t length, int flags)
 {
 	(void)flags;
+	if (length <= sizeof control) {
+		if (control_allocated) return NULL;
+		control_allocated = 1;
+		return &control;
+	}
 	if (allocated || length > sizeof buffer) return NULL;
 	allocated = 1;
 	return buffer;
 }
 static void kfree(void *value)
 {
+	if (value == &control) {
+		if (!control_allocated) __builtin_trap();
+		control_allocated = 0;
+		return;
+	}
 	if (value != buffer || !allocated) __builtin_trap();
 	allocated = 0;
 }
@@ -68,9 +87,13 @@ extern long wasm_user_mmap_init_v1_map(unsigned long, const void *, unsigned lon
 long run(void)
 {
 	struct file file = {0};
+	pins++;
 	return wasm_mmap_copy_file(&file, PAGE_SIZE, 0, PAGE_SIZE);
 }
 long resource(unsigned int selector)
 {
-	return selector == 2 ? allocated : wasm_mmap_copy_stat(selector);
+	if (selector == 2) return allocated + control_allocated;
+	if (selector == 4) return pins;
+	return wasm_mmap_copy_stat(selector);
 }
+void exit_cleanup(void) { wasm_mmap_copy_abort_task(current); }

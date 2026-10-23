@@ -30,7 +30,8 @@ class MmapFatal(unittest.TestCase):
 
     def test_wasm_controller_frontends(self):
         musl = ROOT / "sources/musl"
-        source = ROOT / "sources/distro/distro/basic-init/tests/mmap-vfs-exit.c"
+        sources = [ROOT / "sources/distro/distro/basic-init/tests" / name for name in
+                   ("mmap-vfs-exit.c", "mmap-vfs-callback.c")]
         with tempfile.TemporaryDirectory(prefix="mmap-fatal-abi-") as tmp:
             path = Path(tmp)
             (path / "bits").mkdir()
@@ -46,9 +47,10 @@ class MmapFatal(unittest.TestCase):
             includes += ["-isystem", str(Path(resource_dir) / "include")]
             for bits in (32, 64):
                 common = ["clang", f"--target=wasm{bits}", "-nostdinc", *includes]
-                subprocess.run([*common, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(source)], check=True)
-                subprocess.run([*common, "--analyze", "-Xanalyzer", "-analyzer-werror", str(source),
-                                "-o", "/dev/null"], check=True)
+                for source in sources:
+                    subprocess.run([*common, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(source)], check=True)
+                    subprocess.run([*common, "--analyze", "-Xanalyzer", "-analyzer-werror", str(source),
+                                    "-o", "/dev/null"], check=True)
 
 
 if __name__ == "__main__":
