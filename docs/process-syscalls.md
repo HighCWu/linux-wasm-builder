@@ -1334,7 +1334,48 @@ configure 生成 HAVE_SIGALTSTACK，不添加 CPython 私有补丁或编译宏�
 | 检查 | wasm32 | wasm64 |
 |---|---|---|
 | CPython faulthandler | [待验收](https://github.com/HighCWu/distro/actions/runs/39882160137) | [待验收](https://github.com/HighCWu/distro/actions/runs/39882162040) |
-| SDK Autoconf 消费者 | [待验收](https://github.com/HighCWu/distro/actions/runs/39882164072) | [待验收](https://github.com/HighCWu/distro/actions/runs/39882165733) |
+| SDK Autoconf 消费者 | [检测及运行已核实](https://github.com/HighCWu/distro/actions/runs/39882164072) | [待验收](https://github.com/HighCWu/distro/actions/runs/39882165733) |
+
+wasm32 SDK 的实际日志已确认真实 Autoconf 消费者检查通过（其中断言正常探测
+sigaltstack=yes），目标 allocation 阶段和唯一 pass；成功作业通过原有等待
+machine.closed 的关闭门禁。这不代替 CPython 或 wasm64 结果。
+
+### 第三十一组：恢复官方默认 membarrier 与任务切换屏障
+
+Linux `2b572a9a0` / distro `0083011` / 集成 `b9d305a` 删除三个 Wasm
+defconfig 中额外的 MEMBARRIER 关闭项，使用官方 Linux init/Kconfig 的
+`default y`，并在解析后的 .config 检查 CONFIG_MEMBARRIER=y；不是以
+tombl 的裁剪配置作为默认基准。CONFIG_MMU 继续为 n。
+
+此恢复不是仅改开关：通用 NOMMU switch_mm 为空，Wasm 的任务在独立内核
+实例之间交接。根据[官方架构屏障要求](https://github.com/torvalds/linux/blob/master/Documentation/scheduler/membarrier.rst)，
+__switch_to 在调度器发布 rq->curr 后、返回用户态前显式执行完整 smp_mb。
+原有发送/接收 IPI 与通用 smp_call_function 路径保留；通用 membarrier
+注册、RCU、命令校验和 CPU 筛选实现未重写。Linux 内改动保留 GPL；独立语料
+及校验为 MIT。不选择 ARCH_HAS_MEMBARRIER_SYNC_CORE 或 RSEQ 来虚报能力。
+
+同一独立负载通过标准 SYS_membarrier、完整机器字参数直接验证真实内核，
+不使用 libc 私有 fallback，不新增 musl 函数或公共命令声明；尚未被固定 libc
+命名的标准 GET_REGISTRATIONS 位值只在负载内定义。三阶段为：
+
+1. QUERY、无效 flags/command 和未注册 private expedited 的 EPERM；Wasm
+   目标还必须拒绝不支持的 sync-core/rseq 命令，而非静默成功。
+2. private/global 注册、重复注册、已注册状态查询和单线程执行。
+3. 两个线程绑定到不同允许 CPU，128轮 private expedited 与 compiler-barrier
+   配对的有界 ordering 语料、穿插 global/global-expedited、join 后恢复原
+   affinity 并再次执行屏障。没有两个允许 CPU 就失败，不跳过 SMP 检查。
+
+两线程共享 C 状态均使用明确原子/发布握手，工作线程的非原子结果只在 acquire
+确认完成后读取。GCC/Clang ASan/UBSan（诊断即失败）、ENOSYS/伪造成功对照、
+双位宽前端和 Clang 静态分析通过；这不是对所有内存顺序的形式证明，也不是
+Wasm 内核目标结果。原线程循环定期 sched_yield 以服务当前 Wasm IPI；不宣称
+浏览器能异步打断纯用户态无限循环，亦不保证这种循环中的 membarrier 完成延迟。
+
+源码 [prefetch](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39882589630)
+已核实对应修订及 unpacked hash。固定 `0083011` 的
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39882973622) 和
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39882975247) 已进入实际
+Heavy 检查，需核实完整三阶段、最终唯一 pass 及机器关闭，当前尚未验收。
 
 ## 信号栈缺口的前期核查记录
 
