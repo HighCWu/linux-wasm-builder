@@ -277,6 +277,13 @@ jobs:
               "$revision" "$syscall_info_root/$file" "$file"
           done
           WASM_SYSCALL_INFO_ROOT="$syscall_info_root" python3 -B scripts/check_syscall_info.py
+          for header in processor.h thread_info.h; do
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$syscall_info_root/arch/wasm/include/asm/$header" "arch/wasm/include/asm/$header"
+          done
+          WASM_PROCESSOR_SOURCE="$syscall_info_root/arch/wasm/include/asm/processor.h" \
+            WASM_THREAD_INFO_SOURCE="$syscall_info_root/arch/wasm/include/asm/thread_info.h" \
+            python3 -B scripts/check_kernel_stack_bounds.py
           python3 -B scripts/fetch_pinned_semaphore_source.py \
             "$revision" "$RUNNER_TEMP/wasm-cpuinfo.c" arch/wasm/kernel/cpuinfo.c
           WASM_CPUINFO_SOURCE="$RUNNER_TEMP/wasm-cpuinfo.c" \
