@@ -524,6 +524,15 @@ distro `2180b2a` 更新原 offsets 目标而非新增重复程序，原生参考
 目标已异步派发，真实 WRITE 阶段及关闭待验收。musl 不变，未新增包装或应用 API。
 详见[第五十八组](process-syscalls.md#第五十八组匿名-mmap-的-write-请求兼容)。
 
+下一项真实可用性缺口是阻塞 read 的 deferred cancellation：原 Wasm handler
+无法改 PC，而 SA_RESTART 使“返回后检查”无法完成。musl `264eb000` 的候选通过
+内部 SjLj checkpoint 返回取消包装，并处理普通 handler 嵌套、masked cond-wait
+收尾和 disabled/close 边界；distro `137c6e6` 增加私有执行协议及独立目标。
+无新增公共函数/头文件 API，Linux syscall 语义与 CONFIG_MMU=n 不变。
+本地原生参考、双位宽模型/静态分析和运行器检查通过；源码已发布，完整源码
+hash/pin 与实际 Worker 三阶段/关闭仍待完成，不宣称目标已验收。
+详见[第五十九组](process-syscalls.md#第五十九组阻塞取消点的-wasm-返回路径)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

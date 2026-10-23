@@ -254,3 +254,16 @@ stack 与 mask；引擎寄存器仍保持不透明。回调返回前复制对象
 后续通用 ptrace 的接入只修改内核，不需要改动现有 libc：src/linux/ptrace.c
 使用的内部 syscall 宏本来就转换机器字参数，不能将其误判为公共 varargs
 函数而另加冗余 Wasm 分支。本次集成仍固定 `e12bb18e`，不新增函数/声明。
+
+## 阻塞取消点执行兼容候选
+
+`264eb000` 在已有 pthread_cancel.c、Wasm restore.c、TCB 非 ABI 部分及架构
+编译对象策略中修复 deferred cancellation 的返回路径。只增加 static 内部
+helper，不增加公共函数、公共头文件 API 或通用 Linux 包装；既有 __restore
+通过版本化私有导出参与运行器信号调用。原生平台路径不变。
+
+新协议明确要求配套 host，避免旧运行器不清除一参数 handler 的外层取消点标记。
+SjLj 返回包装而非直接退出 handler，保留 cond_wait 的 masked ECANCELED/重新
+加锁步骤；不移除 SA_RESTART，不虚构原生 PC。源码已发布，本地模型/分析通过，
+当前集成仍固定 b1c51ef9，精确 hash/pin 和真实 Worker 验收待完成，详见
+[第五十九组](process-syscalls.md#第五十九组阻塞取消点的-wasm-返回路径)。

@@ -2680,6 +2680,48 @@ raw SYS_brk 同轮核查仍未冒充实现：既有 musl brk/sbrk 的当前 brea
 内核入口接一个查询/增长回调就宣称支持 Linux 的收缩与映射避让。此项保持为
 实际缺口，没有为其新增公共函数或更改现有分配语义。
 
+## 第五十九组：阻塞取消点的 Wasm 返回路径
+
+静态 review 发现真实调用路径缺口：Wasm 的 SIGCANCEL handler 保留 SA_RESTART，
+却不能像原生汇编一样改写返回 PC；仅在 __syscall_cp_c 返回后检查 cancel，
+不能打断一直重启的阻塞 read。read/futex 的 Linux 重启语义本身没有错，修复
+属于已有 libc 的 Wasm 信号/取消执行兼容，不是新增 syscall 包装或公共函数。
+
+musl `ccd9d346` 发布初始实现，后续 `264eb0007269b4ba8881a87afd466ef2f84777e3`
+补全原有 arch.mak 的 SjLj 对象编译策略；后者才是待集成的完整候选，不集成
+前者的 hash。新增的是静态内部 helper 与 TCB 非 ABI 部分的取消点状态，不改
+Part 1/Part 3 布局约束，不增加公共函数、头文件 API 或通用扩展。
+内部 checkpoint 借助既有 LLVM Wasm SjLj 回到取消包装，保留 masked cancellation
+返回 ECANCELED 的行为，让 cond_wait 先重新取得 mutex 后再执行取消收尾。
+不直接从 deferred handler 退出，不移除 SA_RESTART，close/disabled/raw 调用的
+原有边界保留。SjLj helper 单独 noinline，防止编译器的 activation 分配进入
+禁用取消的 allocator 锁路径并递归建立 checkpoint。未宣称新增 OOM 恢复保证。
+
+一参数和 SA_SIGINFO handler 都暂时清除外层取消点标记；正常返回恢复原标记，
+handler 内的取消点可以独立建立 checkpoint。沿用 C-private __restore 函数，
+将其导出为版本化内部执行入口 __wasm_signal_handler_v2，不提供应用 API。
+distro `137c6e6` 提供 linux_signal_cancel_v1.abi 私有执行导入及普通 handler
+trampoline 分派，缺少配套导出的新模块在准入时拒绝。新运行器保留旧模块直接
+调用路径；旧运行器不会静默接纳要求该新协议的取消实现。
+
+Clang22 双位宽原样取消/restore 函数及真实 SjLj helper 的小型执行模型通过，
+旧“返回后才取消”和不清除嵌套标记两种控制可区分；包含 close、disabled、raw、
+两类普通 handler、handler 自己的取消点和 masked 返回。模型没有执行 Linux
+调度，不以替代真实 Worker 返回边界。GCC/Clang 原生负载通过三阶段；源码/
+目标前端与静态分析、运行器 src/test 两套类型检查、363 项既有 host 检查通过。
+可选 fork 补丁对候选 musl dry-run 通过，但不据此宣称 fork 已实际回归。
+
+独立 deferred-cancel 目标不耦合普通 programs 构建：先通过 /proc/task syscall
+观察真正阻塞的 read/futex，再请求取消。普通 libc read 不发送数据或 EOF 来
+“救出”取消；raw/disabled read 要完成实际 I/O，条件等待则验证 cleanup 时
+mutex 已重新取得且其后仍可锁。每次 join 有截止时间，fd/proc 均清理。
+当前源码已推送，构建 pin 仍为 b1c51ef9，等待完整候选的精确 hash 后集成并
+派发双位宽目标；尚未宣称真实 Linux/Wasm 取消阶段通过。根仓库模型暂留本地，
+将随 pin 独立提交；不等待这些 CI 才推进其它 syscall 审查。
+完整候选的精确预取：
+[39981879968](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39981879968)。
+较早 ccd9d346 的预取 39981476691 不覆盖后续编译策略，不拿它更新 pin。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
