@@ -82,6 +82,10 @@ jobs:
           gh api "repos/HighCWu/linux/contents/fs/splice.c?ref=$revision" \
             --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-splice.c"
           python3 -B scripts/check_vmsplice_copy.py "$RUNNER_TEMP/wasm-splice.c"
+          gh api "repos/HighCWu/linux/contents/kernel/futex/core.c?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-futex-core.c"
+          python3 -B scripts/check_futex_identity.py "$RUNNER_TEMP/wasm-futex-core.c"
+          python3 -B scripts/test_futex_isolation.py
           mkdir -p "$RUNNER_TEMP/wasm-membarrier/kernel" "$RUNNER_TEMP/wasm-membarrier/configs"
           cp "$RUNNER_TEMP/wasm-process.c" "$RUNNER_TEMP/wasm-membarrier/kernel/process.c"
           for config in defconfig wasm32_defconfig wasm64_defconfig; do
