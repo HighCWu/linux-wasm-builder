@@ -87,6 +87,10 @@ jobs:
           python3 -B scripts/check_futex_identity.py "$RUNNER_TEMP/wasm-futex-core.c"
           python3 -B scripts/test_futex_isolation.py
           python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-time-namespace.c" kernel/time/namespace.c
+          WASM_TIME_NAMESPACE_SOURCE="$RUNNER_TEMP/wasm-time-namespace.c" \
+            python3 -B scripts/test_namespaces.py
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
             "$revision" "$RUNNER_TEMP/wasm-remote-vm.c" arch/wasm/kernel/remote_vm.c
           python3 -B scripts/check_remote_vm_range.py "$RUNNER_TEMP/wasm-remote-vm.c"
           mkdir -p "$RUNNER_TEMP/wasm-socket-zc/net/ipv4" "$RUNNER_TEMP/wasm-socket-zc/net/ipv6"
