@@ -13,6 +13,18 @@ SOURCE = ROOT / "sources/distro/distro/toolchain-smoke/signal-altstack.c"
 
 
 class SignalAltstack(unittest.TestCase):
+    def test_nested_jump_and_handler_exit_native(self):
+        for cc in ("gcc", "clang"):
+            with self.subTest(cc=cc), tempfile.TemporaryDirectory(prefix="nested-signal-") as tmp:
+                binary = pathlib.Path(tmp) / "test"
+                subprocess.run([cc, "-O2", "-Wall", "-Wextra", "-Werror", "-fsanitize=undefined",
+                                str(SOURCE.with_name("signal-nested-jump.c")), "-o", str(binary)], check=True)
+                result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=20,
+                                        env={**os.environ, "UBSAN_OPTIONS": "halt_on_error=1"})
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.stdout.count(" pass\n"), 2)
+                self.assertEqual(result.stdout.count("::vm-test::pass"), 1)
+
     def test_native_reference_and_sanitizers(self):
         for cc in ("gcc", "clang"):
             with self.subTest(cc=cc), tempfile.TemporaryDirectory(prefix="altstack-native-") as tmp:
@@ -45,7 +57,8 @@ class SignalAltstack(unittest.TestCase):
             for bits in (32, 64):
                 with self.subTest(bits=bits):
                     common = ["clang", f"--target=wasm{bits}", "-nostdinc", *includes]
-                    for source in (SOURCE, SOURCE.with_name("signal-stack-legacy.c"), MUSL / "src/signal/wasm32/restore.c"):
+                    for source in (SOURCE, SOURCE.with_name("signal-stack-legacy.c"),
+                                   SOURCE.with_name("signal-nested-jump.c"), MUSL / "src/signal/wasm32/restore.c"):
                         subprocess.run([*common, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(source)], check=True)
                         analyzed = subprocess.run([*common, "--analyze", "-Xanalyzer", "-analyzer-werror",
                                                    str(source), "-o", "/dev/null"], capture_output=True, text=True)

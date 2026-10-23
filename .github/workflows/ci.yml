@@ -109,6 +109,10 @@ jobs:
             python3 -B experiments/file-mmap-trap/run.py
           WASM_MMAP_COPY_SOURCE="$RUNNER_TEMP/wasm-mmap-fatal/kernel/mmap_file.c" \
             python3 -B experiments/file-mmap-trap/run.py --expect-leak
+          gh api "repos/HighCWu/linux/contents/arch/wasm/kernel/signal.c?ref=$revision" \
+            --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-signal.c"
+          WASM_SIGNAL_METADATA_SOURCE="$RUNNER_TEMP/wasm-signal.c" \
+            python3 -B scripts/test_signal_metadata.py
           node --test sources/distro/packages/kernel/test/stacktrace.test.ts
           WASM_MREMAP_SYSCALL_SOURCE="$RUNNER_TEMP/wasm-syscall.c" \
             node --test scripts/test_mremap_syscall.js
