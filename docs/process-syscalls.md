@@ -1766,11 +1766,12 @@ READ 映射，也不把可读误记为硬件写保护。GCC/Clang 对实际内�
 双位宽目标前端/静态分析、源和测试 TS 项目及347项 kernel 宿主检查通过。
 这些不是完整内核运行证据；源码 hash 经
 [公开预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39903686392)
-核实，新双位宽默认正确性目标已集成，尚待 CI 阶段与关闭验收。
+核实，新双位宽默认正确性目标已集成。
 本轮 [wasm32](https://github.com/HighCWu/distro/actions/runs/39904062932)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39904072165) 不运行文件 mmap
-候选配置，必须核实新增 anonymous READ 阶段、原完整正确性程序和唯一 pass，
-以及 runner 等待 machine.closed 的门禁，不用已有 RW 或文件 READ 结果替代。
+候选配置，现均成功。实际日志核实新增 anonymous READ 阶段、原完整正确性程序
+末尾的各自唯一 pass；成功返回仍以 runner 等待 machine.closed 为前提。
+这是 7a1e3ad 的 Node 双位宽结果，不是浏览器或写保护证明，也不以文件 READ 替代。
 
 ## 第四十组：嵌套 signal handler 的局部 SjLj 收尾
 
@@ -1804,6 +1805,49 @@ Wasm 内核信号投递、任务 CPU 所有权或浏览器结果；新目标及�
 [wasm32](https://github.com/HighCWu/distro/actions/runs/39905822360)、
 [wasm64](https://github.com/HighCWu/distro/actions/runs/39905827167) 均固定同一源码。
 新语料须核实两个完整阶段、唯一 pass 与关闭；回归须核实原五阶段与关闭。
+
+6ae2ac5 的两项新语料任务随后均失败，不能记录为完整验收。wasm32 实际日志
+先通过局部 SjLj 阶段，再报 `Attempted to kill init! exitcode=0x00004f00`。
+检查 musl 的 raise 和 clone 调用路径确认：CLONE_VM 未设置新 TLS 时，子任务
+继承 libc 的父 TID 缓存，测试中的 raise 把退出信号发给了控制任务。79正是
+测试 handler 的退出码。这是错误的测试投递身份，不需要新增或修改 libc API。
+wasm64 实际日志随后也已核实：同样先过局部 SjLj 阶段，再以 init 退出79 panic。
+两个局部阶段通过不等于包含子任务退出的完整新语料已验收。
+
+distro `a1e4bd4` / 集成 `1212b62` 将子任务投递改为标准 gettid/tkill 的机器字
+调用；handler 若发现自己仍是控制任务则拒绝退出，waitpid 对 EINTR 重试并回收。
+GCC/Clang 正向原生执行通过，故意发给控制任务的反向语料须以 handler=8 失败，
+不得杀掉 runner 或出现 pass。未改内核或 musl，不放宽 fork/TLS 支持。
+针对失败项派发 [wasm32](https://github.com/HighCWu/distro/actions/runs/39908584489)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39908589716) 复验，仍待完整阶段
+和关闭证据。原 altstack 两项日志现已核实各自完整五阶段、唯一 pass 与等待
+machine.closed 的关闭门禁，没有重复派发；只记录该版本的 Node 回归通过。
+
+## 第四十一组：shared memory 扩容后的用户复制边界
+
+distro `1a903a2` / 集成 `9a27f54` 修正执行层检查过期 shared-memory wrapper
+长度的问题。此前普通复制、清零和 futex word 可在另一个 isolate 已完成 grow 后
+仍按旧长度返回短复制/EFAULT；单次 Worker 启动刷新不足以处理后续扩容。
+新逻辑仅在请求超出当前 shared view 时执行一次同位宽 grow(0)，再重新检查，
+不分配、不改变实际容量，不把越界地址变合法。零长度、NULL、真正越界及刷新失败
+继续走已有 residue/错误政策；在视图内的调用不额外刷新。
+
+覆盖用户复制/清零、原子 word、kernel 旧值回写及 exec chunk 的 kernel 源视图。
+没有声称审完所有 host import，未修改 Linux、musl、执行 ABI 或任何应用 API。
+实际旧版 6ae2ac5 的复制函数在双位宽受控旧视图中复现错误短复制及缺失 atomic
+word；新实现的复制、清零、原子和 exec 模型通过，且断言刷新只用相应类型的零。
+这是旧视图模型，不证明当前所有浏览器都会出现该现象。
+
+新 shared-user-growth 目标由 pthread 在两次握手后各执行真实 memory.grow(1)。
+主线程在首个新页通过标准 pipe write/read 检查数据，第二个新页通过标准
+FUTEX_WAKE_OP 检查原子更新，之后通知线程退出并 join。两页只是测试期间暂用的
+raw capacity，不宣称建立了 mmap 登记；握手期间不让线程析构/用户分配器复用它们。
+双位宽前端/分析、两个 TS 工程及352项 kernel 宿主检查通过，不作为目标验收。
+
+同源 a1e4bd4 的 [wasm32](https://github.com/HighCWu/distro/actions/runs/39908596295)、
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39908603494) 已派发，须核实
+两个完整阶段、唯一 pass 和机器关闭。尚未派发浏览器目标，不把 Node 或模型当作
+Chromium/Firefox 运行证明；原有内存上限及 CONFIG_MMU=n 不变。
 
 ## 信号栈缺口的前期核查记录
 

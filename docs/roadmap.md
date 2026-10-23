@@ -323,9 +323,11 @@ Linux `50abafbb5` / distro `aed297b` / 集成 `a9638e9` 在共用文件复制中
 `2784222` / 集成 `df70a39` 统一模型检查和 Python 依赖的条件，保留原运行
 断言；新双位宽复验已核实保留阶段、各八轮、恢复、唯一 pass 与既有关闭门槛。
 
-后续 review 用实际复制函数和 JS 桥的小型 Wasm 复现确认：初始化器 trap 会
+后续 review 在 Linux `50abafbb5` / distro `2784222` 的实际复制函数和 JS 桥
+的小型 Wasm 复现确认：初始化器 trap 会
 绕过内核 C 的 staging/预算清理，即使桥租约与 C 栈指针已恢复。双编译器/双位宽
-均复现；这是未修复缺口，不是新增能力或真实内核验收。保留默认关闭，修复需覆盖
+均复现；当时的缺口已由下述所有权修复处理，不是需要重复实现的新工作。默认仍
+关闭，修复需覆盖
 外层文件引用、异常来源与终止语义，不能吞异常或只重置计数。
 详见[异常清理边界](file-mmap-readiness.md#初始化异常的清理边界)。
 Linux `48adb6d39` 已实现任务所有的 quiescent callback 记录与退出收尾，执行桥
@@ -339,8 +341,8 @@ Linux `f45a2bd47` 进一步接通匿名 PROT_READ 标准请求，遵循 NOMMU �
 不保证违规写入 fault 的边界；不支持的保护组合继续拒绝。musl 无需改动，既有
 allocator 已能提供独立零填充 backing。实际 wrapper 模型/反向对照和双位宽
 前端检查通过，默认 mmap 正确性语料已加入 libc/raw、discard、resize 和解除；
-已由 distro `7a1e3ad` / 集成 `0f41180` 接入，双位宽默认目标仍待验收，
-不能将本地检查当成真实内核通过。
+已由 distro `7a1e3ad` / 集成 `0f41180` 接入，双位宽 Node 默认目标实际新阶段、
+完整正确性语料末尾的 pass 及关闭均已核实；不泛化为浏览器或写保护。
 详见[第三十九组](process-syscalls.md#第三十九组匿名-prot_read-数据请求)。
 
 Linux `8ec99f62d` 修正内层 SjLj 落回外层 handler 时丢失外层 signal frame 的
@@ -348,7 +350,17 @@ Linux `8ec99f62d` 修正内层 SjLj 落回外层 handler 时丢失外层 signal 
 新语料验证保留外层 uc_sigmask 编辑、两种 handler 形态各八轮、子任务 handler
 exit 与父端恢复。原生参考、实际 helper 模型和反向对照已通过；
 distro `6ae2ac5` / 集成 `44bcf55` 已接入，双位宽新目标和原 altstack 回归待验收。
+新目标两项失败；双位宽均已确认先过局部 SjLj 阶段，再因测试中 clone 子任务的
+raise 使用父 TID 缓存而使 init 以79退出。distro `a1e4bd4` / 集成 `1212b62`
+改用实际 gettid/tkill，并加控制任务保护和错误目标反向检查；仅针对失败项复验，
+不修改 libc 或扩大 fork/TLS 范围，仍待阶段与关闭证据。
 详见[第四十组](process-syscalls.md#第四十组嵌套-signal-handler-的局部-sjlj-收尾)。
+
+distro `1a903a2` / 集成 `9a27f54` 修复 shared-memory 扩容后的旧视图边界：
+普通复制、清零、原子 word 及 exec chunk 在不足的 shared view 上做有界零增量
+刷新，再按原规则校验，不自动扩容。旧源码模型已复现错误短复制，双位宽轻量
+验证通过；a1e4bd4 的独立线程增长目标已派发 Node 双位宽，浏览器尚未验证。
+详见[第四十一组](process-syscalls.md#第四十一组shared-memory-扩容后的用户复制边界)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

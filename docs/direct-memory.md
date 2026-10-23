@@ -69,7 +69,9 @@ Linux `f45a2bd47` 将匿名数据映射的保护参数准入从仅 READ|WRITE �
 Wasm 无逐页保护就把标准 PROT_READ 请求视为无效。新入口仍分配独立、零填充、
 可直接读取的 backing，不承诺违规写入会 fault；应用不应违规写入。PROT_NONE、
 仅 WRITE、含 EXEC 或未知保护位仍明确拒绝，不伪造 guard page、可执行装载或
-mprotect。该增量尚待双位宽默认内核正确性目标验收，不以文件 mmap 候选结果替代。
+mprotect。该增量在 distro `7a1e3ad` 的双位宽 Node 默认内核正确性目标已核实
+通过新 READ 阶段、完整语料末尾 pass 与关闭；不以文件 mmap 候选结果替代，
+也不作为浏览器或写保护证明。
 
 映射执行边界使用版本化的`user_v2.mmap(addr, len, prot, flags, fd, pgoff)` import，
 宿主把Linux已校验的完整请求原样转发给当前进程模块的`__wasm_mmap_v2`导出。这一版本
