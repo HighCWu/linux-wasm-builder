@@ -1545,6 +1545,53 @@ musl `631d5a2e`、distro `128b1e6`、集成 `b534377` 追加撤回，保留所�
 [scheduler-withdrawn32]: https://github.com/HighCWu/distro/actions/runs/39892427024
 [scheduler-withdrawn64]: https://github.com/HighCWu/distro/actions/runs/39892433063
 
+### 第三十五组：NOMMU process_vm_readv/writev 候选
+
+Linux `fdf8b7d90` / distro `726d797` / 集成 `7fb70bd` 接通此前因 MMU 依赖
+而不构建的标准 process_vm_readv/writev。CROSS_MEMORY_ATTACH 在 Wasm 获得
+实际复制路径后沿用官方 default y，Makefile 按该选项构建；不启用 MMU，也不把
+原 pin_user_pages_remote 用在线性内存偏移上。其他 MMU 平台继续使用原页固定路径。
+
+通用 import_iovec、远端向量导入、任务查找、mm_access 的
+PTRACE_MODE_ATTACH_REALCREDS 权限检查、mm 引用和部分成功返回规则保持共用。
+新增 NOMMU helper 用最多4 KiB临时缓冲区，且不跨 Wasm 页边界；通过已有
+access_remote_vm 和进程 Worker 邮箱复制，不向远端发布本地 iov_iter 或用户指针。
+写路径先读取本地数据，只把远端真正提交的前缀计入结果，未写入部分回退迭代器；
+读路径只把实际送入本地目标的字节计入结果。零长度不分配缓冲，失败也释放临时资源。
+内核改动保留 GPL，独立模型和程序语料 MIT。
+
+musl 仍为 `e12bb18e`。tombl 原有 sys/uio.h 声明、src/linux/process_vm.c 和
+两个标准 syscall 号无需修改；不新增函数、公共头文件或执行导入。应用仍使用
+现有 Linux 接口。这与曾撤回的进程级 sched_* 语义实验不同，没有改写 libc 的
+POSIX 行为。接口的向量顺序、部分成功及权限规则参见
+[Linux 手册](https://man7.org/linux/man-pages/man2/process_vm_readv.2.html)。
+
+真实程序候选在原有单线程 fork profile 下验证：
+
+1. 子进程先设非 dumpable；父端临时移除有效 CAP_SYS_PTRACE，读写均须 EPERM，
+   再恢复原能力集；子进程恢复 dumpable 后，父端跨向量/页读取其独有内容，
+   父进程同数值地址内容仍保持独立。
+2. 有效前缀后接无效远端向量返回准确前缀长度；首个无效地址、flags、过多向量、
+   不存在 PID 返回标准错误，空本地/远端传输保留零长度快路。写入超过64 KiB
+   非均匀数据后逐字节读回。
+3. 子程序实际观察写入结果后退出；回收后的 PID 拒绝访问，关闭管道，当前 mm
+   自访问及后续普通 fork/wait 恢复。
+
+GCC/Clang ASan/UBSan、原样 NOMMU helper 模型、去掉迭代器回退的精确断言失败
+对照、伪造远程写成功却不修改内存的读回失败对照，以及双位宽程序/原样 libc
+前端与 Clang 分析通过。模型另覆盖本地/远端短复制、首字节失败和分配失败。
+这些均不是实际 Wasm 内核运行证明。
+
+[固定来源预取][process-vm-prefetch] 已核实精确修订及 unpacked hash。
+同一 distro `726d797` 的 [wasm32][process-vm32] 和 [wasm64][process-vm64]
+已派发，须核实三阶段、唯一 pass 和关闭，不以工作流状态代替运行证据。
+继承直接内存的权限边界、远程邮箱5秒未认领超时和协作式执行限制；不承诺原生
+零拷贝性能、原子快照、对纯用户计算循环的异步抢占，或扩大多线程 fork 支持。
+
+[process-vm-prefetch]: https://github.com/HighCWu/linux-wasm-builder/actions/runs/39893540026
+[process-vm32]: https://github.com/HighCWu/distro/actions/runs/39893965748
+[process-vm64]: https://github.com/HighCWu/distro/actions/runs/39893971173
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

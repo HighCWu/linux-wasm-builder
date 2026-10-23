@@ -288,6 +288,14 @@ sched_* 语义；已追加撤回，主仓库 `b534377` 恢复原 musl 固定来�
 构建和语料均移除，公开历史保留。该实验不是新增能力，已派发 CI 不能计作
 验收；细节见[撤回记录](process-syscalls.md#调度候选复核与撤回不计为新增能力)。
 
+Linux `fdf8b7d90` / distro `726d797` / 集成 `7fb70bd` 为标准
+process_vm_readv/writev 增加 NOMMU 有界复制路径，恢复 Wasm 的
+CROSS_MEMORY_ATTACH 默认构建。通用 iovec/权限/mm 生命周期保持共用，远端
+经现有 Worker 桥访问；短写回退未提交的迭代器进度，不将线性内存偏移当物理页。
+musl 不变，无新增应用 API。原生语料、实际 helper 模型、负向控制和双位宽静态
+分析通过；双位宽 Node 三阶段及关闭仍待公开 CI，不宣称零拷贝或异步抢占。
+详见[第三十五组](process-syscalls.md#第三十五组nommu-process_vm_readvwritev-候选)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。
