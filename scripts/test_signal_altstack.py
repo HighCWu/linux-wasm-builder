@@ -73,7 +73,11 @@ class SignalAltstack(unittest.TestCase):
                     common = ["clang", f"--target=wasm{bits}", "-nostdinc", *includes]
                     for source in (SOURCE, SOURCE.with_name("signal-stack-legacy.c"),
                                    SOURCE.with_name("signal-nested-jump.c"), MUSL / "src/signal/wasm32/restore.c"):
-                        subprocess.run([*common, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(source)], check=True)
+                        # The restorer now needs the actual private TCB header.
+                        # Its existing syscall inline has an unused architecture
+                        # argument; retain strict warnings on application fixtures.
+                        private_flags = ["-Wno-unused-parameter"] if source == MUSL / "src/signal/wasm32/restore.c" else []
+                        subprocess.run([*common, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", *private_flags, str(source)], check=True)
                         analyzed = subprocess.run([*common, "--analyze", "-Xanalyzer", "-analyzer-werror",
                                                    str(source), "-o", "/dev/null"], capture_output=True, text=True)
                         self.assertEqual(analyzed.returncode, 0, analyzed.stderr)
