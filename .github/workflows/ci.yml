@@ -98,6 +98,13 @@ jobs:
             --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-process-vm.c"
           WASM_PROCESS_VM_SOURCE="$RUNNER_TEMP/wasm-process-vm.c" \
             python3 -B scripts/test_process_vm.py
+          mkdir -p "$RUNNER_TEMP/wasm-mmap-fatal/kernel" "$RUNNER_TEMP/wasm-mmap-fatal/tests"
+          for file in kernel/mmap_file.c tests/mmap-file-host.h tests/mmap-file-host.c tests/run-mmap-file-host.py; do
+            gh api "repos/HighCWu/linux/contents/arch/wasm/$file?ref=$revision" \
+              --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-mmap-fatal/$file"
+          done
+          WASM_MMAP_FATAL_ARCH="$RUNNER_TEMP/wasm-mmap-fatal" \
+            python3 -B scripts/test_mmap_fatal.py
           node --test sources/distro/packages/kernel/test/stacktrace.test.ts
           WASM_MREMAP_SYSCALL_SOURCE="$RUNNER_TEMP/wasm-syscall.c" \
             node --test scripts/test_mremap_syscall.js
