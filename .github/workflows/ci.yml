@@ -113,7 +113,8 @@ jobs:
             --jq .content | base64 --decode > "$RUNNER_TEMP/wasm-signal.c"
           WASM_SIGNAL_METADATA_SOURCE="$RUNNER_TEMP/wasm-signal.c" \
             python3 -B scripts/test_signal_metadata.py
-          node --test sources/distro/packages/kernel/test/stacktrace.test.ts
+          node --test sources/distro/packages/kernel/test/stacktrace.test.ts \
+            sources/distro/packages/kernel/test/kernel-memory-imports.test.ts
           WASM_MREMAP_SYSCALL_SOURCE="$RUNNER_TEMP/wasm-syscall.c" \
             node --test scripts/test_mremap_syscall.js
           node --test scripts/test_mremap_allocator.js
