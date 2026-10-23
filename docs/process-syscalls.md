@@ -1307,10 +1307,14 @@ pending signal、PID/TLS/atfork/mask/memory/fd/nested wait、拒绝 exec 后恢�
 
 | 负载 | 位宽 | Chromium | Firefox |
 |---|---|---|---|
-| 信号栈五阶段 | wasm32 | [CI](https://github.com/HighCWu/distro/actions/runs/39881687103) | [CI](https://github.com/HighCWu/distro/actions/runs/39881688862) |
+| 信号栈五阶段 | wasm32 | [两轮及关闭已核实](https://github.com/HighCWu/distro/actions/runs/39881687103) | [CI](https://github.com/HighCWu/distro/actions/runs/39881688862) |
 | 信号栈五阶段 | wasm64 | [CI](https://github.com/HighCWu/distro/actions/runs/39881691449) | [CI](https://github.com/HighCWu/distro/actions/runs/39881693540) |
 | 无栈导出兼容 | wasm32 | [CI](https://github.com/HighCWu/distro/actions/runs/39881695121) | [CI](https://github.com/HighCWu/distro/actions/runs/39881696874) |
 | 无栈导出兼容 | wasm64 | [CI](https://github.com/HighCWu/distro/actions/runs/39881699057) | [CI](https://github.com/HighCWu/distro/actions/runs/39881700447) |
+
+wasm32 Chromium 149.0.7827.55 的实际 Heavy 日志已核实两轮各五阶段、各自
+唯一 pass、每轮 machine shutdown 及最终 browser shutdown。只关闭这一项
+验收门禁，其余位宽、引擎和无导出兼容结果仍须分别核实。
 
 `f404198` / 集成 `9a2a516` 在上述六路 Node 真实语义验收基础上移除共享
 CONFIG_SITE 的 `sigaltstack=no`，不预填 yes；此应用增量与浏览器验收异步推进。
