@@ -18,6 +18,9 @@ class LiteFailure(unittest.TestCase):
         self.assertIn('init = "${liteOomProgram}/lite-oom.wasm";', recipe)
         self.assertIn('${musl.src}/src/malloc/lite_malloc.c', recipe)
         self.assertNotIn('lite-oom.map', recipe[recipe.index('  programs ='):])
+        scope = (ROOT / "sources/distro/distro/default.nix").read_text()
+        wide = scope[scope.index('    toolchain-smoke-wasm64 ='):scope.index('    toolchain-smoke-runtime-wasm64 =')]
+        self.assertIn('musl = self.musl-wasm64;', wide)
 
     def test_actual_allocator_and_old_trap_control(self):
         with tempfile.TemporaryDirectory(prefix="wasm-lite-oom-") as tmp:
