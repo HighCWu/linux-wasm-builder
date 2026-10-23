@@ -2118,9 +2118,54 @@ d25423a8f archive hash，而是完整构建、验证明确包含两项修复的�
 - socket 复制通知：[wasm32](https://github.com/HighCWu/distro/actions/runs/39923948685)、
   [wasm64](https://github.com/HighCWu/distro/actions/runs/39923958794)。
 
-两类均须核实各自四个完整阶段、唯一 pass 与机器关闭；现仍待目标验收，不把宿主
-程序或选择表达式模型当成 Wasm 执行。尚未派发浏览器或外部网络目标，也不扩大为
+四个任务的 Heavy 均成功，实际日志已逐项核实各自四阶段和唯一 pass。ptrace
+两路均包含非对齐跨页机器字、邻接字节与子进程观察；socket 两路均包含 IPv4/IPv6
+的 TCP/UDP 复制完成通知与缓冲区复用。固定 f4da7a8 的 runner 必须等待
+`machine.closed`，关闭失败会使任务失败，本组均通过该门禁。由此接受这两组
+有界 Node 目标，不把宿主程序或选择表达式模型当成 Wasm 执行。
+尚未派发浏览器或外部网络目标，也不扩大为
 RDS、DMA、io_uring、所有零拷贝接口、全部 cmsg 组合或真实页固定支持。
+
+## 第四十八组：恢复标准 namespace 配置与无 vDSO 的时间偏移冻结
+
+官方 Linux 的 `NAMESPACES` 默认值是 `!EXPERT`，而 Wasm defconfig 开启了
+`EXPERT`，此前因此间接关闭了 UTS、IPC、PID、网络和时间 namespace。
+这些能力并不要求 MMU。本组在三个 Wasm defconfig 显式开启 `NAMESPACES`，
+其子项继续按官方 Kconfig 默认条件选择；`USER_NS` 仍默认关闭，`CONFIG_MMU=n`
+不变。mount namespace 机制原本已存在，不将它描述成全新 syscall 实现。
+
+静态 review 同时发现：当前 `timens_commit` 在无 `TIME_NS_VDSO` 时为空，
+偏移冻结仅发生在 VVAR 初始化路径。不能只打开配置就声称完整支持。
+Linux `57b4cb94f55bd05b93866396d85b8460b1a7cdf4` 为无 vDSO 路径补上
+同一个 `timens_offset_lock` 保护的冻结操作，已有 setns 和 fork 提交点均复用
+该函数；有 vDSO 路径及不启用 TIME_NS 的空实现保持不变。
+
+distro `4db9ae7` 加入独立 `fork-continuation-check-namespaces` 和 wasm64
+对应检查，使用标准 libc 已有接口，不修改 musl。六个阶段覆盖：
+
+- UTS 标识与 hostname 隔离、setns 恢复及错误恢复。
+- mount namespace 的 ramfs 可见性、重新进入与卸载清理。
+- SysV 消息队列隔离、独立消息及对象清理。
+- network namespace 的相同 UDP 地址独立绑定，以及 socket fd 保留所属网络。
+- monotonic 偏移、raw clock 不受影响、首次加入后禁止写偏移及恢复。
+- NEWPID 只影响后续子进程、子 PID 为1/不可见父 PID、普通 fork/wait 与单次回收。
+
+测试仅在隔离 Wasm 机器执行，明确禁止宿主原生构建，避免改动宿主 namespace。
+双位宽 Clang 18/22 前端与静态分析通过；提取实际冻结函数体的 GCC/Clang
+轻量模型通过，恢复不冻结行为的反向控制必须失败。这不是目标内核运行证据。
+未新增 clone flags 支持、未扩大多线程 fork，也不声明已支持完整容器环境。
+
+源码已分别推送；新内核的公开 hash 预取为
+[39928710790](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39928710790)。
+实际日志已核实完整 revision 与
+`sha256-sgBMvc8ToYbcAQFI5yLKNw6kEn10bEJeLYNphNdzq90=`。distro `02bf190`
+固定该版本，并对解析后的 Kconfig 检查六个 namespace 配置开启、USER_NS 关闭、
+MMU 未启用；根仓库 `65d6dc1` 单独更新 gitlink 与轻量门禁。musl pin 保持
+bf26831，未修改或重写历史。目标运行结果另记，不能把预取或配置检查当作验收。
+后续须核实六阶段、唯一 pass 与机器关闭。
+已对同一 02bf190 异步派发
+[wasm32](https://github.com/HighCWu/distro/actions/runs/39929257117) 与
+[wasm64](https://github.com/HighCWu/distro/actions/runs/39929264789)，尚待实际目标结果。
 
 ## 信号栈缺口的前期核查记录
 
