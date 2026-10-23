@@ -2561,6 +2561,30 @@ stop 类型；源文件和目标前端/静态分析通过。真实源文件预�
 结果替代本次验收。旧 5c11fb4 的 wasm64 重入实际日志也已取回，确认相同的
 syscall-info EIO，而非下载错误；新修复针对两位宽共同门控问题。
 
+## 第五十六组：内核栈辅助判定的算术修正
+
+独立架构 review 发现两个确定的算术错误。on_thread_stack 原先计算
+`base - SP`，栈内正偏移转换成 unsigned 后反而被拒绝，紧邻 base 之前的地址
+却可能被接受。Linux `67a716797895a8ac7078754c7f041c8bc27280a4` 改为以机器字
+无符号数计算 `SP - base < THREAD_SIZE`，保持基址包含、顶端不包含的分配区间。
+同一架构的 THREAD_SHIFT 原为 `PAGE_SHIFT << THREAD_SIZE_ORDER`；64 KiB 页面、
+order1 的128 KiB栈应是 shift17，而不是32，现改为相加。
+
+这不是新增 syscall 或内核栈 ABI，也不修改分配大小、保存布局或用户栈策略。
+当前默认 Wasm 没有启用会使用 on_thread_stack 的调试/擦栈路径，THREAD_SHIFT
+也未被当前通用 kernel/include 路径消费。不能把这项修正写成已重现普通程序
+崩溃，或宣称已启用 x86 的 DEBUG_ENTRY、Wasm 栈擦除/抢占支持。
+
+独立 MIT 模型读取真实宏，由 Clang18/22 编译为 wasm32/64 后执行：核对栈内、
+恰好边界、前后栈外、32位高半区和64位4 GiB以上地址；分别恢复旧区间方向、旧
+shift 的控制检出各自错误。新 shift/size 恒等式在 C 编译期断言，Clang 分析通过。
+地址仅作为标量模型，不申请大内存，不替代完整内核调试配置的运行验收。
+
+源码已原子提交推送；精确预取
+[39973059533](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39973059533)
+已派发，后续独立更新 pin。主仓库当前仍固定 91ab8b356；未提前把新源码计入
+已经运行的 syscall-info、诊断或普通程序目标。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
