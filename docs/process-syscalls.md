@@ -2308,6 +2308,32 @@ Clang22 分析还要求将原测试的失败分支明确标为 noreturn，避免
 七个输入全部获取成功后才发布文件，失败不混合新旧头文件。三项 wrapper 检查
 及共同下载器十二项检查通过，未放宽 source pin 或把网络失败记为 syscall 失败。
 
+### Git 取源的独立哈希等价性实验
+
+预取限流后没有猜测 SRI 或放宽固定输出校验。根仓库 `65bda90` 加入独立脚本，
+`030bf14` 将它作为既有 prefetch-source workflow 的显式可选模式，以便在当前
+开发分支 dispatch；未修改默认分支。普通不带 baseline 参数的 archive 路径不变。
+`16b623c` 补齐不完整/错误模式必须失败、不能回落到 archive 假成功的检查。
+
+本实验仅用于本次 Linux futex 单文件修复，不作为任意仓库通用 fallback：
+
+1. 只从 HighCWu/linux 获取精确 SHA 的 depth-two Git pack；核对 FETCH_HEAD 与
+   唯一直接父提交。禁止 moving branch 和本地未经验证的源码替代。
+2. 只允许 kernel/futex/core.c 内容变化；拒绝其它文件、文件模式及归档属性变化，
+   并拒绝 export-subst 或属性检查失败，以免提交/ref 展开改变归档字节。
+3. 先归档基线 57b4cb94f，以实际 nix hash path 对比该版本已独立取得的
+   `sha256-sgBMvc8ToYbcAQFI5yLKNw6kEn10bEJeLYNphNdzq90=`。
+   不相等就失败，不计算/发布候选 hash。
+4. 仅基线等价通过后归档 ed725e29c 并计算候选 SRI；实际构建仍必须由正常源码
+   fetcher 做固定输出校验，不将 Git 方法当作绕过校验的许可。
+
+本地只执行小型 Git/tar/Nix 命令 stub 的流程测试，覆盖错误身份、父提交、路径、
+模式、属性、baseline hash、archive/hash 命令失败和非法候选 SRI；未下载或展开
+Linux，也不能以 stub 证明 NAR 等价。ShellCheck、shfmt、actionlint 和原预取
+路径控制通过。公开实验
+[39954310300](https://github.com/HighCWu/linux-wasm-builder/actions/runs/39954310300)
+已派发，尚待真实结果；当前 pin 不变，未因实验启动就声称 PI 修复已集成。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
