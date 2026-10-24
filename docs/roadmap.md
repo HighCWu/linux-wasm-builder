@@ -642,6 +642,12 @@ Linux `f8489177a` 启用标准 binfmt_misc 通用实现，保持 NOMMU。新独�
 执行器；没有增加 libc 公共 API。详见
 [第七十一组](process-syscalls.md#第七十一组标准-binfmt_misc-解释器执行)。
 
+Linux `a46fb8746` 启用标准 key retention 子系统，distro `746ede4` / 根仓库
+`a9effd1` 集成 add_key/request_key/keyctl 的二进制载荷、权限与 fork/exec 生命周期
+检查。未增加 musl/SDK 公共包装；原样 musl syscall 的双位宽机器字 ABI 与静态
+分析通过，真实目标尚待验收，不声称完整认证生态已支持。详见
+[第七十二组](process-syscalls.md#第七十二组标准-linux-keyring-系统调用)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

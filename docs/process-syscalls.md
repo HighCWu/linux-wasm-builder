@@ -3357,6 +3357,63 @@ sha256-Fa+OzlPMCThdwArWYRQyFf9Kawp0bPl9/+twyFvkSuM=；不使用猜测的归档�
 不搬入在线最新版额外标志，不涉及新的标准提案。扩展名/掩码、注册错误全矩阵、
 命名空间、浏览器和真实翻译器集成未在本组验收范围。
 
+## 第七十二组：标准 Linux keyring 系统调用
+
+Linux `a46fb8746` 在三个 defconfig 启用 CONFIG_KEYS=y，选择通用关联数组后端。
+这是增加默认 n 的可选能力，不是恢复默认 y；原配置缺少该子系统，三个标准
+add_key/request_key/keyctl 入口因此不可用。复用 security/keys 的密钥类型、
+权限、凭据引用、回收和 syscall 实现，未建立 JS 密钥存储或 Wasm 专用密钥 API。
+本组不启用 big_key、trusted/encrypted key、通知或持久 keyring 等额外选项。
+
+musl 仍为 f949d1b1，无新增函数、公共头文件或 SDK 包装。测试通过现有 syscall
+并显式提供六个 long 参数；cases.h 是不安装的私有语料辅助文件，不是库接口。
+沿用可选单线程 fork 控制器，exec helper 为普通 SDK 程序。五个目标阶段要求：
+
+- 匿名 session ring、二进制 user key 的 add/search，以及已存在 key 的 request；
+  NULL 长度查询、短缓冲返回总长度且不越界，完整读回保留 NUL/高位字节。
+- fork 继承同一 session，子进程更新载荷父进程可见；thread/process ring 不继承，
+  子进程切换到新匿名 session 不改变父进程订阅，也找不到原载荷。
+- 设为仅 owner 权限后，实际降为 uid1000 的子进程读被 EACCES 拒绝，owner 仍可
+  读取；logon 类型即使可创建，也不能通过 KEYCTL_READ 导出载荷。
+- 普通 exec 后 session ID 和更新后的二进制内容保留，局部 ring 仍未继承。
+- revoke 后不再能搜索到有效载荷，清空 session 链接，最后唯一 pass，并通过
+  固定运行器 machine.closed 关闭门禁。
+
+revoked link 在 GC 移除前可返回 EKEYREVOKED，移除后为 ENOKEY；断言明确覆盖
+这两个通用实现允许的状态，而不是假定异步回收时序。权限也不能只删除 READ
+位就声称拒绝，因为内核对持有 key 的调用者存在读取路径；本组移除全部 possessor/
+group/other 位，再使用不同 UID，审查对应 keyctl_read_key 和 key_task_permission。
+
+本地 GCC/Clang 仅编译，不创建/更改宿主密钥。Clang18/22 双位宽前端/静态分析
+通过；微型 Wasm 直接编译原样 musl src/misc/syscall.c，执行三种标准入口的
+导入检查，核实 syscall 号码、字符串指针、负数 ring ID 和全部六机器字。
+常量从精确 kernel UAPI 提取，本地不据此声称 headers_install 或真实 keyring
+生命周期通过。实际目标仍需上述五阶段和关闭结果，不能用模型/工作流状态替代。
+
+[源码预取 40059673113](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40059673113)
+实际日志核实 a46fb874683d1b5405a4c51b530ad10970e4f9a0 与
+sha256-EfYNthKeDFFMVQ8h3DvCTZICX0IehpBcgkGCGJZIAdc=。
+distro `746ede4` 集成精确 pin、解析后配置断言及双位宽语料，根仓库 `a9effd1`
+更新两个 gitlink 和轻量 ABI 检查；配置补丁 checkpatch 零错误/警告。
+此前独立 distro `d5540b5` 另修正 fanotify 失败诊断路径：先确认 join 成功再读取
+线程结果，避免在 join 失败时诊断代码本身发生数据竞争，不改变正常权限答复语义。
+
+固定 distro 746ede4 已核对两项检查名与源码版本：
+[keyrings wasm32 40059872419](https://github.com/HighCWu/distro/actions/runs/40059872419)、
+[keyrings wasm64 40059876610](https://github.com/HighCWu/distro/actions/runs/40059876610)。
+两者运行中，尚不作为目标阶段通过的证据。
+
+同轮复查上一版 573a610 的 fanotify 两个任务：40058737692/job120767461553、
+40058741398/job120767472463 均已成功，运行器 run-test.js 与 shutdown.js 和本轮
+相同，静态门禁确实等待 machine.closed 并将清理失败计为失败。但实际阶段日志
+下载本轮超时，故仍未将四阶段记为已验收；后续应读取原任务，不重复派发来替代
+缺失日志。既有运行器关闭/错误收尾15项本地回归通过，不替代目标日志。
+
+语义依据[官方 key retention 文档](https://docs.kernel.org/security/keys/core.html)
+及固定源码。不宣称外部 request-key upcall、真实认证应用、超时/配额完整矩阵、
+浏览器、其它 key 类型或全部 keyctl 子命令已验收。AIO/io_uring 虽为官方默认 y，
+其共享 ring/映射与当前独立用户线性内存仍需正确实现；不以打开配置代替这一工作。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
