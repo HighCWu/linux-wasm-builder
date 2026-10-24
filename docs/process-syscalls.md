@@ -3240,7 +3240,7 @@ tombl/musl 已有 sys/fanotify.h 和 src/linux/fanotify.c，本轮没有修改�
 - 子文件 OPEN/CLOSE_WRITE 事件、PID、事件 fd 的 inode/原始二进制内容与 CLOEXEC，
   短缓冲 EINVAL 不丢事件、非阻塞空队列 EAGAIN；允许事件合并，不假定一操作一条。
 - 64位 mask 非法高位保留并被拒绝，remove 与 flush 后确实不再收到事件。
-- pthread 的实际 open 等待权限答复；非法响应不消耗请求，FAN_DENY 得 EACCES，
+- pthread 的实际 open 等待权限答复；非法响应不消耗请求，普通 FAN_DENY 得 EPERM，
   FAN_ALLOW 后真实打开成功，处理器和工作线程全部收尾。
 - 临时移除有效 CAP_SYS_ADMIN 时普通 fd 模式被拒绝并恢复原能力，最后移除文件/
   目录、关闭所有 group/事件 fd，再给出唯一 pass。
@@ -3269,6 +3269,51 @@ job120756790181 实际日志：内联属性、共享属性、普通文件后端�
 最终清理四阶段、唯一 pass 完整出现。运行器与先前审查版本的三个源文件相同，
 关闭失败会使派生失败，因此通过关闭门禁。仅接受旧版 Node wasm64 的这组有界
 EROFS 结果，不泛化为遗漏配置的32位或新版 fanotify/EROFS 集成。
+
+## 第七十组：exec 提交后的安全元数据与 fanotify 断言修正
+
+Linux `c41f48430` 修复 Wasm loader 的真实时序缺口：原 copy_args 在
+begin_new_exec 之前保存 secureexec 和 execfd，但通用 exec 在后者内部才完成
+凭据判定、安装新 mm，并分配解释器执行描述符。因此早期快照可能是旧值。
+现在仍在提交前完成参数分配、字符串复制和可恢复错误处理，仅在成功返回后向
+新 mm 的既有 exec_args 写入最终三个标量，再实例化用户程序；没有增加提交后
+分配、私有应用接口或 musl 公共函数。musl 保持 f949d1b1。
+
+同一 loader 的八字节 Wasm 头过滤改用 memcmp。原 strncmp 会在开头的 NUL
+停止，未完整比较头部；宿主 WebAssembly 编译器本来仍验证模块，不能将该修正
+描述为修复了可执行任意无效镜像的绕过。该检查现在能更早按 ENOEXEC 拒绝坏头。
+
+新增 exec-security 独立检查：控制程序沿用可选单线程 fork profile，四种 exec
+helper 使用普通工具链构建，要求普通执行、setuid 提权后的 AT_SECURE/UID/GID、
+secure_getenv、no_new_privs 阻止提权，以及坏 setuid 镜像被拒后保留旧凭据并能
+再次 exec。四阶段、唯一 pass 和既有运行器关闭门禁才构成目标验收，不扩大
+多线程 fork 支持，也不改变默认 SDK。
+
+本地检查执行提取的实际 loader/helper，模拟通用 exec 提交，覆盖准备失败及
+陈旧快照、过早提交、NUL 头过滤三个反向控制；另以测试链接 shim 验证 helper
+协议和错误 AT_SECURE。GCC/Clang 编译、Clang18/22 双位宽前端/静态分析和模型
+通过，但这些不执行真实宿主 setuid，不替代 Linux/Wasm 凭据切换验收。
+
+第六十九组 fanotify 两个目标的实际日志均通过前两阶段，随后失败于权限答复
+断言。复查通用 fs/notify/fanotify/fanotify.c：普通 FAN_DENY 明确返回 EPERM，
+不是语料错误要求的 EACCES；父线程打印的 errno=22 来自先前故意发送的非法
+响应，不能视为工作线程 open 返回值。distro `38797dd` 修正精确 errno 并增加
+join/open 结果诊断，未放宽为任意错误或更改内核语义。后续需真实目标重验。
+
+[源码预取 40058085263](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40058085263)
+实际日志核实完整 revision c41f48430682f23277d29dc6ebdc7523cb562219 和
+sha256-FnZO6nLTS3HQMnkMISajOJ6b8UK6ouQ/AAA+gvig7+A=。
+distro `573a610` 集成精确 pin 和独立检查，根仓库 `05174fb` 更新两个 gitlink
+及轻量模型。真实目标异步验收，暂不声称已通过；binfmt_misc 仍未启用，解释器
+execfd 的真实端到端用例仍待后续实现和验证。
+
+固定 distro 573a610 的目标均已确认正在运行，没有重复派发：
+[exec-security wasm32 40058728775](https://github.com/HighCWu/distro/actions/runs/40058728775)、
+[exec-security wasm64 40058733335](https://github.com/HighCWu/distro/actions/runs/40058733335)、
+[fanotify wasm32 40058737692](https://github.com/HighCWu/distro/actions/runs/40058737692)、
+[fanotify wasm64 40058741398](https://github.com/HighCWu/distro/actions/runs/40058741398)。
+旧 EROFS wasm32 40056676830 工作流已成功，但本轮实际阶段日志下载超时，仍不
+以工作流状态补作阶段验收；应继续读取同一任务，不重新构建来替代证据。
 
 ## 信号栈缺口的前期核查记录
 

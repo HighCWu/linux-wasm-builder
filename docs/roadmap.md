@@ -629,6 +629,13 @@ distro `f611358` / 根仓库 `b72b255` 集成精确 pin、双位宽语料和静�
 双位宽 fanotify 与32位 EROFS 已异步派发；MMU、musl 公共 API 和 fork 范围不变。
 详见[第六十九组](process-syscalls.md#第六十九组fanotify-标准调用与实际-wasm32-配置修正)。
 
+Linux `c41f48430` 修复 exec 最终安全标志/解释器描述符被过早快照的问题，保留
+提交前参数分配；distro `573a610`、根仓库 `05174fb` 集成源码和独立凭据语料。
+本地实际 loader 模型、反向控制及双位宽静态分析通过，真实 setuid/no_new_privs
+目标待 CI，不将模型当作验收。另修正 fanotify 的 FAN_DENY 应为 EPERM 的错误
+测试预期，双位宽重验；binfmt_misc 尚未启用。详见
+[第七十组](process-syscalls.md#第七十组exec-提交后的安全元数据与-fanotify-断言修正)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。
