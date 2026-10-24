@@ -3737,7 +3737,7 @@ child_tid 时消费前两项占位再取第三项。保留现有 CLONE_THREAD/SE
 CHILD_CLEARTID 拒绝政策，非 Wasm 分支保持原样。没有新增公共函数、公共声明、
 导出或 pidfd 包装，没有改变底层 Wasm callback clone syscall 布局。
 
-fork 基线仍是 tombl/musl，不切换为官方仓库。共享历史中的
+musl 的项目上游仍是 tombl/musl，不切换为官方仓库。共享历史中的
 fa4a8abd06a401822cc8ba4e352a219544c0118d 已包含正确的参数前缀处理，可与
 [Linux clone 调用约定](https://man7.org/linux/man-pages/man2/clone.2.html) 交叉核对。
 新模型移除 Wasm 新分支后的全文 SHA256 必须等于此前 015d1ac3 的文件，约束
@@ -3777,6 +3777,35 @@ wasm32 40066816471/job120791784487、wasm64 40066820823/job120791788549
 完整程序及静态库位宽门禁先通过，但 APK 检查报告 root/lib/liblastlog2.la 含有
 Nix store 引用，尚未执行目标程序。需修正部署元数据，不放宽门禁或禁用 lastlog2。
 主仓库 1b6e6fc 的轻量 CI 40067606246 成功也不替代这些真实阶段。
+
+## 第八十组：完整工具集的 lastlog2 部署元数据修复
+
+第七十八组固定 9d7712d 的 wasm64 IPC/完整工具集作业均实际失败在 APK 打包，
+不是程序阶段失败：日志已输出完整模块与归档成员 ABI verified，随后拒绝
+root/lib/liblastlog2.la 的 Nix store 引用。不能以成功编译或 file 单独通过，
+宣称完整 util-linux 已运行；也不能通过去掉 lastlog2、删除静态库或放宽打包检查
+取得绿色结果。
+
+结合 SQLite 开发输出的可重定位 .pc，问题指向构建时展开的 SQLite 库目录被
+libtool 记录到安装元数据。distro `56ed1d1` / 根仓库 `286d605` 将这一个已知
+依赖的 canonical `/lib` 和 `lib/pkgconfig/../../lib` 两种构建目录形式，在
+liblastlog2.la 中归一化为目标 `/lib`。既有已是 FHS 的内容保持不变；不改 SDK
+原始 .pc，不删 `-lsqlite3/-lm/-pthread` 依赖，更不替换任意未知 Nix 路径。
+使用 replace-quiet 是因为原 wasm32 配方已有正常 FHS 元数据，不应要求它出现
+泄漏后再才能构建。
+
+同一 postFixup 继续运行原 store-reference 拒绝脚本及全部模块/归档位宽检查，
+APK 阶段的独立门禁也保留。元数据替换模型核对两种已知路径可修正、正常 FHS
+无变化、未知来源仍被真实拒绝脚本拒绝；Shell/Nix 格式、既有位宽/错误混入
+模型和 IPC 编排检查通过。实际 Nix 替换、完整打包与真实运行仍由新 CI 验收。
+
+仅针对已失败的两项派发固定 56ed1d1 的
+[IPC 40069738510](https://github.com/HighCWu/distro/actions/runs/40069738510)、
+[完整工具集 40069743091](https://github.com/HighCWu/distro/actions/runs/40069743091)。
+它们现在使用已集成的 musl 37ad2811；旧 file-wasm64 验收不能自动覆盖此版本。
+第七十九组 clone 双位宽目标继续独立运行，不重复派发、不等待它们才修复此
+明确失败，也不把修复模型通过写成目标通过。自有修复/模型为 MIT，内核和应用
+C 实现、工具集与许可边界不变。
 
 ## 信号栈缺口的前期核查记录
 
