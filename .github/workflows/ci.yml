@@ -110,6 +110,8 @@ jobs:
           WASM_EXEC_SOURCE="$RUNNER_TEMP/wasm-binfmt-exec.c" WASM_CONTEXT_COMPILERS=clang \
             python3 -B scripts/check_exec_commit.py
           WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_exec_security.py
+      - name: Check binfmt_misc workload frontends and static analysis
+        run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_binfmt_misc.py
       - name: Check alternate signal-stack reference semantics and execution adapter
         run: |
           python3 -B scripts/test_signal_altstack.py

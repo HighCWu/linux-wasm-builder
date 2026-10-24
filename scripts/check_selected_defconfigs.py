@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIGS = Path(os.environ.get("WASM_DEFCONFIG_ROOT", ROOT / "sources/linux/arch/wasm/configs"))
 recipe = (ROOT / "sources/distro/distro/linux/package.nix").read_text()
 assert 'make wasm${toString wasmBits}_defconfig' in recipe, "review selected Kbuild targets if build recipe changes"
-required = ("FANOTIFY", "FANOTIFY_ACCESS_PERMISSIONS", "EROFS_FS_XATTR", "EROFS_FS_BACKED_BY_FILE")
+required = ("BINFMT_MISC", "FANOTIFY", "FANOTIFY_ACCESS_PERMISSIONS", "EROFS_FS_XATTR", "EROFS_FS_BACKED_BY_FILE")
 
 
 def check(text, name):
