@@ -594,6 +594,14 @@ Linux `54807f1ab` / distro `e0fe092` / 根仓库 `89c0332` 已接入独立、默
 tracing/lockdep 等边界仍未宣称完成，不默认启用，也不承诺物理宿主 CPU 精度。
 详见[第六十五组](process-syscalls.md#第六十五组默认关闭的通用-cpu-记账实验配置)。
 
+进一步 review 修正 syscall 早期 IRQ 屏蔽：Linux `d22065aa3` 在恢复 context/RCU
+之前使用 raw 屏蔽，避免未来 IRQ tracing 提前运行。distro `087dc60` / 根仓库
+`1f65d23` 单独集成，旧 tracing 调用负向控制和双编译器/位宽分析通过；不宣称
+完整 tracing 配置已支持。另已修复轻量 CI 将架构 ptrace 文件误当通用源码的
+输入错误；旧默认记账 wasm64 的重入、取消、fork/exec 实际阶段与关闭门禁已
+核实，新版 GEN 仍待异步验收。
+详见[第六十六组](process-syscalls.md#第六十六组syscall-早期-irq-tracing-边界与-ci-输入修正)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

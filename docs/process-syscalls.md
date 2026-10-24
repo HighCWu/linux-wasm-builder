@@ -3065,14 +3065,57 @@ musl 保持 `f949d1b1`，没有公共 API 增量。
 逐项阶段核实，也不覆盖本组实验配置。
 随后已读取 wasm64 重入 40048146878 和取消 40048151875 的实际日志，均确认
 完整三阶段及唯一 pass；并核对固定 088fd6f 的运行器必须等待 machine.closed，
-关闭错误使派生失败，因此这两项通过关闭门禁。fork/exec 日志尚待补齐，不能
-将前两项结果扩展为该项、wasm32 或本组 GEN 配置的通过证据。
+关闭错误使派生失败，因此这两项通过关闭门禁。fork/exec 40048157954 的日志
+随后也已补齐，确认 raw clone、clone3、信号隔离、continuation、失败 exec 恢复、
+未转换 helper、成功 exec、线程/信号回调拒绝和后续恢复的完整阶段及唯一 pass，
+同一固定运行器通过关闭门禁。三项结果仍仅接受旧版默认记账配置 wasm64，不能
+扩展为 wasm32 或本组 GEN 的通过证据。
 
 剩余边界包括32位远端读的 seqcount/字段规则、迁移/跨 Worker 时钟、浏览器和
 tracing/lockdep 配置。当前执行 ABI 没有宿主 steal-time 数据，GEN 记录逻辑调度
 区间，宿主暂停/GC 不保证扣除；不是原生物理 CPU 精度。纯用户无限循环仍不
 支持异步抢占。未验证重复 CPU timers、全部 POSIX CPU timers 或所有调试组合，
 不得据此默认启用。
+
+## 第六十六组：syscall 早期 IRQ tracing 边界与 CI 输入修正
+
+实际轻量 CI 40048130388 的 job120734412084 在 syscall-info 模型中报错
+ValueError: substring not found；后继 40052907317 也停在同一步。原因是工作流
+将 `arch/wasm/kernel/ptrace.c` 复制到需要通用 `kernel/ptrace.c` 的目录，不是
+生产 ptrace helper 缺失。本地模型读取正确的通用文件，未覆盖该接线错误。
+根仓库 `f43d4cd` 改为从同一精确 pin 单独获取通用文件，并在模型提取前校验
+应有 helper。错误架构输入现被明确拒绝；Clang18/22 双位宽实际 helper 模型与
+分析通过。不通过放宽检查或跳过 ptrace 模型来掩盖错误。
+
+静态 review 另确认 syscall 入口在 generic enter 之前使用 local_irq_disable，
+如果后续启用 TRACE_IRQFLAGS，它可能在 RCU 仍处于用户 EQS 时进入 tracing。
+Linux `d22065aa3` 改为 raw_local_irq_disable：先仅屏蔽架构 IRQ，再由官方
+enter_from_user_mode 完成 lockdep/context tracking/RCU/tracing 顺序。没有修改
+syscall 号码、参数布局、返回值或 musl；当前 Wasm 不选择 TRACE_IRQFLAGS_SUPPORT，
+这是一处准入边界修正，不是声称完整 tracer/lockdep 功能已实现。
+
+实际 dispatcher 模型现在区分 raw 屏蔽与可触发 tracing 的 local 屏蔽，将旧写法
+恢复的负向控制必须在 user phase 拒绝。Clang18/22 × 双位宽的执行和静态分析、
+嵌套 frame/ptrace 编辑/自动重启、早期用户栈/RCU 负向控制、匿名 mmap 参数、
+稀疏大文件原生/ABI 和 syscall-info 相关检查通过，内核 checkpatch 零错误/警告。
+模型仍使用严格 generic helper 替身，不等同于完整 Linux tracing 配置的执行。
+
+[精确源码预取 40053252353](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40053252353)
+日志确认 `d22065aa31d2310e6faccead3654be14d8ebb8d1` 与
+`sha256-CV6PqRZXYzTKoH9IhTNu1XG4z80iWwyELO81RWC12s4=`。
+distro `087dc60` 单独更新 pin，根仓库 `1f65d23` 集成两个 gitlink 与模型控制，
+musl 仍为 f949d1b1。新版只针对默认 wasm32 重入与 GEN wasm64 CPU 工作负载
+异步验证：
+[wasm32 重入 40053462532](https://github.com/HighCWu/distro/actions/runs/40053462532)、
+[wasm64 GEN CPU 40053466632](https://github.com/HighCWu/distro/actions/runs/40053466632)。
+旧版六项仍运行的任务不取消、不视为覆盖新 pin。
+
+并发审查确认通用 vtime 的更新与远端 task_cputime/kcpustat 读取依赖 seqcount
+及重试，不能凭64位字段的单条 i64 指令就宣布安全。Wasm 的
+[共享内存模型说明](https://webassembly.github.io/threads/core/exec/relaxed.html)
+区分访问对齐、宽度和竞争时的 tearing；实际屏障/发布与远端读取规则仍须整体
+验证。当前不修改通用 seqcount 核心、不扩大 READ_ONCE 语义，也不将一轮并发
+采样当作证明。GEN 配置继续默认关闭。
 
 ## 信号栈缺口的前期核查记录
 
