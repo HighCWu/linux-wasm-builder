@@ -3626,6 +3626,66 @@ wasm32 40063773897/job120782670716、wasm64 40063778273/job120782684582
 四个 Heavy 均成功，日志无目标失败；未变运行器成功前等待 machine.closed，
 据此接受这些固定版本的 Node 结果，不泛化到浏览器或新 IPC 工具。
 
+第七十六组随后已验收：固定 0c8e540，IPC 40065795347/job120788729373 的
+四阶段和唯一 pass 完整；生产工具集 40065799646/job120788732439 的普通
+TERM/HUP、ALRM 与 INT 各24轮、其它 uuidd 收尾、unshare 四流程、fsck 五流程
+及终端唯一 pass 均已从实际日志核实。两项 Heavy 成功且无目标失败/关闭错误，
+未变运行器仍等待 machine.closed；只接受该版 wasm32 Node 产品，不泛化到
+后续 seccomp 内核、wasm64 或浏览器。
+
+## 第七十七组：接通通用 seccomp 严格模式及适配层入口
+
+Linux `e3afb3e64` 声明 HAVE_ARCH_SECCOMP，沿官方 Kconfig 的默认 y 启用
+SECCOMP，复用 kernel/seccomp.c 的严格策略、prctl/seccomp 入口、任务状态与
+违规 SIGKILL 退出。没有自写 syscall 允许列表或启用 BPF 过滤模式。
+Wasm 信号处理经既有执行桥返回，不存在 rt_sigreturn syscall；架构 seccomp.h
+将该槽设为通用策略循环的负终止标记，只允许已有 read/write/exit，不借用别的
+syscall 号码，也不把 139 变成可用接口。测试要求处理信号后仍能继续 read/write。
+
+静态 review 发现不能只启用配置：fork/clone3 适配层会先校验参数、读取描述符，
+甚至直接返回 EINVAL/EOPNOTSUPP，这会跳过严格策略应有的终止。Linux
+`97d6ca9ea` 增加私有只读 seccomp_strict_v1 执行查询；配套运行器在受限状态下
+直接将原调用交给普通内核入口，由既有 ptrace/seccomp 处理，再决定是否执行。
+它不在宿主复制策略、不预读 clone3 指针，也不先启动 continuation。旧 checkpoint
+路径同样先以对应的 clone 进入内核，不能利用坏描述符提前返回绕过策略。
+该查询不是公共应用 import 或新的 Linux syscall；内核与运行器必须成对使用。
+不以新内核搭配历史运行器作为已支持的安全配置。
+
+distro `5a020c8` 集成固定内核与配套运行器、解析后 SECCOMP=y/SECCOMP_FILTER=n
+断言及独立双位宽负载。musl 保持 015d1ac3，不新增函数、头文件 API 或包装。
+根仓库 `ce948ae` 单独更新两个 gitlink 与轻量检查。普通应用仍使用标准 syscall/prctl；
+仅验证用控制程序沿用已有可选单线程 fork
+profile。没有扩大多线程 fork、内核 softmmu 或线性地址能力。
+
+真实负载要求四阶段及唯一 pass/机器关闭：
+
+1. 查询初始模式、拒绝坏 flags/参数和未支持的 filter，且失败不改变模式。
+2. 分别用 seccomp 和 prctl 进入严格模式，实际 read/write/raw SYS_exit 成功，
+   外部信号 handler 返回后仍能继续执行。
+3. getpid、exit_group、试图解除限制、未实现的139，以及坏参数 clone/clone3/
+   旧 checkpoint 均被终止，不能用错误返回冒充策略执行。
+4. 父进程模式保持未受限，连续 fork/wait、单次回收与 fd 清理正常。
+
+367 项宿主回归、源与测试两套 TypeScript 检查、固定 oxfmt/Nix 格式检查及
+工作流静态检查通过。额外模型编译精确内核的严格策略函数与架构头，对全部本表
+号码及负数/越界号码核对允许、模式转换与 SIGKILL；故意将一个普通 syscall
+加入允许列表的对照被拒绝。GCC/Clang 仅编译真实负载，不在宿主执行 seccomp；
+Clang18/22 双位宽前端与分析通过。模型、编译与绿色工作流均不能替代真实阶段。
+
+[源码预取 40066542208](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40066542208)
+完整日志核实 97d6ca9eadb53fdabb2e27b44e8ec90225e81415 与
+`sha256-YkyeLleqv4/Qd9COdzyatXkYtCbIqqRurqVa8Nx6/wk=`；此前 e3afb3e64 的
+预取不是最终适配入口版本，不用于集成。固定 distro 5a020c8 的
+[wasm32 40066816471](https://github.com/HighCWu/distro/actions/runs/40066816471)
+与 [wasm64 40066820823](https://github.com/HighCWu/distro/actions/runs/40066820823)
+已核对源码和 seccomp-strict-check-runtime / seccomp-strict-wasm64-check-runtime
+检查名，正在运行，真实阶段与关闭结果尚待验收。
+
+依据[官方架构要求](https://kernel.org/doc/html/latest/userspace-api/seccomp_filter.html#adding-architecture-support)
+与精确 kernel/seccomp.c。过滤模式仍缺架构标识等必要条件，不能用现有
+syscall_get_arch 的0占位冒充正式 ABI。严格模式也不等于完整沙箱，不宣称处理了
+所有执行桥边界、浏览器、任意线程组合或不受信任程序的整体隔离。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
