@@ -2933,6 +2933,48 @@ runtime 针对性异步复验；上一组八项继续独立运行，不重复派
 造成的 elapsed time 不能据此宣称已排除。下一步继续审查低层 helper 的
 instrumentation 及协议准入，再接入实际通用记账，仍不直接打开默认配置。
 
+## 第六十四组：IRQ 编译回归与真实头文件的模型盲点
+
+第六十二组的新 run_irq 调用 user_mode(&regs) 触发了已有宏的参数优先级错误：
+`#define user_mode(regs) (regs->user_mode)` 将 &regs 错误展开，无法编译。
+已核实 [wasm32 重入 40046344886](https://github.com/HighCWu/distro/actions/runs/40046344886)
+的 Heavy job120728920679 与
+[wasm64 取消 40046358498](https://github.com/HighCWu/distro/actions/runs/40046358498)
+的 job120728953704 实际日志，均在 arch/wasm/kernel/irq.c:138/149 报告
+struct pt_regs 不是指针及不能取得 int rvalue 地址。它们是内核编译失败，
+没有运行目标程序，不是缓存保存告警或用户 syscall 阶段失败；同批其余 failure
+状态未据此冒充逐项日志核实。fa5f4a969 也继承该宏，尚未完成的任务不作通过证明。
+
+Linux `41299f06eb3acbfab9d0e67ef98b08dff5246f16` 将宏改为
+`((regs)->user_mode)`，保留原值/lvalue 和 ABI，不通过修改调用点掩盖宏本身的
+错误。没有引入公共函数或扩大支持范围。
+
+原相位模型虽然执行真实 IRQ/helper 函数体，却在 fixture 中自己定义了正确的
+user_mode 替身，因而漏掉真实头文件的错误。这一盲点已修正：模型及轻量 CI
+直接读取/获取同一 pin 的 include/uapi/asm/ptrace.h，不再重定义 user_mode。
+修改前用真实头文件在本地复现同样错误；修复后 Clang18/22 × Wasm32/64 执行与
+静态分析通过。保留旧宏的负向编译控制在四种组合都拒绝，IRQ 缺少成对转换的
+运行时控制也继续保留。fixture 对 inline 的 unused 属性匹配内核常规定义，
+未修改生产编译警告策略，也不把未执行的 regs_irqs_disabled 桩说成已支持。
+
+原 entry/restart 模型、ptrace 与重入参考/前端分析、actionlint、差异检查通过，
+内核 checkpatch 无错误/警告。先修复此明确回归，再推进独立 vtime 配置；本轮
+未打开记账配置。最终仍须新源码的真实编译、运行阶段及关闭结果，不把本地
+模型通过直接当作整机恢复。
+
+精确源码预取 [40047766795](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40047766795)
+成功，实际日志核实完整 41299f06eb3acbfab9d0e67ef98b08dff5246f16 和
+`sha256-NaRWXlgy7f0Y24PYcIoRqDbMNK1pMlqAGRxfbhF0eVc=`。distro `088fd6f`
+单独更新构建 pin，根仓库 `a967b36` 更新两个 gitlink、精确头文件输入和负向
+控制，musl f949d1b1 不变。新版只针对双位宽重入、wasm64 取消和 fork/exec
+runtime 四项复验，不重复整个旧矩阵；仍运行的旧源码任务不取消，也不用于
+验收新 pin。本轮尚无新版实际程序阶段或关闭的通过证据。
+复验为重入
+[wasm32 40048141644](https://github.com/HighCWu/distro/actions/runs/40048141644)、
+[wasm64 40048146878](https://github.com/HighCWu/distro/actions/runs/40048146878)，
+[wasm64 取消 40048151875](https://github.com/HighCWu/distro/actions/runs/40048151875) 和
+[wasm64 runtime 40048157954](https://github.com/HighCWu/distro/actions/runs/40048157954)。
+
 ## 后续 CPU 时间记账准入审查（尚未实现）
 
 对固定 Linux bba354425 的源码审查区分了三条不能混为一谈的路径：
