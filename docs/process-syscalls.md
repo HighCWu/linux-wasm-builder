@@ -3523,6 +3523,71 @@ sha256-RxjJoelROJI++wa3Dzm7VWBzGkOdwPWC9FodoSg1ddA=。未修改 musl 基线、�
 [keyrings wasm32 40061620353](https://github.com/HighCWu/distro/actions/runs/40061620353)、
 [keyrings wasm64 40061624565](https://github.com/HighCWu/distro/actions/runs/40061624565)。
 
+## 第七十五组：已有 syscall 接口的 Wasm64 调用点兼容
+
+审查普通程序的调用方式时发现真实 ABI 缺口，而不是缺少新的 libc 包装函数。
+musl 的现有 syscall(long, ...) 按六个 long 取参；Wasm64 调用者传连续 int 时，
+Clang 将其紧邻存为四字节，而 long 为八字节。原样 musl 函数的微型 Wasm 复现
+显示41和43被读取为0x2b00000029，其它参数移位；Clang22 的旧调用还可能在该
+函数取参时越界。前几组显式传六个 long 的 raw 测试没有覆盖普通直接调用方式。
+
+musl `015d1ac3` 在 f949d1b1 无新增公共函数的基线上，仅增加 Wasm64 条件下的
+现有 syscall 函数式宏：0至6个 syscall 参数分别转为 long 并补零，再调用原有
+同名链接符号。内部 syscall.h 在安装自己的既有分派宏前 undef 该宏。没有新增
+函数、安装头文件、导出符号或 Linux 扩展包装，src/misc/syscall.c 本身不变；
+也没有修改 Clang 全局变参 ABI。wasm32 不启用此宏，以保留显式拆分64位参数的
+现有规则。未恢复 pidfd 公共包装，也未删除或改写已发布提交。
+
+这属于已有接口的架构/ABI 调用路径兼容修正，不是把 syscall 实现搬进 libc。
+内核仍使用同一标准 syscall 号/执行入口。直接调用需重新编译才能受益；已按
+机器字调用的函数入口及已有二进制 ABI 不变。取函数地址、显式 (syscall) 或
+绕过头文件的低级调用仍须使用原变参签名和正确机器字，不能声称自动修复任意
+函数指针调用。函数式宏亦沿用标准预处理规则，含顶层逗号的复合字面量参数须
+额外括号；未引入项目专用开关/调用接口来隐藏该边界。
+
+Clang18/22 的实际 C/C++ Wasm 模块核实两种位宽、0至6参数、连续 int、负数、
+unsigned int 高位、指针、单次求值、嵌套调用、C++ ::syscall/nullptr 及函数地址。
+链接的是原样 syscall.c；64位反向控制移除新宏，必须出现明确机器字错位或该
+取参函数的越界，不能以任意编译失败/超时当作检出。wasm32 正向保持原函数路径。
+普通 SDK 的 C 语料另以 GCC/Clang 原生运行，并通过目标前端/静态分析；fork 补丁 dry-run 仍可
+应用。它们不替代完整新 sysroot 的真实目标运行。
+
+新增 public-syscall 普通 SDK 目标，不使用 fork profile，要求三个阶段：直接
+getpid 和原函数符号、负 int/errno；普通 int 参数 close_range 只关闭指定 fd，
+非法 flags 保留其它 fd；getcwd 的指针/int 容量及前后哨兵。最后唯一 pass 和
+machine.closed 关闭门禁；没有把所有应用改成显式 long 来绕开 ABI 缺陷。
+
+[源码预取 40063244038](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40063244038)
+实际日志核实完整 musl revision 015d1ac3f4fd58059cfc911c2dd422d20924a62c 与
+sha256-MabCOnf3A/ewGtWcKg51FOV5f86akgEhQvY9+f1F1l0=。
+distro `e8967a9` 集成精确 pin 和普通目标，根仓库 `e0a12f3` 更新两个 gitlink 与
+轻量检查。Linux 仍为2e93dea45，保持 NOMMU，不新增 softmmu 或多线程 fork。
+新 musl/sysroot 的真实目标仍待异步验收。
+
+固定 e8967a9 已派发并核对检查名与源码：普通目标
+[wasm32 40063773897](https://github.com/HighCWu/distro/actions/runs/40063773897)、
+[wasm64 40063778273](https://github.com/HighCWu/distro/actions/runs/40063778273)，以及
+既有可选 fork profile 回归
+[wasm32 40063781795](https://github.com/HighCWu/distro/actions/runs/40063781795)、
+[wasm64 40063785076](https://github.com/HighCWu/distro/actions/runs/40063785076)。
+四项运行中，不重派相同源码/检查，也不等待它们才继续独立工作。
+
+本轮另补核实此前六项成功作业的完整日志，不以绿色状态代替阶段：
+
+- e7a3c3c 的 binfmt_misc wasm32 40061610158/job120776194063、wasm64
+  40061614315/job120776213331：五阶段完整，含 P/AT_FLAGS、O/实际 fd 身份字节、
+  C/凭据及 F/改名后的解释器，注销/清理和各唯一 pass 均齐全。
+- 同版 keyrings wasm32 40061620353/job120776220981、wasm64
+  40061624565/job120776243713：五阶段完整，含实际权限拒绝、logon 不可读、fork
+  共享/隔离、exec 保留和撤销清理，各唯一 pass 齐全。
+- 2b33c98 的 user-fault-group wasm32 40060775430/job120773640428、wasm64
+  40060780025/job120773655466：三阶段完整，致命故障结束进程、raw SYS_exit 保留
+  兄弟线程和父进程后续 wait 各自通过，唯一 pass 齐全。
+
+六个 Heavy/工作流成功，完整日志无目标 fail/关闭错误/panic；未变运行器仍在
+成功前等待 machine.closed。仅接受这些固定版本的有界 Node 结果，不扩展到
+新 musl、浏览器、纯忙循环抢占、其它 key 类型或任意解释器/完整认证应用。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
