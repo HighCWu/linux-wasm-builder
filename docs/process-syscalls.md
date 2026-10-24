@@ -3464,6 +3464,65 @@ distro `2b33c98` 集成精确 pin 和目标，根仓库 `79ecbec` 更新 gitlink
 任意用户线程均可被立即强制中断。浏览器、信号 handler 恢复和完整 core dump
 亦未在本组验收。
 
+## 第七十四组：binfmt_misc P 标志的一位截断修复与验收补录
+
+第七十一组 cfd8214 的双位宽任务均实际运行到 P 模式，普通 argv、entry/global
+禁用与恢复已通过，helper 以85退出。按 helper 的严格检查顺序，P 的 argc 和参数
+内容此前已通过，失败的是 AT_FLAGS 的 PRESERVE_ARGV0 位，不是格式注册失败。
+没有将这些失败任务或普通阶段通过改写成全部 binfmt_misc 已可用。
+
+Linux `2e93dea45` 修复真实内核错误：BINPRM_FLAGS_PRESERVE_ARGV0 为1<<3，即8，
+而 wasm_exec_args.preserve_argv0 是 unsigned int 的一位 bitfield。把掩码8直接
+赋入会截断为0；现在显式 !! 归一化再保存，保持私有布局和执行 ABI 不变。其它
+secureexec/have_execfd 的来源本来就是一位布尔字段，无需照搬此转换。
+
+新增轻量回归提取实际两个结构体和赋值表达式，并读取精确内核头中的内部 bit
+编号。GCC/Clang 及 Clang18/22 wasm32/64 执行无标志、P、其它位、组合位和全位
+模式；恢复旧原始掩码赋值必须明确失败。静态分析、既有 exec commit 模型及
+checkpatch 通过，仍需两路真实 binfmt_misc 重验，且不删除 P/AT_FLAGS 断言。
+
+本轮改用可用的 GitHub 日志连接器补取完整已结束作业，解除此前下载超时导致的
+证据缺口；未重新构建，也未将连接器取到日志本身当作测试通过：
+
+- 573a610 的 exec-security wasm32 40058728775/job120767449329、wasm64
+  40058733335/job120767455438：普通 exec、setuid/AT_SECURE、no_new_privs、坏
+  setuid 镜像拒绝后的恢复四阶段，四个 helper 完成标记及各唯一 pass 均齐全。
+- 同版 fanotify wasm32 40058737692/job120767461553、wasm64
+  40058741398/job120767472463：事件字节/身份、mask/remove/flush、拒绝与允许
+  权限答复、能力恢复和最终清理四阶段及各唯一 pass 均齐全。
+- f611358 的 EROFS wasm32 40056676830/job120761116656：内联/共享属性、文件
+  镜像跨页数据与引用、只读保持及清理四阶段、唯一 pass 齐全，补全真正命名32位
+  defconfig 修正后的目标证据；此前仅接受的旧版64位记录仍按原版本保留。
+
+这些作业均成功，实际完整日志无目标 fail/runner cleanup failed/kernel panic。
+已核对 f611358 到本轮运行器 run-test.js、shutdown.js、protocol.js 和 Nix 运行
+配方没有变化，成功返回仍以等待 machine.closed、清理成功及无后续失败为条件。
+因此接受上述各自固定版本的有界 Node 结果；取代此前相应“日志待补取”状态，
+不泛化为当前所有源码、浏览器、全部子命令或尚未跑完的其它能力验收。
+
+同轮 keyring wasm32 40059872419/job120770919778 实际失败于第一个阶段之前的
+sizing and bounded short read。审查固定通用 keyctl_read_key：user_read 先写入
+临时内核缓冲，返回长度大于用户容量时外层直接退出，不执行 copy_to_user。
+原语料误以为内部 user_read 的短前缀必然已写入用户区；官方内核
+[KEYCTL_READ 说明](https://docs.kernel.org/security/keys/core.html) 明确说不足缓冲
+的内容可能以未定义方式被覆盖，因此不能依赖前缀。distro 独立修正该测试：仍
+严格要求所需长度、全部容量外哨兵不变及随后完整二进制内容，没有修改 Linux
+通用实现或绕过权限/生命周期阶段。原版64位任务仍保留，不因推断会同样失败而
+取消；新版需双位宽针对性验收。
+
+测试修正独立提交为 distro `2df2ab4`，随后 `e7a3c3c` 单独更新 Linux 精确 pin，
+根仓库 `f26ea71` 更新 gitlink 和位字段回归，均保留已发布历史。
+[源码预取 40061310485](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40061310485)
+实际日志核实 2e93dea45212407587c989c4567021efcee90f8b 与
+sha256-RxjJoelROJI++wa3Dzm7VWBzGkOdwPWC9FodoSg1ddA=。未修改 musl 基线、公开
+应用 API、MMU 或多线程 fork 范围；本轮新修正的真实目标仍待异步重验。
+
+固定 e7a3c3c 已派发并核对检查名/源码，四项均在运行：
+[binfmt_misc wasm32 40061610158](https://github.com/HighCWu/distro/actions/runs/40061610158)、
+[binfmt_misc wasm64 40061614315](https://github.com/HighCWu/distro/actions/runs/40061614315)、
+[keyrings wasm32 40061620353](https://github.com/HighCWu/distro/actions/runs/40061620353)、
+[keyrings wasm64 40061624565](https://github.com/HighCWu/distro/actions/runs/40061624565)。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
