@@ -130,6 +130,8 @@ jobs:
             "$revision" "$RUNNER_TEMP/keyctl-uapi.h" include/uapi/linux/keyctl.h
           WASM_KEYCTL_HEADER="$RUNNER_TEMP/keyctl-uapi.h" WASM_CONTEXT_COMPILERS=clang \
             python3 -B scripts/check_keyrings.py
+      - name: Check existing public syscall call-site machine words
+        run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_public_syscall_words.py
       - name: Check alternate signal-stack reference semantics and execution adapter
         run: |
           python3 -B scripts/test_signal_altstack.py
