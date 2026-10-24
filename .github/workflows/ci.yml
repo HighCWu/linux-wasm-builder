@@ -84,6 +84,8 @@ jobs:
             python3 -B scripts/check_user_context.py
       - name: Check CPU accounting native semantics and Wasm frontends
         run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_cpu_accounting.py
+      - name: Check EROFS attribute workload and existing Wasm libc ABI
+        run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_erofs_metadata.py
       - name: Check alternate signal-stack reference semantics and execution adapter
         run: |
           python3 -B scripts/test_signal_altstack.py
