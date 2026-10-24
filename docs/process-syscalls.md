@@ -3723,6 +3723,61 @@ syscall_get_arch 的0占位冒充正式 ABI。严格模式也不等于完整沙�
 推进本独立应用闭包。主仓库 ce948ae 的轻量 CI 40066837498 已成功，但它不是
 seccomp 真实目标运行证据。
 
+## 第七十九组：既有 clone 的固定可选参数位置
+
+核对 tombl/musl 的 src/linux/clone.c，发现其按每个 flags 单独消耗变参，导致
+正常 `parent_tid, tls, child_tid` 固定布局被压缩。CHILD_SETTID 单独使用时会把
+第一个占位参数当 child_tid；PARENT_SETTID 与 CHILD_SETTID 同时使用时，会把
+TLS 占位当 child_tid。旧 clone-tid 检查只传两个可选参数，恰好掩盖了这个错误。
+这不是内核 TID/pidfd 写入未实现，也不应靠要求应用使用项目特有缩参约定解决。
+
+musl `37ad2811` 只在已有函数内增加 Wasm 调用路径兼容：读取所需的固定参数
+前缀，没有可选 flags 时不读取变参，仅需 parent_tid 时不多读后续参数，需要
+child_tid 时消费前两项占位再取第三项。保留现有 CLONE_THREAD/SETTLS/
+CHILD_CLEARTID 拒绝政策，非 Wasm 分支保持原样。没有新增公共函数、公共声明、
+导出或 pidfd 包装，没有改变底层 Wasm callback clone syscall 布局。
+
+fork 基线仍是 tombl/musl，不切换为官方仓库。共享历史中的
+fa4a8abd06a401822cc8ba4e352a219544c0118d 已包含正确的参数前缀处理，可与
+[Linux clone 调用约定](https://man7.org/linux/man-pages/man2/clone.2.html) 交叉核对。
+新模型移除 Wasm 新分支后的全文 SHA256 必须等于此前 015d1ac3 的文件，约束
+非 Wasm 行为与函数集合不被顺带改写。使用旧缩参写法的源代码需补齐占位，
+不通过猜测参数数量同时兼容两种相冲突的约定。
+
+distro `4aaef0e` / 根仓库 `73cff39` 集成新 musl、修正旧 clone-tid 的 NULL TLS 占位，并增加普通
+SDK 双位宽负载，不启用 fork continuation：无可选字、parent-only、child-only、
+parent+child、pidfd+child 五种正常调用均沿真实公共 clone 及原内核路径。
+要求 callback 执行前 TID 已写好、保留占位/相邻 guard 字节，pidfd 为 CLOEXEC，
+waitid(P_PIDFD) 指向精确子进程，单次回收和 fd 清理正确。CLONE_VM callback
+只访问共享数据并返回，不调用 libc、修改 TLS 或执行父进程 C 栈。
+
+本地直接编译原样 musl clone.c 和 syscall_ret.c，只有底层 __clone/锁等为模型：
+Clang18/22、Wasm32/64 都核对完整转发元组，旧压缩分支必须在 child-only 调用
+失败，既有 NULL stack/SETTLS 拒绝不得进入底层。真实负载 GCC/Clang 原生参考
+通过，Wasm 双位宽前端/静态分析、既有 syscall 字宽检查、fork profile 补丁
+dry-run 和格式/工作流检查通过。这些仍不能替代真实 Wasm 目标及关闭验收。
+
+[源码预取 40068655017](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40068655017)
+日志核实完整 revision 37ad281149f20e32c41990205ba384c21af03ff0 与
+`sha256-r+3SxsQRFJXa5+eXUvFWAmp3sLkswKMDjIu3FQNW7ow=`。
+固定 4aaef0e 的
+[wasm32 40069040600](https://github.com/HighCWu/distro/actions/runs/40069040600)
+与 [wasm64 40069044706](https://github.com/HighCWu/distro/actions/runs/40069044706)
+已核对 clone-arguments-check-runtime / clone-arguments-wasm64-check-runtime
+及源码，实际目标结果待验收。不扩大多线程 fork、公开 clone 的被拒 flags 或浏览器范围。
+
+另外已补录此前结果：固定 5a020c8 / musl 015d1ac3 的 seccomp 严格模式
+wasm32 40066816471/job120791784487、wasm64 40066820823/job120791788549
+四阶段及各唯一 pass 完整，两项 Heavy 成功，未变运行器关闭失败会拒绝成功且
+等待 machine.closed，故接受这两项固定版本 Node 结果。它们不证明新 musl
+或 BPF 过滤模式。固定 9d7712d 的 file-wasm64 40067588207/job120794049428
+实际终端唯一 pass 已核实，对应固定脚本的文本/gzip/Wasm 三种检测及同一关闭
+门禁；不将 file 单独成功当成完整工具集通过。随后 util-linux-wasm64 两项
+40067581710/job120794015733、40067584929/job120794031118 已明确失败：
+完整程序及静态库位宽门禁先通过，但 APK 检查报告 root/lib/liblastlog2.la 含有
+Nix store 引用，尚未执行目标程序。需修正部署元数据，不放宽门禁或禁用 lastlog2。
+主仓库 1b6e6fc 的轻量 CI 40067606246 成功也不替代这些真实阶段。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

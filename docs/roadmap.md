@@ -696,6 +696,17 @@ distro `9d7712d` / 根仓库 `1b6e6fc` 补齐完整 util-linux-wasm64 与 file-w
 均已支持64位。详见
 [第七十八组](process-syscalls.md#第七十八组完整-util-linux-的匹配-wasm64-产品)。
 
+musl `37ad2811` 修复既有 clone 的 Wasm 可选参数被压缩读取的问题，恢复正常
+parent_tid/tls/child_tid 固定位置，仅消费所需前缀。无新增函数/声明，非 Wasm
+分支及原 flags 拒绝不变。distro `4aaef0e` 修正旧缩参检查并接入普通 SDK 的
+双位宽真实 TID/pidfd 负载；本地原函数正/反向模型、原生参考、编译/分析通过，
+源码 hash 已核实，根仓库 `73cff39` 集成，双位宽实际目标正在运行、待验收。不把该 libc 调用路径修复说成新实现内核
+clone 或扩大多线程 fork。此前固定版本的 seccomp 双位宽四阶段/关闭及单独
+file-wasm64 检测已核实通过，不泛化到新 musl 或完整 util-linux-wasm64。后者两项
+CI 已明确停在 APK 的 liblastlog2.la 构建路径泄漏门禁，需修复元数据，未运行应用。
+详见
+[第七十九组](process-syscalls.md#第七十九组既有-clone-的固定可选参数位置)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。
