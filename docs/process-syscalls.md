@@ -3588,6 +3588,44 @@ distro `e8967a9` 集成精确 pin 和普通目标，根仓库 `e0a12f3` 更新�
 成功前等待 machine.closed。仅接受这些固定版本的有界 Node 结果，不扩展到
 新 musl、浏览器、纯忙循环抢占、其它 key 类型或任意解释器/完整认证应用。
 
+## 第七十六组：恢复上游 util-linux 的 System V IPC 工具
+
+内核已有 System V 消息队列与信号量支持，但 util-linux 配方仍保留旧的
+`CONFIG_SYSVIPC` 关闭假设，显式禁用 ipcmk、ipcrm、ipcs、lsipc；生产程序检查
+还要求 `/proc/sysvipc` 不存在。distro `175976e` 删除四项过期禁用配置及只为禁用
+lsipc 添加的 configure 补丁，恢复上游默认探测，更新生产工具清单。`0c8e540`
+修正检查脚本的 ShellCheck 问题，根仓库 `5103547`、`b26e3f1` 分别集成源码和
+后续 pin。没有改 util-linux 的 C 实现、增加 musl 包装或伪造共享内存能力。
+
+保持现有完整 util-linux 2.42.2 产品及其依赖，不构造仅供测试通过的裁剪包。
+下载的官方归档 SHA256
+`03a05d3adf9602ef128f2da05b84b3205ce60c351e5737c0370f74000679ce8a`
+与 kernel.org 的 sha256sums.asc 相符；未核验 PGP 签名，不将此描述为签名认证。
+版本及 Nix 解包 hash 不变，配置补丁对该源码 dry-run 通过。
+
+新的私有 ipc 检查直接运行四个真实程序，要求四阶段：创建消息队列/两个信号量
+并核对对象身份与元数据；smartcols 支持的 lsipc 输出；SysV SHM 返回 ENOSYS
+且不破坏已创建队列；按精确 ID 删除并确认列表中不再存在对象。允许合法 ID 0，
+只清理本次创建的对象，不使用 ipcrm -a/--all。这不限制已有 POSIX shm 文件路径。
+检查必须有唯一 pass 并通过既有机器关闭门禁，不能只看工具 --version。
+
+自有检查和主仓库模型为 MIT。ShellCheck、shfmt、Nix 格式检查、补丁 dry-run
+与编排模型均通过；模型覆盖错误工具身份、错误信号量数量、错误 SHM errno 和
+删除后残留，且绝不创建/删除宿主 IPC 对象。模型不是目标应用验收。
+固定 `0c8e540` 的
+[util-linux-check-ipc 40065795347](https://github.com/HighCWu/distro/actions/runs/40065795347)
+与 [util-linux-check-programs 40065799646](https://github.com/HighCWu/distro/actions/runs/40065799646)
+已异步派发，目标结果待核实。这次恢复现有 wasm32 完整产品；不宣称已有 wasm64
+util-linux 或浏览器验收。双位宽内核 IPC 能力与工具产品覆盖分开记录。
+
+同时补录第七十五组的真实结果：固定 e8967a9 / musl 015d1ac3，普通 Node
+wasm32 40063773897/job120782670716、wasm64 40063778273/job120782684582
+完整三阶段及唯一 pass 已核实；可选 fork wasm32
+40063781795/job120782700683、wasm64 40063785076/job120782708368
+完整十二阶段（含 raw clone、clone3、exec、拒绝与恢复）及唯一 pass 已核实。
+四个 Heavy 均成功，日志无目标失败；未变运行器成功前等待 machine.closed，
+据此接受这些固定版本的 Node 结果，不泛化到浏览器或新 IPC 工具。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
