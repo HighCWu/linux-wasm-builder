@@ -548,8 +548,9 @@ distro `6f14171` 进一步只在显式 fork profile 恢复 tombl/musl 已有但 
 Wasm 退出保留 allocator 锁。无新增公共函数/执行协议，非 Wasm 路径保持。
 distro `b7cfd8a` 增加独立实际线程目标；双位宽 -Os/-O2 原样函数模型、旧写入
 控制、源码/目标分析和原生参考通过。精确 hash 已核实，distro `19e8fd0` / 根仓库
-`a87f9c6` 单独集成，双位宽实际释放与取消点回归四项异步派发，真实阶段/关闭
-待完成；不把本地 poison 模型或旧版本通过当作新 pin 的 Worker 验收。
+`a87f9c6` 单独集成，双位宽实际释放与取消点回归四项的实际三阶段、唯一 pass
+与固定运行器关闭门禁现均已核实，接受 f949d1b1/19e8fd0 的有界 Node 结果；
+不扩大为浏览器或后继版本，也不把本地 poison 模型当作 Worker 验收。
 详见[第六十一组](process-syscalls.md#第六十一组detached-thread-的栈释放与分配器锁生命周期)。
 
 下一内核审查方向是 CPU 时间分账/虚拟用户 CPU 定时器，而不是声称 CPU 总
@@ -558,6 +559,14 @@ distro `b7cfd8a` 增加独立实际线程目标；双位宽 -Os/-O2 原样函数
 退出的 context-tracking/RCU 边界，不能只开 Kconfig。此次未改配置、未计作
 新增能力；实施顺序和真实验收条件见
 [CPU 时间准入审查](process-syscalls.md#后续-cpu-时间记账准入审查尚未实现)。
+
+Linux `d3203ef36` / distro `d83cbd7` 已实现其中的执行相位基础：首次用户进入、
+allocator/初始化/clone 回调、leaf 内核入口和 IRQ 的成对相位转换，非局部退出
+恢复活调用者且不重入死任务。未改 musl 或记账配置；syscall 早期 entry 顺序、
+instrumentation、协议拒绝旧宿主及32位/跨 Worker 记账仍须继续完成，不能宣布
+CPU 分账或虚拟 CPU timer 已实现。精确 hash 已核实，distro `07ae2d6` / 根仓库
+`c0c764c` 已单独集成，新版双位宽整机回归异步跟进，不复用上一组结果。
+详见[第六十二组](process-syscalls.md#第六十二组内核与用户回调的执行相位基础)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加

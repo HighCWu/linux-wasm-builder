@@ -2831,9 +2831,63 @@ distro `19e8fd0` 单独更新构建 pin，根仓库 `a87f9c6` 更新 musl/distro
 [39988488638](https://github.com/HighCWu/distro/actions/runs/39988488638)、
 [39988496691](https://github.com/HighCWu/distro/actions/runs/39988496691)、
 [39988504426](https://github.com/HighCWu/distro/actions/runs/39988504426)。
-目前运行或排队，需核实实际 SP 释放、32 轮 destructor/分配并行、后续 joinable
-与清理三阶段、取消点原三阶段、唯一 pass 及 machine.closed；尚未宣称通过。
-旧版本取消/信号栈验收不直接覆盖这一新 pin，也不重复派发仍在运行的 PTY 目标。
+四项实际 Heavy 日志均已核实：thread-reclaim 各有真实 SP 离开旧范围后释放、
+32轮 destructor/分配并行、后续 joinable 与清理三个阶段；取消点各有原三个阶段，
+均有唯一 pass。固定 19e8fd0 的 run-test.js/shutdown.js 相对已核实的 6f14171
+无差异，成功退出前等待 machine.closed，关闭失败使目标失败，四项均通过。
+因此接受 f949d1b1 / 19e8fd0 的双位宽有界 Node 结果，不扩大为浏览器、无限
+并发或后继内核/运行时的验收；不是用旧版本取消测试代替新 pin 的实际执行。
+
+## 第六十二组：内核与用户回调的执行相位基础
+
+Linux `d3203ef365e219e6b046b79e18420aa6afa9d5d1` 将当前执行相位与保存的
+syscall/signal 寄存器帧分开维护。generic entry/exit 的架构 hook 维护任务状态；
+首次 wasm_user_call 前和返回后显式转换，但不提前执行 pending return work，
+保留 clone 用户 C 栈/TLS 设置后首次 syscall 的信号/ptrace 检查点。新任务
+显式从 kernel 相位启动。IRQ 使用调用帧内的寄存器快照，而非共享零值 dummy，
+从 user 相位进入的 IRQ 在处理前转回 kernel、结束后恢复 user；IRQ 路径不擅自
+投递用户信号。此时仍保持原记账配置，不能据 IRQ 快照改动宣称精确 CPU 分账。
+
+私有固定 i32 导出 user_context_v1 的模式0/1/2分别为 kernel/user/query，返回
+旧相位，非法模式返回 EINVAL 且不改状态。它不是 UAPI 或应用导入；只供执行层
+在现有同步调用之间恢复状态，不替代 Linux syscall，也不为 musl 新增函数。
+Linux 内修改保留 GPL；配套执行层与模型保留 MIT。
+
+distro `d83cbd7` 为原有分配器（包括 initialized-copy）、实例初始化和 clone
+continuation 准备加相位作用域，TLS/信号帧等 leaf 内核导出使用 kernel 作用域。
+普通 syscall 仍由自己的 generic entry 转换。作用域复用 C 栈/IRQ 恢复边界，
+先恢复活调用者的相位再恢复 IRQ；SjLj/exec 异常继续传播，HALT_KERNEL 后不再
+进入 C。旧内核缺少导出时沿用旧行为，不宣称老组合获得了新相位保证。
+
+Clang18/22 × Wasm32/64 的小型模型执行实际相位 helper、架构 hook 与 IRQ
+函数体；通用 entry/exit 使用严格替身，不是链接完整 Linux。嵌套 callback/
+leaf、SjLj、IRQ 用户快照和成对转换、IRQ 标志保留、非法模式均通过；删除 IRQ
+转换的负向控制会被拒绝。模型静态分析、原 syscall 重入模型通过；365项宿主
+测试及源/测试两套 TypeScript7 检查通过。checkpatch 无错误，仅有新增文件的
+MAINTAINERS 提醒；通用 helper 替身与本地小模型不能代替真实整机回归。
+
+精确源码预取 [40046015736](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40046015736)
+成功，实际日志核实完整 d3203ef365e219e6b046b79e18420aa6afa9d5d1 和
+`sha256-4nHM3QjFJ0j1nRqCtcJOF7t8QGN7YCOv34QoPUIVfN0=`。distro `07ae2d6`
+单独更新构建 pin，根仓库 `c0c764c` 更新两个 gitlink 并加入精确源码轻量模型；
+musl 保持 f949d1b1。新版重入、信号栈/取消和 fork/exec 的双位宽整机回归已
+安排异步执行，结果仍需核实实际阶段与关闭，不把上一组通过转记到新内核：
+
+- 重入：[wasm32 40046344886](https://github.com/HighCWu/distro/actions/runs/40046344886)、
+  [wasm64 40046349884](https://github.com/HighCWu/distro/actions/runs/40046349884)。
+- 取消：[wasm32 40046354215](https://github.com/HighCWu/distro/actions/runs/40046354215)、
+  [wasm64 40046358498](https://github.com/HighCWu/distro/actions/runs/40046358498)。
+- 信号栈：[wasm32 40046362695](https://github.com/HighCWu/distro/actions/runs/40046362695)、
+  [wasm64 40046367981](https://github.com/HighCWu/distro/actions/runs/40046367981)。
+- fork/exec runtime：[wasm32 40046372468](https://github.com/HighCWu/distro/actions/runs/40046372468)、
+  [wasm64 40046376510](https://github.com/HighCWu/distro/actions/runs/40046376510)。
+
+这只是通用 CPU 记账的前置实现，不是新增 CPU timer syscall。接入 vtime 前
+还须将 syscall 的早期栈指针读取、参数保存和 RCU 操作置于正确 entry 边界之后，
+并审查相位转换周围的 instrumentation、跨 Worker 时钟与32位远端读。启用
+context tracking 的内核还必须可靠拒绝不支持回调相位协议的旧执行层，不能仅
+因新版导出存在就视为旧宿主安全。目前未选择 HAVE_CONTEXT_TRACKING_USER 或
+VIRT_CPU_ACCOUNTING_GEN，后续按下节条件推进，不以模型通过代替记账能力。
 
 ## 后续 CPU 时间记账准入审查（尚未实现）
 
@@ -2854,9 +2908,10 @@ kernel/time/itimer.c、kernel/time/tick-sched.c 和 arch/wasm/kernel/irq.c。
 
 优先研究复用官方 VIRT_CPU_ACCOUNTING_GEN/context tracking，而不是自造一套
 按宿主 wall time 累加 utime 的近似实现。但现在仅添加 Kconfig select 不安全：
-Wasm 首次 wasm_user_call 前还没有完整的用户上下文转换，分配器回调又可从
-仍在执行的内核帧重新调用 syscall；当前 call_kernel_entry 只管理 C 栈与 IRQ，
-没有管理 context-tracking 相位。已有 signal callback 虽显式转换，也必须一起
+原 bba354425/19e8fd0 基线的首次 wasm_user_call 前还没有完整的用户上下文转换，
+分配器回调又可从仍在执行的内核帧重新调用 syscall；当时 call_kernel_entry 只
+管理 C 栈与 IRQ。第六十二组已补上相位基础，但还不等于完成 context tracking
+准入；已有 signal callback 的 SjLj 收尾和 entry 早期操作也必须一起
 审查 SjLj、exec 替换和 HALT_KERNEL。SMP 的 TREE_RCU 选择 CONTEXT_TRACKING_IDLE，
 因此这些不是仅影响统计数字的局部开关，还涉及 RCU 是否在观察内核代码。
 
