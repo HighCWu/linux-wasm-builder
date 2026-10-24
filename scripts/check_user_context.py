@@ -11,11 +11,12 @@ ARCH = Path(os.environ.get("WASM_CONTEXT_ARCH", ROOT / "sources/linux/arch/wasm"
 
 
 def without_includes(text):
-    return "\n".join(line for line in text.splitlines() if not line.startswith("#include"))
+    return "\n".join(line for line in text.splitlines() if not line.startswith("#include")) + "\n"
 
 
 context = without_includes((ARCH / "kernel/user_context.c").read_text())
 hooks = without_includes((ARCH / "include/asm/entry-common.h").read_text())
+ptrace = without_includes((ARCH / "include/uapi/asm/ptrace.h").read_text())
 irq = (ARCH / "kernel/irq.c").read_text()
 start = irq.index("static void run_irq(")
 irq = irq[start:irq.index("\n}\n", start) + 3]
@@ -28,8 +29,11 @@ prefix = r'''
 #define NULL ((void *)0)
 #define EINVAL 22
 #define bool _Bool
+/* Kernel inline definitions permit unused architecture-only helpers. */
+#define inline inline __attribute__((unused))
 #define __always_inline inline __attribute__((always_inline))
 #define BUG_ON(bad) do { if (bad) __builtin_trap(); } while (0)
+#define BUG() __builtin_trap()
 typedef unsigned int irq_hw_number_t;
 struct pt_regs { int user_mode; };
 struct thread_info { bool in_user_context; };
@@ -39,7 +43,6 @@ static struct pt_regs *irq_regs;
 static int irq_enabled=1, ticks, user_ticks, entries, exits;
 #define current_thread_info() (&info)
 #define current_pt_regs() (&regs)
-#define user_mode(r) ((r)->user_mode)
 #define local_irq_save(flags) do { flags=irq_enabled; irq_enabled=0; } while (0)
 #define local_irq_restore(flags) do { irq_enabled=(flags); } while (0)
 #define raw_local_irq_save local_irq_save
@@ -79,7 +82,7 @@ __attribute__((export_name("stats"))) int stats(int field) {
 '''
 with tempfile.TemporaryDirectory(prefix="wasm-user-context-") as tmp:
     unit, binary = Path(tmp) / "context.c", Path(tmp) / "context.wasm"
-    unit.write_text(prefix + hooks + generic + context + irq + suffix)
+    unit.write_text(prefix + ptrace + hooks + generic + context + irq + suffix)
     for cc in os.environ.get("WASM_CONTEXT_COMPILERS", "clang clang-22").split():
         for bits in (32, 64):
             subprocess.run([cc, f"--target=wasm{bits}", "-Os", "-nostdlib", "-ffreestanding",
@@ -138,7 +141,7 @@ assert.equal(e.user_context_v1(2),0);
             unpaired = irq.replace("\tif (user_mode(&regs))\n\t\tenter_from_user_mode(&regs);", "")
             unpaired = unpaired.replace("\tif (user_mode(&regs))\n\t\texit_to_user_mode();", "")
             assert unpaired != irq
-            unit.write_text(prefix + hooks + generic + context + unpaired + suffix)
+            unit.write_text(prefix + ptrace + hooks + generic + context + unpaired + suffix)
             subprocess.run([cc, f"--target=wasm{bits}", "-Os", "-nostdlib", "-ffreestanding",
                             "-Wl,--no-entry", str(unit), "-o", str(binary)], check=True)
             subprocess.run(["node", "--input-type=module", "-e", r'''
@@ -149,5 +152,12 @@ e.interrupt();
 e.user_context_v1(1);
 assert.throws(()=>e.interrupt(),WebAssembly.RuntimeError,'unpaired IRQ entry must be detected');
 ''', str(binary)], check=True)
-            unit.write_text(prefix + hooks + generic + context + irq + suffix)
+            unit.write_text(prefix + ptrace + hooks + generic + context + irq + suffix)
+            broken_ptrace = ptrace.replace("((regs)->user_mode)", "(regs->user_mode)")
+            assert broken_ptrace != ptrace
+            unit.write_text(prefix + broken_ptrace + hooks + generic + context + irq + suffix)
+            refused = subprocess.run([cc, f"--target=wasm{bits}", "-ffreestanding", "-fsyntax-only",
+                                      str(unit)], capture_output=True, text=True)
+            assert refused.returncode != 0 and "member reference type" in refused.stderr, refused.stderr
+            unit.write_text(prefix + ptrace + hooks + generic + context + irq + suffix)
             print(f"{cc} wasm{bits}: actual phase/IRQ bodies and nested JS restoration passed")
