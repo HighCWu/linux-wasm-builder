@@ -568,6 +568,14 @@ CPU 分账或虚拟 CPU timer 已实现。精确 hash 已核实，distro `07ae2d
 `c0c764c` 已单独集成，新版双位宽整机回归异步跟进，不复用上一组结果。
 详见[第六十二组](process-syscalls.md#第六十二组内核与用户回调的执行相位基础)。
 
+Linux `fa5f4a969` 进一步修正 dispatcher 在进入 kernel context 之前读取用户栈和
+调用 RCU 的顺序；noinstr 入口中显式区分 transition 与受保护工作，每次 restart
+重新 entry、但保留初始栈及 ptrace 编辑的参数。双编译器/位宽的实际函数模型、
+三种错序负向控制、静态分析和原回归通过，仍未启用通用 vtime。精确 hash 已核实，
+distro `d743c90` / 根仓库 `d9f4e21` 单独集成，针对性整机回归异步执行。
+低层 helper、协议准入与浏览器时钟仍需处理，物理 CPU/steal-time 限制须明确，不把
+Node 有序时钟采样当作 CPU 记账完成。详见[第六十三组](process-syscalls.md#第六十三组syscall-早期-entry-与自动重启的上下文顺序)。
+
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
 微测试代替能力交付，也不在重型任务积压时重复派发相同构建。

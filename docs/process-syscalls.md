@@ -2883,11 +2883,55 @@ musl 保持 f949d1b1。新版重入、信号栈/取消和 fork/exec 的双位宽
   [wasm64 40046376510](https://github.com/HighCWu/distro/actions/runs/40046376510)。
 
 这只是通用 CPU 记账的前置实现，不是新增 CPU timer syscall。接入 vtime 前
-还须将 syscall 的早期栈指针读取、参数保存和 RCU 操作置于正确 entry 边界之后，
-并审查相位转换周围的 instrumentation、跨 Worker 时钟与32位远端读。启用
+当时还须将 syscall 的早期栈指针读取、参数保存和 RCU 操作置于正确 entry 边界
+之后；第六十三组已修正这一顺序。仍须审查相位转换周围的 instrumentation、
+跨 Worker 时钟与32位远端读。启用
 context tracking 的内核还必须可靠拒绝不支持回调相位协议的旧执行层，不能仅
 因新版导出存在就视为旧宿主安全。目前未选择 HAVE_CONTEXT_TRACKING_USER 或
 VIRT_CPU_ACCOUNTING_GEN，后续按下节条件推进，不以模型通过代替记账能力。
+
+## 第六十三组：syscall 早期 entry 与自动重启的上下文顺序
+
+Linux `fa5f4a9694b6f61e76982cc16bdca4518145a957` 修复上一阶段留下的明确
+顺序问题：原 dispatcher 在 generic entry 前就读取用户栈、写入寄存器帧，并
+调用 rcu_note_context_switch。在启用用户 context tracking 后，这时可能仍处于
+user/RCU EQS，不能把这些高层工作放在转换前。
+
+现在主入口标为 noinstr，每轮先禁用 IRQ 并 enter_from_user_mode，再打开
+instrumentation 区域、保存 kernel 模式和报告 RCU 静止点，随后启用 IRQ、
+读取/保存初始栈与参数，并调用 syscall_enter_from_user_mode_work。进入退出
+处理前关闭 instrumentation 区域。自动 restart 经 generic exit 后必须重新
+enter；但只在首次入口读取栈和初始化参数，保留 ptrace 已编辑的参数及原有
+restart 目标，不把它们重置为最初的调用参数。跳过、错误和正常返回仍统一走
+原 Linux exit work，未增加 syscall、应用导入、musl 包装或记账配置。
+
+精确 dispatcher 模型使用严格的 generic helper 替身，检查用户相位下不得
+读取栈或调用 RCU、entry work 必须在 kernel/IRQ-enabled 状态执行。每个退出
+含 restart 都有新的 entry/RCU 报告，而 restart 不重复导入原用户栈。分别
+提前栈读取、提前 RCU、漏掉 restart entry 的三个负向控制均必须触发拒绝；
+旧寄存器覆盖控制继续保留。Clang18/22 × Wasm32/64 执行与静态分析通过；
+ptrace 与重入的原生参考/前端分析、机器字解码和原相位模型通过。宿主365项
+仍通过。checkpatch 无错误/警告；本地替身不证明完整 RCU、instrumentation
+或真实用户 CPU 定时器已验收。
+
+源码预取 [40046825394](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40046825394)
+成功，实际日志核实完整 fa5f4a9694b6f61e76982cc16bdca4518145a957 和
+`sha256-3JqXVQr22fbhNzv4xkf9KYoFJUS3P3V5KWyXYxQ5K8g=`。distro `d743c90`
+单独更新 pin，根仓库 `d9f4e21` 单独更新两个 gitlink 和已有轻量模型；
+musl f949d1b1 与执行层代码均未新增变更。新版双位宽重入和 wasm64 fork/exec
+runtime 针对性异步复验；上一组八项继续独立运行，不重复派发其完整矩阵。
+本组记录为重入
+[wasm32 40047166301](https://github.com/HighCWu/distro/actions/runs/40047166301)、
+[wasm64 40047170664](https://github.com/HighCWu/distro/actions/runs/40047170664)，以及
+[wasm64 runtime 40047174734](https://github.com/HighCWu/distro/actions/runs/40047174734)。
+均须后续核实实际阶段、唯一 pass 与机器关闭，不以工作流状态代替这些证据。
+
+后续时钟准入的小型诊断另直接调用现有 get_now_nsec：Node v25.9.0 两个 Worker
+以 Atomics 串行交接2000次采样，未见倒退，1146次相等（现有导入量化至5µs）。
+这只验证该 Node 运行中的有序时钟观测，不覆盖浏览器、CPU迁移、物理 CPU
+精度或 Linux vtime；现有执行 ABI 没有宿主 steal-time 信息，宿主暂停/调度
+造成的 elapsed time 不能据此宣称已排除。下一步继续审查低层 helper 的
+instrumentation 及协议准入，再接入实际通用记账，仍不直接打开默认配置。
 
 ## 后续 CPU 时间记账准入审查（尚未实现）
 
@@ -2896,7 +2940,7 @@ VIRT_CPU_ACCOUNTING_GEN，后续按下节条件推进，不以模型通过代替
 - CLOCK_PROCESS/THREAD_CPUTIME_ID 的 SCHED clock 通过 task_sched_runtime 取调度器
   运行时间；不能因用户态缺少异步 tick 就断言 CPU 总时钟没有实现。
 - getrusage 的 cputime_adjust 会按 sum_exec_runtime 缩放 utime/stime；总量可能
-  仍前进，不代表 user/system 分类准确。当前 Wasm run_irq 使用零值 dummy regs，
+  仍前进，不代表 user/system 分类准确。该基线 Wasm run_irq 使用零值 dummy regs，
   tick 的 user_mode 为0，account_process_tick 因而不会在该路径增加用户时间。
 - ITIMER_VIRTUAL 使用 CPUCLOCK_VIRT/utime，而不是上述 SCHED 总时钟；不能用
   CLOCK_PROCESS_CPUTIME_ID 能读出非零值来证明虚拟用户 CPU 定时器正确。
@@ -2911,8 +2955,8 @@ kernel/time/itimer.c、kernel/time/tick-sched.c 和 arch/wasm/kernel/irq.c。
 原 bba354425/19e8fd0 基线的首次 wasm_user_call 前还没有完整的用户上下文转换，
 分配器回调又可从仍在执行的内核帧重新调用 syscall；当时 call_kernel_entry 只
 管理 C 栈与 IRQ。第六十二组已补上相位基础，但还不等于完成 context tracking
-准入；已有 signal callback 的 SjLj 收尾和 entry 早期操作也必须一起
-审查 SjLj、exec 替换和 HALT_KERNEL。SMP 的 TREE_RCU 选择 CONTEXT_TRACKING_IDLE，
+准入；第六十三组继续修正 entry 早期顺序，signal callback 的 SjLj 收尾、
+exec 替换和 HALT_KERNEL 仍须共同审查。SMP 的 TREE_RCU 选择 CONTEXT_TRACKING_IDLE，
 因此这些不是仅影响统计数字的局部开关，还涉及 RCU 是否在观察内核代码。
 
 后续实施顺序与准入要求：
