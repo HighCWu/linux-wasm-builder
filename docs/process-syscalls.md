@@ -3315,6 +3315,48 @@ execfd 的真实端到端用例仍待后续实现和验证。
 旧 EROFS wasm32 40056676830 工作流已成功，但本轮实际阶段日志下载超时，仍不
 以工作流状态补作阶段验收；应继续读取同一任务，不重新构建来替代证据。
 
+## 第七十一组：标准 binfmt_misc 解释器执行
+
+Linux `f8489177a` 在通用、实际 wasm32 和 wasm64 三个 defconfig 启用
+CONFIG_BINFMT_MISC=y。这是增加官方默认 n 的可选能力，不是声称恢复默认 y。
+通用 fs/binfmt_misc.c 不依赖 MMU，复用标准 mount、注册/控制文件和 execve
+解释器重写；没有加入 JS 路径路由、用户模拟层、musl 包装或私有应用 API。
+配置输入轻量检查及构建后的 .config 断言一起覆盖该选项。
+
+独立 binfmt-misc 语料挂载文件系统，注册魔数 WBIN 的自有八字节载荷和普通
+Wasm 解释器，验证实际 exec 而非只读取注册状态。控制器使用既有可选单线程
+fork profile，解释器使用普通 SDK；不是实现跨架构指令翻译。要求五阶段：
+
+- 未注册时 ENOEXEC，普通解释器 argv、单条/全局禁用后的 ENOEXEC 和重新启用。
+- P 保留调用者 argv[0]，且 AT_FLAGS 的 PRESERVE_ARGV0 位与参数顺序一致。
+- O 将实际载荷 fd 放入 AT_EXECFD，核实 inode、设备、八字节内容和非 CLOEXEC；
+  setuid 载荷不改变依据普通解释器计算的凭据。
+- C 隐含 O，按照 root 所有 setuid 载荷计算凭据，真实 uid1000/euid0、AT_SECURE
+  及 secure_getenv 一致，父程序凭据不变。
+- F 注册时持有解释器，改名后仍能执行；移除条目后载荷恢复 ENOEXEC，引用和
+  文件/挂载点均清理，最后唯一 pass，沿用运行器 machine.closed 关闭门禁。
+
+特意保证子进程 fd0 在 exec 后仍被占用，解释器要求 AT_EXECFD 非零，避免旧版
+过早快照的零值恰巧命中实际载荷而误通过。setuid 仅发生在 Wasm 目标中；本地
+仅 GCC/Clang 编译及 Clang18/22 双位宽前端/静态分析，不执行宿主 mount/setuid。
+Linux 配置补丁 checkpatch 零错误/警告，格式与差异检查通过。distro `cfd8214`
+集成精确源码 pin、解析后配置断言和双位宽语料，根仓库 `a47733c` 更新两个
+gitlink 与轻量检查；真实目标仍待 CI，不能从静态检查推出五阶段已通过。
+
+[源码预取 40059050287](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40059050287)
+实际日志核实 revision f8489177a470eb9df5703fbcc897e97fa93862c7 与
+sha256-Fa+OzlPMCThdwArWYRQyFf9Kawp0bPl9/+twyFvkSuM=；不使用猜测的归档哈希。
+
+固定 distro cfd8214 已分别派发并核对检查名：
+[wasm32 40059245471](https://github.com/HighCWu/distro/actions/runs/40059245471)、
+[wasm64 40059249884](https://github.com/HighCWu/distro/actions/runs/40059249884)。
+前者排队、后者运行中；均尚未核实实际阶段，保持异步，不重复派发或取消慢任务。
+
+语义依据[官方 binfmt_misc 文档](https://docs.kernel.org/admin-guide/binfmt-misc.html)
+及固定内核 fs/binfmt_misc.c、fs/exec.c；本增量仅使用固定源码已有 P/O/C/F，
+不搬入在线最新版额外标志，不涉及新的标准提案。扩展名/掩码、注册错误全矩阵、
+命名空间、浏览器和真实翻译器集成未在本组验收范围。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
