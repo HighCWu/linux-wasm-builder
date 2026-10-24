@@ -3077,6 +3077,15 @@ tracing/lockdep 配置。当前执行 ABI 没有宿主 steal-time 数据，GEN �
 支持异步抢占。未验证重复 CPU timers、全部 POSIX CPU timers 或所有调试组合，
 不得据此默认启用。
 
+后续已核实固定 e0fe092 / Linux 54807f1ab 的
+[wasm64 GEN CPU 40052890214](https://github.com/HighCWu/distro/actions/runs/40052890214)
+Heavy job120749313976 实际日志：上述四个阶段全部出现，唯一 pass，派生成功。
+固定版本 run-test.js/shutdown.js/package.nix 与已审查的 088fd6f 运行器相同，
+必须等待 machine.closed 且关闭错误使目标失败，因此通过关闭门禁。接受该版本
+双 CPU、Node wasm64 的有界 GEN CPU 时钟/getrusage/ITIMER_VIRTUAL/PROF、信号
+计算与 join 语料，不扩大到 wasm32、浏览器、后继 pin 或其它回归。GEN 仍不默认
+启用，逻辑时间与物理宿主 CPU/steal-time 的限制不变。
+
 ## 第六十六组：syscall 早期 IRQ tracing 边界与 CI 输入修正
 
 实际轻量 CI 40048130388 的 job120734412084 在 syscall-info 模型中报错
@@ -3116,6 +3125,47 @@ musl 仍为 f949d1b1。新版只针对默认 wasm32 重入与 GEN wasm64 CPU 工
 区分访问对齐、宽度和竞争时的 tearing；实际屏障/发布与远端读取规则仍须整体
 验证。当前不修改通用 seqcount 核心、不扩大 READ_ONCE 语义，也不将一轮并发
 采样当作证明。GEN 配置继续默认关闭。
+
+## 第六十七组：恢复 EROFS 镜像的标准扩展属性读取
+
+固定内核的 fs/erofs/Kconfig 对 EROFS_FS_XATTR、其 POSIX_ACL 和 SECURITY 子项
+默认 y，但 Wasm 两种 defconfig 明确关闭前者。Linux `0ace17791` 恢复双位宽
+EROFS_FS_XATTR=y，后两项沿通用 Kconfig 默认条件解析，不另写 Wasm 文件系统
+实现或应用接口。构建核对解析后配置，仍保持 CONFIG_MMU=n，musl f949d1b1 不变。
+这补的是已挂载 EROFS 镜像的 getxattr/listxattr 等既有 syscall 后端，不是新增
+libc 包装，也不声称已全面验收 ACL/LSM 权限策略。
+
+distro `9ff3f5b` 接入普通 SDK C 程序及两张真实小型 EROFS 镜像：内联属性与
+共享属性布局。语料验证带 NUL/高位字节的二进制值、空值和目录值，路径/描述符/
+跟随与不跟随符号链接、名称列表和 size query，ERANGE/ENODATA/EBADF，实际目标
+还要求替换/删除被 EROFS 拒绝、原值不变和文件/挂载收尾。不是把原生目录当成
+EROFS 整机证据，也不是只验证 syscalls 返回成功。
+
+创建镜像时显式保留属性。工具的 `-x0` 不会将所有只出现一次的属性自动放入
+共享区；本地校验先发现了这一差别，随后增加跨 inode 重复属性。独立 on-disk
+检查确认实际内联/共享条目及边界，不仅检查 mkfs 参数；小镜像可把共享条目放在
+块0，因此不错误要求共享区块号非零。使用 erofs-utils 1.7.1 的本地两张镜像各
+4 KiB，fsck 和布局检查通过，没有本地构建内核或工具链。
+
+GCC/Clang 原生参考、EOPNOTSUPP 负向控制、Clang18/22 双位宽前端/静态分析、
+格式与差异检查通过；Linux checkpatch 零错误/警告。这不证明真实 Wasm 上的
+属性 decoder、只读拒绝或关闭结果，必须由双位宽目标进一步核实三个阶段、唯一
+pass 和固定运行器 machine.closed 门禁。
+
+[精确源码预取 40053795290](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40053795290)
+实际日志核实 `0ace1779107cd575dced87315b66edf782d21056` 与
+`sha256-QcD0PcWcZXnooENnIIg0Ky/Q+n6GlhZjiHHfFo9H8HQ=`。
+distro 同一原子集成包含该 pin、解析后配置断言和镜像语料，避免发布要求新配置
+却仍固定旧内核的中间状态。根仓库 `b48b620` 单独集成源码 gitlink 与轻量检查，
+目标 CI 已派发，尚不据此宣布验收完成：
+[wasm32 40054081528](https://github.com/HighCWu/distro/actions/runs/40054081528)、
+[wasm64 40054086136](https://github.com/HighCWu/distro/actions/runs/40054086136)。
+
+范围不包含通用 EROFS 压缩、file-backed EROFS 或 LSM 策略；原 mkFilesystem
+打包流程仍显式使用 -x-1，不在此轮改动，也不声称已有构建产物会自动保留包的
+属性元数据。此轮首先让内核正确读取本来就带属性的镜像。EROFS 的标准属性
+布局见[官方说明](https://erofs.docs.kernel.org/en/latest/ondisk/xattrs.html)，
+构建方法见[官方构建说明](https://erofs.docs.kernel.org/en/latest/mkfs.html)。
 
 ## 信号栈缺口的前期核查记录
 

@@ -592,6 +592,9 @@ Linux `54807f1ab` / distro `e0fe092` / 根仓库 `89c0332` 已接入独立、默
 定时器工作负载、原生负向控制与双位宽静态分析通过，但真实 GEN 内核运行尚待
 独立 CI；同时复用取消、替代信号栈和 fork/exec 回归。浏览器、32位远端读取及
 tracing/lockdep 等边界仍未宣称完成，不默认启用，也不承诺物理宿主 CPU 精度。
+固定 e0fe092 / Linux 54807f1ab 的 Node wasm64 后续已核实实际四阶段、唯一 pass
+及运行器关闭门禁，首次接受该有界 GEN CPU 语料；不覆盖 wasm32、浏览器或后继
+pin，也不据此默认启用。
 详见[第六十五组](process-syscalls.md#第六十五组默认关闭的通用-cpu-记账实验配置)。
 
 进一步 review 修正 syscall 早期 IRQ 屏蔽：Linux `d22065aa3` 在恢复 context/RCU
@@ -601,6 +604,13 @@ tracing/lockdep 等边界仍未宣称完成，不默认启用，也不承诺物�
 输入错误；旧默认记账 wasm64 的重入、取消、fork/exec 实际阶段与关闭门禁已
 核实，新版 GEN 仍待异步验收。
 详见[第六十六组](process-syscalls.md#第六十六组syscall-早期-irq-tracing-边界与-ci-输入修正)。
+
+Linux `0ace17791` 恢复双位宽 EROFS_FS_XATTR，沿通用 Kconfig 解析 ACL/security
+默认条件，接通已有 xattr syscall 对带属性 EROFS 镜像的读取后端；不改 musl。
+distro `9ff3f5b` / 根仓库 `b48b620` 集成精确 pin、真实内联/共享布局小镜像和
+普通 SDK 语料。本地参考与分析通过，双位宽真实运行、只读错误及关闭仍待验收。
+不是新增 libc 包装，也不等同于已打通包属性的端到端打包保存或完整 LSM 策略。
+详见[第六十七组](process-syscalls.md#第六十七组恢复-erofs-镜像的标准扩展属性读取)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
