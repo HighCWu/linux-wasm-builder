@@ -134,6 +134,22 @@ jobs:
         run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_public_syscall_words.py
       - name: Check util-linux IPC restoration and shell cleanup contract
         run: python3 -B scripts/check_util_linux_ipc.py
+      - name: Check exact strict seccomp policy and workload frontends
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          source_root="$RUNNER_TEMP/wasm-seccomp-strict"
+          for path in arch/wasm/Kconfig arch/wasm/kernel/syscall.c \
+            arch/wasm/include/asm/seccomp.h include/asm-generic/seccomp.h \
+            include/uapi/asm-generic/unistd.h include/linux/entry-common.h \
+            include/uapi/linux/seccomp.h kernel/seccomp.c; do
+            mkdir -p "$source_root/$(dirname "$path")"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$source_root/$path" "$path"
+          done
+          WASM_SECCOMP_SOURCE_ROOT="$source_root" WASM_CONTEXT_COMPILERS=clang \
+            python3 -B scripts/check_seccomp_strict.py
       - name: Check alternate signal-stack reference semantics and execution adapter
         run: |
           python3 -B scripts/test_signal_altstack.py
