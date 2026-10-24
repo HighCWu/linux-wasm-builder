@@ -112,6 +112,10 @@ jobs:
           WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_exec_security.py
       - name: Check binfmt_misc workload frontends and static analysis
         run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_binfmt_misc.py
+      - name: Check fatal user fault group semantics and raw thread exit control
+        run: |
+          WASM_PROCESS_SOURCE="$RUNNER_TEMP/wasm-user-context/kernel/process.c" \
+            WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_user_fault_group.py
       - name: Check keyring workload and existing raw syscall machine words
         env:
           GH_TOKEN: ${{ github.token }}
