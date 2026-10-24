@@ -68,6 +68,20 @@ jobs:
           python3 -B scripts/test_lite_malloc_failure.py
       - name: Check detached exit stack and allocator lock lifetime
         run: WASM_RECLAIM_COMPILERS=clang python3 -B scripts/check_thread_reclaim.py
+      - name: Check user callback and IRQ execution phases with exact pinned source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          context_arch="$RUNNER_TEMP/wasm-user-context"
+          mkdir -p "$context_arch/kernel" "$context_arch/include/asm"
+          for file in kernel/process.c kernel/user_context.c kernel/irq.c include/asm/entry-common.h; do
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$context_arch/$file" "arch/wasm/$file"
+          done
+          WASM_CONTEXT_ARCH="$context_arch" WASM_CONTEXT_COMPILERS=clang \
+            python3 -B scripts/check_user_context.py
       - name: Check alternate signal-stack reference semantics and execution adapter
         run: |
           python3 -B scripts/test_signal_altstack.py
