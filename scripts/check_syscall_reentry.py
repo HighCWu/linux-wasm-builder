@@ -37,7 +37,12 @@ __attribute__((optnone)) void *memcpy(void *destination, const void *source, __S
 static struct pt_regs registers;
 static int depth, mode, sp_error, restart_pending, irq, user_phase, enters, stack_reads, quiescent;
 static struct pt_regs *current_pt_regs(void) { return &registers; }
-static void local_irq_disable(void) { irq=0; }
+static void raw_local_irq_disable(void) { irq=0; }
+static void local_irq_disable(void) {
+    /* TRACE_IRQFLAGS may invoke instrumented tracing before generic entry. */
+    if(user_phase) __builtin_trap();
+    irq=0;
+}
 static void local_irq_enable(void) { if(user_phase) __builtin_trap(); irq=1; }
 static unsigned long arch_local_save_flags(void) { return irq; }
 static void restore_irq(unsigned long flags) { irq=flags; }
@@ -182,6 +187,7 @@ assert.equal(events[0][0],p(-1));
 ''', str(binary), str(bits), str(fixed), str(ROOT / "sources/distro/packages/kernel/src/signal-stack.ts")], check=True)
         print(f"wasm{bits}: nested frame, ptrace edits, signed results, restart target and old-clobber control passed")
         controls = {
+            "early-irq-tracing": body.replace("\t\traw_local_irq_disable();", "\t\tlocal_irq_disable();", 1),
             "early-stack": body.replace("\tfor (;;) {", "\tsp_error = wasm_user_signal_v1_stack_pointer(&sp);\n\tfor (;;) {", 1),
             "early-rcu": body.replace("\t\tenter_from_user_mode(regs);", "\t\trcu_note_context_switch(false);\n\t\tenter_from_user_mode(regs);", 1),
             "missing-restart-entry": body.replace("\t\tenter_from_user_mode(regs);", "\t\tif (first_entry) enter_from_user_mode(regs);", 1),
@@ -205,4 +211,4 @@ e.configure(process.argv[3]==='missing-restart-entry'?2:0,0);
 assert.throws(()=>e.syscall(p(0),p(0),p(0),p(0),p(0),p(0),p(0)),
   WebAssembly.RuntimeError,process.argv[3]+' must not pass context admission');
 ''', str(binary), str(bits), name], check=True)
-        print(f"wasm{bits}: early stack/RCU and missing restart entry controls rejected")
+        print(f"wasm{bits}: early IRQ tracing/stack/RCU and missing restart entry controls rejected")
