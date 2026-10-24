@@ -2975,7 +2975,7 @@ runtime 四项复验，不重复整个旧矩阵；仍运行的旧源码任务不
 [wasm64 取消 40048151875](https://github.com/HighCWu/distro/actions/runs/40048151875) 和
 [wasm64 runtime 40048157954](https://github.com/HighCWu/distro/actions/runs/40048157954)。
 
-## 后续 CPU 时间记账准入审查（尚未实现）
+## 后续 CPU 时间记账准入审查（初始审查记录）
 
 对固定 Linux bba354425 的源码审查区分了三条不能混为一谈的路径：
 
@@ -3014,6 +3014,65 @@ exec 替换和 HALT_KERNEL 仍须共同审查。SMP 的 TREE_RCU 选择 CONTEXT_
    有限用户计算后在正常边界检查投递，不宣称可异步打断纯用户无限循环。
 4. 与现有 callback 重入、信号栈、取消点、fork/exec、线程释放共同验收后再考虑
    默认启用。模型与 Kconfig 可选本身不能证明这些真实阶段或 RCU 生命周期。
+
+## 第六十五组：默认关闭的通用 CPU 记账实验配置
+
+Linux `fdd42ce1c` / `54807f1ab` 增加默认关闭的 WASM_VTIME，供独立配置选择
+官方 VIRT_CPU_ACCOUNTING_GEN 与 CONTEXT_TRACKING_USER_FORCE。没有改默认
+defconfig、CONFIG_MMU=n 或 musl；不是新增 libc 函数，也不直接另写 utime/stime
+累加器。首次用户执行与信号回调统一经过 noinstr 相位 helper，低层 current/
+IRQ helper 保持相应边界；IRQ 帧仅先准备 user_mode，完整清零在 generic entry
+之后的受保护区进行，并用 barrier_data 阻止编译器将初始化移过边界。
+
+启用 context tracking 的内核要求私有 `user_context_v1.abi` 宿主导入返回1；
+缺失导入在实例化时拒绝，错误版本在启动早期拒绝，不以旧宿主静默进入 EQS。
+主实例与 Worker 均提供同一实现，应用导入白名单不接纳该命名空间。默认内核
+不要求这一新导入；这不是面向应用的 API。
+
+distro `d4fea97` / `abb441e` 增加独立双位宽 cpu-accounting 配置，并复用既有
+取消、替代信号栈及 fork/exec 检查，不修改默认 SDK。标准 C 工作负载分别检查：
+
+- 线程/进程 CPU 时钟与 getrusage 用户计算时间；
+- 阻塞等待不消耗虚拟用户 CPU 定时器；
+- ITIMER_VIRTUAL/PROF 的一次投递及信号处理器的用户计算记账；
+- 线程隔离、join 后的进程累计与处理器清理。
+
+本地 GCC/Clang 原生参考及丢失用户记账/虚拟定时器的负向控制通过；Clang18/22
+双位宽前端与静态分析通过。精确内核头文件/函数体模型验证首次调用、信号回调、
+IRQ、ABI 拒绝及 JS 嵌套恢复，并保留错误宏、过早清零等负向控制。这些不是
+Wasm Linux 整机验收，也不能证明所有并发读写、浏览器或调试配置。
+
+[精确源码预取 40052609497](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40052609497)
+实际日志确认 `54807f1abaec38bc751fe11e3de9554b51536c45` 与
+`sha256-LtcA2aCw4LtKyHAEtVHF3LlX6VDivmbSPRZKClQcvzA=`。
+distro `e0fe092` 单独更新 pin，根仓库 `89c0332` 集成源码 gitlink 与轻量模型。
+musl 保持 `f949d1b1`，没有公共 API 增量。
+
+同一 distro `e0fe092` 已异步派发以下六项，不重复启动相同构建：
+
+- GEN CPU 工作负载：
+  [wasm32 40052886299](https://github.com/HighCWu/distro/actions/runs/40052886299)、
+  [wasm64 40052890214](https://github.com/HighCWu/distro/actions/runs/40052890214)。
+- GEN wasm64 回归：
+  [取消 40052894009](https://github.com/HighCWu/distro/actions/runs/40052894009)、
+  [替代信号栈 40052898040](https://github.com/HighCWu/distro/actions/runs/40052898040)、
+  [fork/exec 40052903871](https://github.com/HighCWu/distro/actions/runs/40052903871)。
+- 默认记账配置 wasm32 [重入 40052908302](https://github.com/HighCWu/distro/actions/runs/40052908302)，补此前下载失败的缺口，不冒充 GEN 验证。
+
+真实目标必须另核实四个阶段、唯一 pass 和固定运行器关闭门禁，当前尚未据此
+接受 GEN 配置。旧 `088fd6f` 的 wasm32 重入 40048141644 实际日志失败于源码
+下载持续 HTTP429，未编译/运行内核；三项 wasm64 工作流 success 尚不能代替
+逐项阶段核实，也不覆盖本组实验配置。
+随后已读取 wasm64 重入 40048146878 和取消 40048151875 的实际日志，均确认
+完整三阶段及唯一 pass；并核对固定 088fd6f 的运行器必须等待 machine.closed，
+关闭错误使派生失败，因此这两项通过关闭门禁。fork/exec 日志尚待补齐，不能
+将前两项结果扩展为该项、wasm32 或本组 GEN 配置的通过证据。
+
+剩余边界包括32位远端读的 seqcount/字段规则、迁移/跨 Worker 时钟、浏览器和
+tracing/lockdep 配置。当前执行 ABI 没有宿主 steal-time 数据，GEN 记录逻辑调度
+区间，宿主暂停/GC 不保证扣除；不是原生物理 CPU 精度。纯用户无限循环仍不
+支持异步抢占。未验证重复 CPU timers、全部 POSIX CPU timers 或所有调试组合，
+不得据此默认启用。
 
 ## 信号栈缺口的前期核查记录
 

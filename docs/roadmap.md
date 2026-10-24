@@ -558,7 +558,7 @@ distro `b7cfd8a` 增加独立实际线程目标；双位宽 -Os/-O2 原样函数
 不同计数路径；通用 vtime 还要求完善首次用户进入、allocator 回调重入及异常
 退出的 context-tracking/RCU 边界，不能只开 Kconfig。此次未改配置、未计作
 新增能力；实施顺序和真实验收条件见
-[CPU 时间准入审查](process-syscalls.md#后续-cpu-时间记账准入审查尚未实现)。
+[CPU 时间准入审查](process-syscalls.md#后续-cpu-时间记账准入审查初始审查记录)。
 
 Linux `d3203ef36` / distro `d83cbd7` 已实现其中的执行相位基础：首次用户进入、
 allocator/初始化/clone 回调、leaf 内核入口和 IRQ 的成对相位转换，非局部退出
@@ -584,6 +584,15 @@ Node 有序时钟采样当作 CPU 记账完成。详见[第六十三组](process
 默认配置。精确 hash 已核实，distro `088fd6f` / 根仓库 `a967b36` 单独集成，
 四项针对性 Node 复验异步执行，尚未声称整机恢复。
 详见[第六十四组](process-syscalls.md#第六十四组irq-编译回归与真实头文件的模型盲点)。
+
+Linux `54807f1ab` / distro `e0fe092` / 根仓库 `89c0332` 已接入独立、默认关闭的
+通用 CPU 记账实验配置，复用 Linux GEN/context tracking，而非自写用户时间累加。
+首次执行/信号 helper、低层 noinstr、IRQ 初始化屏障与私有宿主 ABI 版本准入一并
+集成；默认 SDK、MMU 与 musl 不变。标准 CPU 时钟/getrusage/虚拟和 profiling
+定时器工作负载、原生负向控制与双位宽静态分析通过，但真实 GEN 内核运行尚待
+独立 CI；同时复用取消、替代信号栈和 fork/exec 回归。浏览器、32位远端读取及
+tracing/lockdep 等边界仍未宣称完成，不默认启用，也不承诺物理宿主 CPU 精度。
+详见[第六十五组](process-syscalls.md#第六十五组默认关闭的通用-cpu-记账实验配置)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
