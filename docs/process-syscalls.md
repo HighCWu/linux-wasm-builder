@@ -3414,6 +3414,56 @@ distro `746ede4` 集成精确 pin、解析后配置断言及双位宽语料，�
 浏览器、其它 key 类型或全部 keyctl 子命令已验收。AIO/io_uring 虽为官方默认 y，
 其共享 ring/映射与当前独立用户线性内存仍需正确实现；不以打开配置代替这一工作。
 
+## 第七十三组：致命用户执行异常应结束线程组
+
+Linux `11f1bb4d7` 修复 arch/wasm/kernel/process.c 的退出策略：wasm_run_user
+在普通用户 entry 返回或执行桥捕获异常后返回，原先 do_exit(SIGSEGV) 只结束当前
+任务，可能留下同一进程的其它线程和持续运行的用户状态。现在改用通用
+do_group_exit(SIGSEGV)，由已有 signal->group_exit_code / SIGNAL_GROUP_EXIT 和
+zap_other_threads 协调线程组收尾及父进程 wait 状态，保留原 local_irq_enable。
+没有改变普通 SYS_exit、SYS_exit_group 或正常 pthread 返回的路径。
+
+这仍沿用原执行边界把不可恢复的用户执行返回归为 SIGSEGV 的策略，不新增可恢复
+Wasm trap handler，也不声称 unreachable 已按原生硬件精确分为 SIGILL。执行桥
+对异常来源的既有分类未在本组重构；未增加应用 API、libc 函数或 softmmu。
+
+独立 user-fault-group 语料让单线程控制器 fork 后 exec 普通 SDK helper，helper
+才创建 pthread，故不扩大多线程 fork。要求三个阶段及唯一 pass/关闭门禁：
+
+- worker 执行 unreachable，父控制器必须收到整个子进程的 SIGSEGV 终止状态。
+- worker 读取当前线性 memory 末端之外的四字节，要求同样的进程级终止和单次回收。
+- worker 直接调用原始 SYS_exit，兄弟线程以 tgkill(sig=0) 的 ESRCH 确认它已消失，
+  自己仍能正常以37退出，父控制器继续 wait 成功；不使用 libc 的线程清理来替代。
+
+主线程在前两个用例中定期进入 Linux，仍存活超过有界期限就明确以90失败；
+不是靠 watchdog 超时算成功。标准原生 Linux 正向语料通过，host-only 反向
+控制将致命 worker 改为原始线程级退出，GCC/Clang 均精确失败于 status=0x5a00
+及 fatal worker must terminate its process，未输出 pass。本地仅子进程触发信号，
+控制器设置 RLIMIT_CORE=0，以禁用常规 core 文件输出。
+
+Clang18/22 双位宽前端、静态分析通过；汇编检查要求 memory.size 后仍生成 load
+及 unreachable。轻量 CI 另从精确 pin 的 process.c 核对 fatal 路径选择，仍非
+完整内核运行证明。配置、执行 ABI、musl f949d1b1 及 fork 支持范围均不变。
+内核补丁 checkpatch 零错误/警告。
+
+[源码预取 40060490377](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40060490377)
+实际日志核实完整 revision 11f1bb4d7b664cb76a53fcdea8ffe5e9f5dcc795 和
+sha256-CA0vSEAqcSujafbjjA3SmpKQFDrKZeU7TLv9RcAfXWA=。
+distro `2b33c98` 集成精确 pin 和目标，根仓库 `79ecbec` 更新 gitlink 和轻量检查。
+本地证据不代替 Wasm 真实三阶段与关闭验收，默认不据此宣称目标已通过。
+
+固定 distro 2b33c98 已核对两路检查名和源码：
+[wasm32 40060775430](https://github.com/HighCWu/distro/actions/runs/40060775430)、
+[wasm64 40060780025](https://github.com/HighCWu/distro/actions/runs/40060780025)，均在运行。
+旧版 573a610 的 exec-security wasm64 40058733335/job120767455438 已成功，
+但本轮该日志与两路 fanotify 日志下载均超时（包括有界尾部请求），所以仍保留
+“阶段证据待补取”，不把状态绿色当作实际阶段通过，也不因此重派已有目标。
+
+重要边界：架构尚无异步用户抢占，本组只验证会进入 syscall 的兄弟线程被通用
+致命信号收尾；无 syscall 的纯 Wasm 忙循环仍可能延迟终止，不能从该修正推出
+任意用户线程均可被立即强制中断。浏览器、信号 handler 恢复和完整 core dump
+亦未在本组验收。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
