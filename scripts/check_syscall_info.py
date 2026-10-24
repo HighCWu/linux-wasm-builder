@@ -26,6 +26,8 @@ def no_includes(text):
 
 
 ptrace = read("kernel/ptrace.c")
+assert "ptrace_get_syscall_info(struct task_struct *child" in ptrace, \
+    "expected exact generic kernel/ptrace.c, not the architecture ptrace adapter"
 start = ptrace.index("#ifdef CONFIG_HAVE_ARCH_SYSCALL_INFO")
 end = ptrace.index("#endif /* CONFIG_HAVE_ARCH_SYSCALL_INFO */", start)
 helpers = ptrace[start:end] + "\n#endif\n"

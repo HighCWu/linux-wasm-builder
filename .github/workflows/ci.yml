@@ -291,9 +291,8 @@ jobs:
             python3 -B scripts/check_anonymous_mmap_offsets.py
           syscall_info_root="$RUNNER_TEMP/wasm-syscall-info"
           mkdir -p "$syscall_info_root/kernel" "$syscall_info_root/arch/wasm/include/uapi/asm"
-          cp "$RUNNER_TEMP/wasm-membarrier/kernel/ptrace.c" "$syscall_info_root/kernel/ptrace.c"
           cp "$RUNNER_TEMP/wasm-sigcontext.h" "$syscall_info_root/arch/wasm/include/uapi/asm/sigcontext.h"
-          for file in arch/Kconfig arch/wasm/Kconfig arch/wasm/include/asm/syscall.h include/uapi/linux/ptrace.h fs/proc/base.c lib/Makefile; do
+          for file in kernel/ptrace.c arch/Kconfig arch/wasm/Kconfig arch/wasm/include/asm/syscall.h include/uapi/linux/ptrace.h fs/proc/base.c lib/Makefile; do
             mkdir -p "$syscall_info_root/$(dirname "$file")"
             python3 -B scripts/fetch_pinned_semaphore_source.py \
               "$revision" "$syscall_info_root/$file" "$file"
