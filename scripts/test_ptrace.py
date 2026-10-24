@@ -76,7 +76,9 @@ class Ptrace(unittest.TestCase):
         self.assertNotIn("static inline long arch_ptrace", header)
         self.assertNotIn("static inline void ptrace_disable", header)
         entry = (arch / "kernel/syscall.c").read_text()
-        self.assertIn("regs->syscall_nr = nr;\n\t\tnr = syscall_enter_from_user_mode(regs, nr);", entry)
+        self.assertIn("nr = syscall_enter_from_user_mode_work(regs, nr);", entry)
+        self.assertLess(entry.index("enter_from_user_mode(regs);"),
+                        entry.index("sp_error = wasm_user_signal_v1_stack_pointer(&sp);"))
 
 
 if __name__ == "__main__":
