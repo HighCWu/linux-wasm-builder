@@ -3686,6 +3686,43 @@ Clang18/22 双位宽前端与分析通过。模型、编译与绿色工作流均
 syscall_get_arch 的0占位冒充正式 ABI。严格模式也不等于完整沙箱，不宣称处理了
 所有执行桥边界、浏览器、任意线程组合或不受信任程序的整体隔离。
 
+## 第七十八组：完整 util-linux 的匹配 wasm64 产品
+
+此前接受的是 wasm32 完整 util-linux。distro `9d7712d` / 根仓库 `1b6e6fc`
+补齐 util-linux-wasm64，直接 override 同一完整配方，不新增裁剪版、禁用额外工具
+或替换成 BusyBox applet。五类原有检查 text/spawn/pty/programs/ipc 全部继承。
+本轮没有修改内核或 musl，也不把构建属性的存在当成程序已可运行。
+
+闭包逐项选择 stdenv、platform、file/libmagic、zlib、ncurses、readline、BusyBox
+和 vm-test 的 wasm64 版本；SQLite 使用已经安装的 sqlite3-wasm64.dev 头文件、
+静态库及可重定位 pkg-config 元数据，不借用 wasm32 库或只传 SQLite CLI 输出。
+新增 file-wasm64 同样复用完整原配方，使用匹配 zlib、BusyBox 与运行器。
+没有升级源码或修改上游应用 C 实现；file 的 libseccomp 集成仍关闭，内核严格
+模式不能冒充应用需要的 BPF 过滤功能。
+
+自有 MIT 构建检查在最终安装/strip 后读取所有 Wasm 模块，包括私有测试 helper，
+要求共享 env.memory、正确地址位宽与平台上限，同时检查实际 file/BusyBox 依赖。
+通过精确构建工具链的 llvm-readobj 读取本产品及五项库依赖的每个静态归档成员，
+要求全部为相同位宽 Wasm，不允许只看首个成员便接受混合库。意外 ELF、无目标
+模块、失败的目录枚举或读取都拒绝。它只检查文件，不执行目标程序。
+
+本地对真实编译的 wasm32/64 小模块与对象运行同一安装检查，混合 helper、
+混合依赖模块、混合静态库、ELF 及空输出对照均拒绝。原有二进制检查回归、IPC
+编排模型、ShellCheck、shfmt、Nix 格式与工作流检查通过。这些不证明完整 Nix
+构建闭包或目标程序已运行；需要公开 CI 的实际构建、运行阶段与机器关闭结果。
+
+固定 9d7712d 已分别派发
+[IPC 40067581710](https://github.com/HighCWu/distro/actions/runs/40067581710)、
+[完整工具集 40067584929](https://github.com/HighCWu/distro/actions/runs/40067584929)、
+[file 检测 40067588207](https://github.com/HighCWu/distro/actions/runs/40067588207)。
+三项真实结果待验收，不据此替代旧版 wasm32 验收，亦不宣称其它三个 util-linux
+检查或浏览器已经通过。本轮没有将默认 wasm32 发布仓库或 rootfs 改为混合位宽，
+新增的是可独立构建并通过匹配 wasm64 安装工具组装的完整目标软件包。
+
+前一组 seccomp 两项仍在运行，无明确失败，不取消、不重派，也不等待其结果才
+推进本独立应用闭包。主仓库 ce948ae 的轻量 CI 40066837498 已成功，但它不是
+seccomp 真实目标运行证据。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
