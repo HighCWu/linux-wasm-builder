@@ -3086,6 +3086,11 @@ Heavy job120749313976 实际日志：上述四个阶段全部出现，唯一 pas
 计算与 join 语料，不扩大到 wasm32、浏览器、后继 pin 或其它回归。GEN 仍不默认
 启用，逻辑时间与物理宿主 CPU/steal-time 的限制不变。
 
+同版 GEN wasm64 的取消 40052894009/job120749324782 与替代信号栈
+40052898040/job120749342239 也已读取实际日志，分别完整三阶段和五阶段、
+各唯一 pass，且通过相同固定运行器关闭门禁。接受该版本的这两组有界回归，
+不以另外任务的 success 状态补齐尚未读取的阶段或后继源码结果。
+
 ## 第六十六组：syscall 早期 IRQ tracing 边界与 CI 输入修正
 
 实际轻量 CI 40048130388 的 job120734412084 在 syscall-info 模型中报错
@@ -3166,6 +3171,47 @@ distro 同一原子集成包含该 pin、解析后配置断言和镜像语料，
 属性元数据。此轮首先让内核正确读取本来就带属性的镜像。EROFS 的标准属性
 布局见[官方说明](https://erofs.docs.kernel.org/en/latest/ondisk/xattrs.html)，
 构建方法见[官方构建说明](https://erofs.docs.kernel.org/en/latest/mkfs.html)。
+
+## 第六十八组：普通文件 EROFS 挂载与无宿主 xattr 的镜像构建
+
+上一组双位宽目标均失败在镜像构建：wasm32 40054081528/job120753120168 与
+wasm64 40054086136/job120753124357 实际日志均为
+`setfattr: root/file: Operation not supported`。这是 Nix 沙箱构建文件系统不提供
+user xattr，未执行 Wasm 目标程序，不能据此归因于内核 decoder 或声明已支持。
+
+镜像改为不依赖构建宿主 xattr：内联镜像通过标准 PAX/SCHILY.xattr 元数据交给
+mkfs.erofs，任意二进制值保留原字节；共享镜像使用 MIT 自有数据的确定性参考
+镜像，保存为文本编码、验证固定 SHA256，并提供从 make-fixture.py 和标准
+mkfs.erofs 1.7.1 再生成的方法。gzip 仅为仓库保存测试数据，不是开启 EROFS
+压缩。两种镜像继续经 fsck、真实布局和根 inode 的二进制/空值/目录值核对；不
+把共享测试改成内联，也不忽略沙箱失败。PAX 生成原生参考与双位宽分析通过。
+
+独立源码审查同时确认 EROFS_FS_BACKED_BY_FILE 的官方 Kconfig 默认 y、只依赖
+EROFS_FS，Wasm 却显式关闭。Linux `e7e5a27fa` 恢复双位宽配置。普通文件路径
+从 erofs_fc_get_tree 转入 nodev superblock，metadata 使用 backing mapping 的
+folio，payload 通过 ITER_BVEC 读取内核缓冲区，不建立用户 VMA；CONFIG_MMU=n
+保持。关闭压缩的路径不调用仅 NOMMU 桩实现的 vm_map_ram/vmap，不顺便打开
+EROFS 压缩。源文件系统仍需提供 read_folio，不能声称任意文件系统都可做后端。
+当前 ramfs 的 ram_aops 提供该操作。实验文件 mmap 的 erofs_is_single_bdev
+来源检查仍明确拒绝文件后端，因此没有扩大 mmap 来源准入。
+
+目标语料增加普通 .erofs 文件的 mount/read/stat/xattr，不经过 loop 设备；
+131089 字节 payload 用非整页读取并逐字节检查，跨越64 KiB边界。要求坏镜像
+EINVAL 后可挂载有效镜像，源路径改名/删除后已挂载数据仍有效，持有文件引用
+时 umount 报 EBUSY，释放后可卸载。保留只读拒绝及原始块设备镜像语料，总共
+四阶段、唯一 pass 和固定运行器关闭门禁。原生模型不执行挂载，不用于替代
+这些目标阶段。
+
+[精确源码预取 40054635351](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40054635351)
+日志核实 `e7e5a27fa4cfa28f9a3faae482b8770730c8bfaf` 与
+`sha256-u14S/G0GJ2ro3uQ8FVtyaurU2Fhlud/ky/V2AnPrnDY=`。
+distro `7471e91` 集成镜像修复、文件后端配置/pin 和同一语料，根仓库 `ca1851b`
+单独更新 gitlink/轻量检查。musl f949d1b1 未改。原生参考、属性不可用控制、
+双编译器/位宽前端和静态分析、实际两种布局/属性字节及 fsck、差异与格式检查
+通过，内核 checkpatch 零错误/警告；新的真实目标仍待异步验收，不复用旧版本
+的失败或其它 syscall 通过结果。新版固定 7471e91 已派发：
+[wasm32 40055250737](https://github.com/HighCWu/distro/actions/runs/40055250737)、
+[wasm64 40055254494](https://github.com/HighCWu/distro/actions/runs/40055254494)。
 
 ## 信号栈缺口的前期核查记录
 
