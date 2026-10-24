@@ -3213,6 +3213,63 @@ distro `7471e91` 集成镜像修复、文件后端配置/pin 和同一语料，�
 [wasm32 40055250737](https://github.com/HighCWu/distro/actions/runs/40055250737)、
 [wasm64 40055254494](https://github.com/HighCWu/distro/actions/runs/40055254494)。
 
+## 第六十九组：fanotify 标准调用与实际 wasm32 配置修正
+
+复核第六十八组 wasm32 40055250737/job120756784563 的实际日志，镜像已通过
+fsck/布局/属性校验，失败发生在 Linux 配置完成之后、编译内核之前。构建明确
+调用 wasm32_defconfig，而前两组只修改了 defconfig 和 wasm64_defconfig，漏掉
+独立的 wasm32_defconfig；解析后 EROFS 配置断言因此失败。之前“双位宽配置已
+恢复”的描述只代表当时意图，不是事实，应以此修正为准，不能归因于 wasm32
+内核编译或运行能力。没有删除失败任务或改写已发布历史。
+
+Linux `5cb7904c5` 补齐真正被选中的32位 EROFS XATTR/BACKED_BY_FILE 配置，并与
+通用/64位输入保持本组相关选项一致。轻量 CI 从精确 Linux pin 获取三个文件，
+检查构建真正选择的 named defconfig，保留逐选项禁用反向控制；它仍只是输入
+检查，不冒充 Kconfig 解析。真实构建保留解析后断言，并为缺少的选项明确输出
+Missing required kernel config，不再只有安静的 grep 退出码。
+
+同轮新增标准 fanotify_init/mark 支持：Linux `00489bd9d` / `5cb7904c5` 为配置
+启用 FANOTIFY 与 FANOTIFY_ACCESS_PERMISSIONS，复用通用 fsnotify、文件描述符、
+权限等待/响应和能力检查。这两项通用 Kconfig 默认 n，本次是增加标准能力，
+不是声称恢复上游默认。保持 CONFIG_MMU=n，不加宿主事件模拟或项目应用 API。
+tombl/musl 已有 sys/fanotify.h 和 src/linux/fanotify.c，本轮没有修改它们，也不
+新增函数、头文件或包装；musl 继续固定 f949d1b1。
+
+普通 SDK 双 CPU 语料要求四阶段：
+
+- 子文件 OPEN/CLOSE_WRITE 事件、PID、事件 fd 的 inode/原始二进制内容与 CLOEXEC，
+  短缓冲 EINVAL 不丢事件、非阻塞空队列 EAGAIN；允许事件合并，不假定一操作一条。
+- 64位 mask 非法高位保留并被拒绝，remove 与 flush 后确实不再收到事件。
+- pthread 的实际 open 等待权限答复；非法响应不消耗请求，FAN_DENY 得 EACCES，
+  FAN_ALLOW 后真实打开成功，处理器和工作线程全部收尾。
+- 临时移除有效 CAP_SYS_ADMIN 时普通 fd 模式被拒绝并恢复原能力，最后移除文件/
+  目录、关闭所有 group/事件 fd，再给出唯一 pass。
+
+GCC/Clang 原生仅验证事件 framing 和错误输入，不在没有 CAP_SYS_ADMIN 的宿主
+上假装执行真实权限事件，也不打印目标 pass。Clang18/22 双位宽前端与静态分析
+通过；微型 Wasm 另直接编译原样 musl fanotify.c，核实 init 号码及 mark 的
+64位 mask、后随 dfd/path，wasm32 六机器字连续拆字、wasm64 原生宽参数均正确。
+这些不替代真实 Linux 阶段。接口语义见
+[fanotify 手册](https://man7.org/linux/man-pages/man7/fanotify.7.html)。
+
+[精确源码预取 40056366901](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40056366901)
+实际日志核实 `5cb7904c5505cdbacc9b4702a8bc258ba2dc92cc` 与
+`sha256-NEZpP2PZeRKEgpLTd9bbnVwFfeCxXRIF37OKEOxt3IU=`。
+distro `f611358` 单独集成源码 pin、断言和 fanotify 语料，根仓库 `b72b255` 更新
+gitlink/轻量检查。目标需四阶段、唯一 pass 及固定运行器 machine.closed 门禁；
+尚不声称已验收浏览器、FID/mount/filesystem mark、队列溢出或全部权限模式。
+新版固定 f611358 已异步派发：
+[fanotify wasm32 40056667021](https://github.com/HighCWu/distro/actions/runs/40056667021)、
+[fanotify wasm64 40056671716](https://github.com/HighCWu/distro/actions/runs/40056671716)、
+[EROFS wasm32 40056676830](https://github.com/HighCWu/distro/actions/runs/40056676830)。
+
+旧版 7471e91 / Linux e7e5a27fa 的 wasm64
+[EROFS 40055254494](https://github.com/HighCWu/distro/actions/runs/40055254494) 已读取
+job120756790181 实际日志：内联属性、共享属性、普通文件后端跨页数据/引用及
+最终清理四阶段、唯一 pass 完整出现。运行器与先前审查版本的三个源文件相同，
+关闭失败会使派生失败，因此通过关闭门禁。仅接受旧版 Node wasm64 的这组有界
+EROFS 结果，不泛化为遗漏配置的32位或新版 fanotify/EROFS 集成。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
