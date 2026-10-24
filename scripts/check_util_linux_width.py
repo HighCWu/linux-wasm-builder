@@ -34,11 +34,50 @@ assert (
     "${toString platform.addressBits} ${toString platform.maximumMemoryBytes}" in recipe
 )
 assert "${file} ${zlib} ${ncurses} ${readline} ${sqlite3}" in recipe
+rewrites = [
+    ("${sqlite3}/lib/pkgconfig/../../lib", "/lib"),
+    ("${sqlite3}/lib", "/lib"),
+]
+for before, after in rewrites:
+    assert f'--replace-quiet "{before}" {after}' in recipe
+assert 'bash ${../apk/check-store-references.sh} "$out"' in recipe
 script = DISTRO / "distro/util-linux/check-install.sh"
 parser = DISTRO / "packages/kernel/src/wasm_binary.ts"
 checker = DISTRO / "distro/busybox/check-binary.mjs"
 with tempfile.TemporaryDirectory(prefix="util-linux-width-") as tmp:
     path = Path(tmp)
+    metadata = path / "liblastlog2.la"
+    sqlite_root = "/nix/store/" + "0" * 32 + "-sqlite3-wasm64-dev"
+    foreign_root = "/nix/store/" + "1" * 32 + "-unrelated"
+    reference_checker = DISTRO / "distro/apk/check-store-references.sh"
+    for library_path in (
+        sqlite_root + "/lib",
+        sqlite_root + "/lib/pkgconfig/../../lib",
+        foreign_root + "/lib",
+        "/lib",
+    ):
+        original = f"dependency_libs='-L{library_path} -lsqlite3 -lm -pthread'\nlibdir='/lib'\n"
+        metadata.write_text(original)
+
+        def references():
+            return subprocess.run(
+                ["bash", str(reference_checker), str(metadata)],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            ).returncode
+
+        assert references() == (0 if library_path == "/lib" else 1)
+        normalized = original
+        for before, after in rewrites:
+            normalized = normalized.replace(
+                before.replace("${sqlite3}", sqlite_root), after
+            )
+        metadata.write_text(normalized)
+        assert references() == (1 if library_path.startswith(foreign_root) else 0)
+        assert "-lsqlite3 -lm -pthread" in normalized
+        if library_path == "/lib":
+            assert normalized == original
     source = path / "fixture.c"
     source.write_text("int run(void) { return sizeof(void *); }\n")
     modules = {}
