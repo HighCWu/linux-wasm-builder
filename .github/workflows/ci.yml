@@ -109,6 +109,11 @@ jobs:
             "$revision" "$RUNNER_TEMP/wasm-binfmt-exec.c" arch/wasm/kernel/binfmt_wasm.c
           WASM_EXEC_SOURCE="$RUNNER_TEMP/wasm-binfmt-exec.c" WASM_CONTEXT_COMPILERS=clang \
             python3 -B scripts/check_exec_commit.py
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/linux-binfmts.h" include/linux/binfmts.h
+          WASM_EXEC_SOURCE="$RUNNER_TEMP/wasm-binfmt-exec.c" \
+            WASM_BINFMTS_HEADER="$RUNNER_TEMP/linux-binfmts.h" WASM_CONTEXT_COMPILERS=clang \
+            python3 -B scripts/check_exec_flags.py
           WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_exec_security.py
       - name: Check binfmt_misc workload frontends and static analysis
         run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_binfmt_misc.py
