@@ -112,6 +112,15 @@ jobs:
           WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_exec_security.py
       - name: Check binfmt_misc workload frontends and static analysis
         run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_binfmt_misc.py
+      - name: Check keyring workload and existing raw syscall machine words
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/keyctl-uapi.h" include/uapi/linux/keyctl.h
+          WASM_KEYCTL_HEADER="$RUNNER_TEMP/keyctl-uapi.h" WASM_CONTEXT_COMPILERS=clang \
+            python3 -B scripts/check_keyrings.py
       - name: Check alternate signal-stack reference semantics and execution adapter
         run: |
           python3 -B scripts/test_signal_altstack.py
