@@ -11,11 +11,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 MUSL = ROOT / "sources/musl"
 SOURCE = r"""
 #define _GNU_SOURCE 1
+#define _LARGEFILE64_SOURCE 1
 #include <inttypes.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
+#ifndef mmap64
+#error "mmap64 must remain a preprocessor alias"
+#endif
+void *largefile_probe(off64_t offset)
+{
+    return mmap64(0, 65536, PROT_READ, MAP_PRIVATE, 3, offset);
+}
 _Static_assert(SYS_clone3 == 435, "standard clone3 syscall number");
+_Static_assert(sizeof(off64_t) == 8, "legacy large-file alias remains 64-bit");
+_Static_assert(_Generic(&mmap64,
+    void *(*)(void *, size_t, int, int, int, off_t): 1, default: 0),
+    "mmap64 is the existing mmap alias, not a new function");
 _Static_assert(_Generic(&memfd_create,
     int (*)(const char *, unsigned): 1, default: 0), "memfd_create prototype");
 #define SAME(expr, type) _Static_assert(_Generic((expr), type: 1, default: 0), #expr)
@@ -94,6 +106,49 @@ class IntegerHeaders(unittest.TestCase):
                     capture_output=True,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
+                protection = subprocess.run(
+                    result.args,
+                    input=SOURCE
+                    + "\nvoid protection_probe(void) { (void)&mprotect; }\n",
+                    text=True,
+                    capture_output=True,
+                )
+                if target.startswith("wasm"):
+                    self.assertNotEqual(protection.returncode, 0)
+                    self.assertIn("mprotect", protection.stderr)
+                else:
+                    self.assertEqual(protection.returncode, 0, protection.stderr)
+                feature_off = subprocess.run(
+                    result.args,
+                    input=SOURCE.replace("#define _LARGEFILE64_SOURCE 1", ""),
+                    text=True,
+                    capture_output=True,
+                )
+                self.assertNotEqual(feature_off.returncode, 0)
+                self.assertIn("mmap64", feature_off.stderr)
+                if target.startswith("wasm"):
+                    command = result.args
+                    negative = subprocess.run(
+                        command,
+                        input=SOURCE.replace(
+                            "#ifndef mmap64", "#undef mmap64\n#ifndef mmap64"
+                        ),
+                        text=True,
+                        capture_output=True,
+                    )
+                    self.assertNotEqual(negative.returncode, 0)
+                    self.assertIn("mmap64", negative.stderr)
+                    ir_command = [arg for arg in command if arg != "-fsyntax-only"]
+                    ir_command += ["-S", "-emit-llvm", "-o", "-"]
+                    emitted = subprocess.run(
+                        ir_command,
+                        input=SOURCE,
+                        text=True,
+                        capture_output=True,
+                        check=True,
+                    )
+                    self.assertIn("@mmap(", emitted.stdout)
+                    self.assertNotIn("@mmap64(", emitted.stdout)
 
 
 if __name__ == "__main__":
