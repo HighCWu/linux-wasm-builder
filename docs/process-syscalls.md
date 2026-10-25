@@ -3914,6 +3914,36 @@ Zstd 文件
 尺寸、五种普通文件尺寸、超限拒绝、最终唯一 pass 和机器关闭。尚不宣称目标通过。
 自有负载/编排/文档沿用 MIT，必要内核改动沿用 GPL，不新增 libc 公共函数。
 
+## 第八十三组：已有 mmap64 别名的 Wasm 声明门控
+
+musl `0771c6eb` 修正已有大文件兼容别名被错误包含在 `#ifndef __wasm__`
+保护接口组内的问题。直接上游 tombl 的旧提交 `40851de5` 已有
+`#define mmap64 mmap` / `#define off64_t off_t`，不是从官方 musl 另搬一个
+新函数，也不是新增公共 API、包装或导出符号。源码仅移动该组的闭合条件，
+原别名内容和 `_LARGEFILE64_SOURCE` 条件原样保留；mprotect/mlock/mincore 等
+接口的 Wasm 门控不变，不改变默认文件映射政策或任何 syscall 实现。
+
+宿主头文件检查在 Wasm32、Wasm64 和非 Wasm x86_64 目标核对原 mmap 原型、
+64位 off64_t；缺少 feature macro 或故意隐藏 mmap64 时必须编译失败。
+Wasm 的 LLVM IR 仍只引用 `@mmap` 而非 `@mmap64`，证明未引入新函数调用 ABI。
+Wasm mprotect 引用继续编译失败，非 Wasm 则保持可见，防止顺便开放未实现的
+保护接口。Ruff、既有文件映射真实 C 前端/静态分析和原函数模型通过；可选
+fork-continuation 补丁在新源码 dry-run 也通过，不将这些本地证据写成启动验收。
+
+公开预取 40161964800/job121075227622 已核实完整 revision
+0771c6eb78319d7af6df3d7b27709345d2dd0fc2 与
+`sha256-mvnSKVBj04ZOqYfALZO9pCMBc8J1/CT//T5+qq/FoVE=`。distro `9e8a6fd`
+固定该源码，并让现有 EOF 映射 helper 实际使用 mmap64/off64_t；包含4 GiB文件
+offset 的零填充检查，截断到低位后会读到非零源内容而不能误过。根仓库 `ae9251e`
+独立更新 pin 和头文件/IR 回归。普通文件内核仍固定第八十二组的 `0bbaf824b`。
+
+固定 9e8a6fd 的标准文件
+[wasm32 40162090287](https://github.com/HighCWu/distro/actions/runs/40162090287)、
+[wasm64 40162094045](https://github.com/HighCWu/distro/actions/runs/40162094045)
+复验已异步派发，待实际阶段、唯一 pass 与关闭门禁核实；不能将上一个 musl
+版本的运行结论自动用于新组合。原 7134a84 的标准/Zstd 检查仍独立在途，未取消
+慢任务或重复派发同版本同检查。已有许可证与无新增 libc 函数约束保持。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
