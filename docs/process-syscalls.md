@@ -4070,6 +4070,14 @@ distro `edfa9ec` 更新固定源码和 INIT 确认，根仓库 `dfefb52` 单独�
 已异步运行。仍须实际读取三个功能阶段、唯一 pass 与固定运行器的关闭结果；
 不将源码哈希成功或模型通过代替该验收，也不宣称完整 FUSE/libfuse 已可用。
 
+补录：40166960463/job121089940778 的完整实际日志已读取，三个规定阶段和唯一
+pass 均出现：协商/注册错误/后备引用、标准读写不经过服务端数据请求、注册撤销
+后打开文件引用/RELEASE/卸载清理。该 Heavy 成功，固定运行器先完成含
+machine.closed 的资源关闭，再以无启动/关闭失败决定退出成功；相关运行器未改。
+因此验收 edfa9ec/963697df0 的 wasm64 Node 这一 FUSE passthrough 范围，确认
+此前的 INIT/lookup 失败在此组合已解决。wasm32 仍在运行，浏览器、完整 libfuse、
+普通 FUSE 数据请求、splice/mmap 及后继内核版本均不据此自动验收。
+
 ## 第八十七组：文件私有复制接受单独 PROT_WRITE
 
 Linux `97de895f0` 修正文件 mmap/mmap2 的保护位准入：此前只接受 PROT_READ
