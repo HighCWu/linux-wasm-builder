@@ -3986,6 +3986,50 @@ ad56d20e9efad8c68af565a79a2579d2fb872aca 与
 FUSE mmap/splice、任意堆叠文件系统、非特权使用或浏览器验收，也不宣称完整
 libfuse 软件栈已经移植。自有程序/构建/检查为 MIT，必要内核配置改动沿用 GPL。
 
+## 第八十五组：普通 SDK 携带私有复制执行能力
+
+distro `3da2bde` 推进默认 SDK 的执行侧准备，而非提前打开默认内核文件 mmap。
+平台链接参数自动导出现有 musl `__wasm_mmap_init_v1`，普通 SDK 编译的标准文件
+负载不再额外指定私有导出；Zstd 变体也移除专用链接参数。没有修改 musl/Linux
+源码、添加公共函数或要求应用调用私有 API。profile.json 的
+execution.initializedPrivateCopy 记载 v1、导出/import、必需内核清理导出及内核准入。
+现有匿名映射 v2 参数、CONFIG_MMU=n、默认文件映射关闭、容量与共享/执行边界不变。
+
+新模块需要支持 linux_mmap_init_v1.copy 的配套宿主，不承诺旧实验宿主兼容。
+同时修正了更具体的安全边界：当前宿主不应仅因用户模块提供函数，就在缺少
+abort_file_mmap_v1 的旧实验内核中激活无法清理非局部退出的复制。现在 capability
+为0，直接 map 则在用户回调上下文转换之前返回正常 EOPNOTSUPP，原 C 返回路径
+可以释放已产生的资源；复制桥自身也拒绝，无 lease 或用户分配器调用。缺失和
+误导出为 global 的清理名字均不算支持，查询不调用用户或清理函数。
+
+两个旧复制模块对照改用显式去除该导出的原链接配置，最终模块必须同时没有
+初始化导出和 copy import，不能把普通新 SDK 产物冒充旧模块。标准负载改用安装
+的 wasm-linux-cc 编译，并核对最终模块、SDK 元数据及共享内存位宽/上限；Zstd
+继续强制标准 mmap。SDK 能力并不授权文件来源或绕过 kernel/LSM 条件。
+
+本地369项内核组件检查、源与测试两个 TypeScript 工程、30项 SDK/Zstd 编排检查
+通过。实际 musl 可选成员编译进 Wasm archive，在32/64位核对导出参数确实提取
+它、无导出时真正不存在；检查空/非空长度的真实私有 scalar ABI。分配器是测试
+替身，不作为其实现或 VFS 证明；反转能力期望、仅伪造导出而缺 import 都会失败。
+实际复制 C/JS 小模型还核实：隐藏清理导出后正常拒绝、用户分配器不进入、资源
+全零；正常异常清理归零，故意旁路清理仍泄漏。此处模拟的是当前函数体缺少导出，
+不是重新启动整个历史内核的证明。Ruff、Nix/JS 格式和 actionlint 通过。
+
+根仓库 `880c4e7` 独立更新 pin 与上述轻量模型。固定 3da2bde 的标准文件
+[wasm32 40165368438](https://github.com/HighCWu/distro/actions/runs/40165368438)、
+[wasm64 40165371968](https://github.com/HighCWu/distro/actions/runs/40165371968)，
+Zstd 文件
+[wasm32 40165376151](https://github.com/HighCWu/distro/actions/runs/40165376151)、
+[wasm64 40165378816](https://github.com/HighCWu/distro/actions/runs/40165378816)
+已异步派发，尚待实际阶段/唯一 pass/关闭门禁。普通 SDK、旧复制模块、默认内核
+拒绝及先前生命周期回归须分别核实，不把本地归零当成设备在途或生产就绪。
+
+同次定期检查另发现第八十四组 FUSE 两路明确失败：d077527 的
+40162875765/job121077979742、40162879286/job121077990719 均已实际启动，
+最终 initialized file lookup 返回 ECONNREFUSED(111)，尚无三阶段 pass。
+已读取实际日志，正在核查 INIT 的页面固定复制路径与 Wasm 分离内存的兼容性，
+不因构建/配置成功就宣称 FUSE 运行通过，也不重新关闭该功能来回避缺口。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

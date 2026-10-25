@@ -60,7 +60,9 @@ PROT_NONE、PROT_EXEC、MAP_SHARED、MAP_FIXED 和 MAP_FIXED_NOREPLACE；普通�
 
 不新增应用私有 UAPI，也不更改现有匿名 mmap v2 参数。候选内核在
 `user_mmap_init_v1` 执行 namespace 增加 `capabilities() -> i32`：bit 0 表示当前用户
-模块导出了 `__wasm_mmap_init_v1` 私有初始化分配器。查询只检查导出，不调用程序、
+模块导出了 `__wasm_mmap_init_v1` 私有初始化分配器，且内核具备异常清理契约。
+当前运行时检查内核 `abort_file_mmap_v1`；缺少或误导出为 global 时不提供此能力。
+查询只检查导出，不调用用户程序或清理函数、
 不授权文件来源，也不授予复制 lease；每次按当前模块查询，不缓存旧模块的能力。
 
 缺少能力时，在分配 staging、读取 VFS 前返回 EOPNOTSUPP。随后仍使用原有同步
@@ -68,17 +70,23 @@ PROT_NONE、PROT_EXEC、MAP_SHARED、MAP_FIXED 和 MAP_FIXED_NOREPLACE；普通�
 才能复制一次，内核 staging 地址、fd 和 offset 不传给应用。初始化和零填充完成后
 才发布分配器记录。复制桥本身不判断文件准入，也不承诺内存保护。
 
-候选程序仅在链接时加 `-Wl,--export=__wasm_mmap_init_v1`，无需改应用解引用或
-添加私有 syscall。当前 musl 已有该可选对象，本轮不修改 libc/LLVM，不把新 import
-强加给普通程序；默认 SDK 也不自动导出它。v1 仍是候选执行协议，尚未承诺稳定发布。
+早期候选需要手工加 `-Wl,--export=__wasm_mmap_init_v1`。当前 distro `3da2bde`
+已让默认 SDK/平台链接自动携带现有 musl 私有对象，普通程序因而包含
+`linux_mmap_init_v1.copy` import；无需改应用解引用、添加私有 syscall 或编写包装。
+SDK 元数据记载 v1 和所需清理导出，尚待新 SDK/内核组合的真实验收；这不等于
+默认内核开放文件 mmap 或整个执行协议的所有发布门槛已经完成。
+必须使用匹配的运行时，不承诺新模块在不认识该 import 或缺少正确异常清理的旧
+实验宿主中可用。当前宿主对无清理导出的旧复制内核返回正常 EOPNOTSUPP，而不是
+进入不可清理的回调；旧内核已产生的 staging 由正常 C 返回路径释放。
 新候选内核须配套支持 capabilities 的宿主，旧宿主不能实例化该候选内核；这不是
 通过用户模块能力查询就能兼容旧宿主。默认内核不引用该新增 import。
 
-| 内核 | 用户模块 | 认证文件的标准 mmap |
+| 内核（配套当前运行时） | 用户模块 | 已准入文件的标准 mmap |
 |---|---|---|
 | 默认发布配置 | 有或无初始化导出 | 保持 EINVAL |
 | 候选配置 | 无初始化导出 | EOPNOTSUPP，无 staging/读取 |
 | 候选配置 | 有初始化导出 | 在严格范围和预算内尝试私有复制 |
+| 旧实验复制内核，无异常清理导出 | 有初始化导出 | 能力为0，直接复制入口正常拒绝，不进入分配器 |
 
 原 `CONFIG_WASM_MMAP_COPY_TEST` 仍默认关闭，与候选配置分开构建；它的私有 syscall
 不是应用 API。候选不启用受控测试 inode、不恢复完整通用 NOMMU VMA 管理，不声称

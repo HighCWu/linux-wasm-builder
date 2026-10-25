@@ -13,6 +13,19 @@ MIT而被重新许可。使用者可按自身代码与实际依赖的许可证�
 
 ## 识别当前 SDK 配置
 
+当前 distro `3da2bde` 的默认链接配置携带已有的私有初始化复制执行能力，应用仍
+使用标准 mmap/mmap64，不再为候选文件映射手工指定私有导出。profile.json 的
+`execution.initializedPrivateCopy` 记录 v1 导出/import 与必需内核清理导出。
+它描述执行契约，不表示内核已开放文件 mmap；默认内核仍拒绝，普通文件候选
+继续受配置、文件能力、权限和容量限制。该默认 SDK 组合的真实复验尚在进行。
+
+新产物需要支持 `linux_mmap_init_v1.copy` 的配套运行时，不承诺在不认识该 import
+或缺少正确异常清理的旧实验运行时中可用。当前运行时还要求复制内核提供
+`abort_file_mmap_v1`：缺少时不进入用户分配器，标准候选能力查询为0，直接旧复制
+入口返回正常 EOPNOTSUPP，让 C 返回路径清理资源。旧无导出程序仍受支持，但在
+候选内核中不能使用初始化文件复制；这不是自动把旧匿名分配器当成文件映射。
+版本组合与限制见[候选执行能力](file-mmap-candidate.md#版本化执行能力)。
+
 在相应 SDK shell 中运行 `wasm-linux-sdk-info` 可输出 JSON 配置记录；同一内容随包
 安装在 `share/linux-wasm-sdk/profile.json`。记录包含目标位宽、triple、编译/链接默认
 参数、C++ 配置原文，以及工具链、sysroot、编译配置和修正版 Meson 的 Nix store 路径。
