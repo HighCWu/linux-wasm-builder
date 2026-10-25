@@ -3944,6 +3944,14 @@ offset 的零填充检查，截断到低位后会读到非零源内容而不能�
 版本的运行结论自动用于新组合。原 7134a84 的标准/Zstd 检查仍独立在途，未取消
 慢任务或重复派发同版本同检查。已有许可证与无新增 libc 函数约束保持。
 
+补录：40162090287/job121075661515 的完整实际日志现已读取，确认 candidate
+的可变文件/提示/不可变副本三个阶段及唯一 pass，default 与 legacy 各自拒绝
+阶段及唯一 pass，vfs-lifetime 的并发预算/回滚阶段及唯一 pass，四次运行齐全。
+该 Heavy 成功，固定运行器先等待 closeTestResources（含 machine.closed），
+再以无启动/关闭失败决定成功退出，相关运行器源码未改变。因此记录 9e8a6fd 的
+wasm32 标准文件组合验收；wasm64 的 success 元数据仍不能代替其未读取的阶段，
+也不把这组旧源码证据用于后继默认 SDK 或 WRITE-only 新负载。
+
 ## 第八十四组：恢复官方默认的 FUSE passthrough 条件
 
 核对官方 `fs/fuse/Kconfig` 后，FUSE_PASSTHROUGH 默认 y，依赖 FUSE_FS 并选择
@@ -4061,6 +4069,33 @@ distro `edfa9ec` 更新固定源码和 INIT 确认，根仓库 `dfefb52` 单独�
 [wasm64 40166960463](https://github.com/HighCWu/distro/actions/runs/40166960463)
 已异步运行。仍须实际读取三个功能阶段、唯一 pass 与固定运行器的关闭结果；
 不将源码哈希成功或模型通过代替该验收，也不宣称完整 FUSE/libfuse 已可用。
+
+## 第八十七组：文件私有复制接受单独 PROT_WRITE
+
+Linux `97de895f0` 修正文件 mmap/mmap2 的保护位准入：此前只接受 PROT_READ
+或 PROT_READ|PROT_WRITE，与已经接通的匿名直接映射及通用 NOMMU 私有复制路径
+不一致。现在也接受单独 PROT_WRITE，不要求应用自行补一个 READ 位。这里表示
+调用者只请求 WRITE，不表示内存会禁止读取；直接线性内存没有页权限隔离。
+PROT_NONE、EXEC 和未知保护位仍拒绝，文件仍须以可读方式打开；私有复制不要求
+源 fd 可写，也不因写副本而写回。LSM 继续收到原始保护位和标志，不偷偷添加
+PROT_READ，不放宽共享/固定映射或文件来源能力检查。musl 完全没有变化。
+
+GCC/Clang 的实际 C 函数体模型、双位宽调用单位、Wasm32/64 消费者前端与静态
+分析通过，匿名 mmap 原有准入与文件分派回归通过。恢复旧保护位拒绝条件以及
+人为给 LSM 增加 READ 位的反向控制都会失败。真实标准负载增加普通/提示请求、
+副本可写而源文件和 fd position 不变、munmap 回收，并保留默认关闭和旧模块
+拒绝分支；浏览器现有标准用例要求同一阶段标记。这些本地结果不代替目标运行。
+
+公开预取 40167508053/job121091475411 的实际输出核实完整 revision
+`97de895f04e15b5b185757c1f07ebcd87b7ba020` 与
+`sha256-OYeOhOiW6/nkmtLb65QuAqx6VsDq9Y4NAvXUMZAh1mg=`。此前预取
+40167500780 因输入 revision 误填而失败，没有用于源码 pin 或构建；正确预取使用
+实际提交的完整 SHA。distro `8ba739f` 原子集成新内核和标准负载，根仓库
+`8b199eb` 单独更新 pin。固定 8ba739f 的
+[wasm32 40167729310](https://github.com/HighCWu/distro/actions/runs/40167729310)、
+[wasm64 40167730535](https://github.com/HighCWu/distro/actions/runs/40167730535)
+异步复验 candidate、legacy、default 和生命周期回归，新 WRITE-only 阶段及关闭
+尚未核实。不重复派发没有改动请求方式的 Zstd，也未把浏览器断言更新当成运行。
 
 ## 信号栈缺口的前期核查记录
 
