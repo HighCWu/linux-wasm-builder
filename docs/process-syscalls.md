@@ -3944,6 +3944,48 @@ offset 的零填充检查，截断到低位后会读到非零源内容而不能�
 版本的运行结论自动用于新组合。原 7134a84 的标准/Zstd 检查仍独立在途，未取消
 慢任务或重复派发同版本同检查。已有许可证与无新增 libc 函数约束保持。
 
+## 第八十四组：恢复官方默认的 FUSE passthrough 条件
+
+核对官方 `fs/fuse/Kconfig` 后，FUSE_PASSTHROUGH 默认 y，依赖 FUSE_FS 并选择
+FS_STACK。Wasm 三份配置却显式关闭此项。Linux `ad56d20e9` 仅删除这三处覆盖，
+恢复上游条件选择，不复制或替换上游 FUSE/backing-file 实现，不启用 MMU 或
+io_uring。Kconfig 没有直接 MMU 依赖不等于 Wasm 已通过编译/运行，仍须目标验收。
+distro 的构建门禁核对最终 `.config` 中 FUSE_PASSTHROUGH/FS_STACK 均为 y，
+保留原 MMU=n 检查，不仅凭输入 defconfig 宣称功能已启用成功。
+
+根据[官方说明](https://docs.kernel.org/filesystems/fuse/fuse-passthrough.html)
+和固定源代码审查，服务端须在 INIT 协商 FUSE_PASSTHROUGH 与 max_stack_depth，
+通过标准 FUSE_DEV_IOC_BACKING_OPEN/CLOSE 管理后备文件 ID，再在 OPEN 回复中
+选择 FOPEN_PASSTHROUGH。上游的 CAP_SYS_ADMIN、普通文件和堆叠深度检查均保留。
+本轮不放宽权限，也不新增 libc 函数或应用专用 ioctl。
+
+distro `d077527` 增加双位宽、普通 SDK 的实际用户态服务程序：挂载仅发生在
+Linux/Wasm 目标系统，两个 Linux CPU，pthread 处理标准 /dev/fuse 协议。
+初始化回复必须保留 FUSE_INIT_EXT 才会解析 flags2；不协商 writeback cache。
+服务端对任何 FUSE_READ/FUSE_WRITE 数据请求返回 EIO 并记错，因此不能通过
+模拟数据回退伪装 passthrough。实际目标要求三个阶段及唯一 pass/机器关闭：
+
+1. 协商、未知注册 flags/无效 fd 的错误、注册后关闭原 fd 仍保有后备引用。
+2. 标准 pread/pwrite 往返正确，数据请求未经过用户服务端，实际后备文件内容改变。
+3. 撤销注册仅成功一次，已打开文件仍可读；关闭后等待实际 RELEASE 回复的管道
+   确认，再卸载/停止服务线程并清理自身 fd、文件、目录。不能用固定 sleep 或
+   RELEASE 请求刚到达时的计数代替完成，否则卸载存在竞态。
+
+本地 GCC/Clang 及 Wasm32/64 前端、静态分析、Ruff、Nix 格式、actionlint 通过；
+没有在开发机执行挂载、修改宿主 IPC 或启动重型构建。根检查读取固定版本 UAPI
+与 Kconfig/defconfig，目标构建再检查真实解析配置；这些仍不是目标运行证明。
+公开预取 40162599468/job121077105390 核实完整 revision
+ad56d20e9efad8c68af565a79a2579d2fb872aca 与
+`sha256-5TOSxy0OMuXgPivHdgXOFp65kwwzhfck4TIq0t9hA+U=`，根仓库 `bd3d878`
+独立集成源码 pin 与轻量检查。
+
+固定 d077527 的
+[wasm32 40162875765](https://github.com/HighCWu/distro/actions/runs/40162875765)、
+[wasm64 40162879286](https://github.com/HighCWu/distro/actions/runs/40162879286)
+真实检查已异步派发，尚待实际阶段、唯一 pass 和关闭结果核实。不把它泛化为
+FUSE mmap/splice、任意堆叠文件系统、非特权使用或浏览器验收，也不宣称完整
+libfuse 软件栈已经移植。自有程序/构建/检查为 MIT，必要内核配置改动沿用 GPL。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
