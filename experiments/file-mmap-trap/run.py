@@ -11,12 +11,19 @@ import tempfile
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--expect-leak", action="store_true", help="bypass the abort hook as a negative control")
+parser.add_argument("--old-kernel", action="store_true", help="hide the cleanup export and require normal refusal")
 args = parser.parse_args()
+if args.old_kernel and args.expect_leak:
+    parser.error("old-kernel refusal and cleanup bypass are separate controls")
 root = Path(__file__).resolve().parents[2]
 directory = Path(__file__).resolve().parent
 source = Path(os.environ.get("WASM_MMAP_COPY_SOURCE",
                             root / "sources/linux/arch/wasm/kernel/mmap_file.c")).read_text()
 source = re.sub(r"^#include[^\n]*\n", "", source, flags=re.M)
+if args.old_kernel:
+    marker = '__attribute__((export_name("abort_file_mmap_v1")))'
+    assert source.count(marker) == 1
+    source = source.replace(marker, "")
 shim = (directory / "shim.c").read_text()
 marker = "/* The runner inserts the actual GPL kernel function body here, unchanged. */"
 assert shim.count(marker) == 1
@@ -59,9 +66,18 @@ const {instance} = await WebAssembly.instantiate(readFileSync(process.argv[1]), 
     if (process.argv[4] !== 'true') instance.exports.abort_file_mmap_v1();
   })
 }});
-bridge = new FileMmapCopy(instance.exports.memory,width);
+bridge = new FileMmapCopy(instance.exports.memory,width,() => instance.exports);
 const call = () => call_kernel_entry(instance.exports,width,() => instance.exports.run());
 const state = () => [0,1,2,3,4].map(i => Number(instance.exports.resource(i)));
+if (process.argv[5] === 'true') {
+  assert.equal(instance.exports.abort_file_mmap_v1,undefined);
+  selected = {__wasm_mmap_init_v1: () => assert.fail('unsupported kernel must not invoke user allocator')};
+  assert.equal(bridge.capabilities(selected),0);
+  assert.equal(call(),word(-95));
+  assert.deepEqual(state(),[0,0,0,0,0],'normal refusal must release actual C callback resources');
+  console.log(`wasm${process.argv[3]} missing cleanup export: normal EOPNOTSUPP, no user allocator and all C resources zero`);
+  process.exit(0);
+}
 assert.equal(call(),word(65536));
 assert.deepEqual(state(),[0,0,0,0,0],'normal return must clean actual C resources');
 selected = {__wasm_mmap_init_v1: () => word(-12)};
@@ -82,7 +98,7 @@ assert.deepEqual(state(),[0,0,0,0,0],'exit hook must drain once without double r
 selected = initializer(false);
 assert.equal(call(),word(65536));
 assert.deepEqual(state(),[0,0,0,0,0],'later allocation must recover');
-""", str(binary), str(root), str(bits), str(args.expect_leak).lower()])
+""", str(binary), str(root), str(bits), str(args.expect_leak).lower(), str(args.old_kernel).lower()])
         failed |= result.returncode != 0
 if failed:
     sys.exit("file mmap cleanup requirement failed (both pointer widths were checked)")
