@@ -4075,8 +4075,10 @@ pass 均出现：协商/注册错误/后备引用、标准读写不经过服务�
 后打开文件引用/RELEASE/卸载清理。该 Heavy 成功，固定运行器先完成含
 machine.closed 的资源关闭，再以无启动/关闭失败决定退出成功；相关运行器未改。
 因此验收 edfa9ec/963697df0 的 wasm64 Node 这一 FUSE passthrough 范围，确认
-此前的 INIT/lookup 失败在此组合已解决。wasm32 仍在运行，浏览器、完整 libfuse、
-普通 FUSE 数据请求、splice/mmap 及后继内核版本均不据此自动验收。
+此前的 INIT/lookup 失败在此组合已解决。wasm32 的 40166960469/job121089943362
+完整实际日志也已读取，三个阶段及唯一 pass 齐全，Heavy 成功且固定关闭门禁相同。
+因此这两个精确源码组合的 Node 双位宽范围均通过；浏览器、完整 libfuse、普通
+FUSE 数据请求、splice/mmap 及后继内核版本均不据此自动验收。
 
 ## 第八十七组：文件私有复制接受单独 PROT_WRITE
 
@@ -4104,6 +4106,42 @@ GCC/Clang 的实际 C 函数体模型、双位宽调用单位、Wasm32/64 消费
 [wasm64 40167730535](https://github.com/HighCWu/distro/actions/runs/40167730535)
 异步复验 candidate、legacy、default 和生命周期回归，新 WRITE-only 阶段及关闭
 尚未核实。不重复派发没有改动请求方式的 Zstd，也未把浏览器断言更新当成运行。
+
+## 第八十八组：恢复官方默认的 VM 事件计数
+
+Linux `9f827ba1a` 去除三套 Wasm defconfig 对 VM_EVENT_COUNTERS 的额外关闭，
+继承 [Linux 官方 v7.1 的 default y](https://github.com/torvalds/linux/blob/v7.1/mm/Kconfig)。
+该条件没有 MMU 依赖；复用原有 per-CPU 计数、在线 CPU 汇总和 proc seq-file，
+不伪造计数器，不新增 syscall 号或 libc 函数。修复的是标准 read/proc 观察面的
+实际能力缺口：关闭时 `/proc/vmstat` 仅有页状态、没有这些事件字段。Nix 构建
+核对最终 CONFIG_VM_EVENT_COUNTERS=y，CONFIG_MMU=n 边界保持。
+
+新增 MIT 消费者通过普通 fopen/read/write 等读取 pgalloc_normal、pgfree、
+pgpgin、pgpgout；缺少字段、重复、非数字或溢出不能默认为零。目标在独立 ramfs
+保留2 MiB数据，核对内容和内核分配计数增加，随后关闭、删除、卸载并核对释放
+计数增加。不要求精确增量或把 SMP 近似汇总冒充原子快照。该内核统计只覆盖其
+实际管理的页面，绝不把用户 WebAssembly.Memory 的 malloc/memory.grow 算作
+同一种页事件，也不据此宣称页错误、swap、主机总内存或用户 CPU 记账已实现。
+
+BusyBox 显式保留已有 VMSTAT applet，源码不加补丁。安装式目标系统运行普通
+vmstat 取两次样本，检查数字列与实际退出并清理，最后要求三阶段和唯一 pass；
+固定运行器仍须等待 machine.closed。新二进制的构建门禁会按最终字节核对共享 env.memory、
+指针位宽和声明上限；包附带自有 MIT、musl 与 compiler-rt 许可，不改用户应用 API。
+
+本地仅执行 GCC/Clang 的实际解析函数及样本反向控制、双位宽 Wasm 前端与 Clang
+静态分析，未执行有 mount 的目标 main。缺字段、重复、64位溢出/截断、负数、
+额外字段、缺换行和错误样本数均有检查；ShellCheck、shfmt、Nixfmt、Ruff 与
+actionlint 通过。这不是 VM 计数路径或真实 BusyBox 的运行证明，须等独立目标。
+
+公开预取 40168349024/job121093904003 已从实际输出核实完整 revision
+`9f827ba1a625389fc439a1ce7efb6f29a7382148` 与
+`sha256-WLeM4V/SF8VphyOyQZBTllZ8JqOLaSmI6wKnrVJqb4Q=`。distro `7c83e87`
+原子集成固定内核、最终配置门禁、普通双位宽消费者和已有 vmstat applet，根仓库
+`df5a5ff` 独立更新 pin、精确 Kconfig 输入和轻量检查。固定 7c83e87 的
+[wasm32 40168612175](https://github.com/HighCWu/distro/actions/runs/40168612175)、
+[wasm64 40168613297](https://github.com/HighCWu/distro/actions/runs/40168613297)
+已异步运行，尚待最终二进制门禁、三个实际阶段、唯一 pass 及关闭结果；不以配置
+源码或预取成功替代运行验收。此前 WRITE-only 文件映射检查仍独立在途。
 
 ## 信号栈缺口的前期核查记录
 
