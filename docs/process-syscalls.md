@@ -3859,6 +3859,61 @@ candidate、legacy module、default 配置与原生命周期回归；实际阶�
 及关闭结果尚待核实，不以源码 hash 或宿主模型通过代替目标通过。自有负载及
 测试沿用 MIT，必要内核改动沿用 GPL，未新增 musl 函数。
 
+## 第八十二组：普通文件的 NOMMU 私有复制
+
+Linux `0bbaf824b` 推进实际文件 mmap/mmap2 能力，不再把首批不可变 EROFS 来源
+限制当作永久政策。对照当前 `mm/nommu.c::validate_mmap_request/do_mmap_private`
+与[官方 NOMMU 文档](https://docs.kernel.org/admin-guide/mm/nommu-mmap.html)，
+复制式私有映射可以读取普通文件，后续写入不必反映到已返回的副本。这不同于
+共享文件映射、按需页缓存别名或保证读取期间绝对一致的快照。
+
+候选标准入口检查普通文件、fd 读权限、can_mmap_file、FMODE_CAN_READ；文件系统
+提供 mmap_capabilities 时须含 NOMMU_MAP_COPY，否则按上游普通文件默认 copy
+能力处理。只有直接共享能力的驱动不可强制复制；不可映射/无读取/无 copy 能力
+返回 ENODEV，原类型拒绝、旧用户模块能力拒绝与 LSM 检查保留。不存在从 Wasm
+用户指针直接访问内核文件页的捷径，也不通过宿主路径读取文件。
+
+标准入口的一次 kernel_read 返回多少有效字节，就仅把这些字节交给同步初始化器，
+初始化器先清零全部目标区域；负读取错误不发布。短读、零读取、空文件和 EOF 后
+区域遵循此 NOMMU 复制行为，不伪造 MMU SIGBUS/截断失效。已有副本保持独立，
+后来映射重新读取文件；并发改写的观察语义仍由底层读取决定，不承诺一致性快照。
+读取返回前继续持有生产者、文件引用、staging 与预算，初始化异常/退出收尾仍复用
+原任务所有权记录。原私有测试入口通过严格模式保留认证来源、稳定大小和异常短读
+报错语义，其来源认证未被标准入口的新能力绕过。
+
+限制仍包括候选默认关闭、每次128 KiB/全局在途512 KiB、直接线性地址、RO/RW
+无强制保护；没有共享、执行、固定映射、写回或完整通用 NOMMU VMA。musl、默认
+SDK 导出与新应用 API 均未改变。生产者在途真实设备压力和默认执行协议发布门禁
+仍未因本轮演进而完成。
+
+真实函数 GCC/Clang 模型及双位宽前端/静态分析通过，涵盖文件能力拒绝、普通来源
+接受、一次短读/零读取、严格模式不变、预算/fatal signal/分配及复制失败回收。
+恢复旧来源白名单、恢复严格读取或恢复旧 flags 检查均会令正向模型失败。实际 C
+复制函数和 JS 桥的小型 Wasm 异常回归双位宽资源归零，旁路清理的反向控制仍泄漏。
+这不证明真实 VFS、文件系统或设备目标已运行。
+
+distro `7134a84` 固定内核，并扩展标准目标：普通磁盘映射、可写文件修改后新旧
+副本分离、截断/EOF/空文件补零、unlink/close 后存活、写入副本不回写、fd position
+和清理。Zstd 仍强制原标准 mmap，普通磁盘与可写文件字典五种合规尺寸须与 malloc
+交叉解码一致，超限仍报错；默认内核拒绝对照未取消。原生 Zstd 的13项编排/反向
+检查、ShellCheck/shfmt、Nix/JS 格式通过，不将宿主 CLI 视为 Wasm 文件系统证据。
+既有浏览器断言和精确测试名门禁同步更新，未在本地启动重型浏览器，也未把旧浏览器
+验收升格为本次通过。
+
+公开预取 40161284432/job121073194313 核实完整 revision
+0bbaf824badf2a1a3c0119b2c3e1343e0b80b5a9 与
+`sha256-BQT7mtESdCcLAgeWlLbo1C2/KXX+R3C77Jqx1bJD7Gg=`；根仓库 `33f3d55`
+单独同步两个 gitlink。标准文件
+[wasm32 40161527731](https://github.com/HighCWu/distro/actions/runs/40161527731)、
+[wasm64 40161531608](https://github.com/HighCWu/distro/actions/runs/40161531608)，
+Zstd 文件
+[wasm32 40161534999](https://github.com/HighCWu/distro/actions/runs/40161534999)、
+[wasm64 40161538383](https://github.com/HighCWu/distro/actions/runs/40161538383)
+已异步派发，须分别核实
+新增可变文件阶段、原候选/旧模块/默认配置/生命周期标记，以及 Zstd 的五种快照
+尺寸、五种普通文件尺寸、超限拒绝、最终唯一 pass 和机器关闭。尚不宣称目标通过。
+自有负载/编排/文档沿用 MIT，必要内核改动沿用 GPL，不新增 libc 公共函数。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

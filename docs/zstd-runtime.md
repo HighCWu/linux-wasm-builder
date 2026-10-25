@@ -20,6 +20,11 @@ wasm64 覆盖 stdenv、BusyBox、musl、compiler-rt、platform 和测试镜像�
 
 ## 下一阶段：文件 mmap 真实软件目标
 
+当前 distro `7134a84` 的候选演进增加普通磁盘与可写文件字典的强制标准 mmap，
+五种合规尺寸须成功、超限仍拒绝；实际新目标尚待验收。默认配置仍不开放文件
+映射，不将下文历史不可变来源通过自动扩大到新范围。详见
+[普通文件复制](file-mmap-candidate.md#当前演进普通文件-nommu-私有复制)。
+
 Zstandard 被选为[文件 mmap 就绪度阶段](file-mmap-readiness.md)的真实软件目标。
 `b662d58` 新增安装系统边界语料覆盖 64 KiB 和 128 KiB 两侧共六种字典尺寸；普通/read 路径
 必须成功，可变文件的强制 mmap 仍须明确拒绝，不把应用回退算作文件映射成功。
