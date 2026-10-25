@@ -3821,6 +3821,44 @@ machine.closed 且拒绝关闭错误。故接受固定 56ed1d1 / musl 37ad2811 �
 wasm64 Node 结果，打包修复未移除工具或放松门禁；不泛化为所有工具行为、
 浏览器、其它检查或后续内核版本均已验收。
 
+## 第八十一组：文件私有复制映射接受标准提示标志
+
+Linux `cc8c3813d` 修正实验文件 mmap/mmap2 对 flags 的过严检查。此前要求
+flags 完全等于 MAP_PRIVATE，令 MAP_POPULATE 等不改变私有映射类型的标准请求
+直接 EINVAL。现在允许 MAP_POPULATE、MAP_NONBLOCK、MAP_NORESERVE、MAP_STACK、
+MAP_DENYWRITE、MAP_EXECUTABLE 单独及组合使用。该路径仍在发布地址前完成有界
+读取及复制：不存在尚待填充的页，提示不提供按需分页、无阻塞 I/O、额外保护、
+文件写锁或执行权限；MAP_EXECUTABLE 不等于 PROT_EXEC。
+
+这是执行模型已有能力的参数兼容修正，不是把全部文件 mmap 打开。仍要求
+独立候选配置、认证的单设备 EROFS 不可变来源、每次至多128 KiB、独立私有副本；
+共享、可执行、固定映射和 MAP_LOCKED 等未支持标志继续拒绝。原完整 flags 保留
+给 security_mmap_file，不为通过验证而剥除安全检查参数。默认内核、musl 与
+已发布应用接口没有变化。通用 Linux NOMMU 的复制式文件映射可参考
+[官方文档](https://docs.kernel.org/admin-guide/mm/nommu-mmap.html)，但不能据此
+认定本项目已具备其完整 VMA、可变文件或共享后备模型。
+
+真实 C 函数的 GCC/Clang 模型覆盖各提示/组合、原参数送达 LSM、MAP_LOCKED
+继续拒绝，以及原分配失败、短读、fatal signal、资源回收和预算边界。恢复旧的
+精确 flags 检查会令新用例失败；Wasm32/64 前端与静态分析通过，异常退出真实
+Wasm 小实验核实资源归零，其故意移除清理的反向控制仍检出泄漏。匿名 mmap
+参数模型及 mremap/munmap/madvise/msync 十项本地回归也通过。这些不是目标 VFS
+或启动验收。
+
+公开源码预取 40160553549/job121071011202 已核实完整 revision
+cc8c3813d235095231895e9f208593416eef313f 与
+`sha256-0YRntovVLcWpfrAWpV1OxZmZOAgSqZebWziPPiaqiEA=`。distro `deea6fc`
+集成该 pin，并让现有标准文件映射负载实际请求这些提示，核对内容、源文件及
+fd position 不变、修改私有副本和 munmap 清理；新增独立阶段标记。根仓库
+`a527315` 同步 gitlinks，并将该实际负载纳入既有双位宽前端/静态分析。
+独立双位宽
+[wasm32 40160719533](https://github.com/HighCWu/distro/actions/runs/40160719533)、
+[wasm64 40160723110](https://github.com/HighCWu/distro/actions/runs/40160723110)
+的 mmap-benchmark-check-file / mmap-benchmark-wasm64-check-file 异步验收
+candidate、legacy module、default 配置与原生命周期回归；实际阶段
+及关闭结果尚待核实，不以源码 hash 或宿主模型通过代替目标通过。自有负载及
+测试沿用 MIT，必要内核改动沿用 GPL，未新增 musl 函数。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
