@@ -152,6 +152,18 @@ jobs:
           WASM_FUSE_SOURCE_ROOT="$source_root" python3 -B scripts/check_fuse_usercopy.py
       - name: Check util-linux IPC restoration and shell cleanup contract
         run: python3 -B scripts/check_util_linux_ipc.py
+      - name: Check upstream-default VM event counters and consumers without host mounts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          source_root="$RUNNER_TEMP/vm-events"
+          for path in mm/Kconfig arch/wasm/configs/defconfig arch/wasm/configs/wasm32_defconfig arch/wasm/configs/wasm64_defconfig; do
+            mkdir -p "$source_root/$(dirname "$path")"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$source_root/$path" "$path"
+          done
+          WASM_VM_EVENTS_SOURCE_ROOT="$source_root" python3 -B scripts/check_vm_events.py
       - name: Check full util-linux wasm64 closure and final binary/archive width
         run: python3 -B scripts/check_util_linux_width.py
       - name: Check exact strict seccomp policy and workload frontends
