@@ -4030,6 +4030,38 @@ Zstd 文件
 已读取实际日志，正在核查 INIT 的页面固定复制路径与 Wasm 分离内存的兼容性，
 不因构建/配置成功就宣称 FUSE 运行通过，也不重新关闭该功能来回避缺口。
 
+## 第八十六组：FUSE 设备的 Wasm 跨内存复制
+
+第八十四组两路真实目标都失败于 INIT 后的 lookup ECONNREFUSED(111)，不是
+编译错误。审查发现设备原有 `iov_iter_get_pages2` 路径要求用户地址对应可固定
+的内核页面；NOMMU GUP 会查 VMA、随后使用 virt_to_page，不能把 Wasm 独立用户
+线性内存的偏移当成内核地址。INIT 复制失败会使连接进入错误状态，符合随后
+lookup 的错误表现；是否已完整解决须由新目标运行确认。
+
+Linux `963697df0` 对 Wasm 的普通用户内存迭代器改用已有 copy_to_iter/
+copy_from_iter，让架构 uaccess 和同步、有界的宿主复制 import 完成跨内存传输。
+不伪造页面、VMA 或 GUP 成功，不加 MMU/softmmu。原生架构、内核迭代器、管道和
+io_uring 路径不变。保持请求锁和既有清理流程；短复制只累计已完成字节，并让
+下一次 fill 解锁后返回 EFAULT，避免把负 errno 当字节数或零进展死循环。
+
+新增 MIT 轻量模型提取实际四个复制函数体，替代页面/迭代器/锁外围，不是完整
+内核运行。GCC/Clang 下核对 Wasm 双向跨页/非对齐复制、原生页面路径、空缓冲区、
+短/零复制失败和跳过字节；移除架构分流必须失败，移除错误后的进展控制必须被
+超时检出。目标消费者增加 INIT 回复完成确认，避免父线程 lookup 先失败而掩盖
+服务线程的原始错误。消费者原生与 Wasm32/64 前端、Clang 静态分析、Ruff 和
+actionlint 通过；未在宿主执行挂载。真实双位宽阶段和机器关闭尚未验收。
+
+源码已独立推送；公开
+[预取 40166798492](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40166798492)
+的实际输出确认完整 revision `963697df02b504dd1a9ab7ee3e4fe5ae9f96f34a`，
+SRI 为 `sha256-6bmMbvMi3aNRzbsuir1/9h9lo5Yfwlx/MXS9WtOquJM=`。
+distro `edfa9ec` 更新固定源码和 INIT 确认，根仓库 `dfefb52` 单独集成两个 pin、
+轻量模型与 CI 门禁。固定 edfa9ec 的
+[wasm32 40166960469](https://github.com/HighCWu/distro/actions/runs/40166960469)、
+[wasm64 40166960463](https://github.com/HighCWu/distro/actions/runs/40166960463)
+已异步运行。仍须实际读取三个功能阶段、唯一 pass 与固定运行器的关闭结果；
+不将源码哈希成功或模型通过代替该验收，也不宣称完整 FUSE/libfuse 已可用。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
