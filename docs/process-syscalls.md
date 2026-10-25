@@ -3764,7 +3764,12 @@ dry-run 和格式/工作流检查通过。这些仍不能替代真实 Wasm 目�
 [wasm32 40069040600](https://github.com/HighCWu/distro/actions/runs/40069040600)
 与 [wasm64 40069044706](https://github.com/HighCWu/distro/actions/runs/40069044706)
 已核对 clone-arguments-check-runtime / clone-arguments-wasm64-check-runtime
-及源码，实际目标结果待验收。不扩大多线程 fork、公开 clone 的被拒 flags 或浏览器范围。
+及源码。两项现已完成：实际 Heavy 日志 job120798360914 / job120798371120
+均核实三个阶段：无可选参数及 parent-only 前缀、固定位置的 child identity 与
+未触碰占位参数、pidfd/child_tid 组合及精确 wait/描述符清理，各有唯一终端 pass。
+工作流与 Heavy 均成功；固定运行器在成功退出前等待 machine.closed，关闭失败
+会拒绝通过。接受固定 4aaef0e / musl 37ad2811 的双位宽 Node 结果，不扩大
+多线程 fork、公开 clone 的被拒 flags 或浏览器范围。
 
 另外已补录此前结果：固定 5a020c8 / musl 015d1ac3 的 seccomp 严格模式
 wasm32 40066816471/job120791784487、wasm64 40066820823/job120791788549
@@ -3806,6 +3811,15 @@ APK 阶段的独立门禁也保留。元数据替换模型核对两种已知路�
 第七十九组 clone 双位宽目标继续独立运行，不重复派发、不等待它们才修复此
 明确失败，也不把修复模型通过写成目标通过。自有修复/模型为 MIT，内核和应用
 C 实现、工具集与许可边界不变。
+
+两项复验现已完成。IPC 40069738510/job120800477181 的实际日志核实四阶段：
+创建/身份/信号量元数据、lsipc 活对象、SHM 拒绝不影响已支持对象、精确 ID 删除
+及清理；完整工具集 40069743091/job120800471795 核实 uuidd TERM/HUP、ALRM
+与 INT 各24轮、inactivity/long timeout/daemon shutdown，unshare 四阶段和
+fsck 五阶段，最后各唯一 pass。两项 Heavy/工作流成功，同一未变运行器等待
+machine.closed 且拒绝关闭错误。故接受固定 56ed1d1 / musl 37ad2811 的这两项
+wasm64 Node 结果，打包修复未移除工具或放松门禁；不泛化为所有工具行为、
+浏览器、其它检查或后续内核版本均已验收。
 
 ## 信号栈缺口的前期核查记录
 
