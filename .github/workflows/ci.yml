@@ -134,6 +134,19 @@ jobs:
         run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_public_syscall_words.py
       - name: Check existing clone fixed optional arguments with actual musl
         run: WASM_CONTEXT_COMPILERS=clang python3 -B scripts/check_clone_arguments.py
+      - name: Check FUSE passthrough default intent and protocol consumer without host mounts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          source_root="$RUNNER_TEMP/fuse-passthrough"
+          for path in fs/fuse/Kconfig include/uapi/linux/fuse.h arch/wasm/configs/defconfig \
+            arch/wasm/configs/wasm32_defconfig arch/wasm/configs/wasm64_defconfig; do
+            mkdir -p "$source_root/$(dirname "$path")"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$source_root/$path" "$path"
+          done
+          WASM_FUSE_SOURCE_ROOT="$source_root" python3 -B scripts/check_fuse_passthrough.py
       - name: Check util-linux IPC restoration and shell cleanup contract
         run: python3 -B scripts/check_util_linux_ipc.py
       - name: Check full util-linux wasm64 closure and final binary/archive width
