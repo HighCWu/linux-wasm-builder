@@ -23,6 +23,16 @@ adapter = "#ifdef CONFIG_WASM\n" + "\n".join(
 assert "ret = call_sync_iter(&kiocb, &iter, false);" in source
 assert "ret = call_sync_iter(&kiocb, &iter, true);" in source
 assert "ret = call_sync_iter(&kiocb, iter, type == WRITE);" in source
+consumer = (ROOT / "sources/distro/distro/direct-io/runtime.c").read_text()
+assert "device.st_rdev != root.st_dev" in consumer
+assert "lseek(fd, 0, SEEK_END) == disk_size" in consumer
+assert consumer.index("scratch prefix initially zero") < consumer.index(
+    "direct raw write"
+)
+assert (
+    'truncate -s 8388608 "$out"'
+    in (ROOT / "sources/distro/distro/direct-io/package.nix").read_text()
+)
 
 model = r"""
 #define _GNU_SOURCE
@@ -47,6 +57,8 @@ model = r"""
 #define min_t(t,a,b) ((t)(a)<(t)(b)?(t)(a):(t)(b))
 #define BUG_ON(x) assert(!(x))
 #define S_ISREG(x) ((x)==1)
+#define S_ISBLK(x) ((x)==2)
+typedef uint64_t u64;
 typedef struct {int value;} atomic_t;
 #define ATOMIC_INIT(x) {x}
 static int atomic_read(atomic_t *v){return v->value;}
@@ -74,8 +86,13 @@ static bool copy_from_iter_full(void *p,size_t n,struct iov_iter *i){
 struct kiocb;
 struct file_operations {ssize_t (*read_iter)(struct kiocb *,struct iov_iter *);
  ssize_t (*write_iter)(struct kiocb *,struct iov_iter *);};
-struct inode {int i_mode;};
-struct file {struct file_operations *f_op;struct inode inode;};
+struct inode {int i_mode;unsigned int block_size;long long bytes;};
+struct address_space {struct inode *host;};
+struct file {struct file_operations *f_op;struct inode inode;struct address_space *f_mapping;};
+#define block_device inode
+#define I_BDEV(i) (i)
+static unsigned int bdev_logical_block_size(struct inode *i){return i->block_size;}
+static long long bdev_nr_bytes(struct inode *i){return i->bytes;}
 #define file_inode(f) (&(f)->inode)
 struct kiocb {struct file *ki_filp;int ki_flags;long long ki_pos;};
 static unsigned char disk[4*PAGE_SIZE];
@@ -83,9 +100,13 @@ static size_t short_limit=SIZE_MAX;
 static int backend_error;
 static ssize_t backend(struct kiocb *k,struct iov_iter *i,bool write){
  calls++;if(backend_error)return -backend_error;
+ if(k->ki_filp->inode.i_mode==2 && k->ki_pos>=k->ki_filp->inode.bytes)
+  return write?-ENOSPC:0;
  /* A user linear-memory iterator has no pinnable kernel VMA. */
  if(i->user&&(k->ki_flags&IOCB_DIRECT))return -EFAULT;
- if((i->alignment | (unsigned long)k->ki_pos)&511)return -EINVAL;
+ if(k->ki_filp->inode.i_mode==2){
+  if((i->count | (unsigned long)k->ki_pos)&511)return -EINVAL;
+ }else if((i->alignment | (unsigned long)k->ki_pos)&511)return -EINVAL;
  size_t n=min_t(size_t,i->count,short_limit);assert(k->ki_pos>=0);
  assert((size_t)k->ki_pos+n<=sizeof(disk));
  if(write)memcpy(disk+k->ki_pos,i->bytes+i->at,n);
@@ -96,7 +117,8 @@ static ssize_t wr(struct kiocb *k,struct iov_iter *i){return backend(k,i,true);}
 """
 tests = r"""
 int main(void){
- struct file_operations ops={rd,wr};struct file f={.f_op=&ops,.inode={1}};
+ struct file_operations ops={rd,wr};struct file f={.f_op=&ops,.inode={.i_mode=1,.block_size=512,.bytes=4*PAGE_SIZE}};
+ struct address_space mapping={.host=&f.inode};f.f_mapping=&mapping;
  unsigned char *b=aligned_alloc(PAGE_SIZE,4*PAGE_SIZE);assert(b);memset(b,0x5a,4*PAGE_SIZE);
  struct kiocb k={.ki_filp=&f,.ki_flags=IOCB_DIRECT};
  struct iov_iter original={.bytes=b,.count=3*PAGE_SIZE,.valid=4*PAGE_SIZE,
@@ -131,6 +153,21 @@ int main(void){
  assert(call_sync_iter(&k,&i,false)==512); /* Kernel iterators are not bounced. */
  k.ki_flags=0;i=original;k.ki_pos=0;
  assert(call_sync_iter(&k,&i,false)==512); /* Buffered user calls are unchanged. */
+ k.ki_flags=IOCB_DIRECT;f.inode.i_mode=2;short_limit=SIZE_MAX;i=original;k.ki_pos=0;
+ assert(call_sync_iter(&k,&i,true)==2*PAGE_SIZE&&i.at==2*PAGE_SIZE);
+ /* The real block path can accept byte-unaligned buffers, so the full
+  * original length must be checked separately before chunking. */
+ i=original;i.count=3*PAGE_SIZE+1;i.alignment|=1;k.ki_pos=0;before=calls;
+ assert(call_sync_iter(&k,&i,true)==-EINVAL&&calls==before&&i.at==0);
+ i=original;k.ki_pos=1;
+ assert(call_sync_iter(&k,&i,false)==-EINVAL&&i.at==0);
+ i=original;i.bytes=b+1;i.valid=4*PAGE_SIZE-1;i.alignment|=1;i.count=512;k.ki_pos=0;
+ assert(call_sync_iter(&k,&i,false)==512&&i.at==512);
+ i=original;i.count=3*PAGE_SIZE+1;i.alignment|=1;i.valid=PAGE_SIZE;k.ki_pos=3*PAGE_SIZE+512;
+ assert(call_sync_iter(&k,&i,true)==PAGE_SIZE-512&&i.at==PAGE_SIZE-512);
+ i=original;i.valid=0;k.ki_pos=4*PAGE_SIZE+1;
+ assert(call_sync_iter(&k,&i,false)==0&&i.at==0);
+ assert(call_sync_iter(&k,&i,true)==-ENOSPC&&i.at==0);
  assert(!allocations&&!wasm_dio_reserved.value);free(b);
 }
 """
@@ -143,6 +180,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-direct-io-") as tmp:
             [
                 cc,
                 "-DCONFIG_WASM",
+                "-DCONFIG_BLOCK",
                 "-std=gnu11",
                 "-O2",
                 "-Wall",
@@ -159,6 +197,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-direct-io-") as tmp:
         [
             "clang",
             "-DCONFIG_WASM",
+            "-DCONFIG_BLOCK",
             "--analyze",
             "-Xanalyzer",
             "-analyzer-werror",
@@ -182,10 +221,33 @@ with tempfile.TemporaryDirectory(prefix="wasm-direct-io-") as tmp:
     assert failed.returncode != 0 and b"Assertion" in failed.stderr
     unit.write_text(
         model
+        + adapter.replace(
+            "if ((iocb->ki_pos | length) & mask)",
+            "if (false && ((iocb->ki_pos | length) & mask))",
+        )
+        + tests
+    )
+    output = Path(tmp) / "lost-block-length"
+    subprocess.run(
+        [
+            "clang",
+            "-DCONFIG_WASM",
+            "-DCONFIG_BLOCK",
+            "-std=gnu11",
+            str(unit),
+            "-o",
+            str(output),
+        ],
+        check=True,
+    )
+    failed = subprocess.run([str(output)], capture_output=True)
+    assert failed.returncode != 0 and b"Assertion" in failed.stderr
+    unit.write_text(
+        model
         + adapter
         + r"""
 int main(void){
- struct file_operations ops={rd,wr};struct file f={.f_op=&ops,.inode={1}};
+ struct file_operations ops={rd,wr};struct file f={.f_op=&ops,.inode={.i_mode=1,.block_size=512}};
  unsigned char *b=aligned_alloc(PAGE_SIZE,PAGE_SIZE);assert(b);
  struct kiocb k={.ki_filp=&f,.ki_flags=IOCB_DIRECT};
  struct iov_iter i={.bytes=b,.count=512,.valid=512,.user=true};
@@ -259,5 +321,5 @@ int main(void){
             check=True,
         )
 print(
-    "Synchronous DIO: exact adapter, alignment, partial faults, errors, budget and bypass models passed; no disk I/O"
+    "Synchronous DIO: exact adapter, regular/block alignment, device-end clipping, partial faults, budget and bypass models passed; no disk I/O"
 )
