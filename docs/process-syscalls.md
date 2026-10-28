@@ -4123,25 +4123,67 @@ pgpgin、pgpgout；缺少字段、重复、非数字或溢出不能默认为零�
 实际管理的页面，绝不把用户 WebAssembly.Memory 的 malloc/memory.grow 算作
 同一种页事件，也不据此宣称页错误、swap、主机总内存或用户 CPU 记账已实现。
 
-BusyBox 显式保留已有 VMSTAT applet，源码不加补丁。安装式目标系统运行普通
-vmstat 取两次样本，检查数字列与实际退出并清理，最后要求三阶段和唯一 pass；
+首版错误地把 vmstat 当作 BusyBox 已有 applet，加入不存在的 VMSTAT 配置，
+后续真实构建已明确失败；此判断现已撤回，程序归属及修复见第八十九组。
+安装式目标原计划运行 vmstat 取两次样本，检查数字列与实际退出并清理，最后要求三阶段和唯一 pass；
 固定运行器仍须等待 machine.closed。新二进制的构建门禁会按最终字节核对共享 env.memory、
 指针位宽和声明上限；包附带自有 MIT、musl 与 compiler-rt 许可，不改用户应用 API。
 
 本地仅执行 GCC/Clang 的实际解析函数及样本反向控制、双位宽 Wasm 前端与 Clang
 静态分析，未执行有 mount 的目标 main。缺字段、重复、64位溢出/截断、负数、
 额外字段、缺换行和错误样本数均有检查；ShellCheck、shfmt、Nixfmt、Ruff 与
-actionlint 通过。这不是 VM 计数路径或真实 BusyBox 的运行证明，须等独立目标。
+actionlint 通过。这不是 VM 计数路径或真实工具的运行证明，须等独立目标。
 
 公开预取 40168349024/job121093904003 已从实际输出核实完整 revision
 `9f827ba1a625389fc439a1ce7efb6f29a7382148` 与
 `sha256-WLeM4V/SF8VphyOyQZBTllZ8JqOLaSmI6wKnrVJqb4Q=`。distro `7c83e87`
-原子集成固定内核、最终配置门禁、普通双位宽消费者和已有 vmstat applet，根仓库
+原子集成固定内核、最终配置门禁、普通双位宽消费者和上述错误的 applet 配置，根仓库
 `df5a5ff` 独立更新 pin、精确 Kconfig 输入和轻量检查。固定 7c83e87 的
 [wasm32 40168612175](https://github.com/HighCWu/distro/actions/runs/40168612175)、
 [wasm64 40168613297](https://github.com/HighCWu/distro/actions/runs/40168613297)
 已异步运行，尚待最终二进制门禁、三个实际阶段、唯一 pass 及关闭结果；不以配置
 源码或预取成功替代运行验收。此前 WRITE-only 文件映射检查仍独立在途。
+
+两路结果现已核实为失败，job121094746942 / job121094757975 均明确出现
+`.config:1200:warning: trying to assign nonexistent symbol VMSTAT`；最终失败是
+BusyBox 配置检查，目标系统未启动，也没有 VM 事件阶段。两路 Linux 的实际
+日志均已进入 buildPhase completed / installPhase，不是内核编译失败。配置期间
+还出现原有 llvm-gcc 探测提示，不能把它当成这次新增门禁失败的替代原因。
+
+## 第八十九组：纠正 vmstat 程序归属并接入 procps-ng
+
+继续核对固定 tombl BusyBox 的 procps 目录和官方 BusyBox 1.37.0 发行包后，
+两者均没有 vmstat.c；不是上游删除了一个可直接恢复的同版本 applet。撤回
+第八十八组中的错误判断，去掉 VMSTAT 配置及其 grep 门禁，不补造 BusyBox
+程序，也不关闭已恢复的内核 VM_EVENT_COUNTERS。
+
+distro `9b5a875` 接入真正提供 vmstat 的 procps-ng 4.0.7 原版程序，固定
+[上游发行档案](https://sourceforge.net/projects/procps-ng/files/Production/procps-ng-4.0.7.tar.xz/)
+与本地下载实际核对的 `sha256-nSAh9HpFAcZnhiyZQqktGVNpSyHRG80XAug+tZTj1n0=`。
+只构建原版 src/vmstat 与静态 libproc2 依赖，不宣称整套 procps 已移植；无 C 源码
+补丁，不为它增加 musl 公共函数或强制存在性探测。按实际 configure.ac 关闭本
+配置不使用的 ncurses/systemd/elogind/NUMA、NLS 和 pidwait，使用普通 Wasm stdenv。
+最终模块仍核对共享 env.memory、指针位宽和声明上限。
+
+原版该版本包含18个输出字段，旧的16/17列门禁同样错误，已修正。验证还检查
+procps-ng 版本身份、两次样本的全部数字列、实际退出和清理；原有实际 ramfs
+分配/释放验证不降低。宿主 procps-ng 4.0.4 的真实两样本经新门禁通过，仅用于
+核对格式，不作4.0.7或 Wasm 运行证据。解析反向控制、双位宽自有消费者前端及
+Clang 静态分析、ShellCheck、shfmt、Nixfmt、Ruff 和 actionlint 通过。未在本地
+重型构建 procps，也未在宿主运行含挂载的目标消费者。
+
+上游 COPYING/COPYING.LIB 与 musl/compiler-rt 许可随运行包保留，自有集成代码
+仍为 MIT。另提供精确原始源码档案、集成配方、说明与校验和的独立 sourceBundle；
+二进制哈希在最终包 strip/fixup 完成后才生成，目标安装树会实际比较该哈希。
+不以源码输入的校验和代替最终二进制身份，不宣称该小输出包含全部工具链来源或
+完成整个发行的对应源码合规审计。Linux/musl pin 不变，根仓库 `85bce0f` 独立
+更新 distro pin 与轻量门禁；新的双位宽目标尚待实际运行验收。
+
+固定 `9b5a875` 已分别派发
+[wasm32 40634677498](https://github.com/HighCWu/distro/actions/runs/40634677498) 和
+[wasm64 40634678517](https://github.com/HighCWu/distro/actions/runs/40634678517)。
+只有实际三个阶段、唯一 pass 和固定运行器关闭结果均核实后才记为通过；
+构建成功或工作流绿色本身不替代这些证据。
 
 ## 信号栈缺口的前期核查记录
 

@@ -776,10 +776,17 @@ Linux `97de895f0` / distro `8ba739f` / 根仓库 `8b199eb` 进一步修正文件
 Linux `9f827ba1a` / distro `7c83e87` / 根仓库 `df5a5ff` 去掉三套 defconfig
 对官方默认 VM_EVENT_COUNTERS 的关闭，
 恢复标准 `/proc/vmstat` 事件字段；不新增 syscall 或 libc 函数。真实目标会通过
-内核管理的 ramfs 页分配/释放核对计数，并运行原版 BusyBox vmstat 两次样本，
+内核管理的 ramfs 页分配/释放核对计数，并运行上游 vmstat 两次样本，
 不把用户 Wasm 线性内存当作内核页或宣称全系统内存统计。解析正反控制、双位宽
 前端和静态分析通过，重型目标尚未验收。详见
 [第八十八组](process-syscalls.md#第八十八组恢复官方默认的-vm-事件计数)。
+
+首版实际 CI 失败于不存在的 BusyBox VMSTAT 配置，未启动目标系统。已进一步
+确认官方 BusyBox 也无该 applet，撤回原先的程序归属判断。distro `9b5a875` /
+根仓库 `85bce0f` 改为固定且未修改 C 源码的 procps-ng 4.0.7 vmstat 与静态
+libproc2，修正18列门禁并提供最终二进制绑定的来源档案；不增加 libc API，
+不关闭内核计数。轻量检查通过，新目标尚待实际阶段和关闭验收。详见
+[第八十九组](process-syscalls.md#第八十九组纠正-vmstat-程序归属并接入-procps-ng)。
 
 CI 不再作为每个独立增量的串行前置条件：实现与 review 持续推进，定期查看结果，
 明确失败后回溯修复。支持范围区分已实现、本地验证和真实目标验收；不以持续增加
