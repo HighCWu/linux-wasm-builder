@@ -100,6 +100,8 @@ jobs:
               "$revision" "$config_root/$config" "arch/wasm/configs/$config"
           done
           WASM_DEFCONFIG_ROOT="$config_root" python3 -B scripts/check_selected_defconfigs.py
+      - name: Check packet socket workload without host network or credential changes
+        run: python3 -B scripts/check_packet_sockets.py
       - name: Check exec metadata commit using the exact pinned loader
         env:
           GH_TOKEN: ${{ github.token }}
