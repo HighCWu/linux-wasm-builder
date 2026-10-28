@@ -4374,6 +4374,14 @@ distro `4d94634` 原子集成精确内核 pin、最终配置门禁及双位宽�
 已各派发一次并核对源码及检查名；它们只验证普通 socket 路径，不覆盖 packet
 mmap、外部网卡流量或浏览器。本轮没有取消或重派在途裸块设备 wasm32 检查。
 
+固定 4d94634 的两路 Node 现已核实通过：wasm32 job122660058060 的完整
+日志为5,612,009字节，wasm64 job122660096374 为3,708,098字节；各有
+RAW/截断、cooked/地址/flags、恢复/降权/清理三个实际阶段与唯一 pass，
+无目标失败或清理错误。两个 Heavy/工作流均成功，未变的固定运行器在成功
+退出前等待 machine.closed，故关闭门禁也成立。仅接受 Linux b2130397a /
+distro 4d94634 的普通 loopback socket 范围；不扩展为 packet ring、外部
+网络、libpcap/tcpdump 或浏览器已经验收。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
