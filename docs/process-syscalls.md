@@ -4207,6 +4207,69 @@ distro `37c7469` 因此在本包交叉配置中给出这两项精确行为的缓
 [40635419389](https://github.com/HighCWu/distro/actions/runs/40635419389)。
 此前已通过的文件映射与 FUSE 运行证据仍单独保留，不用于代替这次目标验收。
 
+两路 `37c7469` 后续均失败，但已经进入实际目标：job122641254270 /
+job122641283317 各完成前两个 VM 事件阶段，证明零尺寸分配检查及真实 ramfs
+分配、内容保留、释放和清理均执行成功。失败紧接其后，实际日志是 BusyBox
+sha256sum 的用法提示，不是文件校验和不匹配；它不接受 GNU `--check`。
+distro `6184874` 改用已有 `-c`，根仓库 `e214a1e` 独立更新 pin 和轻量
+门禁；未删除二进制身份检查。该修正随后随下组固定源码一起双位宽复验，不能
+把前两个阶段通过记成 vmstat 完整运行通过。
+
+## 第九十组：同步普通文件 O_DIRECT 的内核缓冲桥
+
+实际源码路径表明，普通同步 read/write、pread/pwrite 和向量调用会把用户
+ITER_UBUF/ITER_IOVEC 直接交给文件系统。ext4 的 direct I/O 经 iomap 提取页面，
+而通用 NOMMU GUP 要求 find_vma；Wasm 用户线性内存并没有这些内核 VMA。
+因此普通用户地址不能靠原页固定路径完成 I/O。不能把它们直接当内核地址，
+也不能只清除 O_DIRECT 冒充支持。
+
+Linux `c8f79667c` 在 fs/read_write.c 的三个既有同步分派点接入有界缓冲：
+仅 Wasm、O_DIRECT、用户迭代器、非空普通文件请求使用它。保留原 kiocb 和
+O_DIRECT 标志，交给原文件系统的 read_iter/write_iter 真正执行 I/O；文件
+系统原有的拒绝或 fallback 政策仍由文件系统决定。本桥不强制改成 buffered。
+普通 I/O、内核迭代器、非普通文件及其它架构保持原回调路径；没有新增 syscall
+号、libc 函数、应用接口或内核 softmmu，CONFIG_MMU 仍为 n。
+
+每次最多交付128 KiB，较大请求可以得到标准短读写，调用者需处理返回长度；
+所有请求合计最多占用512 KiB缓冲预算，包含页对齐偏移开销，预算或分配失败
+返回 ENOMEM。这是当前实现边界，不宣称无限长度、任意设备或零拷贝支持。
+原始完整向量及完整请求长度的对齐信息在 PAGE_SIZE 范围内传播到缓冲地址，
+避免截短恰好掩盖原请求未对齐。写入先复制到缓冲，用户错误前不提交文件写入；
+读取后只推进已交付的用户字节及位置，全部/部分错误均释放页与预算。
+NOWAIT 返回 EAGAIN，原子和 HIPRI 请求返回 EOPNOTSUPP，不把分块当作原子写。
+本桥只接在同步调用点，不启用 AIO/io_uring，也不扩大多线程 fork 支持。
+
+GCC/Clang 检查实际函数体，覆盖真实内容复制、短传输、完整请求未对齐、部分
+用户读回故障、全故障、写前故障、分配/预算耗尽、文件系统 EIO、拒绝标志和
+清理；禁用分派的反向控制可编译运行但必须断言失败。其它架构及普通/内核
+迭代器 bypass 模型也通过，Clang 静态分析和真实消费者的双位宽前端通过。
+模型使用替代页分配、迭代器和原子操作，不证明真实 GUP、并发竞争或磁盘 I/O；
+没有在宿主执行会创建 direct 文件的目标 main。
+
+MIT 消费者使用普通 SDK 和实际 ext4 安装根，要求三阶段：标量/位置读写；
+向量短写、读回及独立 buffered fd 观察真实文件字节；未对齐、无效地址、
+失败后恢复及文件清理。最终二进制仍核对共享 env.memory、指针位宽和声明
+上限。完整三个阶段、唯一 pass 及固定 machine.closed 门禁均待真实目标核实。
+Linux 必要修改保留 GPL，自有消费者、配方和轻量模型为 MIT；musl pin 不变。
+
+[公开源码预取 40636592490](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40636592490)
+的 job122644870218 实际输出核实完整 revision
+`c8f79667ca853218399785b3a0851a44005a5de9` 及
+`sha256-hqCOraJmuA5C/5GjKYi+YZL0FYrrKJD/rXkX7WyvxWs=`。
+distro `f380221` 原子集成精确内核 pin、双位宽消费者；根仓库 `07696b2` 单独
+更新 gitlinks、精确函数源获取和轻量 review。目标 CI 异步执行，未验收前不
+宣称 ext4 direct I/O 已经可用，也不以较早 mmap/FUSE 结果替代。
+
+固定 `f380221` 的检查名与源码已核对，四项均只派发一次：
+
+- direct I/O [wasm32 40636944683](https://github.com/HighCWu/distro/actions/runs/40636944683)、
+  [wasm64 40636955266](https://github.com/HighCWu/distro/actions/runs/40636955266)。
+- VM 事件/vmstat [wasm32 40636963087](https://github.com/HighCWu/distro/actions/runs/40636963087)、
+  [wasm64 40636968393](https://github.com/HighCWu/distro/actions/runs/40636968393)。
+
+当前仅记录异步运行中；需要分别读取实际阶段及关闭结果，不把新内核源码预取
+成功、模型或 CI 开始运行视为这些调用已经验收。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
