@@ -53,6 +53,13 @@ model = r"""
 #define IOCB_NOWAIT 2
 #define IOCB_ATOMIC 4
 #define IOCB_HIPRI 8
+#define IOCB_APPEND 16
+#define O_LARGEFILE 32768
+#define MAX_NON_LFS 2147483647LL
+#define RLIM_INFINITY ((loff_t)-1)
+#define RLIMIT_FSIZE 1
+static loff_t file_limit=RLIM_INFINITY;
+static inline loff_t rlimit(int resource){assert(resource==RLIMIT_FSIZE);return file_limit;}
 #define EIOCBQUEUED 529
 #define min_t(t,a,b) ((t)(a)<(t)(b)?(t)(a):(t)(b))
 #define BUG_ON(x) assert(!(x))
@@ -73,7 +80,8 @@ static void free_pages_exact(void *p,size_t n){(void)n;allocations--;free(p);}
 struct iov_iter {unsigned char *bytes;size_t count,at,valid;unsigned long alignment;bool user;};
 struct kvec {void *iov_base;size_t iov_len;};
 static size_t iov_iter_count(const struct iov_iter *i){return i->count;}
-static unsigned long iov_iter_alignment(const struct iov_iter *i){return i->alignment;}
+static unsigned long iov_iter_alignment(const struct iov_iter *i){return i->alignment|((uintptr_t)i->bytes+i->at)|i->count;}
+static void iov_iter_truncate(struct iov_iter *i,size_t n){if(i->count>n)i->count=n;}
 static bool user_backed_iter(const struct iov_iter *i){return i->user;}
 static void iov_iter_advance(struct iov_iter *i,size_t n){assert(n<=i->count);i->at+=n;i->count-=n;}
 static void iov_iter_kvec(struct iov_iter *i,int rw,struct kvec *v,int nr,size_t n){
@@ -86,13 +94,16 @@ static bool copy_from_iter_full(void *p,size_t n,struct iov_iter *i){
 struct kiocb;
 struct file_operations {ssize_t (*read_iter)(struct kiocb *,struct iov_iter *);
  ssize_t (*write_iter)(struct kiocb *,struct iov_iter *);};
-struct inode {int i_mode;unsigned int block_size;long long bytes;};
+struct super_block {loff_t s_maxbytes;};
+static struct super_block superblock={.s_maxbytes=4*PAGE_SIZE};
+struct inode {int i_mode;unsigned int block_size;long long bytes;struct super_block *i_sb;};
 struct address_space {struct inode *host;};
-struct file {struct file_operations *f_op;struct inode inode;struct address_space *f_mapping;};
+struct file {struct file_operations *f_op;struct inode inode;struct address_space *f_mapping;int f_flags;};
 #define block_device inode
 #define I_BDEV(i) (i)
 static unsigned int bdev_logical_block_size(struct inode *i){return i->block_size;}
 static long long bdev_nr_bytes(struct inode *i){return i->bytes;}
+static inline loff_t i_size_read(struct inode *i){return i->bytes;}
 #define file_inode(f) (&(f)->inode)
 struct kiocb {struct file *ki_filp;int ki_flags;long long ki_pos;};
 static unsigned char disk[4*PAGE_SIZE];
@@ -100,13 +111,20 @@ static size_t short_limit=SIZE_MAX;
 static int backend_error;
 static ssize_t backend(struct kiocb *k,struct iov_iter *i,bool write){
  calls++;if(backend_error)return -backend_error;
+ if(write&&k->ki_filp->inode.i_mode==1){
+  loff_t bound=k->ki_filp->f_flags&O_LARGEFILE?superblock.s_maxbytes:MAX_NON_LFS;
+  if(file_limit!=RLIM_INFINITY&&file_limit<bound)bound=file_limit;
+  if(k->ki_flags&IOCB_APPEND)k->ki_pos=k->ki_filp->inode.bytes;
+  if(k->ki_pos>=bound)return -EFBIG;
+  iov_iter_truncate(i,bound-k->ki_pos);
+ }
  if(k->ki_filp->inode.i_mode==2 && k->ki_pos>=k->ki_filp->inode.bytes)
   return write?-ENOSPC:0;
  /* A user linear-memory iterator has no pinnable kernel VMA. */
  if(i->user&&(k->ki_flags&IOCB_DIRECT))return -EFAULT;
  if(k->ki_filp->inode.i_mode==2){
   if((i->count | (unsigned long)k->ki_pos)&511)return -EINVAL;
- }else if((i->alignment | (unsigned long)k->ki_pos)&511)return -EINVAL;
+ }else if((iov_iter_alignment(i) | (unsigned long)k->ki_pos)&511)return -EINVAL;
  size_t n=min_t(size_t,i->count,short_limit);assert(k->ki_pos>=0);
  assert((size_t)k->ki_pos+n<=sizeof(disk));
  if(write)memcpy(disk+k->ki_pos,i->bytes+i->at,n);
@@ -117,7 +135,7 @@ static ssize_t wr(struct kiocb *k,struct iov_iter *i){return backend(k,i,true);}
 """
 tests = r"""
 int main(void){
- struct file_operations ops={rd,wr};struct file f={.f_op=&ops,.inode={.i_mode=1,.block_size=512,.bytes=4*PAGE_SIZE}};
+ struct file_operations ops={rd,wr};struct file f={.f_op=&ops,.inode={.i_mode=1,.block_size=512,.bytes=4*PAGE_SIZE,.i_sb=&superblock},.f_flags=O_LARGEFILE};
  struct address_space mapping={.host=&f.inode};f.f_mapping=&mapping;
  unsigned char *b=aligned_alloc(PAGE_SIZE,4*PAGE_SIZE);assert(b);memset(b,0x5a,4*PAGE_SIZE);
  struct kiocb k={.ki_filp=&f,.ki_flags=IOCB_DIRECT};
@@ -153,6 +171,22 @@ int main(void){
  assert(call_sync_iter(&k,&i,false)==512); /* Kernel iterators are not bounced. */
  k.ki_flags=0;i=original;k.ki_pos=0;
  assert(call_sync_iter(&k,&i,false)==512); /* Buffered user calls are unchanged. */
+ /* A generic file-size limit clips the request before accessing its tail. */
+ short_limit=SIZE_MAX;k.ki_flags=IOCB_DIRECT;k.ki_pos=0;file_limit=PAGE_SIZE;
+ i=original;i.count=3*PAGE_SIZE+1;i.alignment=0;i.valid=PAGE_SIZE;
+ assert(call_sync_iter(&k,&i,true)==PAGE_SIZE&&i.at==PAGE_SIZE&&k.ki_pos==PAGE_SIZE);
+ file_limit=RLIM_INFINITY;superblock.s_maxbytes=PAGE_SIZE;k.ki_pos=0;
+ i=original;i.count=3*PAGE_SIZE+1;i.alignment=0;i.valid=PAGE_SIZE;
+ assert(call_sync_iter(&k,&i,true)==PAGE_SIZE&&i.at==PAGE_SIZE);
+ superblock.s_maxbytes=4*PAGE_SIZE;
+ f.inode.bytes=PAGE_SIZE;file_limit=2*PAGE_SIZE;k.ki_flags|=IOCB_APPEND;k.ki_pos=0;
+ i=original;i.count=3*PAGE_SIZE+1;i.alignment=0;i.valid=PAGE_SIZE;
+ assert(call_sync_iter(&k,&i,true)==PAGE_SIZE&&i.at==PAGE_SIZE&&k.ki_pos==2*PAGE_SIZE);
+ /* At the limit, let the original method produce EFBIG without reading. */
+ i=original;i.valid=0;k.ki_flags=IOCB_DIRECT;k.ki_pos=2*PAGE_SIZE;
+ before=calls;
+ assert(call_sync_iter(&k,&i,true)==-EFBIG&&i.at==0&&calls==before+1);
+ file_limit=RLIM_INFINITY;f.inode.bytes=4*PAGE_SIZE;
  k.ki_flags=IOCB_DIRECT;f.inode.i_mode=2;short_limit=SIZE_MAX;i=original;k.ki_pos=0;
  assert(call_sync_iter(&k,&i,true)==2*PAGE_SIZE&&i.at==2*PAGE_SIZE);
  /* The real block path can accept byte-unaligned buffers, so the full
@@ -215,6 +249,29 @@ with tempfile.TemporaryDirectory(prefix="wasm-direct-io-") as tmp:
     output = Path(tmp) / "old-path"
     subprocess.run(
         ["clang", "-DCONFIG_WASM", "-std=gnu11", str(unit), "-o", str(output)],
+        check=True,
+    )
+    failed = subprocess.run([str(output)], capture_output=True)
+    assert failed.returncode != 0 and b"Assertion" in failed.stderr
+    unit.write_text(
+        model
+        + adapter.replace(
+            "if (write && S_ISREG(file_inode(iocb->ki_filp)->i_mode))",
+            "if (false && write && S_ISREG(file_inode(iocb->ki_filp)->i_mode))",
+        )
+        + tests
+    )
+    output = Path(tmp) / "lost-file-limit"
+    subprocess.run(
+        [
+            "clang",
+            "-DCONFIG_WASM",
+            "-DCONFIG_BLOCK",
+            "-std=gnu11",
+            str(unit),
+            "-o",
+            str(output),
+        ],
         check=True,
     )
     failed = subprocess.run([str(output)], capture_output=True)
@@ -321,5 +378,5 @@ int main(void){
             check=True,
         )
 print(
-    "Synchronous DIO: exact adapter, regular/block alignment, device-end clipping, partial faults, budget and bypass models passed; no disk I/O"
+    "Synchronous DIO: exact adapter, file limits/append, regular/block alignment, device-end clipping, partial faults and budget models passed; no disk I/O"
 )
