@@ -35,6 +35,11 @@ assert "procps-ng-4.0.7.tar.xz" in procps
 assert "sha256-nSAh9HpFAcZnhiyZQqktGVNpSyHRG80XAug+tZTj1n0=" in procps
 assert 'buildFlags = [ "src/vmstat" ];' in procps
 assert "patches =" not in procps and "postPatch =" not in procps
+for function in ("malloc", "realloc"):
+    assert f'env.ac_cv_func_{function}_0_nonnull = "yes";' in procps
+assert "zero_alloc = alloc(0)" in source
+assert "zero_resize = resize(NULL, 0)" in source
+assert "zero_alloc && zero_resize" in source
 assert "check-binary.mjs" in procps and "BINARY_SHA256SUMS" in procps
 assert (
     "procps-vmstat = self.procps-vmstat-wasm64;" in (DISTRO / "default.nix").read_text()
