@@ -29,7 +29,16 @@ assert (
     in (DISTRO / "linux/package.nix").read_text()
 )
 busybox = (DISTRO / "busybox/package.nix").read_text()
-assert "config VMSTAT y" in busybox and "grep -qx 'CONFIG_VMSTAT=y' .config" in busybox
+assert "config VMSTAT y" not in busybox and "CONFIG_VMSTAT=y" not in busybox
+procps = (DISTRO / "procps-vmstat/package.nix").read_text()
+assert "procps-ng-4.0.7.tar.xz" in procps
+assert "sha256-nSAh9HpFAcZnhiyZQqktGVNpSyHRG80XAug+tZTj1n0=" in procps
+assert 'buildFlags = [ "src/vmstat" ];' in procps
+assert "patches =" not in procps and "postPatch =" not in procps
+assert "check-binary.mjs" in procps and "BINARY_SHA256SUMS" in procps
+assert (
+    "procps-vmstat = self.procps-vmstat-wasm64;" in (DISTRO / "default.nix").read_text()
+)
 
 harness = r"""
 #include <assert.h>
@@ -93,13 +102,13 @@ with tempfile.TemporaryDirectory(prefix="vm-events-check-") as tmp:
 
     # Exercise the exact awk admission independently of a live vmstat process.
     awk = shell.split("awk '\n", 1)[1].split("\n' /tmp/vmstat.out", 1)[0]
-    row = " ".join(["0"] * 17) + "\n"
+    row = " ".join(["0"] * 18) + "\n"
     for report, valid in (
         ("header\n" + row * 2, True),
         (row, False),
         (row * 3, False),
         (row + row.replace("0", "bad", 1), False),
-        (row + " ".join(["0"] * 15) + "\n", False),
+        (row + " ".join(["0"] * 17) + "\n", False),
     ):
         result = subprocess.run(["awk", awk], input=report, text=True)
         assert (result.returncode == 0) == valid
