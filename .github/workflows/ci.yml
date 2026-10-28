@@ -164,6 +164,14 @@ jobs:
               "$revision" "$source_root/$path" "$path"
           done
           WASM_VM_EVENTS_SOURCE_ROOT="$source_root" python3 -B scripts/check_vm_events.py
+      - name: Check synchronous Wasm direct I/O without host disk I/O
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-read-write.c" fs/read_write.c
+          WASM_DIRECT_IO_SOURCE="$RUNNER_TEMP/wasm-read-write.c" python3 -B scripts/check_direct_io.py
       - name: Check full util-linux wasm64 closure and final binary/archive width
         run: python3 -B scripts/check_util_linux_width.py
       - name: Check exact strict seccomp policy and workload frontends
