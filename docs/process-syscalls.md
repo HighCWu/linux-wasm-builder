@@ -4104,8 +4104,14 @@ GCC/Clang 的实际 C 函数体模型、双位宽调用单位、Wasm32/64 消费
 `8b199eb` 单独更新 pin。固定 8ba739f 的
 [wasm32 40167729310](https://github.com/HighCWu/distro/actions/runs/40167729310)、
 [wasm64 40167730535](https://github.com/HighCWu/distro/actions/runs/40167730535)
-异步复验 candidate、legacy、default 和生命周期回归，新 WRITE-only 阶段及关闭
-尚未核实。不重复派发没有改动请求方式的 Zstd，也未把浏览器断言更新当成运行。
+两路现均核实成功，完整日志分别为 10,263,013 与 8,315,714 字节，job
+121092164705 / 121092154715 各出现11条预期阶段/结果：candidate 的四阶段
+（含新的 WRITE-only）及唯一 pass，default/legacy 各自的拒绝阶段和唯一 pass，
+生命周期的并发预算/回滚阶段及唯一 pass。固定运行器的清理代码与该版本无差异，
+实际成功出口要求 await machine.closed 且没有启动/运行/清理错误，因此这四次
+启动的关闭门禁也成立。此验收仅对应 Linux `97de895f0` / distro `8ba739f`，
+不替代后续 VM 计数配置的目标验证。不重复派发没有改动请求方式的 Zstd，
+也未把浏览器断言更新当成浏览器运行。
 
 ## 第八十八组：恢复官方默认的 VM 事件计数
 
@@ -4184,6 +4190,22 @@ Clang 静态分析、ShellCheck、shfmt、Nixfmt、Ruff 和 actionlint 通过。
 [wasm64 40634678517](https://github.com/HighCWu/distro/actions/runs/40634678517)。
 只有实际三个阶段、唯一 pass 和固定运行器关闭结果均核实后才记为通过；
 构建成功或工作流绿色本身不替代这些证据。
+
+wasm32 40634677498 的 job122638887522 已从完整实际日志核实失败：交叉配置
+报告 GNU libc compatible malloc/realloc 为 no，随后 libproc2 链接缺失
+`rpl_malloc` / `rpl_realloc`。这不是 Linux VM 事件故障，仍未启动目标。
+上游 configure.ac 使用 AC_FUNC_MALLOC/AC_FUNC_REALLOC；固定 musl mallocng
+对零尺寸使用正常最小 size class，realloc(NULL, 0) 直接调用 malloc(0)。
+distro `37c7469` 因此在本包交叉配置中给出这两项精确行为的缓存答案，并在
+真实目标消费者中通过 volatile 函数指针检查、释放两次零尺寸分配，防止只声明
+支持却不检验目标 libc。不添加 rpl 替代函数、不改 procps C 源码或 musl API。
+根仓库 `0dce261` 独立更新 pin 和门禁；双位宽前端/静态分析、解析回归及格式
+检查通过，真实目标结果仍待验收。旧 wasm64 任务继续运行，不因耗时而取消。
+
+修正后的 `37c7469` 已单次派发双位宽复验：
+[40635414453](https://github.com/HighCWu/distro/actions/runs/40635414453) 与
+[40635419389](https://github.com/HighCWu/distro/actions/runs/40635419389)。
+此前已通过的文件映射与 FUSE 运行证据仍单独保留，不用于代替这次目标验收。
 
 ## 信号栈缺口的前期核查记录
 
