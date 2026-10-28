@@ -4322,6 +4322,58 @@ distro `e8190f2` 原子集成精确 pin 与独立磁盘消费者，根仓库 `1f
 [wasm64 40638318850](https://github.com/HighCWu/distro/actions/runs/40638318850)
 已各派发一次并核对检查名，仍在运行；不取消此前慢任务，也不重复派发同源码。
 
+wasm64 40638318850/job122650460071 现已从完整实际日志核实通过：保留的三个
+普通文件阶段、新增独立裸磁盘阶段及唯一 pass 均齐全，无目标失败或清理错误。
+新阶段包括实际原始字节、向量顺序、无效请求不改写、跨设备末尾截短及恢复；
+PID1 在 pass 前卸载自身 devtmpfs，固定运行器再等待 machine.closed，Heavy/
+工作流均成功。接受 Linux 54e4b1f97 / distro e8190f2 的有界 wasm64 Node
+结果。wasm32 40638312930/job122650439251 后续一次状态查询曾遇到传输 EOF，
+再次查询确认仍运行；没有视为失败、重派或用 wasm64 代替它的运行证明。
+
+## 第九十二组：启用上游 AF_PACKET 普通链路层收发
+
+三套输入未请求 PACKET；本轮 Linux `b2130397a` 明确启用 CONFIG_PACKET=y，
+接通上游 packet socket family 的普通 RAW/DGRAM 收发。net/packet/Kconfig
+没有 default y，虽有“If unsure, say Y”建议，这里是按项目兼容性需求选择
+功能，不称作恢复一个原本就为 y 的默认值。不重写 packet_create/sendmsg/
+recvmsg，不添加 libc 包装函数或公共头文件 API，musl pin 完全不变。
+最终 .config 另要求 PACKET=y，三套输入的禁用反向控制必须失败。
+
+静态核查覆盖上游普通发送复制、packet_recvmsg 的地址长度和截断处理、
+loopback 的 eth_type_trans 接收路径。普通收发不需要页表或把用户偏移当成
+内核页；packet mmap ring 则不在本组支持范围，不能因 family 已编入就声称
+共享环、零拷贝或 libpcap/tcpdump 已可用。PACKET_DIAG 保持其默认关闭，
+CONFIG_MMU 仍为 n，无内核 softmmu 或多线程 fork 范围变化。
+
+MIT 普通 SDK 消费者只对自己的 lo 使用本地实验 EtherType 0x88b5：先保存接口
+标志，验证 RAW 帧发送、RAW 完整接收及 DGRAM 去头/MSG_TRUNC/scatter-gather
+二进制数据，再由 DGRAM 发送核对内核构建的链路头和实际地址。接收要求
+PACKET_HOST，不能仅靠 outgoing tap 的副本通过。所有接收均有单调时钟截止
+时间和有限匹配次数，不使用外部网络或混杂捕获。恢复原接口标志并关闭 socket
+后，才 setuid(65534) 检查 CAP_NET_RAW 拒绝；普通 UDP socket 仍须可创建。
+要求三个功能阶段、唯一 pass 和固定关闭门禁。
+
+本地仅做 GCC/Clang 编译、实际 musl 头文件的 Wasm32/64 前端与静态分析，
+绝不执行会修改网络状态与凭据的目标 main；ShellCheck/shfmt、Nixfmt、Ruff
+与 actionlint 通过。最终模块沿用共享 env.memory、指针位宽和声明上限门禁，
+wasm64 的 stdenv、平台、musl、运行库、BusyBox 和运行器覆盖项另有轻量检查，
+不以静态配方检查代替实际 Nix 闭包及最终字节的目标门禁。自有消费者、
+配方和检查为 MIT，上游协议栈保留原许可证；没有应用专用接口。
+
+[公开预取 40640755173](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40640755173)
+的 job122658078368 实际输出已核实完整 revision
+`b2130397a84a5370f11f823c7076c799f2be6f5f` 和
+`sha256-nmkTTuddeyVlJC3KU/5mCtWMtyHmvW57APZtRYlJRLE=`。
+distro `4d94634` 原子集成精确内核 pin、最终配置门禁及双位宽普通消费者，
+根仓库 `02ddb25` 单独更新 gitlinks 和轻量检查。真实 AF_PACKET 阶段仍待
+公开目标验收；本地编译或之前 direct I/O 的通过均不替代该证明。
+
+固定 4d94634 的
+[wasm32 40641343193](https://github.com/HighCWu/distro/actions/runs/40641343193)、
+[wasm64 40641353200](https://github.com/HighCWu/distro/actions/runs/40641353200)
+已各派发一次并核对源码及检查名；它们只验证普通 socket 路径，不覆盖 packet
+mmap、外部网卡流量或浏览器。本轮没有取消或重派在途裸块设备 wasm32 检查。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
