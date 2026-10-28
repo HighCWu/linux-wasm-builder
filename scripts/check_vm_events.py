@@ -40,6 +40,8 @@ for function in ("malloc", "realloc"):
 assert "zero_alloc = alloc(0)" in source
 assert "zero_resize = resize(NULL, 0)" in source
 assert "zero_alloc && zero_resize" in source
+assert "sha256sum -c /vm-events-vmstat.sha256" in shell
+assert "sha256sum --check" not in shell
 assert "check-binary.mjs" in procps and "BINARY_SHA256SUMS" in procps
 assert (
     "procps-vmstat = self.procps-vmstat-wasm64;" in (DISTRO / "default.nix").read_text()
