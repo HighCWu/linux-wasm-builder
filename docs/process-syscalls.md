@@ -4382,6 +4382,50 @@ RAW/截断、cooked/地址/flags、恢复/降权/清理三个实际阶段与唯�
 distro 4d94634 的普通 loopback socket 范围；不扩展为 packet ring、外部
 网络、libpcap/tcpdump 或浏览器已经验收。
 
+## 第九十三组：direct 写入先按通用文件限额截短，再复制用户前缀
+
+继续静态 review 发现第九十组缓冲桥的一处缺口：它在原文件系统执行
+generic_write_check_limits() 之前就复制用户源。若 RLIMIT_FSIZE 或通用文件
+最大长度只允许请求的前缀，而未使用的用户尾部无效，原生顺序本可成功短写，
+桥却提前 EFAULT；完整原请求的未对齐尾部也可能污染原本有效前缀的对齐。
+有追加标志时，限额必须相对 inode 当前大小而不是调用者原始 ki_pos 计算。
+
+先扩充实际函数体模型，在 b2130397a 函数体上可编译但明确断言失败于合法 PAGE_SIZE
+前缀写入；初次模型的未用辅助函数编译诊断不作为功能复现。Linux `ad068df98`
+随后为普通 direct 写入读取通用限额快照，先截短临时迭代器，再计算复制长度
+和对齐。只读取当前资源/文件大小与 O_LARGEFILE 条件，不改调用者的 ki_pos 或
+迭代器，不自行发 SIGXFSZ，也不提前获取文件系统 inode 锁。已达界限时直接
+交回原 write_iter；实际写入、追加位置、锁、权限和进一步限额仍由原文件系统
+处理。它不是任意文件系统私有限额或并发大小/rlimit 修改的原子快照承诺。
+块设备原有的末尾/扇区校验和共享缓冲预算不变；无 MMU 或 libc API 变化。
+
+GCC/Clang 模型覆盖资源限额、s_maxbytes、APPEND、未使用尾部、仍调用原方法
+产生 EFBIG、对齐/故障/预算和块设备回归，移除新前缀选择的反向控制可编译
+但必须断言失败。静态分析与真实消费者的双位宽前端通过；没有在宿主执行
+含磁盘操作或资源限额修改的目标 main。
+
+目标故障夹具只在 Wasm 消费者内新增一页线性内存，使一页源有效、请求尾部
+实际越过当前 memory 容量且仍在架构 access_ok 范围内。分别通过普通 pwrite
+与设置 O_APPEND 后的 write 验证限额截短、真实字节和位置；不把 musl 既有
+RWF_NOAPPEND 的 pwrite 误当追加调用。夹具在任何后续分配前以 volatile 写
+清零新页，并恢复原限额和 fd flags，避免破坏运行库对新 arena 的零字节约定。
+这只是测试内存边界的方法，不要求用户程序采用新接口；普通 SDK 与 musl
+pin 不变。消费者保留此前所有阶段，新增限额阶段后共五阶段及唯一 pass，
+固定运行器仍需等待 machine.closed。
+
+[公开预取 40643752496](https://github.com/HighCWu/linux-wasm-builder/actions/runs/40643752496)
+的 job122667659740 实际输出已核实完整 revision
+`ad068df98a9e6a2614027df4ef94a7ac2f1a1861` 与
+`sha256-fGT90QSw32imI4DnFRK2D428mTkKhr+NXnYOrNjZPhI=`。
+distro `09b3edd` 原子集成精确 pin 与目标边界夹具，根仓库 `9cbfb0f` 单独
+更新 gitlinks、模型和反向控制。真实目标尚待验收；旧四阶段及 AF_PACKET
+通过不替代新增限额分支的运行证明。
+
+固定 09b3edd 的
+[wasm32 40644971827](https://github.com/HighCWu/distro/actions/runs/40644971827)、
+[wasm64 40644977325](https://github.com/HighCWu/distro/actions/runs/40644977325)
+已各派发一次并核对检查名，仍在运行；不取消或重复派发此前慢任务。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
