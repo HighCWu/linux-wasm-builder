@@ -2050,6 +2050,13 @@ distro3a00905 / 集成822d420增加可复用dylink.0解析和BigInt布局规划�
 通过，仍待Linux进程内加载与标准dlopen/dlsym接通，不算ELF入口已支持。见
 [实现边界](elf-dynamic-linking.md#可复用元数据解析与无副作用布局规划)。
 
+e456e76 / 集成5a175b8将依赖、GOT、规范函数槽位、数据重定位和一次性构造
+初始化移入实际模块绑定组件；解析真实资源及函数类型，避免JS转发掩盖ABI
+不匹配。真实双位宽共享库的直接/间接调用、弱空指针、新表槽及错误控制已在
+轻量实验通过，公开CI补充同一语料。Linux文件/allocator/主程序作用域和标准
+dlopen仍待接通，不将组件结果当作Linux或ELF验收。见
+[绑定组件与剩余边界](elf-dynamic-linking.md#实际模块绑定组件)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。
