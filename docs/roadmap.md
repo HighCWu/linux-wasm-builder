@@ -2081,6 +2081,13 @@ Linux `3dc991222` / distro `8ede319` 接通标准 cgroup v2 PIDs controller。
 主仓库 pin 为 `e54105c`，见
 [PIDs 准入记录](process-syscalls.md#第一百零四组标准-cgroup-v2-pids-准入与-fork-回滚)。
 
+独立 distro `36852d6` 的 setsid-fork 产品开始使用原版 util-linux 2.42.2
+setsid 的普通 fork/setsid/exec/wait 路径，不应用专用 callback-clone 补丁。
+消费者核对强制/自动 fork 与直接 exec 身份、wait 状态、控制 PTY 和 exec
+失败后的恢复；轻量分析及宿主工具对照通过，双位宽真实目标已派发，仍待验收。
+默认 util-linux 不变，不新增 musl API。主仓库 pin 为 `5976885`，见
+[原版 setsid 记录](process-syscalls.md#第一百零五组原版-util-linux-setsid-使用普通-fork)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |

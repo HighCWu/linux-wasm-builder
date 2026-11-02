@@ -5121,6 +5121,53 @@ PIDs 计数单位是内核 task/TID，迁移等组织操作允许超过限额，
 fork 限额拒绝。本轮只验证既有可选单线程 static C fork 范围，不新增 libc API、
 不开放多线程 fork，不代表 memory/CPU controller、容器隔离或浏览器验收。
 
+## 第一百零五组：原版 util-linux setsid 使用普通 fork
+
+现有 util-linux 的 setsid 仍带专用 callback-clone 补丁，即使可选 static C
+执行配置已经具备普通 fork continuation。新增独立 setsid-fork 产品，直接
+复用固定 util-linux 2.42.2 的原始 src/version，不应用默认 util-linux 的
+任何 C 源码补丁。构建前后分别 cmp 原始 sys-utils/setsid.c，并发布源码哈希、
+config.h/config.log、原始源码、编译器及执行支持材料。原版程序仍调用正常
+fork、setsid、ioctl(TIOCSCTTY)、execvp 和 wait，不要求应用使用私有 callback。
+
+构建使用现有可选 SDK 和正常 CONFIG_SITE；其 fork cache 已交回 Autoconf
+探测，不预填成功。标准 --disable-all-programs/--enable-setsid 选择程序，
+make setsid 后只对最终链接产物执行 continuation finalizer。安装独立 opt-in
+镜像内的 /bin/setsid，沿用既有发行包的 BusyBox applet replacement 元数据；
+没有更改默认 util-linux 配方或默认 SDK。独立消费者/构建代码采用 MIT，
+util-linux 及所链接支持保留上游许可证和通知。
+
+消费者以标准 posix_spawn 设置明确初始进程组，并通过继承的 stdout pipe
+取得最终普通 C 程序的 PID/PPID/SID/PGID；不是仅检查工具退出0：
+
+- -f -w 必须真实 fork，组长启动的 -w 必须走原版自动 fork，普通非组长
+  启动则直接 exec。最终程序 SID/PGID 均为自身 PID；fork 后的 PPID 必须
+  是工具 PID，直接 exec 的 PID 则必须仍是启动工具时的 PID。wait 传回37。
+- -f -c -w 在独立 PTY slave 上运行，最终程序核对 stdin 是 tty，TIOCGSID
+  与 tcgetpgrp 都指向自身新 session/group；master/slave 与交接 fd 均清理。
+- 不存在的程序必须传回127、不得进入观察程序；随后正常子程序仍成功。
+  每次只取得一条完整身份记录，用 poll 有界等候，工具只回收一次。
+
+GCC/Clang 严格构建的消费者均在本机 util-linux 2.39.3 setsid 下通过三阶段，
+Clang 静态分析及当前 musl 头文件下 wasm32/64 前端和分析通过。宿主结果仅
+核对验证器和标准进程/PTY约束，不是原版2.42.2的 Wasm 执行证据。review 还
+核对原始源码无应用补丁、fork 后身份、exec/wait 状态、CLOEXEC/dup2 继承、
+有界报告及镜像 applet 冲突，未改变 session/tty 内核代码或新增 musl API。
+
+distro `e8ac3c6` 发布原版工具构建和双位宽消费者，`36852d6` 补上与既有
+util-linux 一致的 applet replacement 元数据；主仓库 `5976885` 单独更新 pin。
+只对最终固定 `36852d6c28c73857be3a08530cf71d2ec778d923` 各派发一次
+[wasm32 41420884648](https://github.com/HighCWu/distro/actions/runs/41420884648) 与
+[wasm64 41420893833](https://github.com/HighCWu/distro/actions/runs/41420893833)。
+原版工具真实编译、三个完整阶段、唯一 pass 与机器关闭均待目标日志，不据此
+声称全部 util-linux 补丁已移除、多线程 fork 或浏览器已验收。
+
+同轮只读审查确认 AIO 的 aio_setup_ring 仍通过 do_mmap(MAP_SHARED) 映射
+内核 folios；其 completion/read-events 直接访问 ring_folios，而用户程序有
+独立 Wasm linear memory。仅打开 AIO 配置或复制初始 ring 不能提供长期一致
+的共享 ring，io_uring 也不能据此跳过相应前提。本轮未修改这些开关，继续
+保留为需要真实映射/所有权方案的能力缺口，不把它们误归为 libc 包装缺失。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
