@@ -14,6 +14,7 @@ required += ("CRYPTO", "CRYPTO_USER", "CRYPTO_USER_API_HASH", "CRYPTO_SHA256", "
 required += ("CRYPTO_USER_API_SKCIPHER", "CRYPTO_AES", "CRYPTO_CBC", "CRYPTO_CTR")
 required += ("CRYPTO_USER_API_AEAD", "CRYPTO_GCM")
 required += ("CRYPTO_USER_API_RNG", "CRYPTO_DRBG_MENU")
+required += ("UNIX_DIAG", "INET_DIAG", "INET_UDP_DIAG")
 
 
 def check(text, name):
