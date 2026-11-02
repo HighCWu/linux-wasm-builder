@@ -95,7 +95,8 @@ class ProcessVm(unittest.TestCase):
                         self.assertNotIn("::vm-test::pass", run.stdout)
                     else:
                         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-                        self.assertEqual(run.stdout.count(" pass\n"), 3)
+                        self.assertEqual(run.stdout.count(" pass\n"), 4)
+                        self.assertIn("process-vm: pure user busy-loop reads, writes, memory growth and child observation pass", run.stdout)
                         self.assertEqual(run.stdout.count("::vm-test::pass"), 1)
 
 
