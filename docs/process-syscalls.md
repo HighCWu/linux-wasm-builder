@@ -4733,8 +4733,13 @@ RNG 阶段、唯一 pass 和机器关闭仍待验收；不以预取/轻量检查
 
 ### 第九十九组后续：runner 磁盘耗尽的环境修复
 
-固定 5ba5a18 的 wasm32 workflow/Heavy 已成功，job125112657579 实际日志
-正在补取，暂不据状态接受三个 RNG 阶段。wasm64
+固定 5ba5a18 的 wasm32 workflow/Heavy 已成功，job125112657579 的完整实际
+日志 5,641,171 字节随后已核实三个 RNG 阶段和唯一 pass：正常内核播种/未播种
+拒绝/有界向量输出、无效目标与不支持写后的继续生成、非特权使用/parent 生命周期/
+fd 清理。精确 5ba5a18 的运行器与已 review 的 b1724aa 关闭代码无差异，成功
+退出仍要求 closeTestResources 等待 machine.closed；关闭失败或 watchdog 会
+令 Nix 检查失败。据此接受 Linux 19367bfc1 / distro 5ba5a18 的 wasm32 Node
+上述 RNG 范围，不代验浏览器或 wasm64。wasm64
 [job125112709564](https://github.com/HighCWu/distro/actions/runs/41394429190/job/125112709564)
 则在 Build isolated check 进行时终止，日志下载端点两次返回404；check-run
 错误注解明确为 System.IO.IOException / No space left on device，连 runner
