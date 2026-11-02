@@ -5666,6 +5666,48 @@ FIFO不阻塞、UTC回退和之后恢复正常文件。原生GCC/Clang及ASan/UB
 才补发；现有目标不重复派发，不取消慢任务。
 本轮没有扩展文件mmap上限、开放默认file mapping或实现动态链接。
 
+## 时区复制路径的双位宽目标验收
+
+固定3cd41a3/musl7b077a6d的两项Node日志已核实三个完整阶段和各唯一pass：
+[wasm32 41461466995](https://github.com/HighCWu/distro/actions/runs/41461466995)
+压缩日志1,057,059字节、构建步5,284,315字节；
+[wasm64 41461467807](https://github.com/HighCWu/distro/actions/runs/41461467807)
+对应510,275字节、2,456,609字节。包括2040年纽约冬夏偏移和东京时区、64次
+切换/fd复用、实际FIFO不阻塞、UTC回退及正常文件恢复。发布版runner/shutdown
+与审查代码无差异，退出0要求等待machine.closed；两项任务/Heavy均success，
+关闭门禁成立。接受该版默认SDK的上述Node范围，不推广为浏览器、所有时区/
+取消竞态或默认文件mmap已开放。
+
+## 文件mmap的有界分块填充候选
+
+Linux1b81174a8、distro5d47cf7、集成ee42f64接入新的默认关闭分块配置。
+应用仍调用标准mmap，SDK原初始化器不改；内核保留file引用和游标，每次读取
+最多一页staging，生产者返回后才复制到尚未发布的用户backing。在既有单次填充
+调用中完成循环，不新增Linux syscall、应用import或musl函数。读期间撤销先
+关闭发布资格，生产者返回前不释放staging/file；返回后拒绝提交。kernel异常
+展开作为机器失败，不转换成普通用户错误。每请求128KiB保守额度覆盖单页
+staging及元数据，512KiB全局额度最多四个请求，不声称涵盖全部用户副本；
+用户容量仍由direct memory/allocator限制。完整协议见
+[分块候选](file-mmap-candidate.md#分块私有复制候选)。
+
+395项运行层、两套类型检查、GCC/Clang实际C函数模型和ASan/UBSan通过。
+模型核对短读/EOF、后续读取错误、复制故障、可见fatal signal、读取内部撤销
+后的所有权与回滚；删除读取中保护必须失败。该模型不是实际VFS/设备验收。
+消费者要求4MiB+7字节、offset/私有性/fd位置、截断后零尾、源关闭/unlink、
+错误后拆分unmap与分配恢复；双位宽前端和静态分析通过，Node实际三阶段和
+关闭仍待验收。后续需要浏览器及真实设备在途取消，不开放默认发行文件mmap。
+
+[公开预取41465939113](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41465939113)
+先核实直接父修订f090bca6a及已知递归hash，再得到精确候选
+1b81174a8c93bbfa4a630851ee6f17da4926a5d6的SRI
+`sha256-4Lhcn73OWFLtb32hhSp+9w8yQfWPelZWwSax/duxsvk=`，保留固定内容校验。
+Linux改动沿用GPL，独立host/测试/集成/文档MIT；musl7b077a6d和默认LLVM
+137009e不变，不加入softmmu、共享映射或多线程fork。
+
+固定5d47cf7的[wasm32 41467105444](https://github.com/HighCWu/distro/actions/runs/41467105444)
+与[wasm64 41467101649](https://github.com/HighCWu/distro/actions/runs/41467101649)
+已各派发一次，Heavy正在进行，实际三阶段、唯一pass及机器关闭仍待核实。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

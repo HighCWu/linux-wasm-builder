@@ -2037,8 +2037,16 @@ musl7b077a6d / distro3cd41a3 / 集成5c116fb修复既有Wasm时区文件复制�
 失败也关闭fd，处理短读/EINTR和大小边界，在时区锁下避免公共read取消点，并
 用O_NONBLOCK避免FIFO打开阻塞。没有新增函数或公共头文件/API，原生分支不变。
 实际双位宽函数故障模型、真实头文件前端/静态分析及普通C的原生时区对照通过；
-默认SDK的双位宽Node三阶段目标仍待验收，涵盖2040年、夏令时、重载/fd与FIFO
-回退。文件mmap默认策略和复制上限不变，见[兼容记录](musl-compatibility.md#既有wasm时区文件复制路径)。
+默认SDK的双位宽Node现已分别核实完整三阶段、唯一pass及关闭，涵盖2040年、
+夏令时、重载/fd与FIFO回退，不扩大为浏览器。见[兼容记录](musl-compatibility.md#既有wasm时区文件复制路径)。
+
+Linux1b81174a8 / distro5d47cf7 / 集成ee42f64继续接入独立默认关闭的分块文件
+mmap：内核持file引用和游标，用一页staging填充用户未发布副本，完成后才提交，
+不受原128KiB整块staging上限约束。复用原用户初始化器，不改musl/应用API。
+读取期间撤销不提前释放生产者存储，kernel异常按机器失败处理。395项运行层、
+类型和实际C模型/ASan/UBSan及双位宽前端分析通过，标准4MiB+7字节/offset/
+EOF/生命周期的Node两项目标已派发，仍待实际阶段与关闭。浏览器和真实在途
+设备压力仍需推进，默认文件mmap未开放，见[分块候选](file-mmap-candidate.md#分块私有复制候选)。
 
 ## 质量矩阵
 

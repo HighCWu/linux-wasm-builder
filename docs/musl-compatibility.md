@@ -289,6 +289,7 @@ SjLj 返回包装而非直接退出 handler，保留 cond_wait 的 masked ECANCE
 并保留与原生loader相同的O_NONBLOCK打开策略，避免FIFO卡住。
 
 精确源码hash与distro3cd41a3/主仓库5c116fb已经发布；实际双位宽函数故障模型、
-真实musl头文件前端和静态分析通过，标准C时区消费者的Node目标待验收。
+真实musl头文件前端和静态分析通过，标准C时区消费者的双位宽Node三阶段、
+唯一pass及关闭门禁现已分别核实。
 这属于既有接口的必要Wasm替代路径修复，不新增Linux扩展包装，不作为文件mmap
 已开放的证据。详见[进程与兼容记录](process-syscalls.md#wasm既有时区文件读取路径的资源与取消边界)。
