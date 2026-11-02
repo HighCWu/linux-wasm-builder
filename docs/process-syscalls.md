@@ -4426,6 +4426,16 @@ distro `09b3edd` 原子集成精确 pin 与目标边界夹具，根仓库 `9cbfb
 [wasm64 40644977325](https://github.com/HighCWu/distro/actions/runs/40644977325)
 已各派发一次并核对检查名，仍在运行；不取消或重复派发此前慢任务。
 
+后续验收：上述固定 09b3edd 的两个任务与 Heavy 均已成功。已读取 wasm32
+job122671653477 的完整实际日志（3,634,149 字节）与 wasm64 job122671669962
+日志（3,708,260 字节）；各确认普通文件标量、向量、文件限额/追加的真实
+无效尾部、错误恢复/清理、独立裸块设备共五个阶段及唯一 pass，无目标失败、
+panic、关闭错误或 watchdog 超时。核对该 pin 的 installedTest 固定运行器：
+pass 后仍需 closeTestResources() 等待 machine.closed、关闭磁盘句柄，清理失败
+会令检查失败；成功退出才生成检查结果，因此关闭门禁也成立。仅接受本版本
+双位宽 Node 同步 direct I/O 范围，不据此扩展到浏览器、异步 I/O、任意文件
+系统私有限额或并发修改文件大小/rlimit 的原子保证。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
