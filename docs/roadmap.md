@@ -2058,6 +2058,10 @@ ino: 标签的问题，尚未通过功能阶段。`44431ae` 按真实上游列�
 期待 usersock 名称。`7b40195` 保留 raw inode/port/type 关联，修正数字匹配并
 补充坏数据重放；固定源码双位宽复验已派发，仍待完整阶段与关闭证据。
 
+7b40195 两路现已核实六个 C 功能阶段、shell/loopback 清理、各唯一 pass 和
+已发布 runner 的 machine.closed 关闭门禁。接受 Linux d79048f56 的该范围
+双位宽 Node 原版 ss 监控；不泛化到后续 cgroup 内核或浏览器。
+
 Linux `d79048f56` / distro `641eb07` 再启用标准 BPF_SYSCALL，复用已有解释器，
 保持 JIT 关闭及上游非特权政策。普通 C 消费者直接使用标准 syscall，检查 array
 状态与错误恢复、真实 map-backed socket filter 的丢弃/接收和 helper 执行、
@@ -2095,6 +2099,18 @@ cmp/材料的独立配方，不更改默认 util-linux。消费者核对真实�
 Node 两路已派发，仍待四阶段和关闭。另修正 cgroup 消费者失败标记的 parser
 格式，未改变内核能力。主仓库 pin 为 `c324530`，见
 [原版 flock 记录](process-syscalls.md#第一百零六组原版-util-linux-flock-的-forkwait-与锁生命周期)。
+
+cgroup 两路8ede319已确认因 SDK 材料链接进入运行包被原门禁拒绝，未运行
+消费者。`78e85db` 拆出独立 buildMaterials 输出，保留源码/编译器材料，
+运行输出继续接受严格 store-reference 检查；轻量执行真实安装脚本的正反
+控制通过。主仓库 `b38bdcd` 更新 pin，cgroup 双位宽复验已派发，仍待验收。
+见[输出边界记录](process-syscalls.md#第一百零七组运行包与独立构建材料输出)。
+
+setsid 的旧两路停于 configure/空输入链接：全局禁用程序后，其并不存在的
+单独 enable 选项不能恢复 SOURCES。`7081904` 保留上游默认条件，以普通
+make 目标选择 setsid/flock，并继承独立材料输出；主仓库 `826d2d2` 更新
+pin，新四路已派发。没有应用源码补丁或预填能力成功，功能及关闭仍待验证。
+见[构建条件记录](process-syscalls.md#第一百零八组原版工具的上游默认构建条件)。
 
 每项工作至少在以下维度选择适用组合：
 

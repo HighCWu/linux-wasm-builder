@@ -4940,6 +4940,16 @@ raw dump 的 inode/port/type 校验保持，失败时补充有界实际输出。
 [wasm64 41419490536](https://github.com/HighCWu/distro/actions/runs/41419490536)
 各派发一次，完整阶段和关闭仍待核实。
 
+固定7b40195的两路现已实际核实通过：wasm32 的完整压缩 run 日志为1,556,906
+字节、Build isolated check 解压后7,815,497字节；wasm64 分别为1,479,094和
+7,509,043字节。各包含六个实际 C 阶段、无 procfs shell 阶段、loopback
+teardown 和唯一一次 pass，无目标 fail/panic；Heavy 与工作流均 success。
+核对该版已发布 run-test.js/shutdown.js：退出0之前必须等待 closeTestResources
+及 machine.closed，之后才关磁盘；Nix 也必须取得退出0。因此关闭门禁成立，
+不是仅以工作流绿色代替实际阶段。接受该版 Linux d79048f56 的双位宽 Node
+原版 ss/UNIX/UDP/TCP/Netlink 范围，不推广至新 cgroup 内核、浏览器或全部 ss
+选项。该 runner 关闭实现与当前源码一致。
+
 ## 第一百零二组：接通标准 bpf syscall 与原有解释器
 
 Linux `d79048f56` 在三套 defconfig 启用 `CONFIG_BPF_SYSCALL=y`，接通原有
@@ -5217,6 +5227,67 @@ cgroup 消费者的失败标记缺少冒号，实际 runner parser 不识别它�
 原版 flock 实际构建、四阶段、唯一 pass 和机器关闭待真实日志；不扩大为全部
 util-linux、浏览器、OFD/全部锁选项或多线程 fork 支持。自有新增代码 MIT，
 上游许可保留，没有新增 musl 公共函数或应用 API。
+
+## 第一百零七组：运行包与独立构建材料输出
+
+cgroup 的8ede319两路已明确失败于运行包转换，尚未启动消费者。完整压缩
+run 日志 wasm32 为1,657,442字节、wasm64 为1,629,201字节，实际错误均为
+root/share/cgroup-pids-materials/sdk 指向 Nix store，并触发
+APK payload contains Nix store references。不是 cgroup syscall 的运行失败，
+不能把已完成的构建依赖推为三个功能阶段通过。
+
+distro `78e85db` 为 cgroup-pids 和共享原版 util-linux 配方分别声明 out 与
+buildMaterials 两个输出。默认运行输出只携带可执行文件和许可证，SDK/source
+链接及 config.log/config.h/源码哈希/配方移到独立 buildMaterials 输出，仍
+可供重建；不从可部署文件链接回 Nix store，也不删除出处或放宽原 payload
+门禁。工具使用现有材料相对目录，Nix 消费者通过对应产品的 buildMaterials
+属性取得该输出。该变化不修改 kernel、musl、LLVM 或应用 C 源码。
+
+主仓库 `b38bdcd` 单独更新 pin，增加轻量实际安装检查并接入现有 CI：提取
+并执行三种产品的真实 installPhase，使用不执行的透明 payload fixtures 和
+标准工具安装，调用原 check-store-references.sh。默认运行输出须通过、独立
+材料须保留 source/compiler 路径和 SDK 链接。把材料目的地重新改回 out 的
+反向控制必须被同一门禁拒绝。不是仅匹配配方字符串或取消许可证/材料检查；
+也不以这些轻量 fixtures 代替真正的 Wasm 编译或运行。
+
+固定 Nix 格式、Python 语法/ruff、安装正反控制、workflow YAML 解析和仓库
+元数据检查通过，review 核对默认输出选择、材料闭包和许可证边界。固定
+78e85db 各派发一次
+[wasm32 41423865267](https://github.com/HighCWu/distro/actions/runs/41423865267) 与
+[wasm64 41423875215](https://github.com/HighCWu/distro/actions/runs/41423875215)，
+仍待标准 cgroup 三阶段、唯一 pass 与关闭证据。其它旧工具任务保持原版本，
+不把材料布局修复当成它们已成功运行。
+
+## 第一百零八组：原版工具的上游默认构建条件
+
+setsid 的36852d6两路也已确认失败，原因与 cgroup 打包错误不同：完整压缩
+run 日志 wasm32 为1,582,104字节、wasm64 为1,514,219字节，实际 configure
+警告 --enable-setsid 不被支持，随后 make setsid 报 clang: no input files。
+原配方使用 --disable-all-programs，UL_BUILD_INIT 把 BUILD_SETSID 关闭；
+原 Makefile 的同名链接规则仍在，但条件化的 SOURCES/OBJECTS 为空。
+libtool 的 CXX 探测也有诊断，但 configure 继续完成；实际终止点是空输入
+链接，不能据此误诊为已经运行 fork 或 PTY 失败。
+
+静态核查固定2.42.2的 m4/ul.m4、configure.ac、生成 configure 和 Makefile.in：
+setsid 没有单独 AC_ARG_ENABLE，flock 同样使用带默认值的 UL_BUILD_INIT。
+distro `7081904` 去掉全局 disable 与不存在的单工具 enable 选项，保持官方
+默认配置及真实依赖探测，仅由 make setsid/make flock 选择需要构建的目标。
+不手工设置 BUILD_* 或伪造 HAVE_*，不修改任何应用/Makefile/configure 源码。
+直接执行真实生成 configure 的对应 shell 条件，证明默认条件选入两个目标，
+旧全局 no 会排除；该轻量条件检查不等于配套 SDK 的实际目标编译。
+
+共享配方已同时保留独立构建材料输出，轻量真实 installPhase 正反控制再次
+通过；主仓库 `826d2d2` 单独更新 distro pin。固定
+`7081904be50465e84d6e164c72ae48fcfc9b76e6` 的目标各派发一次：
+
+- setsid：[wasm32 41424407062](https://github.com/HighCWu/distro/actions/runs/41424407062)、
+  [wasm64 41424423025](https://github.com/HighCWu/distro/actions/runs/41424423025)。
+- flock：[wasm32 41424438616](https://github.com/HighCWu/distro/actions/runs/41424438616)、
+  [wasm64 41424448974](https://github.com/HighCWu/distro/actions/runs/41424448974)。
+
+setsid 三阶段、flock 四阶段、各唯一 pass 和机器关闭都仍待真实日志，不将
+构建修复当作新 syscall 或已接受的 fork 功能扩展。此前 flock 的 bab75b6
+任务若仍运行则继续等待，不因耗时取消，也不改写旧源码的结果。
 
 ## 本轮静态 review 与异步验收原则
 
