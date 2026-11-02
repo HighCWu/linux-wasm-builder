@@ -173,3 +173,21 @@ memory.grow 后访问通过，并检查缺少数据符号必须装载失败。wa
 通过，未归咎于编译器。实验没有 libc、Linux syscall、文件系统依赖装载、
 ELF、TLS、浏览器、多 Worker 或卸载，不代表这些能力已实现，也不能代替
 配套 LLVM 22 SDK 的目标检查。
+
+通用 `.symver` 候选已发布到独立 LLVM 分支 `codex/wasm-symbol-versions`，
+固定源码为 `b42af703f40a934728dc3ced88418dd1f46f6b2f`。Wasm 汇编器接受
+显式旧版本和默认版本，并把版本绑定保留为不同的链接器名字；不把旧版本
+引用退回到默认实现。独立的版本解析实现及新增测试采用 MIT，原有 LLVM
+文件保留上游许可证。默认 SDK 和主仓库 LLVM pin 尚未切换。
+
+[候选编译器验证](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41390102227)
+通过已有 CI 的 `llvm-symbol-revision` 输入调用独立构建配置，固定使用上述
+完整源码 SHA。它会构建候选 Clang、llvm-mc 和 lld，在 wasm32/64 下分别验证
+C 源码到汇编再到对象、集成汇编器直接生成对象两条路径，再以 Node 执行
+实际链接产物。测试包含不同签名的旧/默认函数、数据版本、同一编译单元中
+旧版本引用与默认定义共存，以及缺少版本必须链接失败。Python 静态检查和
+工作流 YAML 解析已通过；目标构建/运行待 CI，不能据此宣布兼容已完成。
+
+这个候选仅验证 Wasm 对象中的静态显式版本绑定，不包含 ELF 动态版本表、
+版本继承图、版本脚本、ELF 文件加载或 Linux 进程内 dlopen。后续需分别验证
+这些语义，不能把名称兼容当作完整 ELF 二进制兼容。
