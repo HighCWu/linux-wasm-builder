@@ -16,6 +16,7 @@ required += ("CRYPTO_USER_API_AEAD", "CRYPTO_GCM")
 required += ("CRYPTO_USER_API_RNG", "CRYPTO_DRBG_MENU")
 required += ("UNIX_DIAG", "INET_DIAG", "INET_UDP_DIAG", "NETLINK_DIAG")
 required += ("BPF_SYSCALL",)
+required += ("CGROUPS", "CGROUP_PIDS")
 
 
 def check(text, name):
