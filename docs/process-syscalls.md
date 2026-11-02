@@ -4835,6 +4835,63 @@ iproute2、动态链接或浏览器支持，也不把旧内核的 RNG 验收泛�
 [wasm64 41402485337](https://github.com/HighCWu/distro/actions/runs/41402485337)，
 仍待真实目标阶段和关闭结果，不能据格式修复宣布验收。
 
+94b4d3d 两路任务随后均失败。实际读取 job125137200303 的7,866,753字节日志与
+job125137211697 的7,587,779字节日志，均确认机器已启动，随后出现
+`sh: can't re-execute the shell`，并因 init 退出触发 panic；不是 ss 编译失败，
+也没有完成任何 socket 验收阶段。原因与后续修复见下一组，不重复派发该版本。
+
+## 第一百零一组：标准 Netlink socket 监控与无 procfs 的 shell 执行
+
+Linux `6c4cb40da` 在公共及双位宽 defconfig 启用 `CONFIG_NETLINK_DIAG=y`，
+接通原有 net/netlink/diag.c 的 SOCK_DIAG_BY_FAMILY 处理器。此前它未启用，
+标准 socket/sendto/recvmsg 无法得到该类 dump。这是启用实际 Linux 协议能力，
+没有新增 syscall 号、用户 API、libc 包装或 Wasm 专有诊断实现。源码审查确认
+它在内核 SKB 中构造记录，沿现有 uaccess 交付，不固定用户 linear-memory 页。
+保留 CONFIG_MMU=n，未扩大 fork 或线程范围。
+
+普通 C 检查创建并 autobind 一个 NETLINK_USERSOCK socket，使用 fstat 与
+getsockname 取得 inode 和 port ID，再通过 NETLINK_SOCK_DIAG 请求同协议的
+完整 multipart dump。校验序列、来源、截断、消息长度/对齐、完成状态，以及
+唯一 inode/port/type 记录；关闭原 fd 后新请求必须不再包含它。循环与 datagram
+容量均有上界，检查对齐剩余长度后才推进无符号游标，避免畸形消息导致下溢。
+降为 uid/gid65534 后再次执行创建、监控、关闭与恢复查询。
+
+同时执行未修改 C 源码的上游 ss 7.3.0 `-f netlink`。其 Netlink renderer
+本来不打印 inode/UID，因此由原始 dump 核实 inode，再让实际工具独立核对相同
+usersock/port token；不伪造它没有的输出。保持 procfs 不挂载，并确认
+/proc/net/netlink 不可读，子程序环境没有 PROC_* 覆盖，不能靠 proc 回退或
+空列表假通过。原来的 UNIX/UDP/TCP 检查保留。
+
+上一组发现的启动失败也修复在通用 BusyBox 发行配置：固定源
+`tombl/busybox@4ad91c87e7efeff15628bea7240b6055b2737644` 的 hush NOMMU 路径
+调用 execve(bb_busybox_exec_path)，而上游 BUSYBOX_EXEC_PATH 默认依赖
+/proc/self/exe。其 Config.in 明确提供无 procfs 时配置实际安装路径的选项。
+distro `9a08b37` 设置该原有选项为 /bin/busybox，并在 oldconfig 后核实结果；
+镜像与 boot initramfs 都包含这个安装路径。没有修改 BusyBox C 源码，也没有
+删掉原检查脚本的子 shell、命令替换或改为挂载 procfs 规避问题。脚本新增真实
+启动阶段标记，须在原校验子 shell 与 ss 版本命令替换都完成后才输出。
+
+轻量检查通过：GCC/Clang 严格前端及静态分析，当前 musl 和该 Linux UAPI 下
+wasm32/64 的本机 Clang18 前端/分析，实际 parser 对 inode/UID/address/Netlink
+port 的完整 token 与跨行拒绝，三套配置及禁用控制，固定 Nix/shell 格式和语法。
+本机 Clang18 不识别 fork 的 Linux target triple，双位宽检查使用它的 Wasm
+target 与当前头文件；这不能替代配套编译器的链接和运行。没有在宿主执行 socket
+或凭据检查，也未把静态审查写成畸形包目标运行验收。
+
+[预取 41404651475](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41404651475)
+的实际日志核实完整 revision `6c4cb40dabafc588f2b2cba01929d4b8ca185f35` 和
+`sha256-FTSBUiNGIBgPig3MJf4jipovWamTguHtC+HPnf5CLH4=`。distro `659cc45`
+集成处理器 pin 与检查，主仓库 `8d9b9f3` 单独更新 gitlinks 和轻量门禁；
+后续 BusyBox 修复 `9a08b37` 由主仓库 `151a119` 单独更新 pin。musl 和默认
+LLVM pin 未改，自有检查为 MIT，上游许可证保留。
+
+固定 9a08b37 各派发一次
+[wasm32 41405897272](https://github.com/HighCWu/distro/actions/runs/41405897272) 与
+[wasm64 41405903429](https://github.com/HighCWu/distro/actions/runs/41405903429)。
+必须核实无 procfs shell 启动阶段、原 UNIX/UDP/TCP 三阶段、新 Netlink 三阶段、
+唯一 pass 和机器关闭，当前均待目标证据。新内核不能继承此前密码接口的验收；
+也不扩展为 packet 诊断、socket 销毁、全部 ss 选项、浏览器或动态链接支持。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

@@ -2030,6 +2030,15 @@ Linux `de746039d` / distro `5fa0584` 进一步启用标准 UNIX/UDP socket 诊�
 产品明确只提供 ss 及其依赖，不声称整个 iproute2 或全部选项均可用。详见
 [socket 诊断记录](process-syscalls.md#第一百组标准-socket-诊断与未修改源码的-iproute2-ss)。
 
+后续 Linux `6c4cb40da` 再启用原有 NETLINK_DIAG 处理器，结合标准原始 dump
+的 inode/port 与真实 ss 的协议/port 输出核对 live、close 和非特权查询。
+原 94b4d3d 双位宽任务实际失败于无 procfs 的 NOMMU hush 自我重执行，尚未
+完成 socket 阶段；distro `9a08b37` 使用 BusyBox 原有 BUSYBOX_EXEC_PATH
+配置修复，不修改应用 C 源码或删减脚本语法。主仓库 `151a119` 已更新 pin。
+固定新源码的双位宽 Node 复验已派发，须包含 shell 启动、原三个和新增三个
+完整阶段、唯一 pass 和关闭结果；尚未据静态检查宣布验收。详见
+[Netlink 监控记录](process-syscalls.md#第一百零一组标准-netlink-socket-监控与无-procfs-的-shell-执行)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
