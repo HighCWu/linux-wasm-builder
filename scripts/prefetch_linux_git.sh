@@ -20,6 +20,7 @@ changed_paths=$(git -C "$source_work/git" diff --name-status "$BASELINE_REVISION
 case "$changed_paths" in
 $'M\tkernel/futex/core.c') ;;
 $'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/process.c') ;;
+$'M\tarch/wasm/include/asm/mmu.h\nM\tarch/wasm/include/asm/remote_vm.h\nM\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/remote_vm.c\nM\tarch/wasm/mm/init.c') ;;
 $'M\tarch/wasm/configs/defconfig\nM\tarch/wasm/configs/wasm32_defconfig\nM\tarch/wasm/configs/wasm64_defconfig') ;;
 *) exit 64 ;;
 esac
