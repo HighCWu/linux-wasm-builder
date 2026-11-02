@@ -32,6 +32,24 @@ jobs:
   file-copy-benchmark:
     if: github.event_name == 'workflow_dispatch' && inputs.file-copy-benchmark
     uses: ./.github/workflows/file-copy-benchmark.yml
+  dynamic-linking:
+    name: Dynamic module linker with real Clang artifacts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+          persist-credentials: false
+      - run: git submodule update --init --depth 1 sources/distro
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '25'
+      - name: Install released compiler and linker for the small artifact corpus
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-18 lld-18
+      - name: Run actual Wasm32 and memory64 module binding with negative controls
+        run: python3 -B scripts/probe_wasm_dynamic_linking.py --clang clang-18
   repository:
     name: Repository metadata
     runs-on: ubuntu-24.04
@@ -68,7 +86,9 @@ jobs:
         with:
           node-version: '24'
       - name: Check dynamic module metadata and independent memory/table layouts
-        run: node --test sources/distro/packages/kernel/test/dylink.test.ts
+        run: |
+          node --test sources/distro/packages/kernel/test/dylink.test.ts \
+            sources/distro/packages/kernel/test/dylink-linker.test.ts
       - name: Check existing file-handle wrappers and workload analysis
         run: python3 -B scripts/test_file_handle.py
       - name: Check directory notification workload and disabled-feature control
