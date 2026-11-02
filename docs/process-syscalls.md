@@ -5793,6 +5793,47 @@ Heavy日志8,133,547/6,202,396字节。上述历史任务的runner关闭契约�
 hash或版本检查；文档/源码pin检查、五项pin模型和六项Git预取故障检查通过，
 新根仓库CI异步复验。这里修的是验收脚本，不作为syscall运行能力新增。
 
+## 默认构建接入标准私有文件映射
+
+Linux59937da2c / distro ec78632b0145ca2e8beb32121ff635b94bbf81ec / 集成ce06ee1
+把已验收的分块复制路径接到普通内核构建。应用仍用标准mmap/mmap2/munmap及
+默认SDK，无需添加应用接口或私有链接参数。musl7b077a6d和默认LLVM137009e
+不变；本轮Linux改动仅澄清Kconfig的执行ABI配对和容量说明，功能代码仍是
+已验收的1b81174a8。独立内核的Kconfig继续显式启用，发行构建默认打开分块
+路径。Nix检查最终配置，保留关闭与128KiB整块两种显式对照，不靠继承默认值。
+
+源码SRI由[41477939842](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41477939842)
+先验证1b81174a8及其既有hash，再核对直接父子关系、唯一Kconfig路径和模式后
+生成，完整压缩日志12,653字节、预取步骤3,560字节。固定59937da2c的hash为
+`sha256-Ki1YF+Jk7YHX/WXdfs10KzTs4je+hR7GvLDwll5OOhY=`，没有移除内容校验。
+
+Python语料改为通过CPython原有mmap模块映射超过128KiB的普通文件，核对文件
+位置、只读Python API、私有flush无回写及关闭来源后的存活；共享匿名/文件请求
+仍须拒绝，不承诺硬件只读保护。未修改CPython源码或补造musl函数。
+Zstd普通roundtrip现在强制私有映射压缩/解压，与malloc路径交叉解码，覆盖原
+页边界及4MiB+7字节字典。显式关闭控制通过测试脚本模式要求真实EINVAL拒绝；
+旧128KiB应用和浏览器配置仍分别保留原容量断言，不让默认改变悄悄改写历史测试。
+
+本地28项应用/编排检查通过，包含实际原生Python与Zstd正向、共享回写错误及
+空输出假成功拒绝；原生结果不是Wasm证明。Nix/JS/shell格式、shell语法、Python
+AST与diff检查通过；7项Git预取故障模型、5项source pin检查与文档检查也通过。
+以下八项均固定ec78632，各派发一次，实际阶段与关闭仍待核实：
+
+| 检查 | 位宽 | 任务 |
+|---|---|---|
+| Zstd普通默认内核 | wasm32 | [41478944684](https://github.com/HighCWu/distro/actions/runs/41478944684) |
+| Zstd普通默认内核 | wasm64 | [41478943764](https://github.com/HighCWu/distro/actions/runs/41478943764) |
+| Python mmap普通默认内核 | wasm32 | [41478944407](https://github.com/HighCWu/distro/actions/runs/41478944407) |
+| Python mmap普通默认内核 | wasm64 | [41478946240](https://github.com/HighCWu/distro/actions/runs/41478946240) |
+| 128KiB/旧模块/关闭/预算对照 | wasm32 | [41478948425](https://github.com/HighCWu/distro/actions/runs/41478948425) |
+| 128KiB/旧模块/关闭/预算对照 | wasm64 | [41478944068](https://github.com/HighCWu/distro/actions/runs/41478944068) |
+| 普通C runtime回归 | wasm32 | [41478946989](https://github.com/HighCWu/distro/actions/runs/41478946989) |
+| 普通C runtime回归 | wasm64 | [41478943612](https://github.com/HighCWu/distro/actions/runs/41478943612) |
+
+此处完成的是默认构建接线，不把此前候选阶段、开关启用或本机语料当成上述新
+组合已验收。CONFIG_MMU=n、有界direct地址、无内核softmmu及单线程fork边界
+均未扩大；共享/执行/文件固定映射、映射后截断失效与MMU页保护仍不提供。
+
 ## 静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

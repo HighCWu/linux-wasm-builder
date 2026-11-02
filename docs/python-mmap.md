@@ -12,7 +12,8 @@
 
 ## 应用调用方式
 
-默认内核仅接受有界线性内存内的私有匿名读写映射，Python 应显式选择：
+当前默认构建支持有界直接内存中的私有匿名及文件复制映射；distro ec78632
+已接通新的默认配置，目标组合仍在复验。Python 应显式选择私有映射，例如：
 
 ```python
 import mmap
@@ -23,10 +24,11 @@ with mmap.mmap(-1, 65536, flags=mmap.MAP_PRIVATE,
 ```
 
 上游 `mmap.mmap(-1, size)` 默认使用 `MAP_SHARED`，当前内核拒绝该请求；模块
-可导入不等于默认构造调用可用。默认内核同样拒绝文件映射。不能据此推导共享
+可导入不等于默认构造调用可用。文件映射可使用已有的`mmap.mmap(fd, size,
+flags=mmap.MAP_PRIVATE, prot=...)`，无需修改CPython源码。不能据此推导共享
 内存、跨进程映射、写回、写保护或固定地址替换已获得支持。resize 的已验收范围
 及新增私有 flush 的待验收状态见末尾记录。
-实验性 `WASM_FILE_MMAP` 仍关闭，不为 Python 检查启用它。
+默认构建已启用分块私有复制；不再为Python单独切换到文件映射实验内核。
 
 保持 `--without-mimalloc`、`--with-ensurepip=no` 和 `_posixshmem` 禁用策略：
 匿名映射并未验证分配器的 reserve/commit/protection 需求、pip 的安装/文件映射
@@ -36,7 +38,10 @@ with mmap.mmap(-1, 65536, flags=mmap.MAP_PRIVATE,
 
 独立 `python-check-mmap` 安装系统检查运行同一份 `mmap-test.py`，验证初始清零、
 跨页二进制读写、查找和重叠移动、`memoryview` 导出时禁止关闭、释放视图后关闭、
-关闭幂等及重复分配。额外要求默认共享请求和普通文件映射以 `EINVAL` 失败。
+关闭幂等及重复分配。新默认语料还要求超过旧128KiB阈值的普通文件私有复制、
+文件位置、只读Python API、私有flush不回写及关闭来源后的存活；匿名和文件
+共享请求仍须以`EINVAL`失败。轻量正向与意外共享回写的反向控制通过，新目标
+结果单独核实；下文早期拒绝文件映射的记录只属于对应历史配置。
 不靠捕获错误后跳过来报告成功，不修改内核配置以迁就模块。
 
 ```sh

@@ -2,6 +2,13 @@
 
 # 原生 Zstandard：双位宽构建与字典加载
 
+当前集成ce06ee1 / distro ec78632已把分块私有文件复制接入默认内核构建。
+普通Zstd检查现在要求`--mmap-dict`压缩/解压成功并与malloc路径交叉核对，尺寸
+覆盖到4MiB+7字节；新默认目标仍在复验。显式关闭和旧128KiB内核配置另行保留
+拒绝对照。以下早期失败/拒绝记录按对应版本理解，不代表当前默认策略。
+
+## 历史构建与边界修正
+
 状态更正：固定 `73cf891` 的 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/38987437765)
 和 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/38987438669) 均已失败，
 不能作为可用包或字典映射的通过证明。wasm64 实际日志明确为字典压缩时 error 34 /
@@ -88,10 +95,10 @@ Firefox 151.0；链接见[候选记录](file-mmap-candidate.md)。不泛化到�
 普通字典默认使用上游 malloc/read 路径，`--no-mmap-dict` 也显式选择该路径，
 无需恢复早期排除所有 Wasm POSIX 映射代码的补丁。当前仅保留失败检查修正：
 mmap 失败应比较 `MAP_FAILED`，不能比较 NULL。
-`--mmap-dict` 仍发起真实文件映射请求，默认生产内核返回 EINVAL，Zstandard 报错退出；
-不能静默改为 malloc 再把它称作映射成功。
+`--mmap-dict` 仍发起真实文件映射请求，新默认构建进入标准私有复制；显式关闭
+内核返回EINVAL时Zstandard报错退出。不能静默改为malloc再把它称作映射成功。
 
-此修正没有开放内核文件映射、不引入 softmmu，也不承诺按需分页、只读保护或零拷贝。
+应用补丁本身不授权内核文件映射，不引入softmmu，也不承诺按需分页、只读保护或零拷贝。
 大字典 patch-from 模式可能自动选择映射；本轮不将其列为已支持场景，必要时应显式
 指定 `--no-mmap-dict` 并确保有足够线性内存。
 
