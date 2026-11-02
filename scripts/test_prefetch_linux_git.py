@@ -186,6 +186,21 @@ class GitHashPrefetch(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(summary, "")
 
+    def test_nofault_header_change_requires_exact_path_and_parent_hash(self):
+        path = "M\tarch/wasm/include/asm/uaccess.h"
+        result, calls, summary = self.run_model({"MODEL_PATH": path})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
+                         ["baseline", "candidate"])
+        self.assertIn("Candidate hash:", summary)
+        for inputs in ({"MODEL_HASH_MISMATCH": "1"}, {"MODEL_ATTR_FAIL": "1"},
+                       {"MODEL_PATH": path + "\nM\tmm/maccess.c"},
+                       {"MODEL_PATH": path.replace("M\t", "A\t")},
+                       {"MODEL_PATH": path + ".old"}):
+            result, _, summary = self.run_model({"MODEL_PATH": path, **inputs})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(summary, "")
+
 
 if __name__ == "__main__":
     unittest.main()
