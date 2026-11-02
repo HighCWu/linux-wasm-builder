@@ -5384,7 +5384,12 @@ flags高位，验证是 Linux 的忽略规则；不截断有效 PIDFD 地址。�
 主仓库 `de07d1f` 单独更新 distro pin，固定1bf7c36的新六阶段目标各派发一次：
 [wasm32 41432143238](https://github.com/HighCWu/distro/actions/runs/41432143238) 与
 [wasm64 41432152547](https://github.com/HighCWu/distro/actions/runs/41432152547)。
-六阶段、唯一pass与机器关闭均尚待验收。
+现已核实两路真实六阶段与唯一pass各一次：wasm32完整压缩日志1,407,166字节、
+构建步7,310,671字节；wasm64对应713,658字节、3,933,487字节。每路 clone3
+与 flags-first clone 均完成 UTS/IPC/PIDFD、NEWPID/wait、EPERM回滚和后续fork。
+该版 runner 在退出0前等待 closeTestResources/machine.closed，实际任务成功
+包含此关闭门禁。仅接受固定1bf7c36/旧 callback 传输，不推广为后续原生
+clone3、TID 选项或浏览器支持。
 
 ## 第一百一十二组：cgroup 与原版 flock 的双位宽 Node 验收
 

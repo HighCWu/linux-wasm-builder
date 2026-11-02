@@ -149,7 +149,8 @@ clone3 的结构与有限形态规则保持原样，不能把 legacy 的高位�
 只在首次调用解析并捕获选项；parent/child rewind 完成此前接纳的请求，不再
 用可能已变化的寄存器决定另一次 clone。负值与异常清理继续共用既有状态机，
 无可选执行支持时先拒绝。独立目标将 clone3 与 flags-first clone 各运行三阶段，
-新六阶段的真实运行与关闭仍待验收。
+固定1bf7c36的双位宽 Node 六阶段、唯一 pass 与关闭门禁现已核实通过。
+这不覆盖后续原生 clone3/TID 增量或浏览器。
 
 ### clone3 的命名空间传递
 
@@ -170,7 +171,8 @@ Worker abort 能力；旧对象普通 fork/PIDFD 路径保持。参数只复制�
 后不重读；clone 负值或异常都清除 namespace/PIDFD 选项，之后普通 fork
 不得携带它们。child rewind 仍完成已接纳请求，命名空间身份来自 Linux task，
 不是宿主伪造 PID/hostname。独立目标覆盖 UTS/IPC/PID、权限拒绝与恢复，
-真实目标结果尚待验收，见[进程记录](process-syscalls.md)。
+固定7273efc的双位宽 Node 三阶段与关闭已核实，后续1bf7c36的两种 syscall
+六阶段也已核实，见[进程记录](process-syscalls.md)。
 
 此为已实现待目标验收的增量：本地双位宽状态机及原始调用语料已接入，真实 Node
 与浏览器支持结论见[进程 syscall 验收](process-syscalls.md)，不能只凭此协议定义推定。
