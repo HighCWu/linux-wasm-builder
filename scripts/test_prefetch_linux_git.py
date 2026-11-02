@@ -151,11 +151,24 @@ class GitHashPrefetch(unittest.TestCase):
         self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
                          ["baseline", "candidate"])
         self.assertIn("Candidate hash:", summary)
-        for broken in (paths.splitlines()[0], paths + "\nM\tfs/read_write.c",
+        for broken in (paths.splitlines()[1], paths + "\nM\tfs/read_write.c",
                        paths.replace("M\t", "A\t", 1)):
             result, calls, summary = self.run_model({"MODEL_PATH": broken})
             self.assertNotEqual(result.returncode, 0)
             self.assertFalse(any(c[0] == "nix" for c in calls))
+            self.assertEqual(summary, "")
+
+    def test_kconfig_only_change_still_verifies_baseline(self):
+        path = "M\tarch/wasm/Kconfig"
+        result, calls, summary = self.run_model({"MODEL_PATH": path})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
+                         ["baseline", "candidate"])
+        self.assertIn("Candidate hash:", summary)
+        for inputs in ({"MODEL_HASH_MISMATCH": "1"}, {"MODEL_ATTR_FAIL": "1"},
+                       {"MODEL_PATH": path + "\nM\tfs/read_write.c"}):
+            result, _, summary = self.run_model({"MODEL_PATH": path, **inputs})
+            self.assertNotEqual(result.returncode, 0)
             self.assertEqual(summary, "")
 
 
