@@ -285,6 +285,22 @@ distro3a77133 / 集成66f4f99修正原解析器对未使用字段的额外拒绝
 这一增量，不能用旧版本标记证明新语义。运行层/两套类型检查、双位宽分析与
 宿主工作负载检查通过，真实双位宽目标仍待验收。Linux/musl源码不变。
 
+### clone3 的 set_tid PID 选择
+
+ab76dcf增加set_tid传输，c937e5a补齐独立SDK元数据，随2b6a078 / 集成c388cb5
+发布验收。原clone_args的set_tid/set_tid_size仍为u64；最多32个pid_t，每项
+有符号32位，包含负值时也保留给Linux作范围检查。适配层有界复制向量后再
+unwind，不能在保存帧可能覆盖原数组后再次读取。静态C执行对象提供独立的
+索引存储和PID选择导出，向量放在静态缓冲区，由原生Linux clone3正常拷入。
+需要原生内核能力与features的bit2，旧对象在descriptor初始化前拒绝。
+
+Linux负责权限、命名空间深度、PID范围和冲突，不由宿主分配PID。普通clone3
+每次显式清除内部指针/count，失败或trap也清除捕获状态。保留默认栈、无
+CLONE_VM/SETTLS及单线程fork边界，没有新增libc函数或应用入口。
+真实语料覆盖选定PID/TID、PIDFD、存活PID冲突、内外命名空间数组顺序、
+EPERM与后续普通clone3/fork恢复。399项运行层、两套类型检查、实际编译的
+双位宽执行对象与消费者前端/静态分析通过；目标三阶段与关闭尚待验收。
+
 ## 保存区
 
 descriptor 是两个小端 `uintptr_t`：当前 cursor、保存区 end，字段分别占 4 或 8 字节。

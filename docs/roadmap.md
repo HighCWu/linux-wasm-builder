@@ -2030,6 +2030,13 @@ PIDs准入和回滚，不以创建后迁移代替。新执行对象独立传递u
 不把旧阶段或宿主fork shim当作此新语义通过。见
 [参数兼容记录](process-syscalls.md#clone3-未请求字段按-linux-忽略)。
 
+ab76dcf / c937e5a增加原生clone3 set_tid向量传输与SDK元数据，由Linux负责
+PID选择、权限及命名空间顺序。2b6a078同时修正已失败cgroup语料对PIDFD错误
+输出的误解：Linux撤销预留fd但不恢复用户槽，当前检查真实撤销和无泄漏。
+集成c388cb5已派发双位宽PID选择与cgroup重验，尚待目标阶段与关闭验收；
+默认SDK、musl/Linux源码及单线程fork边界未扩大。见
+[具体行为与验收](process-syscalls.md#pidfd-失败输出与-set_tid-pid-选择)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。

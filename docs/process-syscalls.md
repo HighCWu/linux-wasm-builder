@@ -5921,7 +5921,7 @@ fd/权限/控制器检查由Linux完成，没有用父进程创建后再迁移�
 新helper与feature bit独立于旧宽helper，防止改变签名或静默传递fd0。
 
 标准C消费者在目标组为空时分别验证短结构、超宽fd、真实EBADF和pids.max=0
-的EAGAIN，无可回收子进程且fd数量/输出槽不变。放宽为1后组合CLONE_PIDFD，
+的EAGAIN；原语料要求输出槽不变，但该断言不符合Linux，修正见下文。放宽为1后组合CLONE_PIDFD，
 子进程第一次读取procfs即在/work，父端核对组成员、原归属、PIDFD状态和reap。
 再验证普通fork仍继承原组，随后继续已有三阶段cgroup继承/限制/卸载语料。
 初始化脚本显式挂载proc；工作负载禁止在宿主直接执行，避免修改宿主cgroup。
@@ -5958,6 +5958,44 @@ cgroup与fork任务继续运行，不重复派发或用旧语料替代本组结�
 固定3a77133的新目标为
 [wasm32 41493736877](https://github.com/HighCWu/distro/actions/runs/41493736877)、
 [wasm64 41493747070](https://github.com/HighCWu/distro/actions/runs/41493747070)。
+
+## PIDFD 失败输出与 set_tid PID 选择
+
+固定2c48032的cgroup两项目标41492418782/41492435069均已读取实际日志，
+在“failed creation leaves output and target unchanged”断言失败，errno=11。
+核对固定kernel/fork.c：copy_process先pidfd_prepare并put_user预留编号，
+之后才cgroup_can_fork；失败通过fput/put_unused_fd撤销预留，不回滚用户输出。
+2b6a078修正语料：目标计数为0、无子进程、fd数量不变，若输出已写编号则
+fcntl必须EBADF；成功用例前重置输出槽，避免将错误路径的旧值当成子快照。
+没有修改正确的Linux行为，也不把此次测试修正说成内核能力修复。
+
+同轮独立源码04ee178修正执行对象链接夹具的最小stdint.h，补充上组语料所用
+UINT64_MAX；用已发布HEAD源码的临时副本复验双位宽链接/碰撞拒绝均通过。
+它单独提交，并由根仓库e17a5ba单独pin；真实musl头文件原本已有该宏。
+
+ab76dcf新增clone3 set_tid PID选择传输，c937e5a同步SDK元数据，最终2b6a078
+/ 集成c388cb5。解析器先拷贝最多32个有符号pid_t，C执行对象在静态区承载
+向量；Linux原copy_clone_args_from_user/alloc_pid处理范围、命名空间深度、
+权限及EEXIST。没有补造musl函数、修改Linux或改成宿主PID分配。旧对象通过
+独立feature/export准入；旧签名不变，每次普通请求清零指针/count，错误后
+清除捕获向量。默认栈、单线程与无内核softmmu边界不变。
+
+新独立标准C消费者只在隔离目标运行，验证有符号无效值、越界向量与命名空间
+深度拒绝、无输出/fd泄漏；创建PID10000并核对TID/PIDFD/输出隔离，保持存活
+时再请求同PID必须EEXIST。新PID命名空间中[1,10001]必须分别成为内层PID1和
+父可见PID10001；随后测试普通clone3、降权后的EPERM、普通fork与观察资源清理。
+该输出不变要求只针对PID分配前后已核对的失败点，不泛化到cgroup的后期失败。
+
+399项运行层、两套TypeScript、10项实际执行对象/SDK/原生工作负载检查和双位宽
+前端/静态分析通过；不是Linux整机证明。两项PID选择与修正后cgroup目标各
+派发一次，前者每路要求三阶段，后者六阶段，均须唯一pass和机器关闭。
+
+| 检查 | 固定2b6a078的任务 |
+|---|---|
+| PID选择 wasm32 | [41496549167](https://github.com/HighCWu/distro/actions/runs/41496549167) |
+| PID选择 wasm64 | [41496558372](https://github.com/HighCWu/distro/actions/runs/41496558372) |
+| cgroup wasm32 | [41496568042](https://github.com/HighCWu/distro/actions/runs/41496568042) |
+| cgroup wasm64 | [41496577146](https://github.com/HighCWu/distro/actions/runs/41496577146) |
 
 ## 静态 review 与异步验收原则
 
