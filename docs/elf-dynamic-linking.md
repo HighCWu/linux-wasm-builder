@@ -532,3 +532,42 @@ and typed forward calls pass`，并保留此前五阶段；浏览器仍每路两
 与已审计门禁无差异，仍须等待machine.closed且关闭异常使任务失败；该任务
 成功，接受该源码的wasm64 Node循环装载范围，不扩大为wasm32、后继SIMD、
 start专门分支或浏览器结果。
+
+### 浏览器共享字符串解码修复
+
+37c5ed4的四路浏览器任务现均已读取实际失败日志。Chromium149.0.7827.55
+和Firefox151.0都在首次main_add符号检查失败，尚未通过第一阶段；原输出为
+`main_add errno=0 dlerror=none`。不是五阶段或关闭已通过。语料先消费dlerror
+再交require二次读取，掩盖了原始错误；e0ccd29 / 集成5fa0ad0先保留原始
+symbol/address/error，单路诊断41536583996已派发，当前仍在运行。
+
+本机已有Chrome153.0.8010.36，在隔离的极小页面中验证：共享视图直接交给
+TextDecoder.decode会抛出`The provided ArrayBufferView value must not be shared`，
+复制成普通Uint8Array后正确解码。同页函数表身份和grow正常。随后将修复前后
+的生产ProcessDylink源码打成小型API fixture，分别提供真实共享Wasm32/64
+Memory、table32/64和Wasm函数。旧类的main_add查询返回0并记录同一异常；
+修复后均返回规范表项4，函数调用结果42。这个对照验证了生产类的浏览器API
+路径，完整内核/libc/镜像组合仍由公开CI验收。
+
+4d13d79 / 集成eac3370将有界C字符串复制为自有字节快照后再严格UTF-8解码，
+不放宽UTF-8、NUL或4096字节边界，也不改变地址范围和应用接口。当前源码
+05e9dbb / 集成8484b31另外整理SDK说明，执行代码相同。这是宿主实现兼容，
+不是声称编码规范要求拒绝shared输入；[Encoding接口定义](https://encoding.spec.whatwg.org/#dom-textdecoder-decode)
+本身仍声明AllowSharedBufferSource。
+
+Node进程模型主动启用实测浏览器的解码限制，再检查首次主程序符号、搜索、
+循环/SIMD及start重入路径；两位宽通过，修复前实现的反向控制在首次main
+dlsym断言失败。两套TypeScript、现有运行层、格式与仓库检查通过。本地只做
+小型源码/API验证，所用临时浏览器会话和HTTP服务均已关闭。
+
+新精确05e9dbb四路各派发一次，计划及Heavy检查名已核对，均在运行：
+
+| 目标 | 任务 |
+|---|---|
+| wasm32 Chromium | [41537955279](https://github.com/HighCWu/distro/actions/runs/41537955279) |
+| wasm32 Firefox | [41537955806](https://github.com/HighCWu/distro/actions/runs/41537955806) |
+| wasm64 Chromium | [41537956051](https://github.com/HighCWu/distro/actions/runs/41537956051) |
+| wasm64 Firefox | [41537955781](https://github.com/HighCWu/distro/actions/runs/41537955781) |
+
+仍须实际六阶段、两轮、唯一pass及机器/浏览器关闭结果，才能接受对应范围。
+Chrome API对照不能扩大为Firefox或完整Linux支持，旧8c2a568任务不代验修复。
