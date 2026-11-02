@@ -2285,6 +2285,11 @@ setsid7081904的wasm64确认同样缺少设备前提，47b4e74修复仍待新目
 浏览器关闭，接受单CPU wasm32/64 Chromium/Firefox范围，包含循环库及跨库
 SIMD。不覆盖ELF入口或动态fork，见[浏览器验收](elf-dynamic-linking.md#浏览器动态加载已核实范围)。
 
+distro13b54fe / 集成08fa383新增独立双位宽共享驱动镜像：真实Clang以普通
+-fPIC/-shared生成同一动态语料的DSO，再由Linux进程装载。编译器原独立检查
+实际阶段已核实，新组合六阶段及关闭异步验收；不新增libc接口或切换默认LLVM。
+见[共享驱动接线](elf-dynamic-linking.md#标准共享编译驱动接入真实进程候选)。
+
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复实际内核
 nofault 访问越界会 trap 的架构缺陷：按当前线性内存容量校验完整访问后走
 Linux 原有错误出口，不引入 MMU。双位宽实际 Wasm 宏、溢出及失败写保护

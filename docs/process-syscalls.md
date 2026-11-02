@@ -6106,6 +6106,14 @@ pass及关闭已核实，只接受对应循环装载范围，不扩大为SIMD或
 独立动态SDK的单CPU wasm32/64 Chromium/Firefox范围，不扩大为ELF、线程或
 动态fork；见[已核实范围](elf-dynamic-linking.md#浏览器动态加载已核实范围)。
 
+## 普通共享编译参数的真实进程接线
+
+distro13b54fe / 集成08fa383把已核实的Linux共享Clang驱动接到独立双位宽
+动态加载镜像，共享库不再手写wasm-ld命令，应用C源码不改。复用既有六阶段
+语料和关闭门禁，41542937012/41542944612异步验收，默认SDK及musl不变。
+这推进构建兼容性，不记为新增syscall，见
+[驱动集成记录](elf-dynamic-linking.md#标准共享编译驱动接入真实进程候选)。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
