@@ -6072,6 +6072,13 @@ runner与已审计版本的run-test.js/shutdown.js无差异：必须等待machin
 新增syscall或libc函数，也不扩大线程/fork边界，详见
 [循环图接线](elf-dynamic-linking.md#循环共享库依赖接入)。
 
+固定1ec430b的Node wasm32 41530620340、wasm64 41530620735现已读取实际
+四阶段、唯一pass及发布runner关闭门禁，接受标准dlfcn接线的对应双位宽
+Node范围。后续de74734 / 集成0164c9d修复Wasm start回调dlsym主程序新
+函数时覆盖模块表项的缺陷，双位宽轻量真实Wasm模型和旧行为反向控制通过，
+后继组合目标仍异步验收，不沿用旧版结论。见
+[已核实结果与表项隔离](elf-dynamic-linking.md#标准dlfcn的双位宽node已核实结果)。
+
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
 fd 与 limit 的 fork/exec 生命周期、错误后的原状态和默认模式兼容边界。此前纯
 语料增量没有修改内核；第八组发现的必要内核修复单独记录。没有把“未发现缺陷”

@@ -419,3 +419,41 @@ runner关闭结果才可接受；默认SDK和musl/LLVM pin不变，没有新增�
 [41531559713](https://github.com/HighCWu/distro/actions/runs/41531559713)和
 [41531559935](https://github.com/HighCWu/distro/actions/runs/41531559935)，
 位宽以各任务的实际计划/Heavy检查名为准，当前均在运行。
+
+### 标准dlfcn的双位宽Node已核实结果
+
+固定1ec430b的41530620340实际为Node wasm32，41530620735为Node wasm64，
+两项现已读取完整构建步日志并确认四阶段各一次、唯一`::vm-test::pass`且无
+失败标记：主程序符号/错误、真实Linux文件及RUNPATH/GOT/构造、别名/作用域/
+复用/close、缺失损坏输入及恢复收尾。对应压缩日志/构建步大小分别为
+1,089,011/4,969,734和490,134/2,519,336字节。
+
+已核对该源码发布的run-test.js/shutdown.js及Nix runner路径：成功标记后
+仍须await machine.closed，关闭异常、启动异常或后续运行错误均令退出码
+失败；两项Heavy和工作流均成功，该范围关闭门禁成立。由此接受1ec430b的
+真实内核/libc/Worker/独立SDK组合的Node范围，不扩大为后继循环图、start
+重入、浏览器、动态fork或ELF能力。
+
+旧9d15937的wasm64任务41530248231也已取实际日志，仍因未传-mwasm64
+失败于DSO构建，未进入目标运行；后继1ec430b已修复且通过，无需重派旧版。
+
+### start回调中主程序dlsym的表项隔离
+
+源码`de74734` / 主仓库pin `0164c9d`修复一个具体覆盖缺陷：新模块的活动
+element段已在实例化时写入表，但ProcessDylink游标此前仍指向该批次起点。
+Wasm start回调主程序并dlsym一个尚未取址的主程序函数时，可能覆盖刚写入的
+模块表项。现在在实例化前将临时分配游标放到整个发布区间之后，供重入的
+主程序规范函数指针分配；批次仍用独立保存的起点布局。成功保留回调新分配的
+指针，未发生重入分配时回收多余预留。实例化前的普通验证错误恢复旧游标；
+陷阱和控制转移仍按原不可恢复边界处理。没有禁止main dlsym或新增应用API。
+
+轻量双位宽模型使用真实Wasm start、活动element段和主程序Wasm函数，在
+start回调中取得新指针，随后分别执行原模块表项与主程序函数并核对身份；
+修复前已发布源码的反向控制实际复现覆盖并失败。两套TypeScript、既有运行
+层及格式检查通过。这一分支的I/O/主回调使用模型桥接，不称为booted Linux
+或table64验收。新Linux目标继续跑完整五阶段，验收本轮源码的组合回归，
+不将其当作这个专门start分支的目标覆盖；默认SDK、内核及musl/LLVM pin不变。
+固定de74734的两项新任务为
+[41532654095](https://github.com/HighCWu/distro/actions/runs/41532654095)与
+[41532654276](https://github.com/HighCWu/distro/actions/runs/41532654276)，
+当前均在运行，位宽按各任务Heavy检查名识别。
