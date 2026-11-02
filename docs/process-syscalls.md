@@ -5911,6 +5911,34 @@ multi清理后要求解析线程退出，两个服务器线程join、fd恢复及
 阶段和关闭仍待验收。ELF入口、动态libc加载、AIO共享ring仍未因此实现。
 见[实施记录](elf-dynamic-linking.md#独立-sdk-与-linux-进程验收接线)。
 
+## clone3 的 CLONE_INTO_CGROUP 标准传输
+
+distro2c48032 / 集成c868659在已有原生clone3路径传递CLONE_INTO_CGROUP及
+u64 cgroup fd。Linux59937da2的CGROUPS/PIDs和通用clone3实现原已具备该
+能力，适配层此前提前EOPNOTSUPP；本轮不修改Linux或musl，也不新增公共API。
+fd/权限/控制器检查由Linux完成，没有用父进程创建后再迁移来冒充出生归属。
+适配层保留VER2最小长度与INT_MAX检查、未请求字段忽略，以及旧对象准入。
+新helper与feature bit独立于旧宽helper，防止改变签名或静默传递fd0。
+
+标准C消费者在目标组为空时分别验证短结构、超宽fd、真实EBADF和pids.max=0
+的EAGAIN，无可回收子进程且fd数量/输出槽不变。放宽为1后组合CLONE_PIDFD，
+子进程第一次读取procfs即在/work，父端核对组成员、原归属、PIDFD状态和reap。
+再验证普通fork仍继承原组，随后继续已有三阶段cgroup继承/限制/卸载语料。
+初始化脚本显式挂载proc；工作负载禁止在宿主直接执行，避免修改宿主cgroup。
+
+静态review覆盖u64/机器字区分、一次捕获、fd0、旧对象拒绝、错误后状态清理
+及C规范结构字段复用时清零。运行层397项、两套TypeScript检查、8项实际执行
+对象/SDK检查、GCC/Clang与双位宽前端/静态分析通过，不替代目标运行。
+双位宽cgroup和既有fork runtime各派发一次；新cgroup每路需完整六阶段、
+唯一pass与机器关闭，既有fork语料按原完整阶段验收。任务结果仍待核实。
+
+| 检查 | 固定2c48032的任务 |
+|---|---|
+| cgroup wasm32 | [41492418782](https://github.com/HighCWu/distro/actions/runs/41492418782) |
+| cgroup wasm64 | [41492435069](https://github.com/HighCWu/distro/actions/runs/41492435069) |
+| fork runtime wasm32 | [41492446819](https://github.com/HighCWu/distro/actions/runs/41492446819) |
+| fork runtime wasm64 | [41492457442](https://github.com/HighCWu/distro/actions/runs/41492457442) |
+
 ## 静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

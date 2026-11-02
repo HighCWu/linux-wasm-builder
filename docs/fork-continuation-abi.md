@@ -255,6 +255,24 @@ GCC/Clang 前端与双位宽 Wasm 静态分析通过。标准 C 消费者通过 
 唯一pass和关闭门禁，接受上述双位宽范围，不扩大为浏览器；精确日志见
 [目标验收](process-syscalls.md#远端复制的双位宽node与四路浏览器验收)。
 
+### clone3 直接创建到 cgroup
+
+distro2c48032 / 集成c868659接通CLONE_INTO_CGROUP（1ULL<<33）。Linux原有
+clone3/cgroup路径负责目标fd、权限、控制器准入、子进程归属和失败回滚；
+本轮移除的是执行适配层的额外拒绝，没有新增syscall号或内核cgroup实现。
+
+clone_args必须达到VER2的88字节，cgroup字段保持u64且不得超过INT_MAX，
+未请求该标志时忽略此字段。快照前从单次复制捕获fd，rewind时不重新读取。
+新对象提供独立__wasm_fork_clone3_cgroup导出，flags和cgroup均为i64，其余
+指针保持目标位宽；同时要求原生内核能力及features的bit1。缺少导出/标记的
+旧对象在descriptor初始化前拒绝，原有宽helper保留签名并拒绝此新标志，
+不会因缺少参数误用fd0。负值或trap后清除捕获状态，普通fork不继承目标组。
+
+真实双位宽语料将验证PIDs上限拒绝、错误fd和短结构、无子进程/PIDFD泄漏，
+出生后首次用户观察已在目标组、父组不变、PIDFD/reap与普通fork恢复。
+运行层397项、两套类型检查、实际编译的双位宽执行对象及消费者前端/静态
+分析通过；新目标阶段和关闭仍待验收。未增加musl接口或多线程fork能力。
+
 ## 保存区
 
 descriptor 是两个小端 `uintptr_t`：当前 cursor、保存区 end，字段分别占 4 或 8 字节。

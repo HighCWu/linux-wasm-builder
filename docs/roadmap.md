@@ -2018,6 +2018,12 @@ distro677cf9e / 集成363f770将9035266编译器接入独立SDK，复用原musl�
 验证双位宽配置、C++回归与普通C进程的符号版本/间接调用/数据身份；目标结果
 尚待核实，不作为ELF或动态加载支持。见[SDK接线](elf-dynamic-linking.md#独立-sdk-与-linux-进程验收接线)。
 
+2c48032 / 集成c868659接通标准CLONE_INTO_CGROUP，由Linux直接执行出生归属、
+PIDs准入和回滚，不以创建后迁移代替。新执行对象独立传递u64 fd，旧helper
+签名不变；musl/Linux源码未因本轮改动。六阶段消费者及原fork回归已异步
+派发双位宽，目标结果待验收；不扩大多线程fork。见
+[传输与验收记录](process-syscalls.md#clone3-的-clone_into_cgroup-标准传输)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。
