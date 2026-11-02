@@ -3,8 +3,8 @@
 # Git 安装系统与 wasm64 接入
 
 当前distro1abe1e8 / 集成39941ff已移除强制`NO_MMAP`，Git重新使用标准libc
-文件映射读取对象、索引和pack。默认分块内核已接入，Git新组合仍待六项Node
-目标验收；下文早期版本的读取/复制fallback记录按对应版本理解。
+文件映射读取对象、索引和pack。默认分块内核已接入，Git新组合的六项Node
+目标已验收；下文早期版本的读取/复制fallback记录按对应版本理解。
 
 distro `7967691` 在既有 Git 2.55.0 配方上增加显式 `git-wasm64`，保持默认
 `git` 为 wasm32。64 位变体选择匹配的 stdenv、平台、BusyBox、zlib、curl、
@@ -285,4 +285,11 @@ Git原有的窗口/额度配置调节，不新增应用接口。
 30项相关宿主检查通过，包括原生Git的数据往返与伪造cat-file成功但损坏内容
 的拒绝控制，以及浏览器阶段接线。原生版本2.43只证明工作负载断言，不作为
 目标Git2.55或Wasm mmap证明。Nix/JS/shell格式和差异检查通过，六项新的Git
-workflow/packing/remote目标均固定1abe1e8，实际构建门禁、阶段和关闭仍待核实。
+workflow/packing/remote目标均固定1abe1e8。
+
+六项实际日志现已核实：双位宽均有构建标记确认原生mmap启用及compat/mmap.o
+未生成，workflow、packing、remote各完成对应阶段和唯一pass。任务依次为
+41482555691/41482554251、41482555292/41482554321、41482553471/41482553386，
+链接见[syscall验收表](process-syscalls.md#git-恢复标准文件映射读取)。
+发布的run-test/shutdown未改变，成功退出须等待machine.closed且无清理错误，
+六项关闭门禁成立。这里只接受该源码的Node范围，尚未复验新组合的浏览器。

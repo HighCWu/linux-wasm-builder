@@ -5872,9 +5872,25 @@ packing沿用原语料，再提交1.25MiB及二进制尾部内容，使用Git原
 | Git remote | wasm32 | [41482553471](https://github.com/HighCWu/distro/actions/runs/41482553471) |
 | Git remote | wasm64 | [41482553386](https://github.com/HighCWu/distro/actions/runs/41482553386) |
 
-构建门禁、对应阶段、唯一pass及关闭结果仍待核实。大仓库的复制窗口仍消耗
+六项均已核实实际构建门禁、对应阶段及唯一pass。发布的runner未改变，退出
+成功要求等待machine.closed且无清理错误，关闭门禁成立。大仓库的复制窗口仍消耗
 真实direct内存，不把标准mmap调用恢复当作MMU按需映射或性能已经改善。
 详细源码判断与边界见[Git运行记录](git-runtime.md#恢复上游文件映射路径)。
+
+## 默认映射对照验收与 curl 线程解析
+
+ec78632的剩余两项41478948425/41478944068现已读取实际日志：每项四次独立启动，
+分别完成128KiB候选的四阶段、显式关闭拒绝、旧模块拒绝、并发预算/回滚，
+各自唯一pass；发布的runner关闭门禁成立。至此该版本八项Node全部验收，
+不扩大为新Git或浏览器版本。
+
+distro94a9f3e / 集成db73c48启用curl8.21原有线程解析器，去掉强制同步解析的
+构建限制。没有修改curl应用源码、补造musl函数或扩大fork。配置后必须确认
+USE_RESOLV_THREADED且未启用c-ares，运行时再次核对AsynchDNS及后端身份。
+独立标准libcurl消费者同时发起延迟DNS与数字地址HTTP；真实UDP查询等待时，
+另一个multi传输必须完成，之后释放DNS、校验精确数据，再执行新域名查询。
+multi清理后要求解析线程退出，两个服务器线程join、fd恢复及正常返回。
+详细验证与异步任务见[curl记录](curl-runtime.md#上游线程-dns-解析器)。
 
 ## 静态 review 与异步验收原则
 

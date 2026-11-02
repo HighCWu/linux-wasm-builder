@@ -143,3 +143,41 @@ COPYRIGHT 和 compiler-rt LICENSE.TXT；新增自有集成/测试采用 MIT 并�
 不将依赖改为 MIT，也不改变 Linux 内核的相应源码义务。这些材料不是完整发布
 合规审计。后续独立开发包及普通 C 应用的接入、验证与限制见
 [libcurl 开发记录](libcurl-development.md)，不把 CLI 成功当成库接口已经验收。
+
+## 上游线程 DNS 解析器
+
+distro94a9f3e / 主仓库db73c48移除强制关闭线程解析器的构建选项，启用curl8.21
+原有POSIX线程后端；保留禁用c-ares。固定发行源码的configure实际生成
+USE_RESOLV_THREADED，配方在配置后检查该宏，运行消费者再确认AsynchDNS和
+非c-ares后端。没有修改curl源码、增加libc函数或项目应用接口。
+
+此项恢复正常libcurl使用方式：设置NOSIGNAL的multi应用遇到DNS等待时，其它
+传输仍能推进。原来同步解析会阻塞调用线程；相关行为见
+[curl线程说明](https://curl.se/libcurl/c/threadsafe.html)。
+
+独立安装后开发包消费者使用标准libcurl/pthread/UDP/TCP接口，在隔离Linux
+镜像内启动回环DNS与HTTP服务器。DNS只回答两个.test域名，不访问外部服务。
+延迟查询实际到达UDP服务器后暂不回复，数字地址HTTP必须先完成，再释放
+DNS响应，检查两个精确DATA响应；清理easy后用新域名查询验证解析恢复。
+最后销毁multi，等待解析线程结束、join服务器线程、关闭自有fd，并核对线程数
+和/proc/self/fd恢复。检查只使用默认SDK，不需要fork或额外musl公共接口。
+上游8.21的multi清理会销毁其解析线程队列；不要求线程池在每个easy后立即消失。
+
+本地GCC/Clang前端、实际8.21公共头文件与musl双位宽前端/静态分析通过，既有
+14项轻量回归通过。静态review修正配置宏名、初始化外部调用输出及NULL句柄
+检查。完整DNS用例只在隔离目标镜像运行，不在宿主改写resolv.conf或绑定53端口。
+
+双位宽各派发resolver、transfers、https三个公开重型检查，均固定94a9f3e。
+
+| 检查 | 任务 |
+|---|---|
+| resolver wasm32 | [41486866009](https://github.com/HighCWu/distro/actions/runs/41486866009) |
+| resolver wasm64 | [41486875380](https://github.com/HighCWu/distro/actions/runs/41486875380) |
+| transfers wasm32 | [41486887025](https://github.com/HighCWu/distro/actions/runs/41486887025) |
+| transfers wasm64 | [41486897321](https://github.com/HighCWu/distro/actions/runs/41486897321) |
+| https wasm32 | [41486908031](https://github.com/HighCWu/distro/actions/runs/41486908031) |
+| https wasm64 | [41486922033](https://github.com/HighCWu/distro/actions/runs/41486922033) |
+
+新能力的三个阶段、唯一pass与机器关闭尚待实际目标日志验收。即使通过，也只
+证明Linux回环DNS与TCP，不提供浏览器访问任意外部UDP/TCP的承诺。curl及其
+依赖许可证不变，新增自有消费者、脚本与集成变更采用MIT。

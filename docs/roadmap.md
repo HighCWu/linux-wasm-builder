@@ -2001,8 +2001,13 @@ call_indirect/return_call_indirect 按实际表类型选择索引宽度，保留
 主仓库eedaa34的有界PIC实验已改为读取真实dylink.0布局、对齐和NEEDED依赖，
 预先计算不重叠区间，按依赖顺序构造，核对外部数据重定位和跨库函数指针身份。
 修正简单构造函数可被折叠进初始数据的旧验收盲点，反向顺序现在必须失败。
-本地Clang/LLD18+Node25双位宽通过，候选9035266的云端复验待结果；不扩大为
+本地Clang/LLD18+Node25双位宽通过，候选9035266的云端复验现也逐阶段通过；不扩大为
 Linux文件装载、ELF或动态libc已支持。见[实施与实验边界](elf-dynamic-linking.md)。
+
+默认文件映射ec78632的八项Node与Git原生mmap组合1abe1e8的六项Node现均已
+核实完整阶段、唯一pass及关闭门禁。94a9f3e进一步恢复curl原有线程DNS解析，
+标准libcurl消费者验证等待DNS时另一传输可完成、后续解析及线程/fd收尾；
+新组合异步目标仍待验收。见[curl记录](curl-runtime.md#上游线程-dns-解析器)。
 
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
