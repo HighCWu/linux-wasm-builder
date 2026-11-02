@@ -151,12 +151,24 @@ with tempfile.TemporaryDirectory(prefix="alg-hash-model-") as tmp:
     )
     assert negative.returncode != 0, "disabled usercopy must fail the same workload"
 
-program = ROOT / "sources/distro/distro/alg-hash/runtime.c"
-for cc in ("gcc", "clang"):
-    subprocess.run(
-        [cc, "-std=c11", "-Wall", "-Wextra", "-Werror", "-fsyntax-only", str(program)],
-        check=True,
-    )
+programs = [
+    ROOT / f"sources/distro/distro/{name}/runtime.c"
+    for name in ("alg-hash", "alg-skcipher")
+]
+for program in programs:
+    for cc in ("gcc", "clang"):
+        subprocess.run(
+            [
+                cc,
+                "-std=c11",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-fsyntax-only",
+                str(program),
+            ],
+            check=True,
+        )
 header_path = os.environ.get("WASM_ALG_HASH_UAPI")
 header = (
     Path(header_path).read_text()
@@ -215,19 +227,20 @@ with tempfile.TemporaryDirectory(prefix="alg-hash-frontends-") as tmp:
             "-Wextra",
             "-Werror",
         ]
-        subprocess.run([*command, "-fsyntax-only", str(program)], check=True)
-        subprocess.run(
-            [
-                *command,
-                "--analyze",
-                "-Xanalyzer",
-                "-analyzer-werror",
-                str(program),
-                "-o",
-                "/dev/null",
-            ],
-            check=True,
-        )
+        for program in programs:
+            subprocess.run([*command, "-fsyntax-only", str(program)], check=True)
+            subprocess.run(
+                [
+                    *command,
+                    "--analyze",
+                    "-Xanalyzer",
+                    "-analyzer-werror",
+                    str(program),
+                    "-o",
+                    "/dev/null",
+                ],
+                check=True,
+            )
 
 print(
     "AF_ALG hash: exact SG adapter, ownership, negative control and native/Wasm frontends passed; no host sockets or crypto"

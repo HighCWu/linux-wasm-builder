@@ -11,6 +11,7 @@ recipe = (ROOT / "sources/distro/distro/linux/package.nix").read_text()
 assert 'make wasm${toString wasmBits}_defconfig' in recipe, "review selected Kbuild targets if build recipe changes"
 required = ("KEYS", "BINFMT_MISC", "FANOTIFY", "FANOTIFY_ACCESS_PERMISSIONS", "EROFS_FS_XATTR", "EROFS_FS_BACKED_BY_FILE", "PACKET")
 required += ("CRYPTO", "CRYPTO_USER_API_HASH", "CRYPTO_SHA256", "CRYPTO_HMAC")
+required += ("CRYPTO_USER_API_SKCIPHER", "CRYPTO_AES", "CRYPTO_CBC", "CRYPTO_CTR")
 
 
 def check(text, name):

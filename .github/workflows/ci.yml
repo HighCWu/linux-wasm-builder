@@ -102,7 +102,7 @@ jobs:
           WASM_DEFCONFIG_ROOT="$config_root" python3 -B scripts/check_selected_defconfigs.py
       - name: Check packet socket workload without host network or credential changes
         run: python3 -B scripts/check_packet_sockets.py
-      - name: Check AF_ALG hash ownership and workload without host sockets
+      - name: Check AF_ALG ownership, consumers and full-kernel export policy
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -113,6 +113,20 @@ jobs:
             "$revision" "$RUNNER_TEMP/if_alg.h" include/uapi/linux/if_alg.h
           WASM_ALG_HASH_SOURCE="$RUNNER_TEMP/algif_hash.c" \
             WASM_ALG_HASH_UAPI="$RUNNER_TEMP/if_alg.h" python3 -B scripts/check_alg_hash.py
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/algif_skcipher.c" crypto/algif_skcipher.c
+          WASM_ALG_SKCIPHER_SOURCE="$RUNNER_TEMP/algif_skcipher.c" \
+            python3 -B scripts/check_alg_skcipher.py
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/wasm-Makefile" arch/wasm/Makefile
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/linux-export.h" include/linux/export.h
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/lib-sha256.c" lib/crypto/sha256.c
+          WASM_ARCH_MAKEFILE="$RUNNER_TEMP/wasm-Makefile" \
+            WASM_EXPORT_HEADER="$RUNNER_TEMP/linux-export.h" \
+            WASM_SHA256_LIBRARY="$RUNNER_TEMP/lib-sha256.c" \
+            python3 -B scripts/check_wasm_export_policy.py
       - name: Check exec metadata commit using the exact pinned loader
         env:
           GH_TOKEN: ${{ github.token }}
