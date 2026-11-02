@@ -159,6 +159,9 @@ class GitHashPrefetch(unittest.TestCase):
             self.assertEqual(summary, "")
 
     def test_dynamic_file_reference_paths_are_exact(self):
+        result, calls, summary = self.run_model({"MODEL_PATH": "M\tarch/wasm/kernel/remote_vm.c"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Candidate hash:", summary)
         paths = "\n".join("M\tarch/wasm/" + path for path in (
             "include/asm/mmu.h", "include/asm/remote_vm.h", "kernel/remote_vm.c", "mm/init.c"))
         result, calls, summary = self.run_model({"MODEL_PATH": paths})
