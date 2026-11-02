@@ -4892,6 +4892,75 @@ LLVM pin 未改，自有检查为 MIT，上游许可证保留。
 唯一 pass 和机器关闭，当前均待目标证据。新内核不能继承此前密码接口的验收；
 也不扩展为 packet 诊断、socket 销毁、全部 ss 选项、浏览器或动态链接支持。
 
+9a08b37 的两路日志现已实际核实：wasm32 job125147861740 为7,869,676字节，
+wasm64 job125147851630 为7,589,514字节，都完成了无 procfs 的子 shell/命令
+替换阶段，随后在 ephemeral loopback bind 返回 EADDRNOTAVAIL。专用 rootfs
+尚未配置 loopback IPv4 地址，不是前一 shell 修复失效，也没有 socket 功能
+阶段通过。distro `ab3f787` 在专用 init 中用普通 ifconfig 配置自身 lo 的
+127.0.0.1，消费者结束后再将接口 down，清理成功才发布 pass；不改 ss 源码。
+主仓库 `dbb7f95` 单独更新 pin。固定 ab3f787 的
+[wasm32 41408752049](https://github.com/HighCWu/distro/actions/runs/41408752049) 与
+[wasm64 41408758963](https://github.com/HighCWu/distro/actions/runs/41408758963)
+各派发一次，仍待六个 C 阶段、shell/loopback 阶段、唯一 pass 与关闭证据。
+
+## 第一百零二组：接通标准 bpf syscall 与原有解释器
+
+Linux `d79048f56` 在三套 defconfig 启用 `CONFIG_BPF_SYSCALL=y`，接通原有
+bpf syscall 的 map、程序验证/装载及对象 fd 命令。NET 原本已选择 BPF 解释器，
+这里不新增指令引擎或 Wasm JIT。BPF_SYSCALL 上游默认 n，本次按平台能力需求
+选择启用，不称作恢复一个默认 y。resolved 配置要求 BPF、BPF_SYSCALL 与官方
+默认的 BPF_UNPRIV_DEFAULT_OFF 为 y，JIT/JIT_ALWAYS_ON 保持关闭。没有降低
+非特权创建政策、启用内核 softmmu 或扩大多线程 fork。
+
+MIT 普通 C 消费者通过已存在的 syscall(SYS_bpf, ...) 使用 Linux UAPI，所有
+标量可变参数显式使用机器字；没有新增 musl 包装函数或公共头文件 API。其三个
+阶段要求：array 的初始/更新状态、真实对象 id/元数据、EFAULT 后状态及 fd 别名
+生命周期；实际验证/装载一个 map-backed socket filter，由 helper 读取 map
+控制 AF_UNIX datagram 的丢弃/接收，包含 NUL/二进制字节；map freeze 拒绝修改，
+关闭原 program/map fd 后 socket 持有的程序仍能运行，非特权用户创建被拒绝，
+最终所有测试 fd 关闭。fd 关闭与引用保持不等于已观测全部 RCU 对象物理回收。
+
+该程序使用自己的 socketpair，不配置外部网络。手写11条标准 BPF 指令，包含
+双槽 map fd 装载、栈 key、map_lookup_elem helper、空指针分支和 map value
+返回。实际丢弃前的 readiness 检查与更新后的精确接收共同约束执行行为，不能
+只凭 PROG_LOAD 返回 fd 假通过。程序元数据另需匹配 map id 且 jited_prog_len
+为0。验证器失败时保留有界日志；没有绕过原有验证器或把用户代码直接作为 Wasm
+内核函数实例化。
+
+静态 review 覆盖 map fd 到程序再到 socket 的引用链、冻住后的值、权限默认、
+__aligned_u64 指针槽和 instruction 布局，以及解释器/helper 都在内核 memory
+运行、用户参数仅沿既有 uaccess 复制的边界。上游的 BPF map mmap 与需要内核
+BTF/其它 attach 类型的能力没有因此验收。GCC/Clang 严格前端与静态分析、当前
+musl/该 Linux UAPI 下 wasm32/64 的本机前端/分析、固定 Nix/shell 格式及三套
+配置禁用控制通过；没有在宿主执行 bpf 主程序或降权，不替代配套编译器和内核
+的真实链接/运行。
+
+首次[预取 41407801470](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41407801470)
+实际日志确认两个归档端点均 HTTP429，而非源码或编译错误。主仓库 `aa62abe`
+为已有 Git 归档预取实验增加精确三套 defconfig 修改的允许范围，仍拒绝路径、
+模式、属性、父版本和独立基线 hash 不符，原 futex 单文件范围保留，宿主控制流
+验证通过。没有接受缺失 hash 或把传输改为不校验的 checkout。
+
+[Git 预取 41408420756](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41408420756)
+job125155641189 的实际日志核实基线 `6c4cb40dabafc588f2b2cba01929d4b8ca185f35`
+与 `sha256-FTSBUiNGIBgPig3MJf4jipovWamTguHtC+HPnf5CLH4=` 一致，随后才得到
+候选 `d79048f56263e88d585c86a38b6a1b0022fac53e` 的
+`sha256-aHhvbJnFRb5YA0hOGNn8+llMHUs0Gk5cFdrK1oXccUQ=`。distro `641eb07`
+原子集成精确 pin、配置门禁和双位宽产品，主仓库 `18f4976` 单独更新 gitlinks
+及原始配置检查。musl/默认 LLVM pin 未变，上游许可证保留，自有消费者为 MIT。
+
+固定 641eb07 各派发一次
+[wasm32 41409004742](https://github.com/HighCWu/distro/actions/runs/41409004742) 与
+[wasm64 41409010607](https://github.com/HighCWu/distro/actions/runs/41409010607)。
+实际三个阶段、唯一 pass 与 machine.closed 门禁仍待核实。不将编译/宿主分析
+泛化为所有 BPF map、BTF、tracing/kprobe、JIT、libbpf、浏览器或系统沙箱验收。
+
+本轮另核查了固定 libpcap 源码
+[`69733af23aa55f221aaa5e23053f13eb55af4d35`](https://github.com/the-tcpdump-group/libpcap/blob/69733af23aa55f221aaa5e23053f13eb55af4d35/pcap-linux.c)：
+其 activation 要求 TPACKET mmap capture，版本探测失败是错误，ring mmap
+失败也直接退出。不能靠更换 errno 声称会回退到普通 recvmsg。当前未修改
+AF_PACKET ring 选项、未加 libpcap 补丁；真正的共享 ring 仍为未完成能力。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

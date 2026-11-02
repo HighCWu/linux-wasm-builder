@@ -2039,6 +2039,18 @@ Linux `de746039d` / distro `5fa0584` 进一步启用标准 UNIX/UDP socket 诊�
 完整阶段、唯一 pass 和关闭结果；尚未据静态检查宣布验收。详见
 [Netlink 监控记录](process-syscalls.md#第一百零一组标准-netlink-socket-监控与无-procfs-的-shell-执行)。
 
+9a08b37 两路已实际确认无 procfs shell 阶段通过，但因镜像未配置 loopback
+地址在 bind 处失败。`ab3f787` 只在专用 init 中初始化/清理自身 lo，双位宽
+复验正在进行，不据前一个启动阶段宣称 socket 诊断已经验收。
+
+Linux `d79048f56` / distro `641eb07` 再启用标准 BPF_SYSCALL，复用已有解释器，
+保持 JIT 关闭及上游非特权政策。普通 C 消费者直接使用标准 syscall，检查 array
+状态与错误恢复、真实 map-backed socket filter 的丢弃/接收和 helper 执行、
+冻结/权限及 fd 生命周期。轻量分析通过，双位宽 Node 目标已各派发一次，实际
+阶段与关闭仍待证据。主仓库 `18f4976` 已更新 pin；不新增 musl 公共 API，
+也不把这个范围扩大为全部 eBPF、tracing、libbpf 或浏览器支持。见
+[BPF 记录](process-syscalls.md#第一百零二组接通标准-bpf-syscall-与原有解释器)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
