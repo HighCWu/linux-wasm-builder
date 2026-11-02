@@ -25,6 +25,11 @@ int main(void)
     assert(row_has(inode_row(rows, 123), "127.0.0.1:12345"));
     assert(!row_has(inode_row(rows, 123), "127.0.0.1:1234"));
     assert(!row_has(inode_row(rows, 123), "uid:65534"));
+    const char *netlink = "UNCONN 0 0 usersock:123 *\nUNCONN 0 0 usersock:1234 *\n";
+    assert(row_has(netlink, "usersock:123"));
+    assert(!row_has(netlink, "usersock:12") && !row_has(netlink, "usersock:1234"));
+    assert(!row_has(netlink, "usersock:12345"));
+    assert(row_has(strchr(netlink, '\n') + 1, "usersock:1234"));
     return 0;
 }
 """
