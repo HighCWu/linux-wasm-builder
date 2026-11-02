@@ -113,6 +113,8 @@ jobs:
         run: python3 -B scripts/check_packet_sockets.py
       - name: Check socket diagnostic verifier without host socket operations
         run: python3 -B scripts/check_socket_diag.py
+      - name: Check runtime payload and separate rebuild material installation
+        run: python3 -B scripts/check_runtime_materials.py
       - name: Check AF_ALG ownership, consumers and full-kernel export policy
         env:
           GH_TOKEN: ${{ github.token }}
