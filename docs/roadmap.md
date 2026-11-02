@@ -2088,6 +2088,14 @@ setsid 的普通 fork/setsid/exec/wait 路径，不应用专用 callback-clone �
 默认 util-linux 不变，不新增 musl API。主仓库 pin 为 `5976885`，见
 [原版 setsid 记录](process-syscalls.md#第一百零五组原版-util-linux-setsid-使用普通-fork)。
 
+独立 distro `ef0ef00` / `bab75b6` 再构建原版 util-linux flock，使用其正常
+fork/wait、close/no-fork 和 timer/signal 路径；与 setsid 共用有原始源码
+cmp/材料的独立配方，不更改默认 util-linux。消费者核对真实锁 fd 引用、
+跨进程冲突、退出释放、超时和错误恢复；宿主与双位宽静态分析通过，实际
+Node 两路已派发，仍待四阶段和关闭。另修正 cgroup 消费者失败标记的 parser
+格式，未改变内核能力。主仓库 pin 为 `c324530`，见
+[原版 flock 记录](process-syscalls.md#第一百零六组原版-util-linux-flock-的-forkwait-与锁生命周期)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |

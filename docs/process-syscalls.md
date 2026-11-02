@@ -5168,6 +5168,56 @@ util-linux 一致的 applet replacement 元数据；主仓库 `5976885` 单独�
 的共享 ring，io_uring 也不能据此跳过相应前提。本轮未修改这些开关，继续
 保留为需要真实映射/所有权方案的能力缺口，不把它们误归为 libc 包装缺失。
 
+## 第一百零六组：原版 util-linux flock 的 fork/wait 与锁生命周期
+
+现有默认 util-linux 的 flock 使用应用专用 posix_spawn 改写。本轮新增独立
+flock-fork 产品，复用固定原版2.42.2源码，保留其普通 fork/waitpid 分支、
+--close、--no-fork、标准定时器/信号和 exec 错误处理。它是源码兼容与实际
+程序交付的增量，不声称本轮重新实现了已存在的 flock syscall，也不替换默认
+util-linux 或扩大 fork 准入范围。
+
+把 setsid 的独立构建配方移至 util-linux-fork/package.nix，两个产品共享
+已有可选 SDK、正常 Autoconf 探测、静态链接/finalizer、构建前后原始 C 文件
+cmp、源码哈希/许可证/构建材料及 applet replacement。program 只允许 setsid
+或 flock，分别由普通 configure --enable-<program> 与 make 同名目标选择，
+没有补丁、源码生成或应用 callback。先前 setsid 36852d6 的任务继续运行，
+不因共享配方移动而取消或重复派发，也不将它们算作新配方已验收。
+
+新增独立 MIT 消费者通过标准 posix_spawn 启动工具，子程序以 pipe/poll 有界
+交接身份，父进程以不同 open file description 实际探测同一锁文件：
+
+- 普通 exclusive 模式和 --close 均须真实 fork，子 PPID 为工具 PID。
+  子进程按 stat/fstat 的 dev+inode 查找锁 fd：普通模式恰好一个、--close
+  模式为零；即便子关闭锁 fd，工具父进程仍持锁，独立 LOCK_EX|LOCK_NB
+  必须冲突。释放子进程并核对 wait 返回37后，锁必须可以重新获取。
+- --no-fork 的最终程序 PID 必须仍为启动工具时的 PID，PPID 为消费者；
+  同时检查继承的锁 fd、运行中冲突、退出后释放，而非只核对退出0。
+- 父端持独立锁时，原版 -n -E42 返回42；-w0.1 -E43 经真实 timer/signal
+  等待后返回43，单独核对经过时间，不能立即返回伪装超时。子完成等候有
+  单调时钟截止时间，错误或超时会报告失败，不无限阻塞。
+- 缺失可执行程序按原版 run_program 返回 EX_UNAVAILABLE（69），不是 shell
+  的127；之后普通 fork、锁获取与子程序仍成功，最后关闭 fd、删除临时文件。
+
+初次宿主运行暴露退出码预期错误，按2.42.2真实源码及本机2.39.3行为修正为
+EX_UNAVAILABLE，未修改工具行为。最终 GCC/Clang 严格构建的消费者在本机
+flock 下均通过四阶段；Clang 静态分析、当前 musl 头文件下 wasm32/64 前端
+和分析、固定 Nix/shell 格式与脚本语法通过。宿主仅验证消费者和标准约束，
+不是目标2.42.2已构建/执行的证据。review 覆盖 CLOEXEC/dup2、父子锁引用、
+--close 的真实 fd 关闭、超时 signal/EINTR、正常与错误退出及共享配方参数。
+
+distro `ef0ef00` 发布共享配方和双位宽原版 flock 产品。独立 review 另发现
+cgroup 消费者的失败标记缺少冒号，实际 runner parser 不识别它；`bab75b6`
+修为 ::vm-test::fail: 格式，并直接用该 parser 核对，不改变成功阶段或内核。
+先前 cgroup 两路仍固定8ede319，不能因此称新报告格式已获目标验证。
+主仓库 `c324530` 单独更新 distro pin，Linux/musl/默认 LLVM pin 未变。
+
+固定 `bab75b6e3963e605ad183f7c4e2de659aca40ae5` 各派发一次
+[wasm32 41422383773](https://github.com/HighCWu/distro/actions/runs/41422383773) 与
+[wasm64 41422392887](https://github.com/HighCWu/distro/actions/runs/41422392887)。
+原版 flock 实际构建、四阶段、唯一 pass 和机器关闭待真实日志；不扩大为全部
+util-linux、浏览器、OFD/全部锁选项或多线程 fork 支持。自有新增代码 MIT，
+上游许可保留，没有新增 musl 公共函数或应用 API。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
