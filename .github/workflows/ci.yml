@@ -133,6 +133,7 @@ jobs:
           WASM_ALG_AEAD_SOURCE="$RUNNER_TEMP/algif_aead.c" \
             WASM_AEAD_BUFFER_HEADER="$RUNNER_TEMP/wasm_aead_buffer.h" \
             python3 -B scripts/check_alg_aead.py
+          python3 -B scripts/check_netlink_crypto.py
           python3 -B scripts/fetch_pinned_semaphore_source.py \
             "$revision" "$RUNNER_TEMP/wasm-Makefile" arch/wasm/Makefile
           python3 -B scripts/fetch_pinned_semaphore_source.py \
