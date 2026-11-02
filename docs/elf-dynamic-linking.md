@@ -325,3 +325,18 @@ wasm-ld链接；通用cc -shared驱动还需独立修复，不能称为已完成
 入口。轻量Clang18/Wasm测试确认void、argc/argv及显式envp启动ABI均能
 链接执行，其他库函数仍导出；这不是完整SDK验收。两位宽已针对修复各重新
 派发一次，实际Linux目标结果仍待核实。
+
+### 独立的Linux共享链接驱动候选
+
+源码`ce11b6a`、主仓库pin `390ad02`新增`dynamic-driver-check-build`，在
+既有LLVM源码pin上应用独立的Apache-2.0 WITH LLVM-exception补丁。只对
+Linux/Wasm `-shared`省略可执行文件的crt1、固定table base和隐式静态系统
+归档；显式库参数照常传给链接器，libc/runtime符号由主模块提供。普通可执行
+链接和非Linux目标保持既有分支。默认LLVM、musl及动态SDK配置没有切换到
+候选编译器；当前SDK的通用cc -shared接线仍待后续完成。
+
+公开任务[41528943175](https://github.com/HighCWu/distro/actions/runs/41528943175)
+将构建候选Clang，检查两位宽的实际驱动命令，并用普通-fPIC -shared生成
+DSO、与主模块在引擎内实例化，验证直接调用、主模块数据和函数指针。该任务
+尚在运行。本地Clang18/LLD18小产物已验证同一引擎检查路径，但不证明候选
+Clang已构建成功，也不替代Linux进程或ELF入口验收。
