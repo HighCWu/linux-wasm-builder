@@ -127,3 +127,38 @@ TLS、符号抢占、版本继承、循环依赖、跨库异常、多 Worker 模
 替代这一差异。整体工作流因独立metadata作业的文档行宽检查失败而失败，该问题
 已由763a939修复并经41476117126验收；没有重启已成功的重型candidate作业。
 上述证据仍不覆盖Linux进程加载、ELF入口或libc动态链接，默认LLVM pin不变。
+
+## 独立 SDK 与 Linux 进程验收接线
+
+distro677cf9e / 集成363f770把候选9035266接入独立symbol-versions配置。
+它通过现有SDK配方覆盖编译器输入，保留已验收的musl、compiler-rt、libc++、
+Linux与执行层；默认LLVM gitlink及普通SDK源码pin继续使用137009e。
+这一步把原先不带libc的引擎实验推进到正常SDK的链接、安装和进程执行入口，
+不是增加ELF文件格式或动态加载支持。
+
+候选源码的
+[公开预取41487600049](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41487600049)
+实际日志确认90352668f9244889a82254abf71ca9c46a2e8996及
+`sha256-/l/16+htX8HXUrQS6ehSCpWr1Hc8Szl7awt5bpeqFNw=`。
+独立编译器只生成WebAssembly，省去此配置无需使用的本机代码后端；普通配方
+仍默认构建本机与Wasm后端，SDK工具和标准C/C++入口保留。
+
+两个标准C单元分别编译、链接成普通Linux/Wasm可执行程序，通过BusyBox启动并
+正常退出。消费者验证旧版和默认版函数的不同签名、long宽度、同一编译单元内
+版本引用、真实间接调用、跨单元函数/数据指针身份与可写数据的版本隔离。
+指针从volatile槽位读回，避免编译器按不同C名称提前折叠比较，使断言真正
+观察链接后的重定位。没有给musl增加函数或修改应用调用接口。
+
+GCC及Clang18配GNU外部汇编器的宿主参考通过；Clang18本机集成汇编路径在
+同单元版本引用处链接失败，未算通过。原版Clang18的Wasm后端也明确拒绝
+.symver；这与候选SDK待验证的能力缺口一致。musl双位宽前端、静态分析、
+Nix/shell格式及差异检查通过，不代替目标运行。
+
+单项symbol-versions-check-both聚合双位宽SDK配置校验、既有C++运行语料和
+新C消费者，共享一次候选LLVM构建。目标两阶段、唯一pass、正常退出及发布
+runner的机器关闭仍待核实；旧引擎实验成功不自动接受这一新SDK组合。
+固定677cf9e的
+[41488752556](https://github.com/HighCWu/distro/actions/runs/41488752556)
+已派发一次，后续按其实际目标阶段验收，不重复构建。
+可从legacyPackages的symbol-versions.sdk及symbol-versions-wasm64.sdk访问
+独立SDK，暂不切换默认工具链。自有配方和语料采用MIT，LLVM及依赖保留原许可。

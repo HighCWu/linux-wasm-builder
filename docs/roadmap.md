@@ -2009,6 +2009,11 @@ Linux文件装载、ELF或动态libc已支持。见[实施与实验边界](elf-d
 标准libcurl消费者验证等待DNS时另一传输可完成、后续解析及线程/fd收尾；
 新组合异步目标仍待验收。见[curl记录](curl-runtime.md#上游线程-dns-解析器)。
 
+distro677cf9e / 集成363f770将9035266编译器接入独立SDK，复用原musl与运行库，
+普通SDK和LLVM gitlink不变。41488752556在一个构建图中共享候选编译器，
+验证双位宽配置、C++回归与普通C进程的符号版本/间接调用/数据身份；目标结果
+尚待核实，不作为ELF或动态加载支持。见[SDK接线](elf-dynamic-linking.md#独立-sdk-与-linux-进程验收接线)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。
