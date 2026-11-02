@@ -27,14 +27,24 @@ int data_new = 23;
 extern int api(int);
 __asm__(".symver api, api@VER_1");
 int same_unit_old(void) { return api(2); }
+extern int another_old(int), again_old(int), setting, old_data_again;
+__asm__(".symver another_old, api@VER_1\n"
+        ".symver again_old, api@VER_1\n"
+        ".symver setting, setting@VER_1\n"
+        ".symver old_data_again, setting@VER_1\n");
+int (*volatile old_pointer)(int) = again_old;
+int same_unit_shared(void) {
+  return another_old(3) + again_old(3) + setting + old_data_again + old_pointer(4);
+}
 """
 REFERENCES = r"""
 extern long api(long);
-extern int old_api(int), setting, old_setting;
+extern int old_api(int), old_again(int), setting, old_setting;
 __asm__(".symver old_api, api@VER_1\n"
+        ".symver old_again, api@VER_1\n"
         ".symver old_setting, setting@VER_1\n");
 long run(long x) { return api(x) + old_api(7) + setting + old_setting; }
-int old_only(void) { return old_api(7); }
+int old_only(void) { return old_api(7) + old_again(0); }
 long default_only(long x) { return api(x); }
 """
 RUNNER = r"""
@@ -46,9 +56,11 @@ const e=instance.exports;
 const x=bits==='64'?(1n<<40n)+5n:5;
 assert.equal(e.run(x),bits==='64'?x+258n:x+258);
 assert.equal(e.default_only(x),bits==='64'?x+200n:x+200);
-assert.equal(e.old_only(),18);
+assert.equal(e.old_only(),29);
 assert.equal(e.same_unit_old(),13);
+assert.equal(e.same_unit_shared(),77);
 console.log(`symver wasm${bits}: real old/default signatures, data versions and same-TU namespace separation pass`);
+console.log(`symver wasm${bits}: repeated references share definitions, data and function-pointer relocations pass`);
 """
 
 
@@ -107,6 +119,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-symver-") as tmp:
             "--export=old_only",
             "--export=default_only",
             "--export=same_unit_old",
+            "--export=same_unit_shared",
         ]
         if bits == 64:
             link += ["-mwasm64"]
@@ -155,6 +168,12 @@ with tempfile.TemporaryDirectory(prefix="wasm-symver-") as tmp:
                 "multiple-references",
                 ".functype x () -> (i32)\n.symver x, api@ONE\n.symver x, api@TWO\n",
                 "multiple versions",
+            ),
+            (
+                "incompatible-references",
+                ".functype x () -> (i32)\n.functype y () -> (i64)\n"
+                ".symver x, api@ONE\n.symver y, api@ONE\n",
+                "incompatible versioned symbol api@ONE",
             ),
         ):
             asm = directory / f"{name}.s"
