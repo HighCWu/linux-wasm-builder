@@ -224,3 +224,31 @@ Clang 默认输出该表操作数，而 llvm-mc 的默认特性不解析它；�
 [41410371324](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41410371324)，
 仍待目标结果，默认 SDK/compiler pin 未切换。
 本轮没有新增 libc API，也没有实现 ELF 文件加载或动态版本解析。
+
+该次41410371324现已完成候选编译，完整压缩 run 日志为188,978字节。
+wasm32 实际完成旧/默认函数及数据版本、同一编译单元引用、函数指针重定位、
+Clang直接对象路径和缺失/冲突版本拒绝。wasm64 随后在独立 MC 汇编
+definitions64.s:105 的 call_indirect 报 expected i32 / got i64，未完成该
+位宽链接/运行，不能把 wasm32 的通过泛化为双位宽或 Linux/ELF 加载验收。
+
+源码审查发现这是另一个真实 MC 问题：WebAssemblyAsmTypeCheck 的间接调用
+无条件 pop i32，尽管本 fork 的 wasm64 函数表符号已标记64位索引，Clang
+也生成 i64 函数指针。实验分支候选
+`90352668f9244889a82254abf71ca9c46a2e8996` 修改 call_indirect 和
+return_call_indirect 的类型检查：显式表根据实际 table limits 的 IS_64
+选择索引类型；MVP 隐式默认表按目标默认宽度。没有把用户代码改为 table32
+截断，也没有关闭类型检查。其它 table 指令的全部 memory64 组合未因此验收。
+既有 LLVM 文件保留原许可证，新独立汇编回归语料为 MIT。
+
+主仓库 `f3b0200` 在版本语料之前加入不含 .symver 的普通 volatile 函数指针
+C 对照，沿真实 Clang汇编→MC对象→LLD→Node 路径执行，并要求相反索引宽度
+的汇编被明确拒绝。原版本绑定、签名、数据与缺失/冲突检查保留；不能只通过
+改名或跳过函数指针消除错误。Python语法/ruff、格式与静态数据流 review
+通过，本机旧 MC18 也复现 i64 索引被按 i32 拒绝，但不作为已修候选的运行
+证据。本地未进行重型 LLVM 构建。
+
+固定新候选的完整云端检查已派发一次：
+[41426210857](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41426210857)。
+两位宽普通函数指针、原符号版本两条对象路径与错误拒绝均待该任务的实际日志。
+默认 LLVM gitlink/SDK pin 继续保持137009e，Linux/musl 不变；这仍是工具链
+兼容基础，不是 ELF 容器、动态 loader、版本表、TLS 或浏览器验收。
