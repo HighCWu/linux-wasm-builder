@@ -16,6 +16,22 @@ files = ["include/unistd.h", "include/pty.h", "src/legacy/daemon.c", "src/misc/f
          "src/process/fork.c", "src/process/_Fork.c", "arch/wasm32/syscall_arch.h", "src/thread/wasm32/clone.c"]
 compilers = os.environ.get("WASM_TERMINAL_COMPILERS", "clang clang-22").split()
 assert compilers
+
+
+def profile_recipe(recipe):
+    # Dynamic loading shares the optional patch attribute now, but must not
+    # enable fork declarations or bodies in the default/dynamic profile.
+    text = " ".join(recipe.split())
+    return all(fragment in text for fragment in (
+        "enableForkContinuation ? false",
+        "assert !(enableForkContinuation && enableDynamicLoader);",
+        "// lib.optionalAttrs (enableForkContinuation || enableDynamicLoader) {",
+        'lib.optionalString enableForkContinuation " -DWASM_FORK_CONTINUATION=1"',
+        "patches = lib.optional enableForkContinuation ./fork-continuation.patch "
+        "++ lib.optional enableDynamicLoader ./dynamic-loader.patch;",
+    ))
+
+
 with tempfile.TemporaryDirectory(prefix="wasm-terminal-") as tmp:
     work = Path(tmp)
     overlay = work / "patched"
@@ -29,9 +45,14 @@ with tempfile.TemporaryDirectory(prefix="wasm-terminal-") as tmp:
             "#if !defined(__wasm__) || defined(WASM_FORK_CONTINUATION)", "#ifndef __wasm__"
         ) == (MUSL / name).read_text(), "restore existing bodies, do not invent wrappers"
     recipe = (DISTRO / "musl/package.nix").read_text()
-    assert '// lib.optionalAttrs enableForkContinuation' in recipe
-    assert 'lib.optionalString enableForkContinuation " -DWASM_FORK_CONTINUATION=1"' in recipe
-    assert 'patches = [ ./fork-continuation.patch ];' in recipe
+    assert profile_recipe(recipe), "fork remains opt-in and incompatible with the dynamic profile"
+    assert profile_recipe(recipe.replace("\n", " \n\t")), "formatting does not change the gate"
+    for broken in (
+        recipe.replace("enableForkContinuation ? false", "enableForkContinuation ? true"),
+        recipe.replace("lib.optional enableForkContinuation ./fork-continuation.patch", "[ ./fork-continuation.patch ]"),
+        recipe.replace("assert !(enableForkContinuation && enableDynamicLoader);", ""),
+    ):
+        assert not profile_recipe(broken), "unconditional or mixed profiles must be rejected"
     (work / "bits").mkdir()
     templates = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (MUSL / "include/alltypes.h.in").read_text()
     generated = subprocess.run(["sed", "-f", str(MUSL / "tools/mkalltypes.sed")], input=templates,
