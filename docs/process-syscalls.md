@@ -5911,6 +5911,10 @@ multi清理后要求解析线程退出，两个服务器线程join、fd恢复及
 阶段和关闭仍待验收。ELF入口、动态libc加载、AIO共享ring仍未因此实现。
 见[实施记录](elf-dynamic-linking.md#独立-sdk-与-linux-进程验收接线)。
 
+后续41488752556在SDK驱动检查失败，原因是独立候选禁用宿主后端，而完整
+SDK检查需要该后端。3762d29 / 集成3f2f209恢复既有后端选择，41529152599
+正在针对性复验；没有删除检查，目标语料和关闭仍未验收。
+
 ## clone3 的 CLONE_INTO_CGROUP 标准传输
 
 distro2c48032 / 集成c868659在已有原生clone3路径传递CLONE_INTO_CGROUP及
