@@ -5834,6 +5834,48 @@ AST与diff检查通过；7项Git预取故障模型、5项source pin检查与文�
 组合已验收。CONFIG_MMU=n、有界direct地址、无内核softmmu及单线程fork边界
 均未扩大；共享/执行/文件固定映射、映射后截断失效与MMU页保护仍不提供。
 
+## 默认映射组合的应用与 C runtime 验收
+
+固定ec78632的Zstd两项目标已逐项核实默认内核强制私有映射与malloc交叉往返、
+七个尺寸（含4MiB+7字节）、唯一pass及关闭。wasm32压缩日志1,284,200字节/
+构建步5,650,924字节，wasm64为1,144,481/5,510,497字节。C runtime两项也各有
+唯一pass；实际生成的C程序在argv/env、statfs、malloc、匿名映射拆分/解除、
+固定范围拒绝、pthread/TLS及信号断言全部完成后才输出它。其压缩日志为
+1,139,242/1,032,747字节，构建步5,121,105/4,960,564字节。
+
+Python两项已逐项核实匹配位宽的ABI/sysconfig、安装路径和七个mmap阶段：
+匿名buffer、resize、flush、madvise、提示位、普通私有文件副本和共享拒绝。
+包括只读Python API、无文件回写及关闭来源后存活。wasm32压缩日志1,459,741
+字节/构建步7,615,243字节，wasm64为1,454,324/7,620,960字节，各唯一pass。
+run-test/shutdown与核查过的发布版本一致，作业成功要求等待machine.closed并
+拒绝收尾错误，以上六项关闭门禁成立。接受固定ec78632的上述Node范围，不
+推广到浏览器、新Git或尚在运行的显式关闭/旧模块组合。
+
+## Git 恢复标准文件映射读取
+
+distro1abe1e87b158107443277d49982b1d6ac17cae97 / 集成39941ff移除NO_MMAP，
+恢复Git原有只读私有文件映射，未改写Git对象/索引/pack读取实现。构建必须
+核实生成的GIT-CFLAGS及compat/mmap.o未选择fallback；已有进程启动补丁与
+许可材料不变，musl/Linux/LLVM源码也未因这一增量改动。
+
+packing沿用原语料，再提交1.25MiB及二进制尾部内容，使用Git原有窗口配置
+要求大于1MiB的真实pack、无对应松散对象回退、完整读回及gc后数据不变。
+30项宿主检查及格式通过，包含原生实际数据断言与损坏cat-file输出拒绝；
+这是编排证据，不是目标Git2.55或Wasm的运行证明。六项新检查各派发一次：
+
+| 检查 | 位宽 | 任务 |
+|---|---|---|
+| Git workflow | wasm32 | [41482555691](https://github.com/HighCWu/distro/actions/runs/41482555691) |
+| Git workflow | wasm64 | [41482554251](https://github.com/HighCWu/distro/actions/runs/41482554251) |
+| Git packing | wasm32 | [41482555292](https://github.com/HighCWu/distro/actions/runs/41482555292) |
+| Git packing | wasm64 | [41482554321](https://github.com/HighCWu/distro/actions/runs/41482554321) |
+| Git remote | wasm32 | [41482553471](https://github.com/HighCWu/distro/actions/runs/41482553471) |
+| Git remote | wasm64 | [41482553386](https://github.com/HighCWu/distro/actions/runs/41482553386) |
+
+构建门禁、对应阶段、唯一pass及关闭结果仍待核实。大仓库的复制窗口仍消耗
+真实direct内存，不把标准mmap调用恢复当作MMU按需映射或性能已经改善。
+详细源码判断与边界见[Git运行记录](git-runtime.md#恢复上游文件映射路径)。
+
 ## 静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

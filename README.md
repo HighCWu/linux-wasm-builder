@@ -35,7 +35,8 @@ load/store直接访问。内核不提供隐藏的softmmu；FEX、Box64等需要�
 地址空间的用户态软件，可在自身内部实现地址翻译。
 
 当前默认构建已接入普通文件的NOMMU私有复制映射，应用继续调用标准`mmap()`。
-新的默认Python/Zstd/C runtime组合正在验收；它不提供共享回写、按需分页或
+固定ec78632的默认Python/Zstd/C runtime双位宽Node结果已核实，关闭/旧模块
+对照继续复验；它不提供共享回写、按需分页或
 硬件页保护，详见[文件映射就绪度](docs/file-mmap-readiness.md)。
 
 ```text

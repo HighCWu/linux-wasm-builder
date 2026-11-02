@@ -2058,8 +2058,11 @@ FUSE同步在途读取：扣住READ、SIGKILL后的INTERRUPT握手、迟到响�
 两项设备目标现已逐项核实四阶段、唯一pass及关闭，四路浏览器也分别核实两轮
 三阶段、各唯一pass和机器/浏览器关闭。普通SDK/旧模块/关闭配置的历史组合与
 Zstd双位宽结果也已补核实。集成ce06ee1 / distro ec78632现已完成默认构建
-切换，普通Python/Zstd/C runtime与显式关闭/旧模块对照的双位宽组合正在复验；
-不把此前候选通过冒充新组合已经验收。见
+切换，普通Python/Zstd/C runtime的双位宽Node结果现已核实实际阶段、唯一pass
+与关闭；显式关闭/旧模块对照仍在复验，不把此前候选通过冒充新组合已经验收。
+随后distro1abe1e8 / 集成39941ff去掉Git的NO_MMAP，恢复其标准只读私有映射，
+packing增加实际大pack窗口/无松散回退/二进制与gc后完整性检查；30项宿主检查
+通过，六项Git目标待真实阶段与关闭，详见[Git运行记录](git-runtime.md)。见
 [结果与在途边界](process-syscalls.md#分块文件-mmap-的-node-结果与真实在途生产者)。
 
 ## 质量矩阵

@@ -2,6 +2,10 @@
 
 # Git 安装系统与 wasm64 接入
 
+当前distro1abe1e8 / 集成39941ff已移除强制`NO_MMAP`，Git重新使用标准libc
+文件映射读取对象、索引和pack。默认分块内核已接入，Git新组合仍待六项Node
+目标验收；下文早期版本的读取/复制fallback记录按对应版本理解。
+
 distro `7967691` 在既有 Git 2.55.0 配方上增加显式 `git-wasm64`，保持默认
 `git` 为 wasm32。64 位变体选择匹配的 stdenv、平台、BusyBox、zlib、curl、
 OpenSSL 和 Linux 运行检查器；CA 证书数据复用原配方，不混用 32 位静态库。
@@ -248,11 +252,37 @@ wasm64 两项也已成功：材料附件 `12122053699`，69,836 字节；源包�
 ## 保留的边界
 
 生产内核仍为 `CONFIG_MMU=n` 和有界 direct linear memory，不加入内核 softmmu。
-Git 继续使用上游 `NO_MMAP` 的读取/复制替代路径；私有匿名 mmap 不满足其对象和
-索引的文件映射需求。进程启动继续使用既有 `posix_spawn` 补丁，不声称支持普通
+Git已恢复标准私有文件映射，内核仍采用NOMMU主动复制，不是MMU按需映射。
+进程启动继续使用既有 `posix_spawn` 补丁，不声称该Git构建支持普通
 fork；后台 daemonize 仍明确失败。上述 HTTP 检查不证明公共网络、HTTPS、SSH
 传输或任意远程托管服务已经兼容。
 
 Git 及其静态依赖保留各自实际许可证，不能把 Git 二进制或整套系统称为 MIT。
 新增宿主测试采用 MIT，不改变 Git 补丁的上游许可边界。本阶段未完成 Git 的完整
 对应源码包、链接许可审查或长期二进制发行，不能据运行检查推断发布义务已经满足。
+
+## 恢复上游文件映射路径
+
+核对Git v2.55.0的C实现后，对象、索引、pack、commit graph、bitmap、reftable
+和packed refs的映射调用均使用PROT_READ/MAP_PRIVATE。pack窗口的偏移按半个
+窗口对齐，符合以真实页大小选择窗口的路径；没有把共享写入改造成私有副本。
+参考[pack读取](https://github.com/git/git/blob/v2.55.0/packfile.c)与
+[映射接口选择](https://github.com/git/git/blob/v2.55.0/compat/posix.h)。
+
+1abe1e8仅移除构建开关，不修改这些Git实现。构建后还检查实际GIT-CFLAGS没有
+NO_MMAP宏且没有生成compat/mmap.o，防止只改配方却继续链接fallback；构建
+材料仍保存实际参数和配置。Git及已有posix_spawn补丁保留原许可证，独立测试
+与配方变更采用MIT；musl、LLVM和内核代码未因此修改。
+
+packing语料保留原24次文本提交、对象往返、双线程repack、fsck与gc，再提交
+1.25MiB加二进制尾部的不可压缩内容。设置现有Git配置core.packedGitWindowSize
+为512KiB、core.packedGitLimit为1MiB，要求真实pack超过1MiB、对应松散对象已
+删除，完整读回跨窗口内容且gc后不变。测试配置不改变发行版的全局Git默认值。
+移除NO_MMAP也恢复上游按位宽选择的窗口默认值；这些窗口现在是实际驻留副本，
+不能把它们的内存成本等同于MMU按需页面。大仓库仍受直接内存容量限制，可用
+Git原有的窗口/额度配置调节，不新增应用接口。
+
+30项相关宿主检查通过，包括原生Git的数据往返与伪造cat-file成功但损坏内容
+的拒绝控制，以及浏览器阶段接线。原生版本2.43只证明工作负载断言，不作为
+目标Git2.55或Wasm mmap证明。Nix/JS/shell格式和差异检查通过，六项新的Git
+workflow/packing/remote目标均固定1abe1e8，实际构建门禁、阶段和关闭仍待核实。
