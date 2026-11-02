@@ -4690,8 +4690,10 @@ Netlink、AEAD 各三阶段及唯一 pass；实际报告明确为
 固定 b1724aa 的 run-test.js 在返回成功前等待 closeTestResources，后者等待
 machine.closed 并关闭磁盘；任何关闭失败会使退出码非零，Nix 运行检查又要求
 退出码0。因此接受 Linux c4420655e / distro b1724aa 的上述 wasm64 Node 范围，
-包括关闭门禁。wasm32 job125107557665 实际日志仍在补取，不能用其 workflow
-成功状态替代阶段证据。这也不代验后续 RNG、新内核、浏览器或 libkcapi。
+包括关闭门禁。wasm32 job125107557665 随后也已取得完整实际日志 5,466,875
+字节，核实同样十二阶段、唯一 pass、lskcipher 的相同具体元数据及同一关闭
+门禁。因此这两组 Node 位宽均已按实际目标结果接受，范围固定为 Linux
+c4420655e / distro b1724aa；不代验后续 RNG、新内核、浏览器或 libkcapi。
 
 ## 第九十九组：接通标准 AF_ALG RNG 与原有 DRBG
 
