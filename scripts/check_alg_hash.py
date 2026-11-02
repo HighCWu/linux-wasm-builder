@@ -153,7 +153,7 @@ with tempfile.TemporaryDirectory(prefix="alg-hash-model-") as tmp:
 
 programs = [
     ROOT / f"sources/distro/distro/{name}/runtime.c"
-    for name in ("alg-hash", "alg-skcipher")
+    for name in ("alg-hash", "alg-skcipher", "alg-aead")
 ]
 for program in programs:
     for cc in ("gcc", "clang"):
