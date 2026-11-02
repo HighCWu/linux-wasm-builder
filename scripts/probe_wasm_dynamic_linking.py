@@ -54,6 +54,7 @@ import {basename} from 'node:path';
 import {read_wasm_dylink,read_wasm_dynamic_imports,read_wasm_dynamic_signatures} from __BINARY_READER__;
 import {plan_dylink_layout} from __LAYOUT_PLANNER__;
 import {link_dylink_graph} from __MODULE_LINKER__;
+import {ProcessDylink} from __PROCESS_LOADER__;
 const [bits, first, second, mainFile, mode] = process.argv.slice(2);
 const modules = [first, second].map(p => new WebAssembly.Module(readFileSync(p)));
 const layouts=[first,second].map(p=>read_wasm_dynamic_imports(new Uint8Array(readFileSync(p))));
@@ -167,6 +168,83 @@ assert.equal(new DataView(memory.buffer).getInt32(counter,true),15);
 assert.equal(memory.grow(word(memoryAddress,1)),word(memoryAddress,8));
 assert.equal(b.exports.run(1),32);
 assert.equal(b.exports.direct(4),20,'direct function imports bind to the same dependency state');
+// Exercise the process orchestration with a modeled C I/O bridge. The real
+// Linux bridge and SDK are accepted only by their separate booted target.
+let heap=5*65536;
+const live=new Set();
+const readCString=p=>{const bytes=new Uint8Array(memory.buffer,Number(p));return new TextDecoder().decode(bytes.subarray(0,bytes.indexOf(0)));};
+function storeString(value){const data=new TextEncoder().encode(value+'\0');const p=heap;heap+=data.length;
+ new Uint8Array(memory.buffer,p,data.length).set(data);return word(memoryAddress,p);}
+const descriptor=120000,originPointer=121000;
+const environmentPointer=storeString('/libraries');
+const rootPointer=storeString('/libraries/'+names[1]);
+const aliasPointer=storeString('/libraries/alias.wasm');
+const dependencyPointer=storeString('/libraries/'+names[0]);
+const runPointer=storeString('run'),counterPointer=storeString('counter');
+const missingPointer=storeString('/missing.wasm'),badPointer=storeString('/bad.wasm');
+const controlPointer=storeString('/control');
+const control=Symbol('modeled exit/exec');
+const virtualFiles=new Map([
+ ['/libraries/'+names[0],{bytes:files.get(names[0]),inode:11n}],
+ ['/libraries/'+names[1],{bytes:files.get(names[1]),inode:12n}],
+ ['/libraries/alias.wasm',{bytes:files.get(names[1]),inode:12n}],
+ ['/bad.wasm',{bytes:new Uint8Array([1,2,3]),inode:13n}],
+]);
+let processLoader,probeReentry=true,nextPin=1;
+const pins=new Map();
+const allocate=(size,alignment)=>{size=Number(size);alignment=Math.max(8,Number(alignment));
+ const p=Math.ceil(heap/alignment)*alignment;heap=p+size;
+ if(heap>memory.buffer.byteLength)memory.grow(word(memoryAddress,Math.ceil((heap-memory.buffer.byteLength)/65536)));
+ live.add(p);
+ if(probeReentry&&processLoader){probeReentry=false;
+  assert.equal(processLoader.open(rootPointer,0),word(memoryAddress,0));
+  assert.equal(processLoader.open(rootPointer,2),word(memoryAddress,0),'failed recursive call must not unlock outer loading');}
+ return word(memoryAddress,p);};
+const deallocate=p=>{assert(live.delete(Number(p)),'exactly one owner frees each temporary allocation');};
+const bridge={exports:{...main.exports,
+ __indirect_function_table:table,
+ __wasm_dlopen_io_v1:()=>1,
+ __wasm_dlopen_allocate:allocate,
+ __wasm_dlopen_deallocate:deallocate,
+ __wasm_dlopen_library_path:()=>environmentPointer,
+ __wasm_dlopen_origin:()=>word(memoryAddress,originPointer),
+ __wasm_dlopen_fd:()=>0,
+ __wasm_dlopen_read:path=>{const name=readCString(path);if(name==='/control')throw control;
+  const view=new DataView(memory.buffer,descriptor,40);new Uint8Array(memory.buffer,descriptor,40).fill(0);
+  const file=virtualFiles.get(name);if(!file){view.setBigUint64(32,2n,true);return word(memoryAddress,descriptor);}
+  const pointer=allocate(file.bytes.length,8);new Uint8Array(memory.buffer,Number(pointer),file.bytes.length).set(file.bytes);
+  const refreshed=new DataView(memory.buffer,descriptor,40);refreshed.setBigUint64(0,BigInt(pointer),true);
+  refreshed.setBigUint64(8,BigInt(file.bytes.length),true);refreshed.setBigUint64(16,1n,true);refreshed.setBigUint64(24,file.inode,true);
+  new Uint8Array(memory.buffer,originPointer,name.length+1).set(new TextEncoder().encode(name+'\0'));
+  return word(memoryAddress,descriptor);},
+ __wasm_dlopen_read_release:()=>{const pointer=new DataView(memory.buffer,descriptor,40).getBigUint64(0,true);
+  if(pointer)deallocate(pointer);
+  new Uint8Array(memory.buffer,descriptor,40).fill(0);},
+}};
+processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximumPages:Number(memoryLayout.maximum),
+ tableType:{address:tableAddress,minimum:128n,maximum:512n},signatures,
+ isControlFlow:error=>error===control,fatal:error=>{throw error;},
+ pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert(inode===11n||inode===12n);
+  const id=nextPin++;pins.set(id,allocate(1,8));return id;},
+ unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
+const handle=processLoader.open(rootPointer,2);assert(handle!==word(memoryAddress,0));
+assert.equal(processLoader.symbol(word(memoryAddress,0),runPointer),word(memoryAddress,0),'local group must not become globally visible');
+const runAddress=processLoader.symbol(handle,runPointer);
+assert.equal(table.get(word(tableAddress,runAddress))(1),22);
+assert.equal(processLoader.open(aliasPointer,2|4|256),handle,'inode alias and NOLOAD reuse');
+assert.equal(processLoader.symbol(word(memoryAddress,0),runPointer),runAddress,'GLOBAL promotion preserves canonical pointer');
+const dependency=processLoader.open(dependencyPointer,2);
+const dependencyCounter=Number(processLoader.symbol(dependency,counterPointer));
+assert.equal(new DataView(memory.buffer).getInt32(dependencyCounter,true),11,'opening an existing dependency must not rerun constructors or zero data');
+const retained=live.size;
+assert.equal(processLoader.open(missingPointer,2),word(memoryAddress,0));
+assert.equal(processLoader.open(badPointer,2),word(memoryAddress,0));
+assert.equal(live.size,retained,'ordinary failures release C buffers and path allocations');
+assert.equal(processLoader.open(rootPointer,2),handle,'ordinary failures preserve live object group');
+assert.equal(processLoader.valid(handle),1);assert.equal(processLoader.valid(word(memoryAddress,0)),0);
+assert.throws(()=>processLoader.open(controlPointer,2),error=>error===control,'exit/exec is never converted into recoverable dlerror');
+assert.equal(live.size,retained+1,'after exit/exec the old libc must not be called to free old-context paths');
+console.log(`Process loader model wasm${bits}: aliases, scopes, reuse, read cleanup, reentry guard and control transfer pass; not Linux bridge acceptance`);
 console.log(`PIC probe wasm${bits}: runtime linker dependencies, relocations, GOT, weak/null, canonical slots, main symbols, handle lookup, ctor, direct/indirect calls and growth pass (table ${tableAddress}); not Linux/ELF acceptance`);
 """
 
@@ -181,6 +259,9 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
     ).replace("__LAYOUT_PLANNER__", json.dumps((runtime / "dylink.ts").as_uri()))
     runner = runner.replace(
         "__MODULE_LINKER__", json.dumps((runtime / "dylink_linker.ts").as_uri())
+    )
+    runner = runner.replace(
+        "__PROCESS_LOADER__", json.dumps((runtime / "dylink_process.ts").as_uri())
     )
     (directory / "probe.mjs").write_text(runner)
     for bits in (32, 64):

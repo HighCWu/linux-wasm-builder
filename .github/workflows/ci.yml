@@ -90,6 +90,20 @@ jobs:
           node --test sources/distro/packages/kernel/test/dylink.test.ts \
             sources/distro/packages/kernel/test/dylink-linker.test.ts \
             sources/distro/distro/dynamic-loader/io.test.js
+      - name: Check pinned kernel module file-reference ownership
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          dynamic_arch="$RUNNER_TEMP/wasm-dynamic-file-refs"
+          mkdir -p "$dynamic_arch/kernel" "$dynamic_arch/mm"
+          for file in kernel/remote_vm.c mm/init.c; do
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$dynamic_arch/$file" "arch/wasm/$file"
+          done
+          WASM_DYNAMIC_ARCH="$dynamic_arch" python3 -B scripts/check_dynamic_file_refs.py
       - name: Check existing file-handle wrappers and workload analysis
         run: python3 -B scripts/test_file_handle.py
       - name: Check directory notification workload and disabled-feature control
