@@ -4673,6 +4673,62 @@ b1724aa 仅重新派发联合
 独立 Netlink 目标。旧 107b069 联合任务仍运行时保持运行，但不用于该修正
 验收。新结果仍待核实十二阶段、唯一 pass 和机器关闭，不提前接受新内核能力。
 
+### 第九十八组后续目标证据
+
+旧 Netlink 的 wasm32/64 完整日志现均已补齐（分别 5,629,440 和 5,514,255
+字节），两份都在 CBC-AES metadata 断言失败。旧 107b069 联合 wasm32
+job125104824114 的完整日志另确认：新 AEAD 内核已链接并启动，hash/skcipher
+六个旧阶段通过，随后停在同一 Netlink 断言；尚未进入 AEAD，不作 AEAD 功能
+或关闭验收。
+
+修正 b1724aa 的联合双位宽 workflow/Heavy 随后均成功。已读取 wasm64
+job125107582198 完整实际日志 5,325,186 字节，确认 hash/HMAC、skcipher、
+Netlink、AEAD 各三阶段及唯一 pass；实际报告明确为
+`backend=lskcipher block=16 key=16..32 iv=16`。AEAD 包含空记录/NIST 向量、
+跨页 AAD/明文、坏 tag 不输出明文、无效目标后恢复和 fd 清理。
+
+固定 b1724aa 的 run-test.js 在返回成功前等待 closeTestResources，后者等待
+machine.closed 并关闭磁盘；任何关闭失败会使退出码非零，Nix 运行检查又要求
+退出码0。因此接受 Linux c4420655e / distro b1724aa 的上述 wasm64 Node 范围，
+包括关闭门禁。wasm32 job125107557665 实际日志仍在补取，不能用其 workflow
+成功状态替代阶段证据。这也不代验后续 RNG、新内核、浏览器或 libkcapi。
+
+## 第九十九组：接通标准 AF_ALG RNG 与原有 DRBG
+
+Linux `19367bfc1` 在三个命名 defconfig 中启用 CRYPTO_USER_API_RNG 和
+CRYPTO_DRBG_MENU，沿官方条件选择默认 HMAC_DRBG 及其 SHA-512 依赖。
+crypto/algif_rng.c 原本通过内核临时数组生成、memcpy_to_msg 交付用户结果，
+不要求将 Wasm 用户内存固定为内核 page，因此本轮复用原路径，无需新增转换桥。
+不修改算法、熵源、健康检查或播种逻辑，不添加 libc API 或公开应用接口。
+
+resolved Kconfig 门禁要求 RNG/DRBG/HMAC/SHA512 依赖实际启用，并保持
+CRYPTO_USER_API_RNG_CAVP 关闭。程序先等待标准 getrandom 确认内核 RNG
+准备好，再以 ALG_SET_KEY 的空 personalization 请求原有自动播种，不注入
+测试熵。审查还核对 af_alg 的 parent refcnt/nokey_refcnt 规则：接受 operation
+后修改父状态返回 EBUSY，必须先关闭它，再播种并重新接受；保持原内核约束。
+
+独立 MIT C 消费者三阶段覆盖：未播种拒绝、播种/活动 operation 限制、128 字节
+接收上限及分散输出尾部保护；无效线性地址、普通 RNG 拒绝 send 与继续生成；
+降到 uid/gid65534 后重新播种、两个 operation 在 parent fd 关闭后继续使用、
+最后关闭所有 fd。比较生成输出仅作交付和状态推进检查，不作为随机质量认证。
+GCC/Clang 严格前端、Clang 静态分析、双位宽 Wasm 前端/分析、命名配置及禁用
+反向控制、Nix 格式和 shell 语法均通过；不在宿主运行 socket、凭据或 RNG 消费者。
+
+源码预取 [41393865593](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41393865593)
+的 job125110885811 实际日志核实完整 Linux revision
+`19367bfc1d6b501d85ad77724130f5187df4c92e` 与
+`sha256-NbjHGv8/3iHT7XYUxQSisR4bgKoZcjFxNpTlM2GGq6E=`。distro `5ba5a18`
+随后集成精确 pin、配置门禁与两个目标，主仓库 `af126ad` 再单独更新 Linux/
+distro gitlinks 和轻量前端检查。musl/LLVM pin 保持原值。
+
+固定 5ba5a18 的
+[wasm32 41394417539](https://github.com/HighCWu/distro/actions/runs/41394417539)
+请求 alg-rng-check-runtime，
+[wasm64 41394429190](https://github.com/HighCWu/distro/actions/runs/41394429190)
+请求 alg-rng-wasm64-check-runtime，已各派发一次。实际内核链接、播种、三个
+RNG 阶段、唯一 pass 和机器关闭仍待验收；不以预取/轻量检查或旧密码接口的
+结果替代它，也不扩大为全部 RNG 算法、浏览器或 FIPS/CAVP 支持。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

@@ -1994,6 +1994,16 @@ distro `b1724aa` 修正类型预期并添加具体元数据诊断，保留其它
 解析器的轻量重放与反向控制通过。已派发该版本双位宽联合重验，尚未宣称
 Netlink/AEAD 目标验收成功；旧失败与新运行信息均在上述记录中独立保留。
 
+后续已核实 b1724aa 的 wasm64 实际十二阶段、唯一 pass 和 machine.closed
+门禁，接受该版 Node 的 hash/skcipher/Netlink/AEAD 范围；wasm32 workflow
+也成功，但实际日志仍在补取，暂不替代其阶段证据。
+
+Linux `19367bfc1` / distro `5ba5a18` 再启用原有 AF_ALG RNG 与默认 DRBG，
+沿原内核自动播种和临时缓冲交付路径，保持 CAVP 测试熵接口关闭。三阶段普通
+C 消费者与双位宽前端/静态 review 已完成，目标 RNG 运行及关闭已派发，尚待
+实际验收；不把先前 AEAD 成功泛化到这个新内核。见
+[RNG 记录](process-syscalls.md#第九十九组接通标准-af_alg-rng-与原有-drbg)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
