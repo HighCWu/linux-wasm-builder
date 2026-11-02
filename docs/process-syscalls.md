@@ -5427,6 +5427,15 @@ observer PID/PPID/session/group，并检查 posix_spawn 保留控制进程身份
 GCC/Clang 原生消费者三阶段与 Clang 静态分析通过；目标双位宽复验
 41435361278、41435371030已派发，身份原因及修复仍待实际日志，不宣称已解决。
 
+后续41435361278实际日志确认在 controller identity before spawn 失败，未到
+功能阶段。检查启动路径发现，早期 init 树可继承进程组0，而消费者把该组号
+传给 POSIX_SPAWN_SETPGROUP 时，0按标准表示新子进程自己的PID，会意外让
+预期非组长的子进程成为组长；原版setsid因此选择fork符合其源码逻辑。
+distro46b0b87 / 集成39c746a只修正测试控制进程：当继承组号为0时先以
+setpgid(0,0)建立自己的正进程组，再构造spawn属性。原版setsid、libc和Linux
+未因此改动，三阶段及全部身份断言保留。GCC严格构建及原生三阶段、Clang
+前端和静态分析通过；已针对该版重新派发双位宽目标，修复效果待真实日志。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
