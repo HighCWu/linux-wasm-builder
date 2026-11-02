@@ -457,3 +457,33 @@ start回调中取得新指针，随后分别执行原模块表项与主程序函
 [41532654095](https://github.com/HighCWu/distro/actions/runs/41532654095)与
 [41532654276](https://github.com/HighCWu/distro/actions/runs/41532654276)，
 当前均在运行，位宽按各任务Heavy检查名识别。
+
+### 浏览器进程镜像接线
+
+源码`37c5ed4` / 主仓库pin `7c6f72a`增加Chromium/Firefox的wasm32/wasm64
+四路执行入口。复用dynamic-loader对应位宽的runtimeAssets.initramfs和发布
+kernel包，加载共享库继续走Linux文件syscall；不把库文件改成host fetch，
+也不增加浏览器专用应用接口。独立配置固定单CPU、无外部磁盘，Nix和运行器
+都检查这一配置，未扩大线程或fork支持。
+
+沿用process-app.js、runRuntimeSmoke和独立Playwright控制器，在同一页面
+运行两次完整新机器。每次要求五阶段按顺序各出现一次及唯一pass，包含循环
+依赖；缺失/重复/错序、其它语料阶段、失败及RCU stall均拒绝。每轮返回前
+须等待machine.closed并排空控制台，浏览器关闭后还检查迟到pageerror/crash。
+start中重入dlsym的专门分支仍只有轻量模型证据，不能由这些五阶段代验。
+
+本地只运行已有Node控制器/协议验证及格式检查，真实浏览器和重型构建交给
+公开Actions。新corpus也验证两轮、错误CPU和关闭后迟到异常拒绝；这些宿主
+替身不是浏览器结果。四项实际计划和Heavy检查名已核对，当前均在运行：
+
+| 目标 | 任务 |
+|---|---|
+| wasm32 Chromium | [41533159785](https://github.com/HighCWu/distro/actions/runs/41533159785) |
+| wasm32 Firefox | [41533159121](https://github.com/HighCWu/distro/actions/runs/41533159121) |
+| wasm64 Chromium | [41533158701](https://github.com/HighCWu/distro/actions/runs/41533158701) |
+| wasm64 Firefox | [41533159385](https://github.com/HighCWu/distro/actions/runs/41533159385) |
+
+须逐项读取真实五阶段、两轮、机器及浏览器关闭结果后，才接受对应浏览器
+范围；旧Node通过不替代。9d15937的旧wasm32任务41530248183现已取实际
+日志，确认仍因main_value数据引用未选择动态导入失败于构建；1ec430b已
+修复并通过双位宽Node，无需重新派发旧版。
