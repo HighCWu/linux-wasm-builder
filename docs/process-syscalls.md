@@ -5402,6 +5402,26 @@ util-linux。setsid7081904的wasm64完整压缩日志1,505,394字节、构建步
 7,586,446字节，确认同样在child input ENOENT停止，没有功能阶段；已发布的
 47b4e74设备挂载修复仍待新目标结果，不把flock/cgroup通过用于替代它。
 
+## namespace 验收与 setsid 身份诊断
+
+固定7273efc的 clone3 namespace 两路 Node 实际日志已核实：
+[wasm32 41428995973](https://github.com/HighCWu/distro/actions/runs/41428995973)
+完整压缩日志1,502,989字节、构建步7,309,662字节；
+[wasm64 41429003026](https://github.com/HighCWu/distro/actions/runs/41429003026)
+对应1,467,636字节、6,983,211字节。每路 UTS/IPC 隔离和 PIDFD、PID namespace
+身份和回收、内核 EPERM 回滚及后续 fork 三阶段与唯一 pass 各一次。
+已核对该版 runner 在退出0前等待 closeTestResources/machine.closed，任务成功
+包含此关闭门禁；不推广为更新1bf7c36的 flags-first clone 六阶段或浏览器验收。
+
+setsid47b4e74双位宽均在成功挂载设备、打印原版2.42.2版本后，失败于
+direct exec without unnecessary fork；尚未完成第一阶段。原先 child input
+ENOENT 已越过，但不能据此认为 setsid 能力完成。distro e238c83、主仓库 pin
+2c74cad 保留原身份断言，增加失败时实际 controller/group、spawned PID、
+observer PID/PPID/session/group，并检查 posix_spawn 保留控制进程身份。
+单次回收检查留下的 ECHILD 不再是唯一诊断信息。未改原版程序或放宽预期。
+GCC/Clang 原生消费者三阶段与 Clang 静态分析通过；目标双位宽复验
+41435361278、41435371030已派发，身份原因及修复仍待实际日志，不宣称已解决。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
