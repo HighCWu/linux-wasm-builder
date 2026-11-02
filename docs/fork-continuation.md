@@ -18,6 +18,19 @@ cwd/stdio 行为。原样实现的本地参考和双位宽分析通过，真实 
 与关闭尚待核实，不宣称完整交互式作业控制。版本和异步目标见
 [第六十组](process-syscalls.md#第六十组恢复显式-fork-profile-中既有终端daemon-实现)。
 
+## 可选 profile 的 Autoconf 能力策略
+
+distro `19f7a7c` 修复可选 fork 配置仍继承默认 `fork=no` 的构建发现错误。
+`share/linux-wasm-fork-sdk/config.site` 复用默认策略后仅清除两个 fork 否定
+cache，让正常声明/链接探测执行，不直接填写 yes。外部构建使用标准
+CONFIG_SITE；Nix 消费者可用 SDK 的 configSite 属性。可选 Bash 已改选该文件。
+
+默认 SDK 仍否定 fork，vfork 和动态加载限制不变，没有新增 musl 公共 API，
+也没有新增 Bash C 补丁。完整链接变换及单线程 static C 准入仍然适用。本地
+shell 策略和原有工作负载检查通过；wasm64 已实际核实新策略加载、完整 Bash
+四阶段、唯一 pass 及关闭，wasm32 完整阶段尚待日志核实。见
+[第一百零三组](process-syscalls.md#第一百零三组可选-fork-配置恢复正常-autoconf-探测)。
+
 ## 已实现的独立机制实验
 
 `experiments/fork-continuation` 使用固定 Binaryen 132.0.0 的 Asyncify 编译后变换，

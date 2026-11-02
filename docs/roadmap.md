@@ -2048,13 +2048,27 @@ Linux `de746039d` / distro `5fa0584` 进一步启用标准 UNIX/UDP socket 诊�
 地址在 bind 处失败。`ab3f787` 只在专用 init 中初始化/清理自身 lo，双位宽
 复验正在进行，不据前一个启动阶段宣称 socket 诊断已经验收。
 
+ab3f787 随后在两路实际输出中暴露检查器将 UNIX 本地 inode 列误当成 INET
+ino: 标签的问题，尚未通过功能阶段。`44431ae` 按真实上游列核对 inode/名称，
+并通过标准 UNIX diagnostic UID 属性保留权限元数据校验，不要求 ss 输出
+原本没有的 UID 标签。宿主坏数据重放与双位宽分析通过，新目标已各派发一次，
+实际功能及关闭仍待核实；主仓库 pin 为 `d11dae8`。
+
 Linux `d79048f56` / distro `641eb07` 再启用标准 BPF_SYSCALL，复用已有解释器，
 保持 JIT 关闭及上游非特权政策。普通 C 消费者直接使用标准 syscall，检查 array
 状态与错误恢复、真实 map-backed socket filter 的丢弃/接收和 helper 执行、
-冻结/权限及 fd 生命周期。轻量分析通过，双位宽 Node 目标已各派发一次，实际
-阶段与关闭仍待证据。主仓库 `18f4976` 已更新 pin；不新增 musl 公共 API，
+冻结/权限及 fd 生命周期。两路完整日志现已核实三个实际阶段、各唯一 pass 和
+已发布 runner 的关闭门禁，通过双位宽 Node 的该范围。主仓库 `18f4976` 已更新
+pin；不新增 musl 公共 API，
 也不把这个范围扩大为全部 eBPF、tracing、libbpf 或浏览器支持。见
 [BPF 记录](process-syscalls.md#第一百零二组接通标准-bpf-syscall-与原有解释器)。
+
+distro `19f7a7c` 修复可选 static C fork 配置被默认 Autoconf fork=no cache
+错误否定的问题，交回普通声明/链接探测，不预填成功。可选 Bash 使用这个策略，
+默认 SDK、vfork、动态加载和线程准入不变。源码及 pin `3f0c65d` 已独立发布，
+wasm64 已核实加载新策略及完整 Bash 四阶段、唯一 pass 和关闭；wasm32 完整
+阶段仍待日志核实，不仅凭任务状态扩大验收。见
+[构建发现记录](process-syscalls.md#第一百零三组可选-fork-配置恢复正常-autoconf-探测)。
 
 每项工作至少在以下维度选择适用组合：
 

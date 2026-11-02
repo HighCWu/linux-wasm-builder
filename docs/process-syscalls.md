@@ -4903,6 +4903,30 @@ wasm64 job125147851630 为7,589,514字节，都完成了无 procfs 的子 shell/
 [wasm64 41408758963](https://github.com/HighCWu/distro/actions/runs/41408758963)
 各派发一次，仍待六个 C 阶段、shell/loopback 阶段、唯一 pass 与关闭证据。
 
+ab3f787 的两路实际日志再次发现检查器错误：wasm32 job125156775972 为
+7,289,428字节，wasm64 job125156809079 为7,367,568字节。shell 阶段均通过，
+lo 初始化后已取得真实 ss 的 UNIX listener 行；失败是检查器错误要求 UNIX
+输出含 socket 的 ino: 标签。上游 unix_stats_print 把 socket inode 放在本地
+port 列；可选 ino: 细节属于文件系统 inode，抽象 socket 本来没有这一项。
+unix_show_sock 也不打印 UID，不能照搬 INET 的标签规则。报错附带 errno=9
+来自此前预期的 fd 关闭检查，不是此次 socket 返回 EBADF 的证据。
+
+distro `44431ae` 改为严格匹配 UNIX 的本地 inode 列与完整 abstract-name 列，
+INET 保留 ino:/uid: 校验。UNIX 另用原有标准 SOCK_DIAG_BY_FAMILY 请求
+UDIAG_SHOW_UID，核对同一 inode、SOCK_STREAM 和创建者 UID，并在关闭后要求
+raw dump 及 ss 都不再包含它，未删掉 UID 覆盖。复用有界 multipart 收发，
+分别发送20字节 Netlink/24字节 UNIX request；属性解析拒绝错长、截断、
+对齐不足和重复/带错误标志的 UID。ss 源码和输出保持上游原样。
+
+宿主重放改用实际失败行的格式，拒绝数字前缀、peer/queue 伪 inode、文件系统
+ino: 冒充本地列及跨行 token，并校验真实 UID 属性布局和坏包拒绝。GCC/Clang
+严格前端、静态分析与当前 musl/UAPI 下双位宽本机前端/分析通过；没有在宿主
+打开 socket 或改凭据。主仓库 `d11dae8` 单独更新 pin 与真实 parser 重放。
+固定新源码的
+[wasm32 41415525397](https://github.com/HighCWu/distro/actions/runs/41415525397) 与
+[wasm64 41415532045](https://github.com/HighCWu/distro/actions/runs/41415532045)
+各派发一次，实际六个 C 阶段、shell/lo 清理、唯一 pass 和关闭仍待核实。
+
 ## 第一百零二组：接通标准 bpf syscall 与原有解释器
 
 Linux `d79048f56` 在三套 defconfig 启用 `CONFIG_BPF_SYSCALL=y`，接通原有
@@ -4955,11 +4979,60 @@ job125155641189 的实际日志核实基线 `6c4cb40dabafc588f2b2cba01929d4b8ca1
 实际三个阶段、唯一 pass 与 machine.closed 门禁仍待核实。不将编译/宿主分析
 泛化为所有 BPF map、BTF、tracing/kprobe、JIT、libbpf、浏览器或系统沙箱验收。
 
+固定 641eb07 的两路 Node 现已实际核实通过：wasm32 job125157648958 的完整
+日志为5,817,061字节，wasm64 job125157579939 为5,700,874字节；各出现上述
+array/错误恢复、实际 helper 驱动 socket 丢弃与接收、冻结/权限/fd 生命周期
+三个完整阶段，且唯一 pass 各一次，无目标失败或 panic。两个任务和 Heavy 均
+success。核对该版已发布 runner：成功退出前等待 closeTestResources，内部
+await machine.closed 后才关闭磁盘；Nix 必须取得退出0才完成。因此关闭门禁
+也成立，不能只用工作流绿色替代阶段证据。接受 Linux d79048f56 / distro
+641eb07 的双位宽 Node array/socket-filter 范围，保留前述其它 BPF 能力边界。
+
 本轮另核查了固定 libpcap 源码
 [`69733af23aa55f221aaa5e23053f13eb55af4d35`](https://github.com/the-tcpdump-group/libpcap/blob/69733af23aa55f221aaa5e23053f13eb55af4d35/pcap-linux.c)：
 其 activation 要求 TPACKET mmap capture，版本探测失败是错误，ring mmap
 失败也直接退出。不能靠更换 errno 声称会回退到普通 recvmsg。当前未修改
 AF_PACKET ring 选项、未加 libpcap 补丁；真正的共享 ring 仍为未完成能力。
+
+## 第一百零三组：可选 fork 配置恢复正常 Autoconf 探测
+
+静态 review 发现：显式 static C fork SDK 已有 fork syscall continuation，
+但可选 Bash 配方仍加载默认 distro/config.site，其中 ac_cv_func_fork=no 和
+ac_cv_func_fork_works=no 会直接否定这一接口，使应用跳过正常声明/链接探测。
+这是已实现能力的构建发现错误，不是本轮新实现 fork syscall，也不以测试数量
+或新增 libc 函数作为进度。
+
+distro `19f7a7c` 为可选 SDK 生成独立 config.site：先复用默认策略，再仅 unset
+两个 fork cache 变量，交回 Autoconf 正常探测，不预填 yes。默认 SDK 的策略
+完全不变；vfork、固定/文件映射完整探测及动态加载仍保持否定。文件安装于
+share/linux-wasm-fork-sdk/config.site，profile.json 记录路径，Nix 的 configSite
+属性提供同一生成文件，材料包含默认策略及生成版本。应用使用标准 CONFIG_SITE
+环境变量，无项目专有运行 API。
+
+可选 Bash 仅切换所选策略文件，未新增 C 源码补丁；仍需 fork-enabled libc、
+完整链接 finalization、单线程 static C 和配套 runtime。没有把 tombl/musl 中
+存在但被 Wasm 门控的通用 vfork 回退恢复为共享 vfork 支持，Dash 的显式应用
+回退不变；原始共享地址空间和父进程挂起语义仍是缺口。内核、musl、默认 SDK
+及 LLVM pin 均未改变。
+
+本地 sh/bash 实际执行默认策略和 profile 策略，覆盖宿主 yes cache 被清除、
+只有两个 fork 变量未设置、其它六项仍为 no；原有 SDK finalizer 与 Bash 的
+普通进程负载/失败依赖检查通过，固定 Oxfmt/Nixfmt、shell 语法与静态 review
+通过。Nix fixture 同步复制两个策略源文件，避免只在仓库目录通过。以上不证明
+新 configure 的 Wasm 输出或完整目标运行。
+
+源码原子推送后，主仓库 `3f0c65d` 单独更新 distro pin。固定 19f7a7c 的
+[wasm32 41412893217](https://github.com/HighCWu/distro/actions/runs/41412893217) 与
+[wasm64 41412899722](https://github.com/HighCWu/distro/actions/runs/41412899722)
+Bash 普通 fork 检查各派发一次；要核实四个实际阶段、唯一 pass 和既有关闭
+门禁，当前待目标证据，不把宿主 Bash 通过视为 Wasm fork 验收。
+
+wasm64 的 job125169990387 已实际读取完整7,801,788字节日志：configure 加载
+fork-wasm64-config.site，随后标准 fork/作用域/管道、process substitution/
+coprocess、后台 wait/信号/隔离、exec 错误与后续恢复四个实际阶段全部出现，
+唯一 pass 一次，无目标失败。Heavy/任务均 success；该版未改的 runner 成功
+返回仍必须等待 machine.closed 及磁盘关闭，接受该位宽的此 Bash 范围。wasm32
+任务虽已显示成功，完整日志尚在读取，未核实阶段前不扩大为双位宽验收。
 
 ## 信号栈缺口的前期核查记录
 
