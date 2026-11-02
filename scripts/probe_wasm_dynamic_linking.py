@@ -304,6 +304,10 @@ const data=name=>new DataView(memory.buffer).getInt32(address(name),true);
 const pointerAt=name=>memoryAddress==='i64'?new DataView(memory.buffer).getBigUint64(address(name),true):BigInt(new DataView(memory.buffer).getUint32(address(name),true));
 assert.equal(data('cycle_a_value'),11);assert.equal(data('cycle_b_value'),8);
 assert.equal(data('cycle_a_count'),1);assert.equal(data('cycle_b_count'),1);
+assert.equal(data('cycle_b_vector_observed'),220,'v128 forward call works during peer constructor');
+const vectorCheck=processLoader.symbol(cycle,storeString('cycle_vector_check'));
+assert.equal(table.get(word(tableAddress,vectorCheck))(),220,'v128 arguments stay within Wasm across libraries');
+console.log(`Process loader SIMD model wasm${bits}: v128 forward constructor and cross-module calls pass; not Linux bridge acceptance`);
 assert.equal(data('cycle_a_observed'),8);assert.equal(data('cycle_b_observed'),3);
 assert.equal(pointerAt('cycle_a_saved'),BigInt(address('cycle_b_value')));
 assert.equal(pointerAt('cycle_b_saved'),BigInt(address('cycle_a_value')));
@@ -405,6 +409,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                     "-O2",
                     "-fPIC",
                     "-shared",
+                    "-msimd128",
                     "-matomics",
                     "-mbulk-memory",
                     "-Wl,--shared-memory,--no-entry,--import-memory,--import-table",
