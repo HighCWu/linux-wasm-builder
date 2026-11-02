@@ -220,3 +220,9 @@ Nix/JS格式、语法和diff检查通过；这些宿主编排检查不是浏览�
 | wasm32 Firefox | [41490524978](https://github.com/HighCWu/distro/actions/runs/41490524978) |
 | wasm64 Chromium | [41490533795](https://github.com/HighCWu/distro/actions/runs/41490533795) |
 | wasm64 Firefox | [41490543653](https://github.com/HighCWu/distro/actions/runs/41490543653) |
+
+固定58b087c的两项wasm64浏览器现已核实实际日志：Chromium149.0.7827.55与
+Firefox151.0各两轮完整三阶段、每轮唯一pass和machine shutdown标记，最后
+均确认browser shutdown，无迟到错误。压缩日志/构建步字节分别为1,078,844/
+4,012,593及1,084,714/4,012,064。接受这一源码的双CPU wasm64回环DNS范围，
+不代替wasm32或后继源码验收，也不扩大为外部UDP/DNS可用。

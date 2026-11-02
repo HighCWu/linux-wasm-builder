@@ -5939,6 +5939,26 @@ fd/权限/控制器检查由Linux完成，没有用父进程创建后再迁移�
 | fork runtime wasm32 | [41492446819](https://github.com/HighCWu/distro/actions/runs/41492446819) |
 | fork runtime wasm64 | [41492457442](https://github.com/HighCWu/distro/actions/runs/41492457442) |
 
+## clone3 未请求字段按 Linux 忽略
+
+3a77133 / 集成66f4f99修复解析器把非零、未请求的PIDFD/TID/TLS字段当成
+不支持形态的问题。核对固定kernel/fork.c的copy_clone_args_from_user及
+copy_process/copy_thread后，移除这些字段的额外拒绝；仅按已请求标志捕获
+相关输出。超宽无效值未请求时不验证、不截断、不写入；请求时保留原规则。
+set_tid的结构性错误、真实set_tid选择与非默认栈的拒绝不变。没有新增函数
+或应用API，也没有修改Linux/musl或放宽多线程fork。
+
+现有raw clone3语料扩展为零字段、UINT64_MAX和可写哨兵，检查真实父子身份、
+局部/全局隔离、哨兵不变及单次wait；相应fork阶段加入ignored fields字样。
+397项运行层、两套TypeScript、86项针对性parser/执行/宿主负向/浏览器契约
+和双位宽静态分析通过；原生fork shim只证明工作负载断言，不证明Linux clone3。
+新双位宽fork runtime独立派发，实际阶段及机器关闭仍待核实；旧2c48032的
+cgroup与fork任务继续运行，不重复派发或用旧语料替代本组结果。
+
+固定3a77133的新目标为
+[wasm32 41493736877](https://github.com/HighCWu/distro/actions/runs/41493736877)、
+[wasm64 41493747070](https://github.com/HighCWu/distro/actions/runs/41493747070)。
+
 ## 静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

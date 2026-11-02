@@ -2024,6 +2024,12 @@ PIDs准入和回滚，不以创建后迁移代替。新执行对象独立传递u
 派发双位宽，目标结果待验收；不扩大多线程fork。见
 [传输与验收记录](process-syscalls.md#clone3-的-clone_into_cgroup-标准传输)。
 
+3a77133 / 集成66f4f99移除clone3未请求PIDFD/TID/TLS字段的额外非零拒绝，
+包括未请求且无法表示为wasm32指针的u64值。已请求输出、set_tid和栈的规则
+保留。raw语料用无效值及哨兵验证忽略语义，双位宽真实fork目标异步验收；
+不把旧阶段或宿主fork shim当作此新语义通过。见
+[参数兼容记录](process-syscalls.md#clone3-未请求字段按-linux-忽略)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。
