@@ -4474,6 +4474,78 @@ socket 调用，核对 SHA-256 已知向量、空输入、增量状态克隆、1
 尚在运行/排队。验收须核对三个实际阶段、唯一 pass 及固定运行器等待
 machine.closed 的关闭结果，不以工作流创建或成功规划替代目标运行。
 
+## 第九十五组：AF_ALG 对称加密接收端的有界跨内存输出
+
+继续检查原 crypto/algif_skcipher.c / af_alg.c 发现：普通 sendmsg 已复制输入，
+但 recvmsg 的 RX SGL 仍提取并固定用户页，不能使用 Wasm 独立用户内存。
+Linux `9b100aac9` 在原同步请求路径中加入接收暂存：等待排队数据后，按
+min(实际排队输入、用户请求、一页) 读取目标的有效前缀作探测，不修改目标，
+也不推进原 iterator；Wasm 线性内存的既有字节可读可写，不借此声称具有
+原生页面权限。原 crypto 请求使用同一页的内核 KVEC，完成并释放 SG 资源
+之后才向原用户 iterator 复制实际成功字节并释放页。
+
+保留原 socket 锁、密钥/IV 解析、错误、块长检查、NOTFINAL 和状态/IV 续接。
+探测使用源方向的临时 iterator；原目标方向及位置完整保存，避免触发
+copy_page_from_iter 的方向检查或把块长取整后未产生的字节误当已交付。
+完全无效的目标在提取 TX 输入之前失败，空 RX/TX 资源释放不消耗排队数据；
+crypto 失败不复制暂存输出。页带 __GFP_ACCOUNT，一次活动请求最多一页，
+只在原同步完成路径持有；不是启用 AIO，也没有把页面指针返回用户空间。
+非 Wasm 和内核 iterator 保持原路径；不扩展为 AEAD 支持。
+
+三份 defconfig 选择 CRYPTO_USER_API_SKCIPHER、AES、CBC、CTR，distro 对
+最终解析配置逐项检查；这些是显式功能选择，不是声称恢复 Linux 官方默认。
+普通 SDK 消费者使用现有 socket/sendmsg/recvmsg、ALG_SET_OP/IV/KEY 和
+Linux if_alg.h：核对固定 CBC 加解密、65536+64 字节向量输出的独立边界
+密文和解密、无效目标后原输入仍可读取、错误块长后的恢复、CTR 非整块
+向量及 fd 清理，不增加 musl 函数或项目专有接口。
+
+提取真实暂存函数体的 GCC/Clang 模型及静态分析通过，覆盖每页上限、探测
+不写目标、排队输入限制、实际交付推进、故障/分配/crypto 错误和页生命周期；
+禁用暂存、错误 iterator 方向、移除输入限制的反向控制均必须失败。消费者
+GCC/Clang 与 Wasm32/Wasm64 前端和静态分析通过；有界 OpenSSL 独立计算
+另核实固定向量与跨页边界，不在宿主执行消费者 main 或 socket 操作。这些
+不是目标 crypto 运行证明，精确 pin 与真实双位宽阶段仍需独立记录。
+
+## 第九十六组：修复全局导出开关误选预启动 SHA 精简实现
+
+定期检查确认固定 15d8fbf 的 AF_ALG hash 两路均失败于内核链接，尚未运行
+消费者：wasm32 job125068582933 完整日志 2,587,485 字节，wasm64
+job125068646011 为 2,660,824 字节；实际错误均为 crypto/sha256.o 引用的
+__hmac_sha256_init、hmac_sha224/256_final、hmac_sha224/256 及 preparekey
+等符号未定义，不是 HMAC 向量已运行但失败，也不能用旧成功配置冒充验收。
+
+原因是 arch/wasm/Makefile 给整个内核定义 __DISABLE_EXPORTS。本版本的
+lib/crypto/sha256.c 也用此宏识别预启动环境，只保留精简 SHA、裁掉 HMAC
+实现；正常 crypto/sha256.c 却引用完整库。Linux `d02917c85` 删除全局
+C/汇编标志，在 include/linux/export.h 用 CONFIG_WASM 局部抑制不支持的
+ELF 模块导出记录。完整内核不再伪装为预启动环境；原非 Wasm 导出规则和
+真正 __DISABLE_EXPORTS 的预启动构建不变，也没有启用 Wasm 模块加载。
+没有通过关闭 HMAC、补空实现或更改用户接口来掩盖错误。
+
+审查该宏在 crypto 库、compiler.h 和 instrumented.h 的用途；CFI 仍受原
+CONFIG_CFI 条件约束，不新增 CFI 配置，原子调试检查回到完整内核条件。
+轻量检查直接预处理真实 SHA 库与导出头，GCC/Clang 确认双位宽 Wasm 的
+HMAC 定义可见但无导出记录、原生仍有导出记录、预启动仍裁剪；旧 Wasm
+宏组合复现定义缺失。真实导出头还通过双位宽 Wasm 小对象编译，不以此
+代替完整内核链接。修复后的精确源码预取和公开目标重验另行记录。
+
+公开预取 [41382248285](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41382248285)
+的 job125075378070 实际日志核实完整 revision
+`d02917c85066192596a7a9c70725531df8a3782d` 与
+`sha256-UG29iYKYt3UTqCKOB+uzYTNOtQghANoTO2aMMxR9vlk=`。distro `20ff576`
+集成此 pin、对称加密消费者和四项新增配置门禁；根仓库 `b4e5d71` 单独
+更新 gitlinks 与精确源码轻量检查。联合目标按序执行 hash/HMAC 和 skcipher
+两个普通 SDK 消费者，每个位宽要求三加三共六个功能阶段、唯一 pass 和
+固定运行器 machine.closed；wasm64 明确携带 wasm64 hash 依赖，不能混入
+wasm32 消费者代验。当前仍是候选，修复后的完整目标尚未验收。
+
+固定 20ff576 的联合检查已各派发一次：
+[wasm32 41382938776](https://github.com/HighCWu/distro/actions/runs/41382938776)
+请求 alg-skcipher-check-runtime，
+[wasm64 41382944884](https://github.com/HighCWu/distro/actions/runs/41382944884)
+请求 alg-skcipher-wasm64-check-runtime，均已核对精确源码且在运行。
+它们是新 pin 的重验，不重复派发 15d8fbf 的已知失败版本。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
