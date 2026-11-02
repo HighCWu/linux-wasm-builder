@@ -5708,6 +5708,46 @@ Linux改动沿用GPL，独立host/测试/集成/文档MIT；musl7b077a6d和默�
 与[wasm64 41467101649](https://github.com/HighCWu/distro/actions/runs/41467101649)
 已各派发一次，Heavy正在进行，实际三阶段、唯一pass及机器关闭仍待核实。
 
+## 分块文件 mmap 的 Node 结果与真实在途生产者
+
+固定distro5d47cf7/Linux1b81174a8的
+[Node wasm32 41467105444](https://github.com/HighCWu/distro/actions/runs/41467105444)
+与[Node wasm64 41467101649](https://github.com/HighCWu/distro/actions/runs/41467101649)
+均已核实完整三个阶段和各唯一pass，任务/Heavy成功。压缩日志分别1,738,622和
+1,677,537字节，实际构建步骤7,956,269和7,792,136字节。包括4MiB+7字节、非零
+offset、私有副本/fd位置、短读/EOF/截断、源关闭/unlink及拆分unmap后恢复。
+该版run-test/shutdown与已审查的发布代码一致，退出0要求等待machine.closed并
+拒绝收尾错误，关闭门禁成立。这是分块配置的Node证据，默认文件映射仍关闭。
+
+distro a60ed18 / 集成6170efa补充浏览器入口，全部固定同一源码并各派发一次：
+
+| 位宽/引擎 | 任务 |
+|---|---|
+| wasm32 Chromium | [41470377725](https://github.com/HighCWu/distro/actions/runs/41470377725) |
+| wasm32 Firefox | [41470374684](https://github.com/HighCWu/distro/actions/runs/41470374684) |
+| wasm64 Chromium | [41470363932](https://github.com/HighCWu/distro/actions/runs/41470363932) |
+| wasm64 Firefox | [41470376508](https://github.com/HighCWu/distro/actions/runs/41470376508) |
+
+运行器要求同页两个独立启动的完整三阶段、各唯一pass、机器关闭及最终浏览器
+关闭。当前结果仍需按实际日志分别核实，不将其中一项工作流成功泛化为四路通过。
+
+后续distro7dd14ab58820f08b848c11af60bff3ad4994bcae / 集成83810d8加入真实
+FUSE在途生产者门禁，Linux/musl/LLVM pin不变。生产者以FOPEN_DIRECT_IO返回
+普通文件，确保同步kernel_read指向分块staging，而不是独立后台缓存读取。
+控制器收到READ后SIGKILL读取者，再等内核INTERRUPT握手，检查waitpid(WNOHANG)
+仍未退出且来源未RELEASE；显式释放原读取响应后，才核对SIGKILL回收、无用户
+发布标记及最终FUSE_RELEASE。每轮再映射另一个真实FUSE文件并核对内容/零尾，
+共八轮，超过四个请求的staging额度容量；最后卸载并回收服务进程。
+
+这验证实际请求的完成/引用边界和后续额度可用性，不把管道标记当作任意用户
+代码均未执行或精确heap计数的证明。标准单线程fork配置仅用于独立进程编排。
+新增消费者/Nix为MIT，未加入musl函数、私有应用API或内核测试syscall。
+wasm32/64头文件前端和Clang静态分析、GCC/Clang宿主前端、Nix格式与diff检查
+通过；没有在宿主执行挂载。固定7dd14ab的
+[wasm32 41472492037](https://github.com/HighCWu/distro/actions/runs/41472492037)
+和[wasm64 41472495062](https://github.com/HighCWu/distro/actions/runs/41472495062)
+已各派发一次，实际四阶段和关闭仍待验收。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
