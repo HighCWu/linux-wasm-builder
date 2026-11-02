@@ -1977,6 +1977,12 @@ ABI 及完整 C++ 运行标记。固定 `ad839be` 的
 
 ## 质量矩阵
 
+标准 syscall 能力继续独立推进：Linux `b920e6b82` / distro `fd54b54`
+启用 NETLINK_CRYPTO 原有算法元数据服务，补足 AF_ALG 用户库的必要初始化
+接口。轻量前端与静态 review 通过，Node 双位宽实际查询、错误恢复、非特权
+dump/权限和关闭检查已派发，尚待验收；不代表 libkcapi 或 ELF 加载已完成。
+精确版本和运行链接见 [进程与 syscall 记录](process-syscalls.md#第九十七组启用-linux-原有密码算法-netlink-元数据接口)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |

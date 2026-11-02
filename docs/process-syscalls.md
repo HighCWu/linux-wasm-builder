@@ -4555,6 +4555,46 @@ distro 20ff576 的 Node 双位宽同步 SHA/HMAC、CBC/CTR 范围，原 HMAC 库
 链接错误已得到实际目标修复证明；不代验后续 NETLINK_CRYPTO、libkcapi
 接入、ELF/动态链接、AEAD、AIO 或浏览器。
 
+## 第九十七组：启用 Linux 原有密码算法 Netlink 元数据接口
+
+AF_ALG 计算通过不代表普通用户态密码库已经可用。libkcapi 的初始化在绑定
+AF_ALG 算法后还使用 NETLINK_CRYPTO 查询算法属性；此前构建没有启用
+CONFIG_CRYPTO_USER，缺少这一标准协议端点。Linux `b920e6b82` 在三个命名
+defconfig 中启用该选项，复用 crypto/crypto_user.c 的查找、报告、multipart
+dump 和 CAP_NET_ADMIN 检查。Kconfig 依赖 NET，不要求 MMU；本轮没有修改
+查询结果、权限规则或加入项目专用 socket 协议，也没有新增 musl API。
+
+预取 [41384903082](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41384903082)
+的 job125083469806 实际日志核实完整源码
+`b920e6b82c63eec3bf28a0281b832a0038e51305` 与
+`sha256-oxHlxUULPw7Mxc14Wuu+dCGjRCNM4WTYwng5VMrmjmg=`。distro `fd54b54`
+集成此精确 pin 和 resolved Kconfig 门禁，主仓库 `ce6b015` 随后单独更新
+Linux/distro gitlinks；默认 LLVM 和 musl pin 不变。
+
+独立 MIT 普通 C 程序通过已有 socket/bind/getsockname/sendmsg/recvmsg/poll
+接口验证三个阶段：AF_ALG 实例化后的 SHA-256 与 CBC-AES 属性；不存在算法
+的 ENOENT、未终止名称的 EINVAL 与同 socket 恢复；降到 uid/gid65534 后的
+查询和完整 dump、管理请求 EPERM、恢复查询及 fd 清理。解析检查 kernel sender、
+port/sequence、消息与属性边界、multipart 完成状态和 digest/block/key/IV 大小。
+不在宿主执行这些 socket、凭据或算法操作。
+
+review 核对上游实际 report/ack/dump 路径：查询不要求管理权限，变更先检查
+CAP_NET_ADMIN；报告由内核缓冲生成，未将用户地址送入 crypto 散列表。算法
+名不会因查询而任意自动加载，故消费者先按 libkcapi 的正常顺序绑定 AF_ALG。
+GCC/Clang 严格前端、Clang 静态分析及双位宽 Wasm 前端/静态分析通过，后者
+使用真实 Linux 协议声明与现有 musl 头；命名配置检查及禁用反向控制也通过。
+这些轻量检查不代替内核链接、实际 Netlink 收发或非特权目标运行。
+
+固定 fd54b54 已分别派发一次
+[wasm32 41390763820](https://github.com/HighCWu/distro/actions/runs/41390763820)
+的 netlink-crypto-check-runtime 和
+[wasm64 41390769293](https://github.com/HighCWu/distro/actions/runs/41390769293)
+的 netlink-crypto-wasm64-check-runtime。目标仍待验收：每路须确认三个实际
+阶段、唯一 pass 和固定运行器关闭成功；排队/构建不算失败，也不以 workflow
+状态替代阶段证据。尚未集成 libkcapi 或其应用专用符号补丁；通用 LLVM
+符号版本候选独立验证，不把本轮协议支持视为 libkcapi、AEAD、AIO 或浏览器
+已通过。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
