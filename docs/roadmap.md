@@ -2054,6 +2054,10 @@ ino: 标签的问题，尚未通过功能阶段。`44431ae` 按真实上游列�
 原本没有的 UID 标签。宿主坏数据重放与双位宽分析通过，新目标已各派发一次，
 实际功能及关闭仍待核实；主仓库 pin 为 `d11dae8`。
 
+44431ae 两路随后明确失败在 Netlink 显示规则：ss -n 使用数字协议号，而验证器
+期待 usersock 名称。`7b40195` 保留 raw inode/port/type 关联，修正数字匹配并
+补充坏数据重放；固定源码双位宽复验已派发，仍待完整阶段与关闭证据。
+
 Linux `d79048f56` / distro `641eb07` 再启用标准 BPF_SYSCALL，复用已有解释器，
 保持 JIT 关闭及上游非特权政策。普通 C 消费者直接使用标准 syscall，检查 array
 状态与错误恢复、真实 map-backed socket filter 的丢弃/接收和 helper 执行、
@@ -2069,6 +2073,13 @@ distro `19f7a7c` 修复可选 static C fork 配置被默认 Autoconf fork=no cac
 双位宽 Node 均已核实加载匹配的新策略及完整 Bash 四阶段、唯一 pass 和关闭，
 不扩展为其它 fork 形态或浏览器验收。见
 [构建发现记录](process-syscalls.md#第一百零三组可选-fork-配置恢复正常-autoconf-探测)。
+
+Linux `3dc991222` / distro `8ede319` 接通标准 cgroup v2 PIDs controller。
+普通 C 消费者通过 pids.max、fork/wait 验证限额 EAGAIN 回滚、继承、计数、
+解除限额后的恢复与迁移/卸载清理。双位宽轻量前端和分析通过，真实 Node
+目标已各派发一次，未验收；不扩展 MMU、其它 controller 或多线程 fork。
+主仓库 pin 为 `e54105c`，见
+[PIDs 准入记录](process-syscalls.md#第一百零四组标准-cgroup-v2-pids-准入与-fork-回滚)。
 
 每项工作至少在以下维度选择适用组合：
 

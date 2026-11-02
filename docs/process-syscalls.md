@@ -4927,6 +4927,19 @@ ino: 冒充本地列及跨行 token，并校验真实 UID 属性布局和坏包�
 [wasm64 41415532045](https://github.com/HighCWu/distro/actions/runs/41415532045)
 各派发一次，实际六个 C 阶段、shell/lo 清理、唯一 pass 和关闭仍待核实。
 
+44431ae 的两路完整日志已核实失败：wasm32 job125178440963 为7,839,831字节，
+wasm64 job125178543375 为7,533,728字节，均停在 ss Netlink protocol/port
+匹配。wasm64 日志还明确完成 shell、UNIX/UDP/TCP live 和 closed 三个阶段，
+但未到非特权阶段、loopback 清理或 pass，不作为完整验收。上游 ss 的
+nl_proto_n2a 在 numeric 模式返回数字，而消费者传了 -n 却期待 usersock 名称。
+distro `7b40195` 改为匹配 NETLINK_USERSOCK 数字协议号及实际 signed port，
+raw dump 的 inode/port/type 校验保持，失败时补充有界实际输出。宿主 parser
+重放同步拒绝错误协议号、名称/数字混淆、前缀和跨行匹配。主仓库 `a3913eb`
+单独更新 pin；固定源码的
+[wasm32 41419482339](https://github.com/HighCWu/distro/actions/runs/41419482339) 与
+[wasm64 41419490536](https://github.com/HighCWu/distro/actions/runs/41419490536)
+各派发一次，完整阶段和关闭仍待核实。
+
 ## 第一百零二组：接通标准 bpf syscall 与原有解释器
 
 Linux `d79048f56` 在三套 defconfig 启用 `CONFIG_BPF_SYSCALL=y`，接通原有
@@ -5062,6 +5075,51 @@ wasm-ld 依赖条件被关闭，fs/proc/base.c 也未编译 wchan 项。__get_wc
 BUG 不能据此宣称为默认构建已可触发的 proc 读取漏洞；需先处理符号/展开支持
 和可达路径，再设计真实目标验证。本轮未将返回0替代桩或不存在的 proc 接口
 列为新能力，也未为该未实现项派发重型检查。
+
+## 第一百零四组：标准 cgroup v2 PIDs 准入与 fork 回滚
+
+Linux `3dc991222e5466857a5b85b0477d7905462020c6` 在三套 Wasm defconfig
+启用 CGROUPS 与 CGROUP_PIDS，复用官方上游 kernfs/cgroup、pids_can_fork、
+pids_cancel_fork 与 pids_release。两项均是上游可选能力，不宣称默认 y；
+没有修改 MMU、内存映射或 fork 执行模型，没有自造限额 syscall/宿主替代品。
+构建门禁核实 resolved CGROUPS/CGROUP_PIDS/KERNFS=y，原始配置检查含每项
+关闭后的反向控制。
+
+新增独立 MIT 消费者只用已有 libc 声明、普通 fork/waitpid、mount 和 fd 接口：
+
+- 挂载 cgroup2，启用标准 pids controller，创建叶组并迁入调用进程；默认
+  pids.max=max。设限1后 fork 必须返回 EAGAIN，pids.events 的 max 增加，
+  current 保持1，waitpid 验证没有已发布或未回收子进程。
+- 设限2后正常 fork，通过 pipe/poll 有界交接。子进程继承同组，current=2；
+  子进程的后续 fork 也必须 EAGAIN，父端核对事件/current，释放并回收子进程，
+  current 回到1且无剩余子进程。父子分别关闭无用/完成交接的 pipe fd。
+- 恢复 max 后再次 fork/wait 并核对退出码，迁回根组、叶组 current=0、删除
+  叶组、撤销控制器并卸载；全部清理成功后才发布第三阶段和唯一 pass。
+
+三个 C 阶段分别为 standard hierarchy/membership/admission rollback、inherited
+child limit/live accounting/wait cleanup、unlimited recovery/migration/teardown。
+普通 stdout 设为不缓冲，防止 fork 复制缓冲导致重复阶段。每次控制文件写入
+保持完整单次写；有界读取和数值解析拒绝截断或错误内容。
+
+GCC 严格前端、Clang 静态分析及本机 Clang18 在当前 musl 头文件下 wasm32/64
+前端与分析通过；临时头文件仅应用已有可选 fork SDK 的 fork/_Fork 声明门控，
+不伪造应用声明，也没有修改默认 musl。没有在宿主运行 cgroup 消费者、挂载
+或迁移进程。本地分析不代替配套 SDK 链接、真实内核运行或关闭验收。
+
+[预取 41419307614](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41419307614)
+的完整20,807字节日志核实先验证 d79048f56 的既有基线哈希，再得到候选
+`sha256-DRtZ7x1yhKUNkQ8cI0ZZXmJJIs3EHUnAbk35ICuNgrw=`。只改三套 defconfig，
+符合已有 Git archive 允许范围。distro `8ede319` 原子集成 pin、构建门禁和
+双位宽消费者；主仓库 `e54105c` 单独更新两个 gitlinks 及轻量配置检查。
+固定源码各派发一次
+[wasm32 41419666514](https://github.com/HighCWu/distro/actions/runs/41419666514) 与
+[wasm64 41419675485](https://github.com/HighCWu/distro/actions/runs/41419675485)。
+三阶段、唯一 pass 及 await machine.closed 退出门禁均待目标证据。
+
+范围依据[官方 cgroup v2 文档](https://docs.kernel.org/admin-guide/cgroup-v2.html)：
+PIDs 计数单位是内核 task/TID，迁移等组织操作允许超过限额，不能宣称它们也被
+fork 限额拒绝。本轮只验证既有可选单线程 static C fork 范围，不新增 libc API、
+不开放多线程 fork，不代表 memory/CPU controller、容器隔离或浏览器验收。
 
 ## 本轮静态 review 与异步验收原则
 
