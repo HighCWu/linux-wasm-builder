@@ -176,7 +176,8 @@ const readCString=p=>{const bytes=new Uint8Array(memory.buffer,Number(p));return
 function storeString(value){const data=new TextEncoder().encode(value+'\0');const p=heap;heap+=data.length;
  new Uint8Array(memory.buffer,p,data.length).set(data);return word(memoryAddress,p);}
 const descriptor=120000,originPointer=121000;
-const environmentPointer=storeString('/libraries');
+const environmentPointer=storeString('/shadow:/libraries');
+const searchedPointer=storeString(names[1]),blockedPointer=storeString('blocked.wasm');
 const rootPointer=storeString('/libraries/'+names[1]);
 const aliasPointer=storeString('/libraries/alias.wasm');
 const dependencyPointer=storeString('/libraries/'+names[0]);
@@ -189,8 +190,14 @@ const virtualFiles=new Map([
  ['/libraries/'+names[1],{bytes:files.get(names[1]),inode:12n}],
  ['/libraries/alias.wasm',{bytes:files.get(names[1]),inode:12n}],
  ['/bad.wasm',{bytes:new Uint8Array([1,2,3]),inode:13n}],
+ ['/shadow/'+names[1],{bytes:new Uint8Array([1,2,3]),inode:13n}],
+ ['/libraries/blocked.wasm',{bytes:files.get(names[1]),inode:12n}],
+ ['/libraries/noexec.wasm',{bytes:files.get(names[1]),inode:12n}],
+ ['/libraries/nomemory.wasm',{bytes:files.get(names[1]),inode:12n}],
+ ['/libraries/denied.wasm',{bytes:files.get(names[1]),inode:12n}],
 ]);
-let processLoader,probeReentry=true,nextPin=1;
+let processLoader,probeReentry=true,nextPin=1,currentFd=-1;
+const attempted=[];
 const pins=new Map();
 const allocate=(size,alignment)=>{size=Number(size);alignment=Math.max(8,Number(alignment));
  const p=Math.ceil(heap/alignment)*alignment;heap=p+size;
@@ -208,10 +215,16 @@ const bridge={exports:{...main.exports,
  __wasm_dlopen_deallocate:deallocate,
  __wasm_dlopen_library_path:()=>environmentPointer,
  __wasm_dlopen_origin:()=>word(memoryAddress,originPointer),
- __wasm_dlopen_fd:()=>0,
+ __wasm_dlopen_fd:()=>currentFd,
  __wasm_dlopen_read:path=>{const name=readCString(path);if(name==='/control')throw control;
+  attempted.push(name);currentFd=-1;
   const view=new DataView(memory.buffer,descriptor,40);new Uint8Array(memory.buffer,descriptor,40).fill(0);
+  if(name==='/shadow/blocked.wasm'){view.setBigUint64(32,24n,true);return word(memoryAddress,descriptor);}
+  if(name==='/shadow/noexec.wasm'||name==='/shadow/nomemory.wasm'){
+   currentFd=0;view.setBigUint64(32,name.includes('noexec')?13n:12n,true);return word(memoryAddress,descriptor);}
+  if(name==='/shadow/denied.wasm'){view.setBigUint64(32,13n,true);return word(memoryAddress,descriptor);}
   const file=virtualFiles.get(name);if(!file){view.setBigUint64(32,2n,true);return word(memoryAddress,descriptor);}
+  currentFd=0;
   const pointer=allocate(file.bytes.length,8);new Uint8Array(memory.buffer,Number(pointer),file.bytes.length).set(file.bytes);
   const refreshed=new DataView(memory.buffer,descriptor,40);refreshed.setBigUint64(0,BigInt(pointer),true);
   refreshed.setBigUint64(8,BigInt(file.bytes.length),true);refreshed.setBigUint64(16,1n,true);refreshed.setBigUint64(24,file.inode,true);
@@ -219,7 +232,7 @@ const bridge={exports:{...main.exports,
   return word(memoryAddress,descriptor);},
  __wasm_dlopen_read_release:()=>{const pointer=new DataView(memory.buffer,descriptor,40).getBigUint64(0,true);
   if(pointer)deallocate(pointer);
-  new Uint8Array(memory.buffer,descriptor,40).fill(0);},
+  new Uint8Array(memory.buffer,descriptor,40).fill(0);currentFd=-1;},
 }};
 processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximumPages:Number(memoryLayout.maximum),
  tableType:{address:tableAddress,minimum:128n,maximum:512n},signatures,
@@ -227,7 +240,26 @@ processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximu
  pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert(inode===11n||inode===12n);
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
-const handle=processLoader.open(rootPointer,2);assert(handle!==word(memoryAddress,0));
+const beforeSearch=live.size;
+assert.equal(processLoader.open(searchedPointer,2),word(memoryAddress,0),'opened malformed file must stop search');
+assert.deepEqual(attempted,['/shadow/'+names[1]],'do not substitute a later same-name library');
+assert.equal(live.size,beforeSearch,'shadow failure releases temporary buffers');
+attempted.length=0;
+assert.equal(processLoader.open(blockedPointer,2),word(memoryAddress,0),'EMFILE must stop search');
+assert.deepEqual(attempted,['/shadow/blocked.wasm']);
+assert.equal(live.size,beforeSearch,'hard open error releases temporary paths');
+for(const name of ['noexec.wasm','nomemory.wasm']){
+ attempted.length=0;
+ assert.equal(processLoader.open(storeString(name),2),word(memoryAddress,0),'opened-file error must stop search');
+ assert.deepEqual(attempted,['/shadow/'+name]);
+ assert.equal(live.size,beforeSearch,'opened-file error releases temporary paths');}
+virtualFiles.delete('/shadow/'+names[1]);attempted.length=0;
+const handle=processLoader.open(searchedPointer,2);assert(handle!==word(memoryAddress,0));
+assert(attempted.includes('/shadow/'+names[1])&&attempted.includes('/libraries/'+names[1]),'ENOENT permits next directory and successful recovery');
+assert.equal(processLoader.open(rootPointer,2),handle);
+attempted.length=0;
+assert.equal(processLoader.open(storeString('denied.wasm'),2),handle,'EACCES while opening permits next directory');
+assert.deepEqual(attempted,['/shadow/denied.wasm','/libraries/denied.wasm']);
 assert.equal(processLoader.symbol(word(memoryAddress,0),runPointer),word(memoryAddress,0),'local group must not become globally visible');
 const runAddress=processLoader.symbol(handle,runPointer);
 assert.equal(table.get(word(tableAddress,runAddress))(1),22);
@@ -244,7 +276,7 @@ assert.equal(processLoader.open(rootPointer,2),handle,'ordinary failures preserv
 assert.equal(processLoader.valid(handle),1);assert.equal(processLoader.valid(word(memoryAddress,0)),0);
 assert.throws(()=>processLoader.open(controlPointer,2),error=>error===control,'exit/exec is never converted into recoverable dlerror');
 assert.equal(live.size,retained+1,'after exit/exec the old libc must not be called to free old-context paths');
-console.log(`Process loader model wasm${bits}: aliases, scopes, reuse, read cleanup, reentry guard and control transfer pass; not Linux bridge acceptance`);
+console.log(`Process loader model wasm${bits}: ordered search, hard/opened-file rejection, aliases, scopes, reuse, read cleanup, reentry guard and control transfer pass; not Linux bridge acceptance`);
 console.log(`PIC probe wasm${bits}: runtime linker dependencies, relocations, GOT, weak/null, canonical slots, main symbols, handle lookup, ctor, direct/indirect calls and growth pass (table ${tableAddress}); not Linux/ELF acceptance`);
 """
 
