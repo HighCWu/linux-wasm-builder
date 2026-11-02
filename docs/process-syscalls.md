@@ -4766,6 +4766,66 @@ Bash 语法、非 CI/自托管/非 Linux 拒绝、显式 dry-run 和非法参数
 检查通过不证明空间故障已经消除或 RNG 已完成，仍需三阶段、唯一 pass 与
 machine.closed 的实际验收。LLVM 符号版本候选仍运行时保持运行，不因慢而取消。
 
+第九十九组 wasm64 重验已核实：dafa1b8 的 job125118150587 完整实际日志
+5,527,383 字节含 RNG 三阶段和唯一 pass；精确版本的运行器、RNG 消费者与
+Linux pin 相对 5ba5a18 无差异，仍以 machine.closed 成功及关闭磁盘为退出码0
+前提。因此接受 Linux 19367bfc1 的 wasm32（distro 5ba5a18）及 wasm64
+（distro dafa1b8）Node RNG 范围。该次清理的实际 df 从已用59G/可用86G
+变为已用42G/可用103G，约释放17 GiB；不据此保证任意未来缓存都不会耗尽。
+日志中的源码请求429已由原有重试恢复，不能把恢复后的成功目标误记为运行失败。
+不代验后续 socket-diag 内核、浏览器或其它 RNG 算法。
+
+## 第一百组：标准 socket 诊断与未修改源码的 iproute2 ss
+
+Linux `de746039d` 在三个命名配置启用 UNIX_DIAG、INET_UDP_DIAG，并明确保留
+INET_DIAG 原有默认 y 与其 TCP 诊断条件。新能力来自 net/unix/diag.c 和
+net/ipv4/udp_diag.c 原有处理器；socket-diag 核心已由 net/core/Makefile 编译，
+没有虚构 CONFIG_SOCK_DIAG 或改写通用 Netlink、权限与数据格式。仍为 NOMMU
+直接线性内存：请求/报告通过原有内核缓冲与用户复制，不要求固定用户页。
+
+新增透明命名的 iproute2-ss 产品：构建完整上游 ss 及 libutil/libnetlink 依赖，
+不宣称提供整个 iproute2 套件。固定官方 7.3.0 归档，SHA256
+`5c1789d290bba048a6135ed1ab81b0402dd0fb528d1f1421765c42b1fc3d6289`
+与 [kernel.org 发布校验表](https://mirrors.edge.kernel.org/pub/linux/utils/net/iproute2/sha256sums.asc)
+相符，未核验 PGP 签名。没有应用 C 补丁或私有函数替换，使用上游 configure/
+Make 目标和静态库选项，libbpf 通过上游选项关闭。libutil 原始代码包含 fork，
+所以使用现有可选 static C fork 执行配置并完成既有 finalization，而不删除
+该源文件或伪造 fork 声明；未改变默认 SDK、musl API 或 fork 的线程支持边界。
+保留上游 GPLv2/COPYING，独立配方、检查与材料说明为 MIT；源包包含完整归档、
+配方、SDK 材料链接与最终二进制摘要，运行前核对其版本与文件身份。
+
+普通 C 检查使用默认 libc 的 posix_spawn/exec 路径运行真实 /sbin/ss，要求三个
+阶段：按 fstat inode 和地址找到本次创建的抽象 UNIX、UDP4、TCP4 listener；
+关闭 fd 后新查询不再包含旧 inode；降为 uid/gid65534 后重复创建、核对 UID 与
+清理。所有 fixture socket 为 CLOEXEC，不让被查询工具延长其生命；工具必须
+正常退出且仅回收一次。标准输出有64 KiB上限，检查器按整行/完整数字 token
+匹配，避免 inode/端口/UID 前缀或别的行误通过。
+
+专用目标不挂载 procfs，检查器先确认 /proc/net/{unix,tcp,udp} 不可读，子进程
+环境也不提供 PROC_* 覆盖。核对上游 ss 的 UNIX/UDP/TCP 路径均先查 Netlink、
+失败才读 procfs，因此缺少诊断处理器不能靠回退或空列表冒充成功；不是通过
+修改 ss 强制得到答案。核对既有 boot-init.sh 也不挂载 procfs。
+
+GCC/Clang 严格前端、Clang 分析、双位宽既有 musl 头下的前端/分析、命名
+配置与禁用反向控制、Nix 格式、shell 语法通过；真实检查器的纯解析重放拒绝
+数字前缀、跨行与空输出。没有在宿主执行 socket、spawn 或凭据检查。上游工具
+的完整目标构建/运行尚待 CI，不以这些轻量检查代替它。
+
+源码预取 [41398333158](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41398333158)
+的 job125124450960 实际日志核实完整 Linux revision
+`de746039de4a61c44941dc30fad9e124ed001eca` 与
+`sha256-RqMqVe7gF1yJ1HPsQbmmqOn+aSf/iKe/gy3JViw2OHk=`。distro `5fa0584`
+随后集成该 pin、resolved Kconfig 门禁与匹配位宽的真实工具/检查闭包；主仓库
+`43d18e4` 再单独更新 Linux/distro gitlinks 和轻量检查。musl/LLVM pin 不变。
+
+固定 5fa0584 各派发一次
+[wasm32 41400511214](https://github.com/HighCWu/distro/actions/runs/41400511214)
+的 socket-diag-check-runtime 与
+[wasm64 41400517248](https://github.com/HighCWu/distro/actions/runs/41400517248)
+的 socket-diag-wasm64-check-runtime。实际工具链接、三个阶段、唯一 pass 和
+machine.closed 仍待核实。不扩大为所有 ss 选项、BPF、socket 销毁管理、全套
+iproute2、动态链接或浏览器支持，也不把旧内核的 RNG 验收泛化到新 pin。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
