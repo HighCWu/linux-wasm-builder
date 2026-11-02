@@ -67,6 +67,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
+      - name: Check dynamic module metadata and independent memory/table layouts
+        run: node --test sources/distro/packages/kernel/test/dylink.test.ts
       - name: Check existing file-handle wrappers and workload analysis
         run: python3 -B scripts/test_file_handle.py
       - name: Check directory notification workload and disabled-feature control

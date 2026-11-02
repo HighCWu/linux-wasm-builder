@@ -4,6 +4,7 @@
 
 from pathlib import Path
 import argparse
+import json
 import subprocess
 import tempfile
 
@@ -33,6 +34,8 @@ RUNNER = r"""
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {basename} from 'node:path';
+import {read_wasm_dylink} from __BINARY_READER__;
+import {plan_dylink_layout} from __LAYOUT_PLANNER__;
 const [bits, first, second, mode] = process.argv.slice(2);
 const modules = [first, second].map(p => new WebAssembly.Module(readFileSync(p)));
 function imports(bytes) {
@@ -59,32 +62,13 @@ function imports(bytes) {
  return result;
 }
 const layouts=[first,second].map(p=>imports(readFileSync(p)));
-// Parse the actual linker metadata before instantiation or initialization.
-// This remains a bounded acyclic probe, not a complete dynamic linker.
+// Exercise the runtime's parser with actual LLD output, before instantiation.
+// Dependency resolution and symbol binding below remain a bounded probe.
 function dylink(module) {
- const sections=WebAssembly.Module.customSections(module,'dylink.0');
- assert.equal(sections.length,1);
- const bytes=new Uint8Array(sections[0]);
- let p=0,end=bytes.length;
- function byte(){assert(p<end,'truncated dylink field');return bytes[p++];}
- function u(){let value=0;for(let i=0;i<5;i++){
-  const b=byte();assert(i!==4||(b&0xf0)===0,'overflowing dylink u32');
-  value+=(b&127)*2**(7*i);if(!(b&128))return value;
- }throw new Error('unterminated dylink u32');}
- function name(){const n=u();assert(n<=end-p,'truncated dylink name');
-  const result=new TextDecoder('utf-8',{fatal:true}).decode(bytes.subarray(p,p+n));p+=n;return result;}
- const result={needed:[]};const seen=new Set();
- while(p<bytes.length){end=bytes.length;const id=byte(),n=u();assert(n<=end-p,'truncated dylink subsection');
-  end=p+n;
-  assert(!seen.has(id),'duplicate probe dylink subsection');seen.add(id);
-  if(id===1){result.memorySize=u();result.memoryAlignment=u();result.tableSize=u();result.tableAlignment=u();}
-  else if(id===2){let count=u();assert(count<=end-p,'impossible dependency count');
-   while(count--){const dependency=name();assert(dependency.length&&!dependency.includes('\0'),'invalid dependency');result.needed.push(dependency);}}
-  else if(id===6){assert.equal(name(),`wasm${bits}`);}
-  else {p=end;} // Other linking metadata is outside this narrow probe.
-  assert.equal(p,end,'unconsumed dylink subsection');
- }
- assert(seen.has(1),'missing memory/table layout');
+ const result=read_wasm_dylink(module);
+ assert(result,'missing dylink.0');
+ assert.deepEqual(result.unknownSubsections,[],'probe cannot honor unknown extensions');
+ if(result.target!==undefined)assert.equal(result.target,`wasm${bits}`);
  return result;
 }
 const metadata=modules.map(dylink);
@@ -106,19 +90,12 @@ assert.throws(()=>order(names[1],new Map([[names[1],metadata[1]]])),/missing dep
 assert.deepEqual(order(names[1],available),names);
 // Use an isolated reservation plan, committing it only after every layout fits.
 function reserve(items, memoryEnd, tableEnd, limits){
- const result=[];
- function area(cursor,size,power,limit){
-  assert(power<=31,'unsupported probe alignment');const alignment=2**power;
-  const base=Math.ceil(cursor/alignment)*alignment;
-  assert(Number.isSafeInteger(base)&&base<=limit&&size<=limit-base,'reservation capacity exceeded');
-  return {base,end:base+size};
- }
- for(const item of items){
-  const memory=area(memoryEnd,item.memorySize,item.memoryAlignment,limits.memory);
-  const table=area(tableEnd,item.tableSize,item.tableAlignment,limits.table);
-  result.push({base:memory.base,tableBase:table.base});memoryEnd=memory.end;tableEnd=table.end;
- }
- return {items:result,memoryEnd,tableEnd};
+ const plan=plan_dylink_layout(items,
+  {cursor:BigInt(memoryEnd),limit:BigInt(limits.memory),address:memoryAddress},
+  {cursor:BigInt(tableEnd),limit:BigInt(limits.table),address:tableAddress});
+ // This tiny corpus deliberately reserves only small host-addressable regions.
+ return {items:plan.items.map(x=>({base:Number(x.base),tableBase:Number(x.tableBase)})),
+  memoryEnd:Number(plan.memoryEnd),tableEnd:Number(plan.tableEnd)};
 }
 const memoryLayout=layouts.flat().find(x=>x.kind===2);
 const tableLayout=layouts.flat().find(x=>x.kind===1);
@@ -204,7 +181,11 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
     directory = Path(tmp)
     (directory / "a.c").write_text(LIB_A)
     (directory / "b.c").write_text(LIB_B)
-    (directory / "probe.mjs").write_text(RUNNER)
+    runtime = Path(__file__).resolve().parents[1] / "sources/distro/packages/kernel/src"
+    runner = RUNNER.replace(
+        "__BINARY_READER__", json.dumps((runtime / "wasm_binary.ts").as_uri())
+    ).replace("__LAYOUT_PLANNER__", json.dumps((runtime / "dylink.ts").as_uri()))
+    (directory / "probe.mjs").write_text(runner)
     for bits in (32, 64):
         for name in ("a", "b"):
             subprocess.run(
