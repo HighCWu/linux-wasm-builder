@@ -2066,8 +2066,8 @@ pin；不新增 musl 公共 API，
 distro `19f7a7c` 修复可选 static C fork 配置被默认 Autoconf fork=no cache
 错误否定的问题，交回普通声明/链接探测，不预填成功。可选 Bash 使用这个策略，
 默认 SDK、vfork、动态加载和线程准入不变。源码及 pin `3f0c65d` 已独立发布，
-wasm64 已核实加载新策略及完整 Bash 四阶段、唯一 pass 和关闭；wasm32 完整
-阶段仍待日志核实，不仅凭任务状态扩大验收。见
+双位宽 Node 均已核实加载匹配的新策略及完整 Bash 四阶段、唯一 pass 和关闭，
+不扩展为其它 fork 形态或浏览器验收。见
 [构建发现记录](process-syscalls.md#第一百零三组可选-fork-配置恢复正常-autoconf-探测)。
 
 每项工作至少在以下维度选择适用组合：

@@ -27,8 +27,8 @@ CONFIG_SITE；Nix 消费者可用 SDK 的 configSite 属性。可选 Bash 已改
 
 默认 SDK 仍否定 fork，vfork 和动态加载限制不变，没有新增 musl 公共 API，
 也没有新增 Bash C 补丁。完整链接变换及单线程 static C 准入仍然适用。本地
-shell 策略和原有工作负载检查通过；wasm64 已实际核实新策略加载、完整 Bash
-四阶段、唯一 pass 及关闭，wasm32 完整阶段尚待日志核实。见
+shell 策略和原有工作负载检查通过；双位宽 Node 均已实际核实匹配的新策略
+加载、完整 Bash 四阶段、唯一 pass 及关闭。见
 [第一百零三组](process-syscalls.md#第一百零三组可选-fork-配置恢复正常-autoconf-探测)。
 
 ## 已实现的独立机制实验

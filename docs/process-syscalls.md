@@ -5032,7 +5032,10 @@ fork-wasm64-config.site，随后标准 fork/作用域/管道、process substitut
 coprocess、后台 wait/信号/隔离、exec 错误与后续恢复四个实际阶段全部出现，
 唯一 pass 一次，无目标失败。Heavy/任务均 success；该版未改的 runner 成功
 返回仍必须等待 machine.closed 及磁盘关闭，接受该位宽的此 Bash 范围。wasm32
-任务虽已显示成功，完整日志尚在读取，未核实阶段前不扩大为双位宽验收。
+job125169904392 随后也完成实际核实：完整8,107,644字节日志加载匹配的
+fork-wasm32-config.site，四个相同的目标阶段与唯一 pass 均出现，无目标失败，
+且任务/Heavy 成功，关闭门禁同样成立。接受固定19f7a7c的双位宽 Node Bash
+范围，不扩展为 vfork、多线程 fork、动态链接或浏览器验收。
 
 ## 信号栈缺口的前期核查记录
 
