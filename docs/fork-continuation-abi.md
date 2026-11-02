@@ -227,9 +227,9 @@ CLEAR_SIGHAND 与 SIGHAND 冲突按 Linux 返回 EINVAL；没有启用共享处�
 CLONE_VM、多线程 fork 或其它高位标志。legacy clone 仍使用低32位规则。
 捕获的高位值只属于当次请求，负返回和异常清理后不得污染下一次普通 fork。
 
-固定7233d8c的独立 `clone-flags64` 双位宽目标覆盖默认信号真实终止、IGN保留、
-冲突拒绝、PIDFD回收及后续普通fork。目标结果尚待实际阶段和关闭证据，不把
-本地真实 C helper 的字段传输测试当作内核信号验收。
+固定7233d8c的独立 `clone-flags64` 双位宽Node目标现已核实三个完整阶段、唯一
+pass与关闭，覆盖默认信号真实终止、IGN保留、冲突拒绝、PIDFD回收及后续普通
+fork；范围不推广为浏览器或其它flags。实际证据见[进程记录](process-syscalls.md)。
 
 ## 保存区
 

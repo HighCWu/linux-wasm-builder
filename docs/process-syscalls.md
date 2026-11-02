@@ -5514,6 +5514,37 @@ copy_sighand完成重置，JS不代改处理器。381项运行层检查、两套
 SIG_IGN并被真实默认信号终止；SIGHAND冲突拒绝；后续普通fork继承父处理器并
 正常回收。没有新增libc函数，也未扩大共享处理器、线程、自定义栈或其它高位flags。
 
+## 信号重置及64位完整fork回归验收
+
+固定7233d8c的宽flags目标实际日志已核实：
+[wasm32 41441174223](https://github.com/HighCWu/distro/actions/runs/41441174223)
+完整压缩日志1,531,439字节、构建步7,309,632字节；
+[wasm64 41441190314](https://github.com/HighCWu/distro/actions/runs/41441190314)
+对应1,478,201字节、6,982,868字节。每路三个完整阶段和唯一pass各一次，确认
+真实默认信号终止、SIG_IGN保留、冲突拒绝及后续fork恢复。发布runner与当前
+run-test/shutdown一致，成功退出要求等待machine.closed；两路关闭门禁成立。
+接受的是该版Node结果，不推广为浏览器或其它高位标志。
+
+源码获取修复e6b13da的[wasm64 fork41440786848](https://github.com/HighCWu/distro/actions/runs/41440786848)
+也已核实完整十二个fork/fork-exec阶段与唯一pass及关闭：压缩日志1,462,950字节，
+构建步6,986,246字节。已核对92d79a5到e6b13da的运行层和fork消费者源码未变，
+变化仅为源码获取/材料说明；因此补齐原生clone3底层的64位完整回归，原429任务
+仍记为未运行，不改写其失败结果。后续宽flags版本按自己的独立目标验收。
+
+## 远端复制后端准备：尚未接入syscall
+
+AIO仍有共享ring folio与用户独立linear memory的真实障碍；本轮没有只打开
+配置。文件mmap候选也保留生产者、发布和默认准入门槛。审查转向现有远端访问：
+其所有者邮箱需要目标Worker在内核/停放路径服务请求，持续用户Wasm执行会阻止
+这一检查点。distro5126c72新增机器端Memory引用与同步RPC，6251480进一步保护
+排队请求的采样异常与阻塞agent错误；主仓库3e9d7f0单独更新pin。
+
+389项运行层检查和两套TypeScript工程通过。新增八项检查含真实Worker/Wasm
+忙循环、跨Worker内存增长后的复制、有效前缀、撤销后拒绝、迟到请求取消，以及
+接管后超时/调度错误/发送观察器错误必须等待写入完成。源与测试均为MIT。
+尚未添加内核mm注册、权限/引用接入或真实process_vm_*语料，默认syscall行为未变。
+不得把上述Node数据面实验解释为Linux syscall或共享ring支持已经完成。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

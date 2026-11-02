@@ -130,6 +130,25 @@ SBOM和对应源码包。
 access；后续若要运行不可信模块，需要签名、验证/重写或更强的multi-memory
 capability边界。
 
+## 远端用户内存的数据面准备
+
+distro `5126c72` / `6251480` 新增内部 `remote-memory.ts`。机器端保留共享
+WebAssembly.Memory 引用，Worker 通过带所有权状态的请求执行最多一个64KiB页
+的复制；复用既有 NULL、地址位宽和有效前缀规则。Node 实验中，目标 Worker
+持续运行真实 Wasm 原子忙循环且扩大过内存，另一 Worker 仍能读写新增区域。
+
+请求在机器端 claim 前可以取消，迟到消息必须不读取原 kernel buffer。claim 后
+即使截止时间已到或调度/诊断回调异常，也须等复制完成再返回或传播原异常。
+浏览器主线程在发送前拒绝阻塞客户端；机器端 handler 本身同步处理，不执行
+Linux 或用户 Wasm。这里没有透明地址翻译，也不提供共享页别名。
+
+这是未接入的 runtime 数据面，现有 syscall 仍使用原所有者 Worker 路径。
+下一步接入必须由 Linux 分配不复用的 mm 身份，保留 mm_access/ptrace 权限和
+mm 引用规则，在 exec 内存切换完成、fork 子任务首次进入用户代码前注册，
+最后引用释放后撤销；不能仅用可复用的 PID 或 mm 指针当身份。还需处理旧邮箱
+请求与新后端注册的竞态、机器关闭和主线程上下文。完成这些及真实 Linux/浏览器
+验收前，不将 Node 复制实验记为 process_vm_*、ptrace 或 AIO/io_uring 已接通。
+
 ## ELF 与动态链接：应用兼容优先
 
 用户态 ELF 支持纳入后续实现路线，不包括把现成 x86/ARM ELF 当作 Wasm
