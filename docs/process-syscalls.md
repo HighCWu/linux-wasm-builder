@@ -4647,6 +4647,32 @@ skcipher、Netlink、AEAD 各三阶段、唯一 pass 和既有 machine.closed �
 静态模型、预取成功和排队/构建状态均不代替实际 AEAD 或关闭证据，也不代表
 libkcapi、异步密码操作、浏览器、ELF 或动态链接已经可用。
 
+后续 CI 检查发现第九十七组固定 fd54b54 的两个旧 Netlink workflow/Heavy
+均已明确失败。已取得的完整实际日志含
+`::vm-test::fail: NETLINK_CRYPTO: CBC-AES metadata errno=9`，不是功能阶段
+通过；其它位宽的完整日志仍在补取，不能据 workflow 状态推定其具体阶段。
+这里的 errno 是元数据断言时遗留的值，不能把它解释为 Netlink 返回 EBADF。
+
+静态回溯确认 Linux crypto/lskcipher.c 的 crypto_lskcipher_report 使用
+CRYPTOCFGA_REPORT_BLKCIPHER 且 type 为 lskcipher；crypto/skcipher.c 的
+同类报告则为 skcipher。原消费者只允许后者，是一处会拒绝合法内核报告的
+验证缺陷。distro `0aac780` 接受这两个明确类型，同时保留报告大小、算法名、
+blocksize=16、keysize=16..32、ivsize=16 的检查；`b1724aa` 再输出实际后端
+与上述长度，供后续目标证据核对。未改内核算法、权限或 ABI 来迎合检查。
+
+MIT 轻量重放直接调用真实消费者的 report 函数：GCC/Clang 接受两类合法
+报告，仍拒绝未知类型和错误 IV 大小；恢复旧断言必须重现 lskcipher 失败。
+Clang 静态分析通过，无宿主 socket/凭据操作。这证明修正覆盖已发现的断言
+遗漏，不证明旧目标故障的全部原因已经排除，仍需新目标验收。
+
+源改动已推送后，主仓库 `84e9d21` 单独更新 distro pin 与重放门禁。固定
+b1724aa 仅重新派发联合
+[wasm32 41392740010](https://github.com/HighCWu/distro/actions/runs/41392740010)
+和 [wasm64 41392746033](https://github.com/HighCWu/distro/actions/runs/41392746033)，
+以同一轮同时重验 Netlink、hash/skcipher 回归和 AEAD；不再额外派发同版本
+独立 Netlink 目标。旧 107b069 联合任务仍运行时保持运行，但不用于该修正
+验收。新结果仍待核实十二阶段、唯一 pass 和机器关闭，不提前接受新内核能力。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
