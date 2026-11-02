@@ -178,7 +178,7 @@ DNS响应，检查两个精确DATA响应；清理easy后用新域名查询验证
 | https wasm32 | [41486908031](https://github.com/HighCWu/distro/actions/runs/41486908031) |
 | https wasm64 | [41486922033](https://github.com/HighCWu/distro/actions/runs/41486922033) |
 
-新能力的三个阶段、唯一pass与机器关闭尚待实际目标日志验收。即使通过，也只
+首轮派发时尚待实际目标日志验收，后续结果见下文。即使通过，也只
 证明Linux回环DNS与TCP，不提供浏览器访问任意外部UDP/TCP的承诺。curl及其
 依赖许可证不变，新增自有消费者、脚本与集成变更采用MIT。
 
@@ -186,3 +186,37 @@ DNS响应，检查两个精确DATA响应；清理easy后用新域名查询验证
 传输/恢复阶段、最终总结和唯一pass，关闭门禁成立。压缩日志721,564字节，
 构建步骤3,774,320字节；发布的run-test/shutdown未改变，关闭错误会拒绝成功。
 这只接受该版本的wasm64 HTTPS回归，不代替新DNS消费者或wasm32验收。
+
+后续补齐固定94a9f3e的实际日志：wasm64解析41486875380完成三个DNS/并发/
+恢复阶段及唯一pass，包含解析/服务器线程结束和fd清理，关闭门禁成立。
+wasm32 HTTPS41486908031也完成全部八阶段、总结及唯一pass。transfers的
+wasm32/64任务41486887025/41486897321各有唯一pass；已核对发布脚本只有在
+OpenSSL/协议和CA路径检查、file字节往返、真实回环HTTP字节往返之后才输出它。
+运行器必须等待machine.closed并拒绝收尾错误，上述目标均通过该门禁。
+这仍不代替另一位宽的解析或后续浏览器结果。
+
+随后wasm32解析41486866009也已逐项核实三个阶段、唯一pass及相同关闭门禁。
+压缩日志1,004,874字节，构建步4,806,626字节；wasm64解析为785,309/
+3,934,279字节。至此接受固定94a9f3e的六项Node组合，不扩大为浏览器或后继pin。
+
+## 线程解析器的浏览器验收接线
+
+distro58b087c / 集成60a1ede复用Node解析检查的原消费者、initramfs、ext4根盘
+和双CPU配置，新增四路process-resolver浏览器入口，未改curl应用或内核行为。
+沿用现有Playwright命令行控制器和runtime-smoke关闭门禁，没有新增spec框架。
+每个引擎同页独立启动两轮，要求完整有序三阶段、唯一pass、机器关闭、无迟到
+页面错误及浏览器关闭；每轮重新读取根盘字节，DNS配置和文件修改不传入下一轮。
+浏览器回环DNS仍由Linux内UDP服务器提供，不使用宿主DNS、Fetch桥或外网。
+
+复用的其它process场景继续使用无磁盘入口；新安装根盘入口严格接纳resolver/
+双CPU组合，在镜像加载失败前不创建机器。轻量控制器与根盘编排、迟到错误拒绝、
+错误profile/缺失镜像拒绝、逐轮根盘隔离及原shutdown检查共49项通过。
+Nix/JS格式、语法和diff检查通过；这些宿主编排检查不是浏览器运行证据。
+四项真实浏览器已各派发一次，必须另读实际两轮及关闭结果后验收。
+
+| 位宽/引擎 | 固定58b087c的任务 |
+|---|---|
+| wasm32 Chromium | [41490514534](https://github.com/HighCWu/distro/actions/runs/41490514534) |
+| wasm32 Firefox | [41490524978](https://github.com/HighCWu/distro/actions/runs/41490524978) |
+| wasm64 Chromium | [41490533795](https://github.com/HighCWu/distro/actions/runs/41490533795) |
+| wasm64 Firefox | [41490543653](https://github.com/HighCWu/distro/actions/runs/41490543653) |
