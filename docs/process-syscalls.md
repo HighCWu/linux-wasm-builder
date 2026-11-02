@@ -4436,6 +4436,44 @@ pass 后仍需 closeTestResources() 等待 machine.closed、关闭磁盘句柄�
 双位宽 Node 同步 direct I/O 范围，不据此扩展到浏览器、异步 I/O、任意文件
 系统私有限额或并发修改文件大小/rlimit 的原子保证。
 
+## 第九十四组：AF_ALG 哈希 socket 的跨内存输入
+
+Linux 原有 crypto/algif_hash.c 的普通 sendmsg 使用 extract_iter_to_sg 固定
+用户页；Wasm 用户地址属于独立线性内存，不能据此获得内核页。仅启用配置
+不能打通这一条标准 socket 调用链。本组在 Wasm 用户 iterator 上改为逐页
+copy_page_from_iter，每次活动调用最多持有一页带 __GFP_ACCOUNT 的内核缓冲，
+交给原哈希实现处理；保留到 crypto_wait_req 完成后才释放，错误出口也释放。
+不将复制页当作用户 pinned page 解 pin；其他架构及内核 iterator 保留原提取
+逻辑。分段、MSG_MORE、accept 导出的哈希状态和结果仍由上游实现处理。
+
+Linux 416342670 实现适配，后续 0f2b32f94 显式补齐父级 CRYPTO 菜单条件，
+三份 defconfig 请求 CRYPTO、CRYPTO_USER_API_HASH、CRYPTO_SHA256、CRYPTO_HMAC。
+这是新增选择的能力，不宣称这些选项是 Linux 官方默认开启。distro 对最终
+解析配置检查四项均为 y；不开放尚无接收页适配的 SKCIPHER/AEAD，也不宣称
+共享映射、零拷贝、异步 syscall 或浏览器已经可用。musl 不变。
+
+MIT 轻量检查提取真实 SG 适配函数体，通过 GCC/Clang 模型和 Clang 静态分析：
+覆盖多页输入的一页上限、非别名内容、部分复制、无效地址、分配失败和资源
+释放；禁用 Wasm 复制分支后同一工作负载须断言失败。没有在宿主执行哈希
+socket 或目标 main。普通 SDK 消费者使用标准 Linux if_alg.h 和既有 libc
+socket 调用，核对 SHA-256 已知向量、空输入、增量状态克隆、1 MiB+17 二进制
+向量、截断及 guard、真实线性内存末尾错误后恢复、RFC 4231 HMAC 和 fd 清理。
+消费者的 GCC/Clang、双位宽 Wasm 前端和静态分析通过；这些不是目标运行证明。
+公开源码预取 [41379621222](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41379621222)
+的 job125067330439 实际输出已核实完整 revision
+`0f2b32f944bef46652a4bc366e94b259d6a29999` 与
+`sha256-DuJ3qu7AV0DYEajp6UNEyW8wpWthyIWOLfADvQoKF04=`；早期 416342670
+预取不作为补齐 CRYPTO 后的 pin。distro `15d8fbf` 原子集成精确 pin、最终
+配置检查和独立普通 SDK 消费者。真实运行待双位宽公开 CI，不能把模型或
+配置检查当作 SHA-256/HMAC 目标完成证明。
+
+根仓库 `1a73d0c` 单独更新 Linux/distro gitlinks 和轻量回归。固定 distro
+15d8fbf 的 [wasm32 41379999933](https://github.com/HighCWu/distro/actions/runs/41379999933)
+与 [wasm64 41380004730](https://github.com/HighCWu/distro/actions/runs/41380004730)
+已各派发一次，分别请求 alg-hash-check-runtime / alg-hash-wasm64-check-runtime；
+尚在运行/排队。验收须核对三个实际阶段、唯一 pass 及固定运行器等待
+machine.closed 的关闭结果，不以工作流创建或成功规划替代目标运行。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
