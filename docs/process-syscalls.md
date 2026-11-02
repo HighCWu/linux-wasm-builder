@@ -6039,6 +6039,12 @@ fields阶段、exec拒绝/替换、信号与多线程拒绝恢复、各唯一pas
 [wasm32 41500407394](https://github.com/HighCWu/distro/actions/runs/41500407394)、
 [wasm64 41500420663](https://github.com/HighCWu/distro/actions/runs/41500420663)。
 
+两路现已读取实际完整日志，各确认上述三个阶段及唯一pass。压缩日志/构建步
+分别为1,394,921/7,314,164和696,644/3,927,728字节。固定6350acf的发布
+runner与已审计版本的run-test.js/shutdown.js无差异：必须等待machine.closed，
+关闭异常使任务失败，双位宽Node关闭门禁成立。该结果只接受对应源码与Node
+范围，不扩大为浏览器、多线程fork或共享用户地址空间。
+
 ## 静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
