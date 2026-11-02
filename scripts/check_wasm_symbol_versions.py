@@ -47,6 +47,11 @@ long run(long x) { return api(x) + old_api(7) + setting + old_setting; }
 int old_only(void) { return old_api(7) + old_again(0); }
 long default_only(long x) { return api(x); }
 """
+POINTER_CONTROL = r"""
+int next_value(int x) { return x + 1; }
+int (*volatile callback)(int) = next_value;
+int pointer_control(int x) { return callback(x); }
+"""
 RUNNER = r"""
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -79,6 +84,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-symver-") as tmp:
     directory = Path(tmp)
     (directory / "definitions.c").write_text(DEFINITIONS)
     (directory / "references.c").write_text(REFERENCES)
+    (directory / "pointer-control.c").write_text(POINTER_CONTROL)
     (directory / "run.mjs").write_text(RUNNER)
     for bits in (32, 64):
 
@@ -111,6 +117,50 @@ with tempfile.TemporaryDirectory(prefix="wasm-symver-") as tmp:
             )
             return obj
 
+        # Keep ordinary memory64/table64 indirect calls independent of symver.
+        # Type checking must still reject the opposite-width table index.
+        control = compile_source("pointer-control")
+        control_module = directory / f"pointer-control{bits}.wasm"
+        invoke(
+            [args.ld, "--no-entry", "--export=pointer_control"]
+            + (["-mwasm64"] if bits == 64 else [])
+            + [str(control), "-o", str(control_module)]
+        )
+        invoke(
+            [
+                args.node,
+                "--input-type=module",
+                "-e",
+                "import assert from 'node:assert/strict';"
+                "import {readFileSync} from 'node:fs';"
+                "const {instance}=await WebAssembly.instantiate(readFileSync(process.argv[1]),{});"
+                "assert.equal(instance.exports.pointer_control(41),42);",
+                str(control_module),
+            ]
+        )
+        wrong_bits = 64 if bits == 32 else 32
+        wrong_index = directory / f"wrong-index{bits}.s"
+        wrong_index.write_text(
+            ".tabletype __indirect_function_table, funcref\n.text\nwrong:\n"
+            f".functype wrong (i{wrong_bits}) -> (i32)\nlocal.get 0\n"
+            "call_indirect __indirect_function_table, () -> (i32)\nend_function\n"
+        )
+        invoke(
+            [
+                args.mc,
+                f"-triple=wasm{bits}",
+                "-mattr=+reference-types",
+                "-filetype=obj",
+                str(wrong_index),
+                "-o",
+                str(directory / "wrong.o"),
+            ],
+            success=False,
+            error=f"type mismatch, expected [i{bits}] but got [i{wrong_bits}]",
+        )
+        print(
+            f"symver wasm{bits}: ordinary function-pointer control and wrong-width index rejection pass"
+        )
         definitions = compile_source("definitions")
         references = compile_source("references")
         module = directory / f"linked{bits}.wasm"
