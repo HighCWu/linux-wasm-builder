@@ -5436,6 +5436,40 @@ setpgid(0,0)建立自己的正进程组，再构造spawn属性。原版setsid、
 未因此改动，三阶段及全部身份断言保留。GCC严格构建及原生三阶段、Clang
 前端和静态分析通过；已针对该版重新派发双位宽目标，修复效果待真实日志。
 
+## 原生 clone3 返回路径与 Linux TID 输出
+
+Linux `60908a2593afdad4bb0d885d6553818a8b68c8b0` 修复通用 clone3 的无回调
+copy_thread 路径：以已暂停的单线程用户现场建立子任务返回入口；缺少入口、
+共享 mm、非默认栈或 SETTLS 时在创建 Worker 前拒绝。旧 callback clone 不变。
+原有快照发布、schedule_tail 和未发布 Worker 回收继续复用，没有内核 softmmu。
+公开[源码哈希任务41436227897](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41436227897)
+实际确认基线3dc991222与已验收SRI一致，再得到候选
+`sha256-gaSivg78riq1JJln1J+yDDgCZgKdP4CuuPl9zFhgCxw=`。
+
+distro `92d79a5` / 集成 `04725a8` 固定该内核和运行层。clone3 要求内核原生
+能力与执行 helper 同时存在，才通过原 syscall435 进入 Linux；legacy clone
+用原 callback syscall220传递选项，不因新能力而换号。新增 PARENT_SETTID、
+CHILD_SETTID、CHILD_CLEARTID 的传递，Linux 决定 TID 写入和错误行为；clone3
+保留独立 PIDFD/parent/child 地址，legacy 共用槽的冲突仍交给 Linux 拒绝。
+不新增 musl 函数、公共头或应用接口，musl/默认LLVM pin均未变。
+
+review 覆盖旧对象/旧内核回退、缺少 helper 时先拒绝、原 syscall 选择、kernel
+调用深度/信号深度、规范化结构不复用活动 Asyncify 栈、异常清除选项、地址
+位宽、私有内存隔离和后续回收。379项运行层检查、10项SDK/raw/helper检查、
+两套TypeScript项目、GCC/Clang前端和静态分析、当前头文件下双位宽 Wasm
+前端/分析通过。生成的真实 C helper 已在 Node 实例化，验证220/435与完整u64
+结构，但导入返回由夹具提供，不能冒充 Linux fork 成功。
+
+固定92d79a5的十阶段 namespace/TID 目标各派发一次：
+[wasm32 41438616476](https://github.com/HighCWu/distro/actions/runs/41438616476)、
+[wasm64 41438630395](https://github.com/HighCWu/distro/actions/runs/41438630395)。
+既有六阶段之外新增 parent/child TID、legacy TID、NEWPID TID 和 PIDFD/TID
+别名拒绝四阶段。另派发完整 fork 回归
+[wasm32 41438638854](https://github.com/HighCWu/distro/actions/runs/41438638854)、
+[wasm64 41438646687](https://github.com/HighCWu/distro/actions/runs/41438646687)。
+阶段、唯一pass与关闭均待实际日志；不扩大为共享 futex、TLS、自定义栈或
+多线程 fork。详见[执行 ABI](fork-continuation-abi.md#原生-clone3-返回路径与-tid-输出)。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

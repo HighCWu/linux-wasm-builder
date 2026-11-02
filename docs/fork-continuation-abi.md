@@ -182,6 +182,36 @@ Worker abort 能力；旧对象普通 fork/PIDFD 路径保持。参数只复制�
 这仍是架构执行 ABI 的增量支持，不代表内核已有通用硬件式执行现场快照。
 libc 仍负责 atfork、锁和子线程状态收尾；绕过 libc 的 raw syscall 不会自动得到这些封装。
 
+### 原生 clone3 返回路径与 TID 输出
+
+Linux `60908a259`、distro `92d79a5` 为通用 `kernel_clone()` 的无回调形态补上
+Wasm 子进程返回路径。`copy_thread()` 对这种请求要求当前仅一个 mm 使用者、
+默认栈、无 CLONE_VM/SETTLS，并从内部 `user_fork_v1.entry` 获取已暂停的入口。
+没有入口时在创建 Worker 前返回 EOPNOTSUPP；不是把空 fn 留到子任务 BUG。
+新任务仍通过 Linux 的 schedule_tail、既有私有内存快照和执行恢复回到用户态。
+
+`native_clone3_fork_abi()==1` 和独立执行对象可选导出
+`__wasm_fork_clone3_native` 必须同时存在，才把已接纳的 clone3 请求交给通用
+syscall435。helper 的规范化结构位于静态存储区，88字节、aligned-u64 字段，
+不借用已经 unwind 的活动 C 栈。内部入口只在当次父端快照存在、直接内核调用
+深度和信号深度满足要求时可用，重入不得借用；负返回与异常都清除捕获选项。
+
+legacy clone 的标准号220保持不变。独立 helper `__wasm_fork_clone_options`
+使用原有 callback clone 传递 namespace、PIDFD 和 TID 选项，不改成 syscall435；
+这一条不要求新内核的原生 clone3 能力。旧执行对象和旧内核保留原有形态的
+回退；缺少相应传输时拒绝新增 TID 请求，不能悄悄丢失标志。
+
+新增 CLONE_PARENT_SETTID、CLONE_CHILD_SETTID、CLONE_CHILD_CLEARTID 传递，
+TID 写入和相应错误行为由 Linux 原实现决定，JS 不代写。clone3 的 pidfd、
+parent_tid、child_tid 分别保留；legacy 的 PIDFD/parent_tid 共用槽位，别名
+冲突由 kernel_clone 拒绝。wasm32 不截断结构中的高位 TID 地址。私有内存的
+子进程清理不会变成父子共享的 futex/TID 通知；没有扩大为 CLONE_VM、TLS、
+自定义栈或多线程 fork。raw caller 的 libc 收尾责任保持不变。
+
+本地状态机、实际编译的双位宽 C helper 传输、类型和静态分析已通过；新目标
+还须核实既有六阶段、TID 四阶段、唯一 pass 和关闭，不以协议定义作为验收。
+musl 和默认 LLVM pin 不变，无新增 Linux syscall、libc 函数或应用 API。
+
 ## 保存区
 
 descriptor 是两个小端 `uintptr_t`：当前 cursor、保存区 end，字段分别占 4 或 8 字节。

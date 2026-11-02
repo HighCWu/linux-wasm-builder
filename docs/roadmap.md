@@ -1998,6 +1998,14 @@ call_indirect/return_call_indirect 按实际表类型选择索引宽度，保留
 下一步推进进程内模块装载及 ELF 架构契约，不等于 ELF 或动态加载已经实现。
 详见[工具链候选记录](architecture.md#elf-与动态链接应用兼容优先)。
 
+原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
+`04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
+原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。
+内核源码哈希由41436227897对已验收基线校验后取得。379项运行层检查、实际
+双位宽 C helper 传输、两套类型检查和静态分析通过，双位宽 namespace/TID
+十阶段与完整 fork 回归已派发。真实目标运行仍待验收，不扩大为多线程 fork。
+详见[原生返回路径](fork-continuation-abi.md#原生-clone3-返回路径与-tid-输出)。
+
 ## 质量矩阵
 
 标准 syscall 能力继续独立推进：Linux `b920e6b82` / distro `fd54b54`
