@@ -2295,6 +2295,12 @@ distro13b54fe / 集成08fa383新增独立双位宽共享驱动镜像：真实Cla
 派发。跨库C++异常另有本机LLVM22的TLS重定位前置失败，不把共享tag绑定当成
 完整方案。见[运行包与异常前提](elf-dynamic-linking.md#符号版本消费者的独立运行包修复)。
 
+distro eeebcd0 / 集成92cff8c接通独立单线程动态模式的库内TLS，并修复实际
+遗漏的TLS指针重定位。双位宽真实C/生产类模型及布局拒绝检查通过，LLVM22的
+wasm64覆盖table64；新七阶段Node/四路浏览器异步验收中。未增加libc/syscall
+接口，不扩大为线程、外部TLS绑定或C++异常，见
+[库内TLS记录](elf-dynamic-linking.md#首个线程的库内-tls-与指针重定位)。
+
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复实际内核
 nofault 访问越界会 trap 的架构缺陷：按当前线性内存容量校验完整访问后走
 Linux 原有错误出口，不引入 MMU。双位宽实际 Wasm 宏、溢出及失败写保护

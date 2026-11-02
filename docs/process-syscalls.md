@@ -6132,6 +6132,19 @@ fork/dynamic互斥的两个可选补丁，旧文本匹配在前端及宿主工�
 GCC/Clang实际musl daemon/forkpty/login_tty函数体的宿主终端参考通过。轻量根
 仓库CI由新源码触发，仍待云端结果，不以这些宿主检查替代Wasm终端验收。
 
+根仓库终端检查修复e6bef27的41544362361随后已完成，完整轻量CI通过；没有
+为旧版失败任务重复派发，也不将此结果解释为新的Wasm终端运行验收。
+
+## 共享库的首线程本地 TLS
+
+distro eeebcd0 / 集成92cff8c修复动态加载器对已定义hidden/local TLS的一律
+拒绝，并补上实际遗漏的TLS指针重定位，后者曾在真实C产物中得到零指针。
+只有禁止Worker创建的独立动态模式启用；全部GOT及TLS重定位先于构造函数，
+复用不重置状态。Clang/LLD18及22的双位宽生产类模型和反向控制通过，LLVM22
+的wasm64包含table64；七阶段真实Linux Node/四路浏览器异步验收中。
+这改善普通程序构建/运行兼容性，不计为新增syscall；未改musl或内核，仍不支持
+外部TLS绑定及C++异常。见[TLS接线记录](elf-dynamic-linking.md#首个线程的库内-tls-与指针重定位)。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
