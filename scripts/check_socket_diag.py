@@ -33,11 +33,12 @@ int main(void)
     assert(row_has(inode_row(rows, 123), "127.0.0.1:12345"));
     assert(!row_has(inode_row(rows, 123), "127.0.0.1:1234"));
     assert(!row_has(inode_row(rows, 123), "uid:65534"));
-    const char *netlink = "UNCONN 0 0 usersock:123 *\nUNCONN 0 0 usersock:1234 *\n";
-    assert(row_has(netlink, "usersock:123"));
-    assert(!row_has(netlink, "usersock:12") && !row_has(netlink, "usersock:1234"));
-    assert(!row_has(netlink, "usersock:12345"));
-    assert(row_has(strchr(netlink, '\n') + 1, "usersock:1234"));
+    const char *netlink = "UNCONN 0 0 2:123 *\nUNCONN 0 0 2:1234 *\n";
+    assert(row_has(netlink, "2:123"));
+    assert(!row_has(netlink, "2:12") && !row_has(netlink, "2:1234"));
+    assert(!row_has(netlink, "2:12345") && !row_has(netlink, "usersock:123"));
+    assert(!row_has(netlink, "12:123"));
+    assert(row_has(strchr(netlink, '\n') + 1, "2:1234"));
     struct {
         struct nlmsghdr header;
         struct unix_diag_msg record;
