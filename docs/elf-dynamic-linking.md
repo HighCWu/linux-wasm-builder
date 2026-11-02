@@ -2,6 +2,27 @@
 
 # ELF 与 Wasm 动态加载实施边界
 
+## 浏览器动态加载已核实范围
+
+固定 distro `05e9dbb` 的四路真实 Linux 镜像日志已逐项核实：
+
+| 用户位宽 | Chromium 149.0.7827.55 | Firefox 151.0 |
+|---|---|---|
+| wasm32 | [41537955279][dylink32c] | [41537955806][dylink32f] |
+| wasm64 | [41537956051][dylink64c] | [41537955781][dylink64f] |
+
+[dylink32c]: https://github.com/HighCWu/distro/actions/runs/41537955279
+[dylink32f]: https://github.com/HighCWu/distro/actions/runs/41537955806
+[dylink64c]: https://github.com/HighCWu/distro/actions/runs/41537956051
+[dylink64f]: https://github.com/HighCWu/distro/actions/runs/41537955781
+
+每路在同一页面启动两次独立机器，各轮严格完成主程序符号/函数指针/错误、Linux
+文件搜索及依赖/GOT/构造、别名及作用域/复用、循环依赖、跨库 SIMD 数值签名、
+损坏和缺失输入拒绝及恢复六阶段，各有唯一 pass 和机器关闭，最后浏览器关闭。
+这是共享字符串快照修复后对应源码的验收，不以工作流 success 代替阶段证据。
+配置为单 CPU、独立动态 SDK；不覆盖 ELF 文件入口、动态 TLS、线程、动态 fork、
+跨库异常或安全卸载，也不扩大普通 SDK 的默认能力。
+
 这里的目标是支持重新面向 Linux/Wasm 构建的 ELF 用户程序和共享库，让应用继续
 使用通常的编译选项、`execve`、`dlopen`、`dlsym`。本文是实施设计，尚未冻结新的
 文件 ABI，也不表示现有 SDK 已能生成或运行这种 ELF。

@@ -2281,6 +2281,17 @@ cgroup78e85db与原版flock7081904的wasm64现也逐项核实完整阶段、唯�
 setsid7081904的wasm64确认同样缺少设备前提，47b4e74修复仍待新目标日志。
 见[双位宽验收](process-syscalls.md#第一百一十二组cgroup-与原版-flock-的双位宽-node-验收)。
 
+独立动态SDK的05e9dbb四路浏览器现已核实各两轮完整六阶段、唯一pass及机器/
+浏览器关闭，接受单CPU wasm32/64 Chromium/Firefox范围，包含循环库及跨库
+SIMD。不覆盖ELF入口或动态fork，见[浏览器验收](elf-dynamic-linking.md#浏览器动态加载已核实范围)。
+
+Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复实际内核
+nofault 访问越界会 trap 的架构缺陷：按当前线性内存容量校验完整访问后走
+Linux 原有错误出口，不引入 MMU。双位宽实际 Wasm 宏、溢出及失败写保护
+检查通过；标准 bpf/socket filter 消费者验证 snprintf 的有效地址、无效地址
+零填充及后续恢复，Node32/64 已异步派发，真实三阶段和关闭仍待核实。
+musl 及默认 LLVM pin 不变，见[内核访问记录](process-syscalls.md#内核-nofault-访问的实际线性内存边界)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
