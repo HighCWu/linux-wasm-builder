@@ -5607,6 +5607,65 @@ EPERM、保持输出不变且无子进程残留，之后普通fork与namespace/�
 已各派发一次，仍待真实三阶段、唯一pass和机器关闭。此前608809b的远端复制
 八路任务仍运行，未取消或重复派发，也未沿用它们的未完成结果作为此版验收。
 
+## 远端复制的双位宽Node与四路浏览器验收
+
+固定608809b/Linux f090bca6a的八项目标均已核实实际完整日志，不以绿色工作流
+替代阶段证据。以下大小为压缩日志/实际构建步字节：
+
+| 检查 | wasm32 | wasm64 |
+| --- | --- | --- |
+| Node process-vm | 41455374334：1,433,257 / 7,312,741 | 41455374737：1,331,797 / 6,986,261 |
+| Chromium remotevm | 41455376462：1,707,392 / 7,394,943 | 41455376746：1,652,059 / 7,067,311 |
+| Firefox remotevm | 41455375713：1,477,336 / 7,394,497 | 41455377791：1,619,941 / 7,067,049 |
+| Node 完整fork | 41455374880：1,421,613 / 7,314,215 | 41455375528：1,326,622 / 6,987,632 |
+
+运行链接见上文同版本任务表。Node process-vm各出现四个完整阶段和唯一pass，
+包括目标在纯用户忙循环中、内存增长后的实际读写与退出。四路浏览器分别为
+Chromium149.0.7827.55/Firefox151.0、双位宽，每个同页两轮都完整出现四阶段与
+唯一pass、machine shutdown pass，并最终出现both iterations and browser
+shutdown pass。Node完整fork各核实十二个fork/fork-exec阶段及唯一pass。
+
+已核对该发布版run-test/shutdown及浏览器runner与审查源码一致：Node退出0要求
+closeTestResources等待machine.closed成功；浏览器每轮在等待machine.closed后
+才校验完整输出，最后关闭浏览器并检查迟到pageerror。相关任务/Heavy均success，
+上述关闭门禁成立。仅接受此版的process_vm有界读写及相应回归，不推广为所有
+ptrace操作、单CPU纯用户抢占、共享ring、任意exec竞态或后继版本已验收。
+
+固定a630876的时间namespace[wasm64 41457373412](https://github.com/HighCWu/distro/actions/runs/41457373412)
+也已核实三个完整阶段、唯一pass和相同Node关闭门禁，压缩日志1,326,859字节、
+构建步6,986,747字节。[wasm32 41457372023](https://github.com/HighCWu/distro/actions/runs/41457372023)
+独立日志随后也已核实相同三阶段与唯一pass，压缩日志1,419,436字节、构建步
+7,313,166字节，相同已发布关闭门禁成立。接受固定a630876的双位宽Node范围，
+不扩大为浏览器时间namespace验收。
+
+## Wasm既有时区文件读取路径的资源与取消边界
+
+musl7b077a6d只修改tombl上游原已存在的src/time/__map_file.c的Wasm分支，
+没有新增函数、公共头文件/API或通用Linux包装。由于默认文件mmap仍未开放，
+这个内部helper保留读入副本的实现，但修复确定的兼容问题：分配失败也关闭fd；
+负值/零大小和wasm32不可表示的st_size在分配前拒绝；EINTR和短读继续读取，
+EOF/读取错误释放副本，完整成功才发布size。使用原有非取消内部syscall宏，
+避免在时区锁下进入公共read的取消点；O_NONBLOCK与原生mmap路径一致，避免
+TZ指向FIFO时在open处卡住。非Wasm函数体保持不变。
+
+真实源码经双位宽musl头文件前端/静态分析，实际函数体在双位宽Wasm模块中
+执行有界故障模型，核对短读、EINTR、OOM、fstat/读取错误、提前EOF、大小
+截断与所有fd关闭；省略close或改回可取消read的反向控制必须失败。这不是
+完整libc或VFS验收。独立MIT标准C消费者使用TZ/tzset/localtime_r/mktime/
+strftime验证2040年纽约夏令时和东京时区、64次换源及fd复用，并在Wasm内验证
+FIFO不阻塞、UTC回退和之后恢复正常文件。原生GCC/Clang及ASan/UBSan对照
+通过前两阶段，不在宿主执行FIFO路径；双位宽Wasm前端和静态分析通过。
+
+[公开预取41460465248](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41460465248)
+已核实精确musl修订7b077a6d549f1cbe97b22545e37cf1919dd6a641与SRI
+`sha256-5tD0pAVUpnvC8B3jbZNp/B3lzbsRu8xttlnUHQrwTME=`。distro3cd41a3及
+主仓库pin5c116fb已分开发布；新双位宽真实Node三阶段与关闭仍待验收。
+对应[wasm32 41461466995](https://github.com/HighCWu/distro/actions/runs/41461466995)
+和[wasm64 41461467807](https://github.com/HighCWu/distro/actions/runs/41461467807)
+均固定3cd41a3。首次派发在GitHub工作流查询阶段遇到EOF，核对没有创建任务后
+才补发；现有目标不重复派发，不取消慢任务。
+本轮没有扩展文件mmap上限、开放默认file mapping或实现动态链接。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

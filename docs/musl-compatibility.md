@@ -280,3 +280,15 @@ SjLj 返回包装而非直接退出 handler，保留 cond_wait 的 masked ECANCE
 19e8fd0 / 根仓库 a87f9c6 现固定 f949d1b1。双位宽实际线程目标和取消点回归
 已异步派发，真实阶段/机器关闭待验收，见
 [第六十一组](process-syscalls.md#第六十一组detached-thread-的栈释放与分配器锁生命周期)。
+
+## 既有Wasm时区文件复制路径
+
+7b077a6d只修复tombl既有__map_file/__unmap_file实现所在文件的Wasm分支，
+函数与公共头文件接口未增加，原生分支不变。分配/读取失败统一关闭fd并回收副本，
+读取重试EINTR及短读，拒绝不可表示的文件长度；内部时区锁下使用非取消syscall，
+并保留与原生loader相同的O_NONBLOCK打开策略，避免FIFO卡住。
+
+精确源码hash与distro3cd41a3/主仓库5c116fb已经发布；实际双位宽函数故障模型、
+真实musl头文件前端和静态分析通过，标准C时区消费者的Node目标待验收。
+这属于既有接口的必要Wasm替代路径修复，不新增Linux扩展包装，不作为文件mmap
+已开放的证据。详见[进程与兼容记录](process-syscalls.md#wasm既有时区文件读取路径的资源与取消边界)。

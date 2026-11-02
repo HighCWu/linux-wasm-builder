@@ -251,8 +251,9 @@ CLEAR_SIGHAND，但不新增 libc 函数、应用入口、共享内存或多线�
 GCC/Clang 前端与双位宽 Wasm 静态分析通过。标准 C 消费者通过 procfs 核对
 不同时间命名空间，在 unshare 配置偏移后再 clone3，核对 monotonic/boottime
 及绝对定时；随后验证非特权 EPERM、输出不变与普通 fork 恢复。消费者不在
-宿主执行命名空间操作；两项 Node 目标待真实三阶段、唯一 pass 和关闭验收，
-不能以本地状态机/导入夹具证明 Linux 行为已通过。
+宿主执行命名空间操作。固定a630876的两项Node目标现已独立核实实际三阶段、
+唯一pass和关闭门禁，接受上述双位宽范围，不扩大为浏览器；精确日志见
+[目标验收](process-syscalls.md#远端复制的双位宽node与四路浏览器验收)。
 
 ## 保存区
 

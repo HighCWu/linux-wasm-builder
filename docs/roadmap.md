@@ -2020,17 +2020,25 @@ Linux f090bca6a / distro608809b / 集成6264819已完成mm身份、注册确认�
 生命周期释放和机器端复制的候选接入；保留Linux权限与mm引用检查，处理旧邮箱
 发布/接管与ready重叠，关闭机器时等待Worker停止。标准process_vm消费者新增
 扩大内存后纯用户忙循环的真实读写、回读和子进程退出阶段。双位宽Node、四路
-浏览器同页两轮和完整fork回归已派发，等待实际目标输出与关闭证据。本地检查
-及原生Linux对照通过不算目标验收；musl接口、默认LLVM和MMU策略不变。
+浏览器同页两轮和完整fork回归现已分别核实全部阶段、唯一pass与关闭门禁，
+接受固定608809b的上述范围；不将本地对照推广为其它能力已完成。musl接口、
+默认LLVM和MMU策略不变。
 详见[远端复制候选](architecture.md#远端用户内存的机器端复制候选)。
 
 distro a630876 / 集成390297e继续接纳原生clone3的CLONE_NEWTIME，解除早期
 callback布局的CSIGNAL限制；Linux负责实际namespace、时钟偏移和权限，旧clone
 仍拒绝冲突位。新增内部对象能力门控，旧对象在unwind前拒绝；无musl公共接口
 或内核配置变更。391项运行层和双位宽实际C传输、类型、前端/静态分析通过。
-独立Node双位宽目标已派发，需核实namespace身份、monotonic/boottime偏移、
-绝对定时、EPERM和后续fork恢复的三阶段及关闭；尚未宣称目标或浏览器通过。
+独立Node双位宽目标现已核实namespace身份、monotonic/boottime偏移、绝对
+定时、EPERM和后续fork恢复的三阶段、唯一pass及关闭；不扩大为浏览器通过。
 见[执行ABI](fork-continuation-abi.md#clone3-原生时间命名空间)。
+
+musl7b077a6d / distro3cd41a3 / 集成5c116fb修复既有Wasm时区文件复制路径：
+失败也关闭fd，处理短读/EINTR和大小边界，在时区锁下避免公共read取消点，并
+用O_NONBLOCK避免FIFO打开阻塞。没有新增函数或公共头文件/API，原生分支不变。
+实际双位宽函数故障模型、真实头文件前端/静态分析及普通C的原生时区对照通过；
+默认SDK的双位宽Node三阶段目标仍待验收，涵盖2040年、夏令时、重载/fd与FIFO
+回退。文件mmap默认策略和复制上限不变，见[兼容记录](musl-compatibility.md#既有wasm时区文件复制路径)。
 
 ## 质量矩阵
 
