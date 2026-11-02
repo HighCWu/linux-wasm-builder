@@ -219,3 +219,42 @@ LLD 可把弱导入属性记录在 env 下，即使实际只有 GOT 导入；组
 及非标量函数参数/返回值；普通 SIMD 指令并不因此被禁用。未知扩展和不兼容
 资源也拒绝。它没有实现 ELF、动态符号版本或安全卸载，不新增 musl 公共接口，
 默认程序执行路径不启用这份组件。
+
+固定5a175b8的
+[41506673065](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41506673065)
+现已完成。已读取实际Clang产物作业125488507426的日志：wasm32/64分别确认绑定、
+重定位、GOT、弱空指针、规范槽位、构造、直接/间接调用、增长，以及反向构造
+顺序拒绝。日志包226,287字节，对应运行步骤1,476字节。它接受e456e76组件在
+Clang18/table32范围的引擎实验，不覆盖后续主程序作用域、读取桥接或Linux进程。
+
+## 主程序符号与 Linux 文件读取桥接
+
+distro `f47bc91` / 集成 `0177c50` 为组件增加独立的主程序/全局符号输入。
+数据符号使用主程序的绝对地址，不再叠加DSO偏移；函数保留实际签名和已有
+规范函数指针。显式库句柄的lookup只搜索自己的对象组，链接时仍允许主程序
+优先解析。额外表容量包含可被句柄查找的导出函数，而不只统计已有GOT引用。
+构造期间的exit/exec执行控制信号须原样逃出，不能被包装成普通初始化trap。
+
+实际PIC语料加入普通静态Wasm主模块，与库共享memory、table及主模块stack。
+主模块函数、数据和规范指针均由真实C代码生成。wasm32/64本地实验确认库能
+直接调用主程序、共享其数据，函数和数据指针一致，句柄不查到仅属于主模块的
+定义。原重定位、增长、弱符号和反向控制保留。两者仍是table32及引擎实验。
+
+独立MIT执行支持对象位于 `distro/dynamic-loader/execution.c`：通过普通Linux
+open/fstat/fstatvfs/read/close取得文件、以dev/ino表达身份，并以固定五个u64
+槽传递数据、长度和正errno。使用O_CLOEXEC，校验普通文件和noexec，重试read
+的EINTR而不重试close；错误释放缓冲区并关闭fd。单次文件上限64MiB是此加载
+配置的容量策略，不是Linux文件或mmap能力限制。还有配对aligned分配/释放、
+受AT_SECURE及身份检查限制的LD_LIBRARY_PATH读取；现有binfmt_wasm已提供
+AT_SECURE，没有为此改变Linux权限策略或绕过VFS通过宿主fetch读取。
+
+417项运行层及两套TypeScript检查通过，读取桥接在GCC/Clang分别通过真实临时
+文件和硬链接身份、read EINTR/EOF、noexec、ENOMEM、重复读取/释放、fd数恢复、
+后续成功及安全环境控制。双位宽musl头文件前端和Clang静态分析、GCC分析也
+通过。宿主注入不代替Wasm内核运行，读取对象尚未随SDK链接或被Worker调用。
+默认SDK、musl gitlink及公共函数声明均不改变。
+
+下一步须连接Worker、文件搜索及进程allocator锁、对象复用/句柄生命周期，
+再将musl已有dlopen/dlsym调用路径接到独立配置，进行真实Linux进程和关闭
+验收。这里尚未完成这个接线，也不接受多线程动态加载、fork动态快照、ELF
+入口或动态符号版本。候选SDK联合构建41488752556仍运行，不重复派发。

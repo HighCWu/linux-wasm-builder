@@ -2057,6 +2057,13 @@ e456e76 / 集成5a175b8将依赖、GOT、规范函数槽位、数据重定位和
 dlopen仍待接通，不将组件结果当作Linux或ELF验收。见
 [绑定组件与剩余边界](elf-dynamic-linking.md#实际模块绑定组件)。
 
+绑定组件的5a175b8公开CI已核实双位宽实际PIC阶段及反向控制，范围为Clang18/
+table32引擎实验。后继f47bc91 / 集成0177c50补充主程序绝对数据/函数符号、
+规范指针及句柄局部查找，并加入通过标准Linux文件调用工作的独立读取支持对象。
+真实双位宽主模块实验、读取故障收尾和静态分析通过；读取对象尚未由Worker/SDK
+调用，标准dlopen进程验收仍未完成。见
+[主程序与文件桥接](elf-dynamic-linking.md#主程序符号与-linux-文件读取桥接)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。
