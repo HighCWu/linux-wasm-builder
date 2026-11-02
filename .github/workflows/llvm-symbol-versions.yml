@@ -62,3 +62,8 @@ jobs:
             --mc "$RUNNER_TEMP/llvm-symbol-build/bin/llvm-mc" \
             --ld "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld" \
             --clang "$RUNNER_TEMP/llvm-symbol-build/bin/clang"
+      - name: Verify PIC dependencies and reservations with the same candidate
+        run: |
+          set -euo pipefail
+          python3 -B scripts/probe_wasm_dynamic_linking.py \
+            --clang "$RUNNER_TEMP/llvm-symbol-build/bin/clang"
