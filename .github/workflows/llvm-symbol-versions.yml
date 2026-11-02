@@ -65,6 +65,6 @@ jobs:
       - name: Verify PIC dependencies and reservations with the same candidate
         run: |
           set -euo pipefail
-          git submodule update --init --depth 1 sources/distro
+          git submodule update --init --depth 1 sources/distro sources/musl
           python3 -B scripts/probe_wasm_dynamic_linking.py \
             --clang "$RUNNER_TEMP/llvm-symbol-build/bin/clang"

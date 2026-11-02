@@ -56,7 +56,8 @@ import {read_wasm_dylink,read_wasm_dynamic_imports,read_wasm_dynamic_signatures}
 import {plan_dylink_layout} from __LAYOUT_PLANNER__;
 import {link_dylink_graph} from __MODULE_LINKER__;
 import {ProcessDylink} from __PROCESS_LOADER__;
-const [bits, first, second, mainFile, cycleAFile, cycleBFile, mode] = process.argv.slice(2);
+const [bits, first, second, mainFile, cycleAFile, cycleBFile,
+ recursiveRootFile,recursiveLeafFile,recursiveRejectFile,mode] = process.argv.slice(2);
 const modules = [first, second].map(p => new WebAssembly.Module(readFileSync(p)));
 const layouts=[first,second].map(p=>read_wasm_dynamic_imports(new Uint8Array(readFileSync(p))));
 // Exercise the runtime's parser with actual LLD output, before instantiation.
@@ -196,6 +197,7 @@ const runPointer=storeString('run'),counterPointer=storeString('counter');
 const missingPointer=storeString('/missing.wasm'),badPointer=storeString('/bad.wasm');
 const controlPointer=storeString('/control');
 const control=Symbol('modeled exit/exec');
+const modeledErrorPointer=storeString('modeled libc dlerror');let modeledDlerror=false;
 // A genuine Wasm start callback enters main dlsym while the new module's active
 // element segment already occupies its assigned table region.
 const str=value=>[value.length,...new TextEncoder().encode(value)];
@@ -229,6 +231,9 @@ const virtualFiles=new Map([
  ['/libraries/denied.wasm',{bytes:files.get(names[1]),inode:12n}],
  ['/libraries/'+basename(cycleAFile),{bytes:new Uint8Array(readFileSync(cycleAFile)),inode:21n}],
  ['/libraries/'+basename(cycleBFile),{bytes:new Uint8Array(readFileSync(cycleBFile)),inode:22n}],
+ ['/libraries/reentrant-root.so',{bytes:new Uint8Array(readFileSync(recursiveRootFile)),inode:41n}],
+ ['/libraries/reentrant-leaf.so',{bytes:new Uint8Array(readFileSync(recursiveLeafFile)),inode:42n}],
+ ['/libraries/reentrant-reject.so',{bytes:new Uint8Array(readFileSync(recursiveRejectFile)),inode:43n}],
  ['/libraries/start.wasm',{bytes:startModule,inode:31n}],
 ]);
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleAFile))).needed,[basename(cycleBFile)]);
@@ -246,6 +251,9 @@ const allocate=(size,alignment)=>{size=Number(size);alignment=Math.max(8,Number(
  return word(memoryAddress,p);};
 const deallocate=p=>{assert(live.delete(Number(p)),'exactly one owner frees each temporary allocation');};
 const bridge={exports:{...main.exports,
+ dlopen:(path,flags)=>{const result=processLoader.open(path,flags);if(!BigInt(result))modeledDlerror=true;return result;},
+ dlsym:(handle,name)=>{const result=processLoader.symbol(handle,name);if(!BigInt(result))modeledDlerror=true;return result;},
+ dlerror:()=>{const result=modeledDlerror?modeledErrorPointer:word(memoryAddress,0);modeledDlerror=false;return result;},
  during_start:()=>{fromStart=processLoader.symbol(word(memoryAddress,0),unaddressedPointer);
   assert.notEqual(fromStart,word(memoryAddress,0),'dlsym in start resolves a new main pointer');},
  __indirect_function_table:table,
@@ -274,9 +282,12 @@ const bridge={exports:{...main.exports,
   new Uint8Array(memory.buffer,descriptor,40).fill(0);currentFd=-1;},
 }};
 processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximumPages:Number(memoryLayout.maximum),
- tableType:{address:tableAddress,minimum:128n,maximum:512n},signatures:new Map([...signatures,['during_start','[[],[]]']]),
+ tableType:{address:tableAddress,minimum:128n,maximum:512n},signatures:new Map([...signatures,['during_start','[[],[]]'],
+ ['dlopen',JSON.stringify([[memoryAddress==='i64'?126:127,127],[memoryAddress==='i64'?126:127]])],
+ ['dlsym',JSON.stringify([[memoryAddress==='i64'?126:127,memoryAddress==='i64'?126:127],[memoryAddress==='i64'?126:127]])],
+ ['dlerror',JSON.stringify([[],[memoryAddress==='i64'?126:127]])]]),
  isControlFlow:error=>error===control,fatal:error=>{throw error;},
- pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n].includes(inode));
+ pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
 const beforeSearch=live.size;
@@ -358,6 +369,22 @@ assert.equal(processLoader.open(storeString(basename(cycleAFile)),6),cycle);
 assert.equal(invoke('cycle_a_tls_step',1),27);
 assert.equal(new DataView(memory.buffer).getInt32(tlsA,true),25,'resident reuse preserves first-thread TLS');
 console.log(`Process loader TLS model wasm${bits}: initial image, zero data, peer constructors, isolation and resident reuse pass; not dynamic threads or Linux bridge acceptance`);
+const recursive=processLoader.open(storeString('reentrant-root.so'),258);
+if(!BigInt(recursive)){const diagnostic=allocate(512,1);processLoader.error(diagnostic,word(memoryAddress,512));
+ console.error('constructor load error:',readCString(diagnostic));deallocate(diagnostic);}
+assert.notEqual(recursive,word(memoryAddress,0),'constructor may load a fresh graph');
+const recursiveData=(handle,name)=>new DataView(memory.buffer).getInt32(Number(processLoader.symbol(handle,storeString(name))),true);
+assert.equal(recursiveData(recursive,'reentrant_root_errors'),0,'constructor dlfcn calls must succeed after publication');
+const leaf=processLoader.open(storeString('reentrant-leaf.so'),6);
+assert.notEqual(leaf,word(memoryAddress,0));
+assert.equal(recursiveData(leaf,'reentrant_leaf_errors'),0);
+assert.equal(recursiveData(recursive,'reentrant_root_count'),1);
+assert.equal(recursiveData(leaf,'reentrant_leaf_count'),1);
+assert.equal(recursiveData(recursive,'reentrant_root_value'),26);
+assert.equal(recursiveData(recursive,'reentrant_root_observed'),25);
+assert.equal(processLoader.open(storeString('reentrant-root.so'),6),recursive);
+assert.equal(recursiveData(recursive,'reentrant_root_count'),1);
+console.log(`Process loader constructor model wasm${bits}: new graph, failed nested admission recovery, GLOBAL imports, running-parent reopen and single constructors pass; not Linux libc or bridge acceptance`);
 const starting=processLoader.open(storeString('start.wasm'),2);
 assert.notEqual(starting,word(memoryAddress,0),'load module with reentrant start lookup');
 const entry=processLoader.symbol(starting,storeString('entry'));
@@ -395,6 +422,27 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
         "__PROCESS_LOADER__", json.dumps((runtime / "dylink_process.ts").as_uri())
     )
     (directory / "probe.mjs").write_text(runner)
+    process_source = (runtime / "dylink_process.ts").read_text()
+    blocked = process_source.replace(
+        "\n      group.ensureInitialized();",
+        "\n      this.#busy = true;\n      try { group.ensureInitialized(); }\n"
+        "      finally { this.#busy = false; }",
+    )
+    if blocked == process_source:
+        raise RuntimeError(
+            "constructor blocking control did not replace the actual execution boundary"
+        )
+    for name in ("dylink_linker", "dylink", "wasm_binary", "wasm"):
+        blocked = blocked.replace(
+            f'"./{name}.ts"', json.dumps((runtime / f"{name}.ts").as_uri())
+        )
+    (directory / "blocked-process.ts").write_text(blocked)
+    (directory / "blocked-probe.mjs").write_text(
+        runner.replace(
+            json.dumps((runtime / "dylink_process.ts").as_uri()),
+            json.dumps((directory / "blocked-process.ts").as_uri()),
+        )
+    )
     for bits in (32, 64):
         for name in ("main", "a", "b"):
             subprocess.run(
@@ -469,6 +517,32 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 ],
                 check=True,
             )
+        recursive_files = []
+        for name in ("root", "leaf", "reject"):
+            output = directory / f"reentrant-{name}{bits}.wasm"
+            subprocess.run(
+                [
+                    args.clang,
+                    f"--target=wasm{bits}",
+                    "-nostdlib",
+                    "-O2",
+                    "-fPIC",
+                    "-shared",
+                    "-matomics",
+                    "-mbulk-memory",
+                    "-isystem",
+                    str(sources.parents[2] / "musl/include"),
+                    "-Wl,--shared-memory,--no-entry,--import-memory,--import-table",
+                    "-Wl,--unresolved-symbols=import-dynamic,--export-all,--export=__wasm_call_ctors",
+                    f"-Wl,--max-memory={4294967296 if bits == 32 else 17179869184}",
+                    f"-Wl,-soname,reentrant-{name}.so",
+                    str(sources / f"reentrant-{name}.c"),
+                    "-o",
+                    str(output),
+                ],
+                check=True,
+            )
+            recursive_files.append(str(output))
         subprocess.run(
             [
                 args.node,
@@ -479,6 +553,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"main{bits}.wasm"),
                 str(directory / f"cycle-a{bits}.wasm"),
                 str(directory / f"cycle-b{bits}.wasm"),
+                *recursive_files,
             ],
             check=True,
         )
@@ -492,6 +567,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"main{bits}.wasm"),
                 str(directory / f"cycle-a{bits}.wasm"),
                 str(directory / f"cycle-b{bits}.wasm"),
+                *recursive_files,
                 "reverse-ctors",
             ],
             capture_output=True,
@@ -505,6 +581,33 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 "reversed constructor order did not fail the C observation: "
                 + negative.stderr[:1200]
             )
+        blocked_run = subprocess.run(
+            [
+                args.node,
+                str(directory / "blocked-probe.mjs"),
+                str(bits),
+                str(directory / f"a{bits}.wasm"),
+                str(directory / f"b{bits}.wasm"),
+                str(directory / f"main{bits}.wasm"),
+                str(directory / f"cycle-a{bits}.wasm"),
+                str(directory / f"cycle-b{bits}.wasm"),
+                *recursive_files,
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if (
+            blocked_run.returncode == 0
+            or "constructor dlfcn calls must succeed after publication"
+            not in blocked_run.stderr
+        ):
+            raise RuntimeError(
+                "blocked constructor control did not reject the real C observation: "
+                + blocked_run.stderr[-2000:]
+            )
+        print(
+            f"PIC probe wasm{bits}: blocking constructor dlopen rejected by real C observation"
+        )
         print(
             f"PIC probe wasm{bits}: reversed constructor order rejected by real C observation",
             flush=True,
