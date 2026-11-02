@@ -51,6 +51,35 @@ SONAME/RUNPATH参数拼写可用。本机LLVM18拒绝RUNPATH，不作为此LLVM2
 的验证替身。真实进程六阶段及关闭由41542937012、41542944612异步验收，
 尚未接受这一候选组合通过，不沿用旧镜像结果。
 
+## 符号版本消费者的独立运行包修复
+
+41529152599已明确失败。读取完整8,731,762字节Heavy构建日志后，首个失败是
+apk-symbol-versions-wasm32运行包检查：SDK join中的许可证文件仍是指向构建机
+Nix store的符号链接，原cp-r保留这些链接，触发现有包边界检查。该结果尚未进入
+符号版本程序执行，不能归为.symver语义或syscall失败，也不能列为SDK验收成功。
+
+distro `446dbef` / 集成 `df469d7` 改用cp-rL复制实际许可证字节，并执行SDK
+原始SHA256SUMS核验，保留完整通知且不放宽运行包的store引用拒绝规则。
+轻量受控目录验证旧外部链接被拒绝、物化后无符号链接且字节/校验和保持一致；
+Nix格式、差异及元数据检查通过，不代替实际SDK打包和双位宽执行。已针对失败的
+symbol-versions-check-both重新派发一次，待核实原有C++回归、两个版本阶段及关闭。
+
+## C++ 共享异常的 TLS 前提核查
+
+本机Clang/LLD22的小型freestanding实验发现，仅给动态加载器增加异常tag绑定
+仍不足以支持普通try/catch：-fwasm-exceptions、-fc++-abi=webassembly、-fPIC
+编译的catch(int)产物，在-shared及import-dynamic链接时就因未定义
+__wasm_lpad_context的R_WASM_MEMORY_ADDR_TLS_SLEB重定位失败，wasm64为对应
+SLEB64。-ftls-model=local-exec和global-dynamic均复现；未通过关闭异常或复制一份
+进程异常状态来绕过。这是本机wasm32/64-unknown-unknown的LLVM22前置实验，
+不是固定Linux编译器或运行目标的验收，也未修改应用/libc或为此派发重型任务。
+
+后续跨库C++异常必须先解决编译器/链接器的TLS引用、同一线程的异常运行状态及
+共享异常tag，再验证析构、重抛和错误恢复；不得将现有C/SIMD动态链接通过
+扩大为C++异常或动态TLS支持。原版上游的
+[LLD实现](https://raw.githubusercontent.com/llvm/llvm-project/main/lld/wasm/Writer.cpp)
+可用于后续对照，不能用当前main分支行为代替固定源码检查。
+
 ## 源码核查结果
 
 当前可用路径仍是 Wasm 文件：

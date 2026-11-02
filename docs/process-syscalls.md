@@ -6114,6 +6114,11 @@ distro13b54fe / 集成08fa383把已核实的Linux共享Clang驱动接到独立�
 这推进构建兼容性，不记为新增syscall，见
 [驱动集成记录](elf-dynamic-linking.md#标准共享编译驱动接入真实进程候选)。
 
+符号版本SDK任务41529152599的实际失败在运行包打包前：许可证目录保留构建机
+store符号链接。446dbef / 集成df469d7物化原通知字节并核验其SHA256SUMS，
+不放宽包边界检查；定向复验已派发，程序语义及关闭尚待核实。这是交付修复，
+不计为新增syscall，见[运行包修复](elf-dynamic-linking.md#符号版本消费者的独立运行包修复)。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
