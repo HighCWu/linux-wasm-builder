@@ -171,9 +171,19 @@ assert.equal(b.exports.run(1),32);
 assert.equal(b.exports.direct(4),20,'direct function imports bind to the same dependency state');
 // Exercise the process orchestration with a modeled C I/O bridge. The real
 // Linux bridge and SDK are accepted only by their separate booted target.
+// Node accepts shared decode input that the observed Chromium implementation
+// rejects. Keep the browser restriction active for this process-loader model.
+const NativeTextDecoder=globalThis.TextDecoder;
+globalThis.TextDecoder=class extends NativeTextDecoder{
+ decode(input,options){
+  if(input instanceof SharedArrayBuffer||(ArrayBuffer.isView(input)&&input.buffer instanceof SharedArrayBuffer))
+   throw new TypeError('browser decoder input must not be shared');
+  return super.decode(input,options);
+ }
+};
 let heap=5*65536;
 const live=new Set();
-const readCString=p=>{const bytes=new Uint8Array(memory.buffer,Number(p));return new TextDecoder().decode(bytes.subarray(0,bytes.indexOf(0)));};
+const readCString=p=>{const bytes=new Uint8Array(memory.buffer,Number(p));return new TextDecoder().decode(bytes.slice(0,bytes.indexOf(0)));};
 function storeString(value){const data=new TextEncoder().encode(value+'\0');const p=heap;heap+=data.length;
  new Uint8Array(memory.buffer,p,data.length).set(data);return word(memoryAddress,p);}
 const descriptor=120000,originPointer=121000;
@@ -270,6 +280,7 @@ processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximu
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
 const beforeSearch=live.size;
+assert.notEqual(processLoader.symbol(word(memoryAddress,1),storeString('host_add')),word(memoryAddress,0),'main dlsym accepts browser decoder input restrictions');
 assert.equal(processLoader.open(searchedPointer,2),word(memoryAddress,0),'opened malformed file must stop search');
 assert.deepEqual(attempted,['/shadow/'+names[1]],'do not substitute a later same-name library');
 assert.equal(live.size,beforeSearch,'shadow failure releases temporary buffers');
