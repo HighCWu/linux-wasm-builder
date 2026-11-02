@@ -2301,6 +2301,8 @@ Linux 原有错误出口，不引入 MMU。双位宽实际 Wasm 宏、溢出及�
 检查通过；标准 bpf/socket filter 消费者验证 snprintf 的有效地址、无效地址
 零填充及后续恢复，Node32/64 已异步派发，真实三阶段和关闭仍待核实。
 musl 及默认 LLVM pin 不变，见[内核访问记录](process-syscalls.md#内核-nofault-访问的实际线性内存边界)。
+1753810的41541813856/41541820839随后已核实全部三阶段、各唯一pass及
+发布runner的机器关闭门禁，接受c7b4f97ef的双位宽Node BPF/nofault范围。
 
 每项工作至少在以下维度选择适用组合：
 
