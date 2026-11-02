@@ -158,6 +158,18 @@ class GitHashPrefetch(unittest.TestCase):
             self.assertFalse(any(c[0] == "nix" for c in calls))
             self.assertEqual(summary, "")
 
+    def test_dynamic_file_reference_paths_are_exact(self):
+        paths = "\n".join("M\tarch/wasm/" + path for path in (
+            "include/asm/mmu.h", "include/asm/remote_vm.h", "kernel/remote_vm.c", "mm/init.c"))
+        result, calls, summary = self.run_model({"MODEL_PATH": paths})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Candidate hash:", summary)
+        for broken in (paths.splitlines()[0], paths + "\nM\tfs/file.c", paths.replace("M\t", "A\t", 1)):
+            result, calls, summary = self.run_model({"MODEL_PATH": broken})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(any(call[0] == "nix" for call in calls))
+            self.assertEqual(summary, "")
+
     def test_kconfig_only_change_still_verifies_baseline(self):
         path = "M\tarch/wasm/Kconfig"
         result, calls, summary = self.run_model({"MODEL_PATH": path})
