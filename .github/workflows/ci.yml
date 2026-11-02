@@ -5,6 +5,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      llvm-symbol-revision:
+        description: Optional exact experimental LLVM symbol-version source commit
+        type: string
+        default: ''
       file-copy-benchmark:
         description: Run three fresh file-copy benchmark boots for both pointer widths
         type: boolean
@@ -20,6 +24,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  llvm-symbol-versions:
+    if: github.event_name == 'workflow_dispatch' && inputs.llvm-symbol-revision != ''
+    uses: ./.github/workflows/llvm-symbol-versions.yml
+    with:
+      revision: ${{ inputs.llvm-symbol-revision }}
   file-copy-benchmark:
     if: github.event_name == 'workflow_dispatch' && inputs.file-copy-benchmark
     uses: ./.github/workflows/file-copy-benchmark.yml

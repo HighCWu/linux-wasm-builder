@@ -2,6 +2,11 @@
 name: LLVM Wasm symbol versions experiment
 
 on:
+  workflow_call:
+    inputs:
+      revision:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       revision:
