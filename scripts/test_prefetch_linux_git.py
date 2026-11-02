@@ -94,6 +94,23 @@ class GitHashPrefetch(unittest.TestCase):
                 if "MODEL_BAD_SRI" not in inputs and "MODEL_SAME_HASH" not in inputs:
                     self.assertFalse(any(call[0] == "nix" and Path(call[1][-1]).name == "candidate" for call in calls))
 
+    def test_exact_named_defconfig_update_preserves_baseline_hash_verification(self):
+        paths = "\n".join("M\tarch/wasm/configs/" + name for name in
+                          ("defconfig", "wasm32_defconfig", "wasm64_defconfig"))
+        result, calls, summary = self.run_model({"MODEL_PATH": paths})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
+                         ["baseline", "candidate"])
+        self.assertIn("Candidate hash:", summary)
+        for broken in (paths.splitlines()[0], paths + "\nM\tnet/core/filter.c",
+                       paths.replace("M\t", "A\t", 1),
+                       paths.replace("wasm64_defconfig", "wasm64_defconfig.old")):
+            with self.subTest(paths=broken):
+                result, calls, summary = self.run_model({"MODEL_PATH": broken})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(any(c[0] == "nix" for c in calls))
+                self.assertEqual(summary, "")
+
 
 if __name__ == "__main__":
     unittest.main()

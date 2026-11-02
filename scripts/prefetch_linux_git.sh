@@ -16,7 +16,12 @@ git -C "$source_work/git" remote add origin https://github.com/HighCWu/linux.git
 git -C "$source_work/git" -c http.version=HTTP/1.1 fetch --quiet --depth=2 origin "$SOURCE_REVISION"
 [[ $(git -C "$source_work/git" rev-parse FETCH_HEAD) == "$SOURCE_REVISION" ]]
 [[ $(git -C "$source_work/git" show -s --format=%P "$SOURCE_REVISION") == "$BASELINE_REVISION" ]]
-[[ $(git -C "$source_work/git" diff --name-status "$BASELINE_REVISION" "$SOURCE_REVISION") == $'M\tkernel/futex/core.c' ]]
+changed_paths=$(git -C "$source_work/git" diff --name-status "$BASELINE_REVISION" "$SOURCE_REVISION")
+case "$changed_paths" in
+$'M\tkernel/futex/core.c') ;;
+$'M\tarch/wasm/configs/defconfig\nM\tarch/wasm/configs/wasm32_defconfig\nM\tarch/wasm/configs/wasm64_defconfig') ;;
+*) exit 64 ;;
+esac
 [[ -z $(git -C "$source_work/git" diff --summary "$BASELINE_REVISION" "$SOURCE_REVISION") ]]
 attribute_status=0
 git -C "$source_work/git" grep --quiet 'export-subst' "$SOURCE_REVISION" -- \
