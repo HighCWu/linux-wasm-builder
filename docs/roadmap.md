@@ -2004,6 +2004,11 @@ C 消费者与双位宽前端/静态 review 已完成，目标 RNG 运行及关�
 实际验收；不把先前 AEAD 成功泛化到这个新内核。见
 [RNG 记录](process-syscalls.md#第九十九组接通标准-af_alg-rng-与原有-drbg)。
 
+RNG 的 wasm32 任务随后成功，实际日志仍待补核实；wasm64 的 check-run 注解
+确认 runner 磁盘耗尽，未取得 RNG 运行结果。distro `dafa1b8` 在重型缓存恢复
+前清理固定的闲置云端工具链，保留 Nix/LLVM 缓存和源码，仅重新派发失败位宽。
+环境修复及 RNG 的验收证据分开记录，不将基础设施故障误报为 syscall 缺陷。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |

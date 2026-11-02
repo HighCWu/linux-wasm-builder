@@ -4731,6 +4731,36 @@ distro gitlinks 和轻量前端检查。musl/LLVM pin 保持原值。
 RNG 阶段、唯一 pass 和机器关闭仍待验收；不以预取/轻量检查或旧密码接口的
 结果替代它，也不扩大为全部 RNG 算法、浏览器或 FIPS/CAVP 支持。
 
+### 第九十九组后续：runner 磁盘耗尽的环境修复
+
+固定 5ba5a18 的 wasm32 workflow/Heavy 已成功，job125112657579 实际日志
+正在补取，暂不据状态接受三个 RNG 阶段。wasm64
+[job125112709564](https://github.com/HighCWu/distro/actions/runs/41394429190/job/125112709564)
+则在 Build isolated check 进行时终止，日志下载端点两次返回404；check-run
+错误注解明确为 System.IO.IOException / No space left on device，连 runner
+自己的诊断日志都无法写入。这是已确认的 runner 空间故障，尚无该任务的 RNG
+运行结果，不能推测算法或接口发生错误。
+
+distro `dafa1b8` 为 heavy-check 在 Nix 安装/缓存恢复前调用独立 MIT
+distro/ci/reclaim-runner-space.sh。依据
+[GitHub 官方 runner 变量](https://docs.github.com/en/actions/reference/workflows-and-actions/variables)
+同时检查 GITHUB_ACTIONS=true、RUNNER_ENVIRONMENT=github-hosted 和
+RUNNER_OS=Linux；非本次云端环境拒绝执行。只清理固定的预装 Android、.NET、
+GHC 目录，记录清理前后 df，保留 workspace、runner/tool cache、Nix store、
+GC roots、动作缓存与构建材料。未换付费 runner，也未通过删除已完成 LLVM
+输出腾空间。实际可用空间及后续构建仍须新任务验证。
+
+Bash 语法、非 CI/自托管/非 Linux 拒绝、显式 dry-run 和非法参数检查通过；
+本地没有执行删除。工作流 YAML 和清理在恢复缓存之前的顺序已核实，既有十项
+缓存/LLVM 保留合同检查通过。相对 5ba5a18，RNG 程序、内核 pin 和运行层源码
+未变，仅修改 CI 环境；主仓库 `a90812e` 随后单独更新 distro gitlink。
+
+固定 dafa1b8 仅为已失败的位宽派发
+[wasm64 41396235576](https://github.com/HighCWu/distro/actions/runs/41396235576)
+的 alg-rng-wasm64-check-runtime；不重复派发已成功的 wasm32。源码/轻量
+检查通过不证明空间故障已经消除或 RNG 已完成，仍需三阶段、唯一 pass 与
+machine.closed 的实际验收。LLVM 符号版本候选仍运行时保持运行，不因慢而取消。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
