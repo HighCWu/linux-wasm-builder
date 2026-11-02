@@ -5731,6 +5731,11 @@ distro a60ed18 / 集成6170efa补充浏览器入口，全部固定同一源码�
 运行器要求同页两个独立启动的完整三阶段、各唯一pass、机器关闭及最终浏览器
 关闭。当前结果仍需按实际日志分别核实，不将其中一项工作流成功泛化为四路通过。
 
+其中Chromium两项现已逐项核实：wasm32压缩日志1,587,312字节/构建步8,027,357
+字节，wasm64对应1,015,889/5,202,101字节；两项各有完整三阶段两轮、各唯一pass、
+两次machine shutdown及最终browser shutdown pass。引擎均为149.0.7827.55。
+接受该源码在这两路的范围，Firefox仍待核实。
+
 后续distro7dd14ab58820f08b848c11af60bff3ad4994bcae / 集成83810d8加入真实
 FUSE在途生产者门禁，Linux/musl/LLVM pin不变。生产者以FOPEN_DIRECT_IO返回
 普通文件，确保同步kernel_read指向分块staging，而不是独立后台缓存读取。

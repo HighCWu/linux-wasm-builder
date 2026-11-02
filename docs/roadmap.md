@@ -1998,6 +1998,12 @@ call_indirect/return_call_indirect 按实际表类型选择索引宽度，保留
 下一步推进进程内模块装载及 ELF 架构契约，不等于 ELF 或动态加载已经实现。
 详见[工具链候选记录](architecture.md#elf-与动态链接应用兼容优先)。
 
+主仓库eedaa34的有界PIC实验已改为读取真实dylink.0布局、对齐和NEEDED依赖，
+预先计算不重叠区间，按依赖顺序构造，核对外部数据重定位和跨库函数指针身份。
+修正简单构造函数可被折叠进初始数据的旧验收盲点，反向顺序现在必须失败。
+本地Clang/LLD18+Node25双位宽通过，候选9035266的云端复验待结果；不扩大为
+Linux文件装载、ELF或动态libc已支持。见[实施与实验边界](elf-dynamic-linking.md)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。
