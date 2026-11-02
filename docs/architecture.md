@@ -130,7 +130,7 @@ SBOM和对应源码包。
 access；后续若要运行不可信模块，需要签名、验证/重写或更强的multi-memory
 capability边界。
 
-## 远端用户内存的数据面准备
+## 远端用户内存的机器端复制候选
 
 distro `5126c72` / `6251480` 新增内部 `remote-memory.ts`。机器端保留共享
 WebAssembly.Memory 引用，Worker 通过带所有权状态的请求执行最多一个64KiB页
@@ -142,12 +142,21 @@ WebAssembly.Memory 引用，Worker 通过带所有权状态的请求执行最多
 浏览器主线程在发送前拒绝阻塞客户端；机器端 handler 本身同步处理，不执行
 Linux 或用户 Wasm。这里没有透明地址翻译，也不提供共享页别名。
 
-这是未接入的 runtime 数据面，现有 syscall 仍使用原所有者 Worker 路径。
-下一步接入必须由 Linux 分配不复用的 mm 身份，保留 mm_access/ptrace 权限和
-mm 引用规则，在 exec 内存切换完成、fork 子任务首次进入用户代码前注册，
-最后引用释放后撤销；不能仅用可复用的 PID 或 mm 指针当身份。还需处理旧邮箱
-请求与新后端注册的竞态、机器关闭和主线程上下文。完成这些及真实 Linux/浏览器
-验收前，不将 Node 复制实验记为 process_vm_*、ptrace 或 AIO/io_uring 已接通。
+Linux `f090bca6a` 与 distro `608809b` 已接入候选路径：Linux 为新 mm 分配
+不复用、耗尽后不回绕的正整数身份；运行层在用户入口前确认机器端已保留对应
+Memory，再向内核发布 ready。exec 通过 context_mm 核对切换边界，fork 的
+新 mm 不继承父身份，CLONE_VM 保留同一身份。通用 mm_access/ptrace 权限检查
+和 mm 引用规则保留，mm_users 排空后撤销机器端引用。
+
+注册之前仍可使用原邮箱；注册若与已发布请求重叠，必须先赢得撤销 CAS 才能改走
+机器端，已有 claimant 则等待完成。机器主线程直接执行同步复制，Worker 发请求
+并在等待中释放逻辑 CPU；机器关闭时保留服务，直到所有 Worker 停止才清空引用。
+独立新增运行层代码为 MIT，Linux 架构修改沿用 GPL，不涉及新增 libc 接口。
+
+新增标准 C 用例要求子进程扩大内存后进入无 syscall 的忙循环，父进程读写新增
+区域、释放循环并核对真实退出。双位宽 Node、双浏览器各两轮及关闭验收仍待完成；
+本地数据面实验和原生 Linux 对照不能替代这些结果。该复制不提供共享页别名，
+也不代表 AIO/io_uring ring 或单 CPU 上纯用户忙循环的抢占已解决。
 
 ## ELF 与动态链接：应用兼容优先
 

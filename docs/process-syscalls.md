@@ -5545,6 +5545,40 @@ AIO仍有共享ring folio与用户独立linear memory的真实障碍；本轮没
 尚未添加内核mm注册、权限/引用接入或真实process_vm_*语料，默认syscall行为未变。
 不得把上述Node数据面实验解释为Linux syscall或共享ring支持已经完成。
 
+## 远端复制接入候选：目标无需进入内核检查点
+
+Linux f090bca6a、distro608809b、主仓库集成6264819将上述后端接入
+access_remote_vm。新mm身份单调分配且不复用，达到INT_MAX后保留旧邮箱路径；
+fork不继承身份，CLONE_VM共享身份。运行层确认机器端持有Memory后发布ready，
+context_mm阻止exec过渡期将旧Memory绑定到新mm。mm_access权限和引用检查仍
+由Linux执行，mm_users排空后异步释放机器端引用；全部Worker成功停止后才清空
+机器引用。旧邮箱发布与ready重叠时，先撤销未接管请求才能改走机器端，已接管的
+请求必须完成。复制最多64KiB，沿用NULL、机器字地址和有效前缀规则。
+
+现有process-vm消费者新增第四阶段：子进程通过标准匿名mmap扩大内存，在新增
+区域发布控制地址后进入纯原子忙循环；父进程使用既有process_vm_readv/writev
+读取、写回、核对再释放循环，等待子进程实际观察并退出。GCC/Clang原生对照及
+ASan/UBSan、伪造写入成功的反向控制、双位宽Wasm前端与Clang静态分析通过。
+389项运行层检查、两套类型检查、20项浏览器契约检查和实际C地址边界检查通过。
+这些是本地证据，不作为Linux/Wasm目标通过声明。
+
+[公开源码预取41454957184](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41454957184)
+核实直接父修订60908a259及已知hash，再核实精确候选f090bca6a的递归hash
+`sha256-gzNoovXFxQ5zWc2d3ZRgkVybiKY436pNeZBh1RBVK4Y=`。未放宽固定内容校验。
+已派发双位宽process-vm、四路浏览器remotevm及双位宽完整fork回归；目标结果
+待实际阶段、唯一pass及machine.closed门禁核实。浏览器要求同页两次启动和关闭，
+不以工作流成功替代输出。musl与默认LLVM pin保持不变，没有新增公共应用接口、
+内核softmmu或多线程fork能力；AIO共享ring与ELF加载仍是独立未完成事项。
+
+本候选的异步任务（均固定608809b）：
+
+| 检查 | wasm32 | wasm64 |
+| --- | --- | --- |
+| Node process-vm | [41455374334](https://github.com/HighCWu/distro/actions/runs/41455374334) | [41455374737](https://github.com/HighCWu/distro/actions/runs/41455374737) |
+| Node 完整 fork | [41455374880](https://github.com/HighCWu/distro/actions/runs/41455374880) | [41455375528](https://github.com/HighCWu/distro/actions/runs/41455375528) |
+| Chromium remotevm | [41455376462](https://github.com/HighCWu/distro/actions/runs/41455376462) | [41455376746](https://github.com/HighCWu/distro/actions/runs/41455376746) |
+| Firefox remotevm | [41455375713](https://github.com/HighCWu/distro/actions/runs/41455375713) | [41455377791](https://github.com/HighCWu/distro/actions/runs/41455377791) |
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
