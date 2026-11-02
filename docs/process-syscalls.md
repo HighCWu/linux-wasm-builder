@@ -5486,7 +5486,11 @@ machine.closed，两项实际任务均成功，关闭门禁成立。接受的是
 其中三个TID阶段及PIDFD/TID别名拒绝实际通过，不是仅基础namespace通过。
 同版[wasm32 fork 41438638854](https://github.com/HighCWu/distro/actions/runs/41438638854)
 核实全部十二个fork/fork-exec阶段、唯一pass，压缩日志1,550,922字节、构建步
-7,311,485字节。相同发布runner的等待关闭门禁成立；32位TID独立目标仍待结果。
+7,311,485字节。相同发布runner的等待关闭门禁成立。
+同版[wasm32 namespace/TID 41438616476](https://github.com/HighCWu/distro/actions/runs/41438616476)
+随后也已核实全部十阶段、唯一pass及关闭门禁：完整压缩日志1,413,198字节，
+构建步7,314,054字节。至此接受固定92d79a5/60908a259的双位宽namespace/TID
+十阶段；完整fork回归仍只有32位通过，64位受下述源码下载失败影响。
 这些结果不覆盖后续7233d8c的宽flags传输或浏览器。
 
 92d79a5的wasm64 fork41438646687明确失败在源码获取：两个archive端点均连续

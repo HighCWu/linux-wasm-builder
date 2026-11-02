@@ -208,8 +208,9 @@ parent_tid、child_tid 分别保留；legacy 的 PIDFD/parent_tid 共用槽位�
 子进程清理不会变成父子共享的 futex/TID 通知；没有扩大为 CLONE_VM、TLS、
 自定义栈或多线程 fork。raw caller 的 libc 收尾责任保持不变。
 
-本地状态机、实际编译的双位宽 C helper 传输、类型和静态分析已通过；新目标
-还须核实既有六阶段、TID 四阶段、唯一 pass 和关闭，不以协议定义作为验收。
+本地状态机、实际编译的双位宽 C helper 传输、类型和静态分析已通过。
+固定92d79a5的双位宽Node实际十阶段、唯一pass及关闭现已核实，完整fork回归
+32位也通过；64位完整回归下载源码受限，独立重试仍待结果，不以协议定义代替验收。
 musl 和默认 LLVM pin 不变，无新增 Linux syscall、libc 函数或应用 API。
 
 ### clone3 高位 flags 与 CLEAR_SIGHAND

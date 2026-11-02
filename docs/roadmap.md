@@ -2003,7 +2003,8 @@ call_indirect/return_call_indirect 按实际表类型选择索引宽度，保留
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。
 内核源码哈希由41436227897对已验收基线校验后取得。379项运行层检查、实际
 双位宽 C helper 传输、两套类型检查和静态分析通过，双位宽 namespace/TID
-十阶段与完整 fork 回归已派发。真实目标运行仍待验收，不扩大为多线程 fork。
+十阶段现已核实双位宽Node的完整阶段、唯一pass及关闭；完整fork回归32位通过，
+64位因下载HTTP429尚未进入运行并已针对性重试。不扩大为多线程fork或浏览器验收。
 详见[原生返回路径](fork-continuation-abi.md#原生-clone3-返回路径与-tid-输出)。
 
 后续 distro `7233d8c` / 主仓库 `eb8d3a2` 在相同 Linux60908a259 上接通
