@@ -2301,6 +2301,12 @@ wasm64覆盖table64；新七阶段Node/四路浏览器异步验收中。未增�
 接口，不扩大为线程、外部TLS绑定或C++异常，见
 [库内TLS记录](elf-dynamic-linking.md#首个线程的库内-tls-与指针重定位)。
 
+eeebcd0的双位宽Node七阶段及关闭均已核实；浏览器TLS目标继续独立验收。
+后继35ea6c0 / 集成b34347f接通构造函数标准dlopen新图/父库重开，各图共享
+一次初始化及失败状态，保留未就绪阶段的重入保护。双位宽真实C模型和旧行为
+反向控制通过，Node八阶段已派发，浏览器待Node结果后接续，不新增libc/syscall。
+见[构造函数接线](elf-dynamic-linking.md#构造函数中的标准-dlopen)。
+
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复实际内核
 nofault 访问越界会 trap 的架构缺陷：按当前线性内存容量校验完整访问后走
 Linux 原有错误出口，不引入 MMU。双位宽实际 Wasm 宏、溢出及失败写保护

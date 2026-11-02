@@ -6145,6 +6145,18 @@ distro eeebcd0 / 集成92cff8c修复动态加载器对已定义hidden/local TLS�
 这改善普通程序构建/运行兼容性，不计为新增syscall；未改musl或内核，仍不支持
 外部TLS绑定及C++异常。见[TLS接线记录](elf-dynamic-linking.md#首个线程的库内-tls-与指针重定位)。
 
+eeebcd0的wasm32/64 Node 41546646208/41546653644均已核实七阶段、各唯一pass
+及机器关闭，接受该源码首线程库内TLS范围，不扩大为浏览器或后继构造函数重入。
+
+## 构造函数中的已有 dlfcn 调用
+
+distro35ea6c0 / 集成b34347f把全部重定位后的图先发布，再执行构造函数，
+允许构造函数通过标准dlopen装载新库或重新打开父库；各图共享模块初始化状态，
+保证一次执行及失败后不可重试。I/O/分配器/start重入仍拒绝。真实C双位宽生产
+模型及旧busy控制、共享依赖/失败状态检查和静态分析通过；Node八阶段已派发，
+真实Linux和浏览器验收仍待核实。没有新增syscall或libc函数，见
+[构造函数接线](elf-dynamic-linking.md#构造函数中的标准-dlopen)。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
