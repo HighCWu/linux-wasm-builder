@@ -13,6 +13,12 @@ parser.add_argument("--clang", default="clang")
 parser.add_argument("--node", default="node")
 args = parser.parse_args()
 
+MAIN = r"""
+int host_value = 5;
+int host_add(int x) { return host_value += x; }
+int (*main_function(void))(int) { return host_add; }
+"""
+
 LIB_A = r"""
 int counter = 7;
 volatile int seed = 3;
@@ -25,6 +31,8 @@ LIB_B = r"""
 extern int counter;
 extern int inc(int);
 extern int twice(int);
+extern int host_value;
+extern int host_add(int);
 extern int optional_fn(int) __attribute__((weak));
 int *saved = &counter;
 int observed;
@@ -34,16 +42,19 @@ int (*get_external_function(void))(int) { return inc; }
 int (*get_unaddressed_function(void))(int) { return twice; }
 int weak_present(void) { return optional_fn != 0; }
 int direct(int x) { return inc(x); }
+int from_main(int x) { return host_add(x) + host_value; }
+int *main_data_address(void) { return &host_value; }
+int (*main_function_address(void))(int) { return host_add; }
 int run(int x) { int (*volatile fn)(int) = inc; return fn(x) + *saved; }
 """
 RUNNER = r"""
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {basename} from 'node:path';
-import {read_wasm_dylink,read_wasm_dynamic_imports} from __BINARY_READER__;
+import {read_wasm_dylink,read_wasm_dynamic_imports,read_wasm_dynamic_signatures} from __BINARY_READER__;
 import {plan_dylink_layout} from __LAYOUT_PLANNER__;
 import {link_dylink_graph} from __MODULE_LINKER__;
-const [bits, first, second, mode] = process.argv.slice(2);
+const [bits, first, second, mainFile, mode] = process.argv.slice(2);
 const modules = [first, second].map(p => new WebAssembly.Module(readFileSync(p)));
 const layouts=[first,second].map(p=>read_wasm_dynamic_imports(new Uint8Array(readFileSync(p))));
 // Exercise the runtime's parser with actual LLD output, before instantiation.
@@ -91,18 +102,28 @@ const memoryAddress=memoryLayout.address;
 const tableAddress=tableLayout.address;
 const memory=new WebAssembly.Memory({initial:word(memoryAddress,8),maximum:word(memoryAddress,memoryLayout.maximum),shared:true,address:memoryAddress});
 const table=new WebAssembly.Table({element:'anyfunc',initial:word(tableAddress,128),maximum:word(tableAddress,512),address:tableAddress});
-const limits={memory:4*65536,table:Number(table.length)-1}; // Reserve upper memory for the C stack.
-const plan=reserve(metadata,65536,3,limits); // 0 null, 1/2 signal sentinels.
-assert.throws(()=>reserve(metadata,65536,3,{...limits,memory:65536}),/reservation capacity/);
+const limits={memory:4*65536,table:Number(table.length)-1}; // Main data/stack occupy the first two pages.
+const plan=reserve(metadata,131072,8,limits); // Preserve main-module table entries.
+assert.throws(()=>reserve(metadata,131072,8,{...limits,memory:131072}),/reservation capacity/);
 const [aRegion,bRegion]=plan.items;
 assert(aRegion.base+metadata[0].memorySize<=bRegion.base);
 assert(aRegion.tableBase+metadata[0].tableSize<=bRegion.tableBase);
 const files=new Map([[names[0],new Uint8Array(readFileSync(first))],[names[1],new Uint8Array(readFileSync(second))]]);
+const mainBytes=new Uint8Array(readFileSync(mainFile));
+const main=new WebAssembly.Instance(new WebAssembly.Module(mainBytes),{env:{memory,__indirect_function_table:table}});
+const signatures=read_wasm_dynamic_signatures(mainBytes).exports;
+const externalSymbols=new Map();
+for(const [name,value] of Object.entries(main.exports)) {
+ if(typeof value==='function')externalSymbols.set(name,{value,signature:signatures.get(name),
+  ...(name==='host_add'?{address:BigInt(main.exports.main_function())}:{})});
+ else if(value instanceof WebAssembly.Global)externalSymbols.set(name,{value,address:BigInt(value.value)});
+}
 const options={root:names[1],files,memory,table,
+ externalSymbols,
  memoryMaximumPages:memoryLayout.maximum,tableMaximumElements:512n,
- stack:new WebAssembly.Global({value:memoryAddress,mutable:true},word(memoryAddress,8*65536-16)),
- memoryArena:{cursor:65536n,limit:BigInt(limits.memory),address:memoryAddress},
- tableArena:{cursor:3n,limit:BigInt(limits.table),address:tableAddress}};
+ stack:main.exports.__stack_pointer,
+ memoryArena:{cursor:131072n,limit:BigInt(limits.memory),address:memoryAddress},
+ tableArena:{cursor:8n,limit:BigInt(limits.table),address:tableAddress}};
 const before=new Uint8Array(memory.buffer).slice();
 assert.throws(()=>link_dylink_graph({...options,files:new Map([[names[1],files.get(names[1])]])}),/missing dynamic dependency/);
 assert.deepEqual(new Uint8Array(memory.buffer),before,'preflight failure must not modify process memory');
@@ -133,6 +154,12 @@ assert(Number(extraPointer)>=plan.tableEnd,'exercise a newly allocated canonical
 assert.equal(table.get(word(tableAddress,extraPointer)),a.exports.twice,'previously unaddressed export gets a callable slot');
 assert.equal(table.get(word(tableAddress,extraPointer))(21),42);
 assert.equal(b.exports.weak_present(),0,'unresolved weak function retains a null address');
+assert.equal(b.exports.main_data_address(),main.exports.host_value.value,'main data addresses must not be relocated again');
+assert.equal(b.exports.main_function_address(),main.exports.main_function(),'main canonical function pointer is preserved');
+assert.equal(b.exports.from_main(3),16,'main direct/GOT calls share the actual main data');
+assert.equal(linked.lookup('counter').address,BigInt(counter));
+assert.equal(linked.lookup('inc').address,BigInt(pointer));
+assert.equal(linked.lookup('host_value'),undefined,'handle-local lookup must exclude main-only definitions');
 assert.equal(new DataView(memory.buffer).getInt32(counter,true),10);
 assert.equal(table.get(word(tableAddress,Number(pointer)))(2),12);
 assert.equal(b.exports.run(3),30);
@@ -140,13 +167,14 @@ assert.equal(new DataView(memory.buffer).getInt32(counter,true),15);
 assert.equal(memory.grow(word(memoryAddress,1)),word(memoryAddress,8));
 assert.equal(b.exports.run(1),32);
 assert.equal(b.exports.direct(4),20,'direct function imports bind to the same dependency state');
-console.log(`PIC probe wasm${bits}: runtime linker dependency order, metadata reservations, data relocations, shared memory/table, GOT, weak/null, canonical slots, ctor, direct/indirect calls and growth pass (table ${tableAddress}); not Linux/ELF acceptance`);
+console.log(`PIC probe wasm${bits}: runtime linker dependencies, relocations, GOT, weak/null, canonical slots, main symbols, handle lookup, ctor, direct/indirect calls and growth pass (table ${tableAddress}); not Linux/ELF acceptance`);
 """
 
 with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
     directory = Path(tmp)
     (directory / "a.c").write_text(LIB_A)
     (directory / "b.c").write_text(LIB_B)
+    (directory / "main.c").write_text(MAIN)
     runtime = Path(__file__).resolve().parents[1] / "sources/distro/packages/kernel/src"
     runner = RUNNER.replace(
         "__BINARY_READER__", json.dumps((runtime / "wasm_binary.ts").as_uri())
@@ -156,22 +184,28 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
     )
     (directory / "probe.mjs").write_text(runner)
     for bits in (32, 64):
-        for name in ("a", "b"):
+        for name in ("main", "a", "b"):
             subprocess.run(
                 [
                     args.clang,
                     f"--target=wasm{bits}",
                     "-nostdlib",
                     "-O2",
-                    "-fPIC",
-                    "-shared",
+                    *([] if name == "main" else ["-fPIC", "-shared"]),
                     "-matomics",
                     "-mbulk-memory",
                     "-Wl,--shared-memory",
                     "-Wl,--no-entry",
+                    "-Wl,--import-memory",
+                    "-Wl,--import-table",
+                    *(
+                        ["-Wl,--table-base=3", "-Wl,--export=__stack_pointer"]
+                        if name == "main"
+                        else []
+                    ),
                     "-Wl,--export-all",
                     "-Wl,--export=__wasm_call_ctors",
-                    f"-Wl,-soname,{name}{bits}.wasm",
+                    *([] if name == "main" else [f"-Wl,-soname,{name}{bits}.wasm"]),
                     f"-Wl,--max-memory={4294967296 if bits == 32 else 17179869184}",
                     str(directory / f"{name}.c"),
                     *([str(directory / f"a{bits}.wasm")] if name == "b" else []),
@@ -187,6 +221,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(bits),
                 str(directory / f"a{bits}.wasm"),
                 str(directory / f"b{bits}.wasm"),
+                str(directory / f"main{bits}.wasm"),
             ],
             check=True,
         )
@@ -197,6 +232,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(bits),
                 str(directory / f"a{bits}.wasm"),
                 str(directory / f"b{bits}.wasm"),
+                str(directory / f"main{bits}.wasm"),
                 "reverse-ctors",
             ],
             capture_output=True,

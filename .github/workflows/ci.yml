@@ -88,7 +88,8 @@ jobs:
       - name: Check dynamic module metadata and independent memory/table layouts
         run: |
           node --test sources/distro/packages/kernel/test/dylink.test.ts \
-            sources/distro/packages/kernel/test/dylink-linker.test.ts
+            sources/distro/packages/kernel/test/dylink-linker.test.ts \
+            sources/distro/distro/dynamic-loader/io.test.js
       - name: Check existing file-handle wrappers and workload analysis
         run: python3 -B scripts/test_file_handle.py
       - name: Check directory notification workload and disabled-feature control
