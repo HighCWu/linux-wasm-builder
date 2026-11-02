@@ -258,3 +258,61 @@ AT_SECURE，没有为此改变Linux权限策略或绕过VFS通过宿主fetch读�
 再将musl已有dlopen/dlsym调用路径接到独立配置，进行真实Linux进程和关闭
 验收。这里尚未完成这个接线，也不接受多线程动态加载、fork动态快照、ELF
 入口或动态符号版本。候选SDK联合构建41488752556仍运行，不重复派发。
+
+## 标准 dlfcn 调用路径与独立 SDK 接线
+
+distro `9cbe7d0` / 集成 `69d8401` 接通Worker中的每进程加载状态和已有musl
+dlopen/dlsym/dlerror/dlclose路径，增加独立 `sdk-dynamic-loader` 及wasm64配置。
+应用使用原有dlfcn接口，文件读取走正常Linux syscall；SDK只是隔离交付这组
+架构兼容代码。默认SDK、musl gitlink及其公共头文件/函数集合不变。
+
+musl补丁只在Wasm且显式WASM_DYNAMIC_LOADER配置下替换三个已有失败后备的
+调用路径，转入独立MIT执行支持对象；普通构建保持原后备。Worker在exec提交前
+读取主程序表类型和标量函数签名，检查输入内存、私有导出及内核能力。缺少能力
+或混用fork-continuation时返回ENOEXEC，避免运行一半后才发现组合不兼容。
+该配置拒绝clone/clone3，不声称已经解决跨Worker模块发布或动态fork快照。
+
+ProcessDylink通过受控C回调取得文件快照、规范路径和allocator区域。支持直接
+路径、LD_LIBRARY_PATH、直接依赖的RUNPATH/$ORIGIN及系统目录查找；文件身份、
+别名、句柄、LOCAL/GLOBAL/NOLOAD和已有依赖实例在进程内复用。构造函数不因
+重复打开或单独打开已有依赖而重跑，句柄关闭采用musl的对象驻留策略。普通失败
+撤销临时引用/缓冲区；C回调或初始化trap终止进程，exit/exec控制转移原样传递，
+不在旧执行上下文继续调用libc清理。内核私有函数异常则按内核故障终止机器。
+
+源码复核确认，当前Wasm专用文件mmap在完成复制后释放文件引用，不能用它固定
+已加载库的inode。Linux `1be96089c` 增加mm所有的fget引用、单调私有ID和清理，
+`356fb863f` 使用VFS getattr校验与用户fstat相同的dev/ino，兼容文件系统身份
+转换。输入fd只在读取和引用交接期间保留，之后关闭；close_range不能释放这些
+mm引用，mm关闭时统一fput。初始化新mm时不继承宿主加载状态。没有新增应用
+syscall、软件MMU或地址翻译，Linux文件内的必要修改保留GPL。
+
+内核源树的
+[41516892547](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41516892547)
+先验证59937da的既有hash并取得1be96089c；后续
+[41519085644](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41519085644)
+以该结果验证父树，再取得356fb863fc217b662d8da08bfa4e289ff969b159，hash为
+`sha256-aNrKArZmnXmPgI73OShgnUTLjWlRK22LLL2Pz+8Xkrw=`。
+构建继续用固定内容hash的Git获取，未绕过校验。
+
+本地417项运行层、两编译器读取测试、两套TypeScript、双位宽前端/静态分析及
+格式检查通过；实际内核引用函数的宿主模型验证fd复用、VFS身份转换、错误无
+泄漏、ID边界和mm清理。真实小型Clang18产物在两位宽通过ProcessDylink模型，
+覆盖作用域、依赖复用、读取收尾、重入拒绝和控制转移；其中I/O/内核引用使用
+模型桥接，仍不作为Linux目标运行或table64验收。
+
+独立目标用普通C主程序和两个普通C共享库，要求四阶段、唯一pass及发布runner
+的machine.closed门禁：主程序符号/错误报告；Linux文件、RUNPATH、GOT和构造；
+别名/作用域/复用/close；缺失/损坏输入及恢复收尾。Linux Clang当前仍向-shared
+注入静态table base，所以共享对象由同一Linux ABI编译成PIC对象，再交普通
+wasm-ld链接；通用cc -shared驱动还需独立修复，不能称为已完成。
+
+固定9cbe7d0的新目标已分别派发一次，计划阶段通过且Heavy已开始：
+
+| 目标 | 任务 |
+|---|---|
+| Node wasm32 | [41523965930](https://github.com/HighCWu/distro/actions/runs/41523965930) |
+| Node wasm64 | [41523974771](https://github.com/HighCWu/distro/actions/runs/41523974771) |
+
+实际四阶段、关闭和内核无异常结果尚待日志核实。前一代引擎模型/工作流成功
+不替代这一新内核、libc、SDK及Worker组合。ELF入口、TLS、循环依赖、非局部
+跳转、C++、线程及动态fork仍需继续实现，完整目标不因此缩小或完成。

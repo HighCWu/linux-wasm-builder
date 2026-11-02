@@ -2064,6 +2064,13 @@ table32引擎实验。后继f47bc91 / 集成0177c50补充主程序绝对数据/�
 调用，标准dlopen进程验收仍未完成。见
 [主程序与文件桥接](elf-dynamic-linking.md#主程序符号与-linux-文件读取桥接)。
 
+9cbe7d0 / 集成69d8401已接通Worker和musl既有dlfcn路径，并提供独立动态
+SDK和双位宽真实Linux验收配方。内核356fb863f以mm所有的文件引用固定inode，
+通过VFS身份校验并在exec/退出释放；两次公开源树hash验证后更新pin。没有新增
+musl公共API或应用syscall，默认SDK不切换。Node两路已派发，尚待四阶段和关闭；
+通用Clang -shared、ELF、TLS/线程/动态fork等缺口仍在。见
+[接线与实际验收边界](elf-dynamic-linking.md#标准-dlfcn-调用路径与独立-sdk-接线)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。

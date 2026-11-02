@@ -6047,6 +6047,13 @@ runner与已审计版本的run-test.js/shutdown.js无差异：必须等待machin
 
 ## 静态 review 与异步验收原则
 
+标准dlfcn接线9cbe7d0的文件操作继续使用Linux syscall，未新增公共libc函数。
+内核356fb863f补充执行层私有文件引用：Wasm代码没有原生可执行VMA，因此读取
+快照后仍须持有真实file引用，避免inode复用。引用归mm所有，与应用fd表分开，
+由VFS getattr核对身份，失败释放，exec/退出统一清理；没有新增应用syscall。
+独立动态SDK及Worker均已接线，双位宽Node的四阶段和关闭仍待实际日志，见
+[动态装载记录](elf-dynamic-linking.md#标准-dlfcn-调用路径与独立-sdk-接线)。
+
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
 fd 与 limit 的 fork/exec 生命周期、错误后的原状态和默认模式兼容边界。此前纯
 语料增量没有修改内核；第八组发现的必要内核修复单独记录。没有把“未发现缺陷”
