@@ -17,6 +17,7 @@ MAIN = r"""
 int host_value = 5;
 int host_add(int x) { return host_value += x; }
 int (*main_function(void))(int) { return host_add; }
+int unaddressed_main(int n) { return n + 40; }
 """
 
 LIB_A = r"""
@@ -185,6 +186,27 @@ const runPointer=storeString('run'),counterPointer=storeString('counter');
 const missingPointer=storeString('/missing.wasm'),badPointer=storeString('/bad.wasm');
 const controlPointer=storeString('/control');
 const control=Symbol('modeled exit/exec');
+// A genuine Wasm start callback enters main dlsym while the new module's active
+// element segment already occupies its assigned table region.
+const str=value=>[value.length,...new TextEncoder().encode(value)];
+const sec=(id,payload)=>[id,payload.length,...payload];
+const baseName=tableAddress==='i32'?'__table_base32':'__table_base';
+const startModule=new Uint8Array([0,97,115,109,1,0,0,0,
+ ...sec(0,[...str('dylink.0'),...sec(1,[0,0,1,0])]),
+ ...sec(1,[2,0x60,0,0,0x60,0,1,0x7f]),
+ ...sec(2,[3,...str('env'),...str('during_start'),0,0,
+  ...str('env'),...str('__indirect_function_table'),1,0x70,tableAddress==='i64'?4:0,0,
+  ...str('env'),...str(baseName),3,tableAddress==='i64'?0x7e:0x7f,0]),
+ ...sec(3,[3,1,1,0]),
+ ...sec(7,[2,...str('answer'),0,1,...str('entry'),0,2]),
+ ...sec(8,[3]),
+ ...sec(9,[1,0,0x23,0,0x0b,1,1]),
+ ...sec(10,[3,5,0,0x41,0xe3,0,0x0b,
+  ...(tableAddress==='i64'?[5,0,0x23,0,0xa7,0x0b]:[4,0,0x23,0,0x0b]),
+  4,0,0x10,0,0x0b]),
+]);
+const unaddressedPointer=storeString('unaddressed_main');
+let fromStart;
 const virtualFiles=new Map([
  ['/libraries/'+names[0],{bytes:files.get(names[0]),inode:11n}],
  ['/libraries/'+names[1],{bytes:files.get(names[1]),inode:12n}],
@@ -197,6 +219,7 @@ const virtualFiles=new Map([
  ['/libraries/denied.wasm',{bytes:files.get(names[1]),inode:12n}],
  ['/libraries/'+basename(cycleAFile),{bytes:new Uint8Array(readFileSync(cycleAFile)),inode:21n}],
  ['/libraries/'+basename(cycleBFile),{bytes:new Uint8Array(readFileSync(cycleBFile)),inode:22n}],
+ ['/libraries/start.wasm',{bytes:startModule,inode:31n}],
 ]);
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleAFile))).needed,[basename(cycleBFile)]);
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleBFile))).needed,[basename(cycleAFile)]);
@@ -213,6 +236,8 @@ const allocate=(size,alignment)=>{size=Number(size);alignment=Math.max(8,Number(
  return word(memoryAddress,p);};
 const deallocate=p=>{assert(live.delete(Number(p)),'exactly one owner frees each temporary allocation');};
 const bridge={exports:{...main.exports,
+ during_start:()=>{fromStart=processLoader.symbol(word(memoryAddress,0),unaddressedPointer);
+  assert.notEqual(fromStart,word(memoryAddress,0),'dlsym in start resolves a new main pointer');},
  __indirect_function_table:table,
  __wasm_dlopen_io_v1:()=>1,
  __wasm_dlopen_allocate:allocate,
@@ -239,9 +264,9 @@ const bridge={exports:{...main.exports,
   new Uint8Array(memory.buffer,descriptor,40).fill(0);currentFd=-1;},
 }};
 processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximumPages:Number(memoryLayout.maximum),
- tableType:{address:tableAddress,minimum:128n,maximum:512n},signatures,
+ tableType:{address:tableAddress,minimum:128n,maximum:512n},signatures:new Map([...signatures,['during_start','[[],[]]']]),
  isControlFlow:error=>error===control,fatal:error=>{throw error;},
- pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n].includes(inode));
+ pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
 const beforeSearch=live.size;
@@ -291,6 +316,15 @@ assert.notEqual(cyclePeer,word(memoryAddress,0));
 assert.equal(processLoader.symbol(cyclePeer,storeString('cycle_a_value')),word(memoryAddress,address('cycle_a_value')));
 assert.equal(data('cycle_a_count'),1);assert.equal(data('cycle_b_count'),1);
 console.log(`Process loader cyclic model wasm${bits}: mutual NEEDED, relocated peer constructors, canonical pointers and reused instances pass; not Linux bridge acceptance`);
+const starting=processLoader.open(storeString('start.wasm'),2);
+assert.notEqual(starting,word(memoryAddress,0),'load module with reentrant start lookup');
+const entry=processLoader.symbol(starting,storeString('entry'));
+const moduleSlot=table.get(word(tableAddress,entry))();
+assert.equal(table.get(word(tableAddress,moduleSlot))(),99,'main dlsym must not overwrite new module element');
+assert.equal(table.get(word(tableAddress,fromStart))(2),42,'new main pointer remains callable');
+assert.notEqual(BigInt(fromStart),BigInt(moduleSlot),'publication and main pointer slots are disjoint');
+assert.equal(processLoader.symbol(word(memoryAddress,0),unaddressedPointer),fromStart,'later lookup preserves canonical identity');
+console.log(`Process loader start model wasm${bits}: reentrant main dlsym preserves module elements and canonical pointers pass; not Linux bridge acceptance`);
 const retained=live.size;
 assert.equal(processLoader.open(missingPointer,2),word(memoryAddress,0));
 assert.equal(processLoader.open(badPointer,2),word(memoryAddress,0));
