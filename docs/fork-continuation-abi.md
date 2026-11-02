@@ -97,7 +97,8 @@ ENOSYS；只有 ABI 2 对象才接入下述解析与恢复。import 名称仍为
 非零未知尾部返回 E2BIG，其他未支持形态返回 EOPNOTSUPP。这里不是完整 Linux
 clone3 flags/错误优先级兼容承诺；不支持 clone3 的自定义子进程 stack/stack_size
 （不是 sigaltstack 的信号替代栈）、tid/TLS、
-cgroup、namespace、线程创建或多线程 fork。
+CLONE_INTO_CGROUP、线程创建或多线程 fork。命名空间传递增量见下节，
+不将其与普通 flags=0 的已验收范围混为一谈。
 
 ### clone3 的 CLONE_PIDFD 增量
 
@@ -130,6 +131,27 @@ Linux kernel_clone 负责原子创建、pidfd 写回、CLOEXEC 和资源失败�
 和 signal callback 仍受原有状态机约束。未启用可选执行对象的 v2 请求拒绝；旧
 callback import 对 clone3 返回 ENOSYS，不再把未能保存用户现场的请求送入内核。
 raw caller 仍须自行承担 libc post-fork 收尾，不自动获得 fork() 的 atfork/锁处理。
+
+### clone3 的命名空间传递
+
+distro `7273efc` 为 syscall 扩展 ABI 2 对象增加可选内部执行导出
+`__wasm_fork_clone_namespaces(uintptr_t namespaces, uintptr_t pidfd)`。
+应用仍调用标准 clone3 syscall，无新增 libc 函数、Linux UAPI 或应用入口。
+参数只保存已验证请求的 namespace 标志和可选 PIDFD 地址；新 helper 调用
+原 callback clone，把这些标志与 SIGCHLD/可选 CLONE_PIDFD 交给 Linux。
+
+可传递 CLONE_NEWNS、NEWUTS、NEWIPC、NEWUSER、NEWPID、NEWNET、NEWCGROUP，
+掩码0x7e020000。内核负责配置、权限、组合合法性及失败回滚，传递能力不等于
+所有命名空间都已启用；例如当前官方默认 USER_NS=n 保留。CLONE_NEWTIME
+与旧 clone 的 CSIGNAL 位重叠，继续返回 EOPNOTSUPP，不截断/悄悄忽略。
+自定义栈、tid/TLS、CLONE_INTO_CGROUP 和线程/多线程 fork 的边界不变。
+
+缺少可选 helper 时在 descriptor 初始化前拒绝。与 PIDFD 组合仍要求内核的
+Worker abort 能力；旧对象普通 fork/PIDFD 路径保持。参数只复制一次，unwind
+后不重读；clone 负值或异常都清除 namespace/PIDFD 选项，之后普通 fork
+不得携带它们。child rewind 仍完成已接纳请求，命名空间身份来自 Linux task，
+不是宿主伪造 PID/hostname。独立目标覆盖 UTS/IPC/PID、权限拒绝与恢复，
+真实目标结果尚待验收，见[进程记录](process-syscalls.md)。
 
 此为已实现待目标验收的增量：本地双位宽状态机及原始调用语料已接入，真实 Node
 与浏览器支持结论见[进程 syscall 验收](process-syscalls.md)，不能只凭此协议定义推定。

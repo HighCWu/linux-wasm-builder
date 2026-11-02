@@ -2119,6 +2119,19 @@ make 目标选择 setsid/flock，并继承独立材料输出；主仓库 `826d2d
 pin，新四路已派发。没有应用源码补丁或预填能力成功，功能及关闭仍待验证。
 见[构建条件记录](process-syscalls.md#第一百零八组原版工具的上游默认构建条件)。
 
+distro `7273efc` 接通标准 clone3 的命名空间标志传递，可组合 PIDFD；Linux
+负责真实配置、权限和创建。旧执行对象缺少可选传输则拒绝，不静默丢标志；
+NEWTIME因旧 clone 的 CSIGNAL 表达限制继续拒绝，单线程/default-stack 边界
+不变。UTS/IPC/PID 隔离及 EPERM 后恢复的消费者和双位宽轻量检查通过，真实
+目标两路已派发，尚待验收。主仓库 pin 为 `7a728ac`，未改 musl/Linux源码。
+见[命名空间传递记录](process-syscalls.md#第一百零九组标准-clone3-命名空间标志交给-linux)。
+
+cgroup78e85db与原版flock7081904的 Node wasm32 已分别核实三阶段/四阶段、
+唯一 pass及已发布 runner 的关闭门禁；各自wasm64不沿用32位结论。setsid
+的7081904已编译成功，但在未挂载 /dev 的镜像中打开 /dev/null 返回ENOENT，
+尚未运行 fork 阶段。47b4e74在专用 init 初始化/清理标准devtmpfs/devpts，
+不改应用源码，新两路待验证。见[实际结果记录](process-syscalls.md#第一百一十组已核实的32位进展与-setsid-设备前提)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |

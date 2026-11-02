@@ -100,10 +100,10 @@ fork continuation。早期 `269f4d4` 未包含该头文件修复，不作为目�
 但仅为 ABI 2 对象启用 clone3；未知版本拒绝。支持边界仍不扩大。
 
 支持边界与错误策略见[clone3 执行 ABI](fork-continuation-abi.md#clone3-的有限-fork-形态)。
-只接纳无 flags、默认栈、SIGCHLD、无 tid/pidfd/TLS/cgroup 选项的单线程 fork。
+该早期版本只接纳无 flags、默认栈、SIGCHLD、无 tid/pidfd/TLS/cgroup 选项的单线程 fork。
 指针/长度先验证，结构字段保持完整 u64；保存区重入和恢复受现有状态机控制。
-对未支持的合法组合拒绝，不声称实现完整 clone3。尤其不支持 CLONE_PIDFD 原子
-返回 pidfd；第一组测试用的是已有子进程的 pidfd_open。
+对未支持的合法组合拒绝，不声称实现完整 clone3。该阶段尚不支持 CLONE_PIDFD
+原子返回 pidfd；后续 PIDFD 与命名空间传递各自记录实现和目标范围，不沿用早期结论。
 
 新原始调用语料检查旧 import 拒绝、坏地址/长度/尾部、未支持形态、不留下可回收
 子进程，随后按 64/80/88/96 四种长度从相同 syscall 调用点恢复父子，核对 PID/PPID、
@@ -5288,6 +5288,67 @@ distro `7081904` 去掉全局 disable 与不存在的单工具 enable 选项，�
 setsid 三阶段、flock 四阶段、各唯一 pass 和机器关闭都仍待真实日志，不将
 构建修复当作新 syscall 或已接受的 fork 功能扩展。此前 flock 的 bab75b6
 任务若仍运行则继续等待，不因耗时取消，也不改写旧源码的结果。
+
+## 第一百零九组：标准 clone3 命名空间标志交给 Linux
+
+原执行适配层只接纳 flags=0 或 CLONE_PIDFD，即使内核已具备标准命名空间，
+clone3 的请求也被宿主提前 EOPNOTSUPP。distro `7273efc` 增加命名空间标志
+传递：有界 clone_args 解码允许0x7e020000内的 NEWNS/NEWCGROUP/NEWUTS/
+NEWIPC/NEWUSER/NEWPID/NEWNET，可结合 CLONE_PIDFD；其余结构与 default-stack
+单线程 fork 准入不变。只从一次复制取得 namespace/PIDFD 选项，不读取被
+unwind 改写后的用户参数。Linux 决定实际配置、权限与标志组合是否合法。
+
+新增的是 MIT 执行对象的可选内部传输 helper，不是 musl 或应用 API。它把
+namespace 标志、SIGCHLD 和可选 CLONE_PIDFD 交给原 Linux callback clone，
+没有新内核 syscall 号、内核 softmmu 或宿主命名空间实现。旧执行对象缺少
+helper 则在 descriptor 初始化前拒绝；与 PIDFD 组合仍要求现有内核 abort
+能力。clone 负值/异常均清除捕获的两类选项，下一次普通 fork 不受污染。
+Linux 的 USER_NS 默认 n 继续保留；允许传递不表示强制启用或已经验收全部类型。
+NEWTIME 的0x80与旧 clone CSIGNAL 位冲突，因此明确拒绝而非悄悄丢失；
+CLONE_INTO_CGROUP、自定义栈、tid/TLS、线程和多线程 fork 仍不开放。
+
+独立 MIT 标准 syscall 消费者使用原 clone_args u64 结构和正确机器字参数：
+
+- NEWUTS|NEWIPC|PIDFD 子进程修改自身 hostname、不能访问父 IPC queue，
+  可创建/删除自身 queue。父端核对原 hostname、内存和 queue 保留，以及
+  PIDFD CLOEXEC、退出可读及清理。子端 PIDFD 槽仍为-1。
+- NEWPID 子进程看到 PID=1、外部父进程 PPID=0；父端取得外层 PID，wait
+  核对退出37且只回收一次。
+- 普通 fork worker 降权后请求 UTS|PIDFD，必须由 Linux 返回 EPERM、PIDFD
+  保留-1且没有子进程；随后普通 fork/wait 仍正常，证明权限失败不污染恢复。
+
+原 resolved 配置门禁再核对 NAMESPACES/UTS_NS/IPC_NS/PID_NS=y，未修改 Linux
+源码或配置 pin。程序材料单独输出，使用可选 SDK/finalizer，成功后发布三阶段
+和唯一 pass并等待机器关闭，不改变默认 libc/SDK。未在宿主运行降权/namespace
+主程序。GCC/Clang 严格前端、静态分析，当前头文件下双位宽 Wasm 前端/分析、
+执行支撑对象编译、两套 TypeScript 项目检查、371项内核宿主检查及8项SDK/raw
+clone检查通过。review 覆盖 bit mask、i32/i64 标志、完整 PIDFD 指针、旧对象
+能力门禁、参数捕获和失败清理；宿主状态机检查不替代实际 Linux 权限/隔离。
+主仓库 `7a728ac` 单独更新 distro pin，固定7273efc各派发一次
+[wasm32 41428995973](https://github.com/HighCWu/distro/actions/runs/41428995973) 与
+[wasm64 41429003026](https://github.com/HighCWu/distro/actions/runs/41429003026)。
+尚待三阶段和关闭证据；不据此宣称完整容器、全部 namespace 或浏览器支持。
+
+## 第一百一十组：已核实的32位进展与 setsid 设备前提
+
+cgroup 的78e85db wasm32已核实完整压缩日志1,469,639字节、构建步7,442,272
+字节，三个功能阶段和唯一 pass各一次；Heavy/workflow success。原版 flock
+的7081904 wasm32完整压缩日志1,449,342字节、构建步7,510,928字节，四阶段
+和唯一 pass各一次；Heavy/workflow success。两者均无目标 fail/panic；其
+已发布 runner 在退出0前等待 machine.closed，Nix也要求退出0，关闭门禁成立。
+这里仅接受各自指定源码的 Node wasm32 范围，wasm64仍需独立实际日志。
+
+setsid 的7081904 wasm32已实际编译并打印 util-linux 2.42.2，随后消费者
+child input 返回 ENOENT；完整压缩日志1,526,607字节、构建步7,507,552字节。
+这是首个非TTY场景所需 /dev/null 不存在：专用镜像只建了 /dev 目录，没有
+挂载设备文件系统，尚未到普通 fork 或 PTY 阶段，不是该 syscall 运行失败。
+distro `47b4e74` 在专用 init 按既有标准 util-linux 设备前提挂载 devtmpfs 和
+devpts；消费者结束后全部卸载、发布 fixture teardown 阶段才允许 pass。
+不修改应用 C 代码、内核设备实现或生产 init。脚本语法与固定 shfmt通过，
+主仓库 `c39cb13` 单独更新 pin，固定47b4e74的新两路
+[wasm32 41428159206](https://github.com/HighCWu/distro/actions/runs/41428159206) 与
+[wasm64 41428166924](https://github.com/HighCWu/distro/actions/runs/41428166924)
+已派发，完整阶段与关闭待核实。
 
 ## 本轮静态 review 与异步验收原则
 
