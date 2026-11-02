@@ -1943,10 +1943,21 @@ wasm32 或独立示例下载验收完成。
 
 ## P8：动态链接与高级能力
 
-- 在静态程序和进程内存语义稳定后，单独设计Linux/Wasm动态loader ABI。
+- 以普通程序源码基本不改为目标，启动用户态 ELF 与动态加载的独立设计和
+  有界实验；与 syscall 完善并行，不把单项动态链接成功当作全平台完成。
+- 先解决通用工具链的符号版本/visibility 兼容，不以每个应用的 .symver
+  专用补丁为最终路线，也不静默丢弃旧版本绑定。
+- 参考 Emscripten/Wasm dylink 的机制，明确 Linux/Wasm 动态 loader ABI、
+  ELF 机器/重定位映射、进程内依赖搜索与既有 dlopen/dlsym 调用路径。
 - 共享memory/table、TLS、relocation、constructors和`dlopen/dlsym`。
 - 动态库只能使用可直接访问的linear-memory区间；无法满足的布局明确失败。
 - 评估调试器、性能分析、checkpoint、容器式隔离和不可信模块验证。
+
+已有 MIT 前期 PIC 实验在本地 Clang/LLD18 + Node25 双位宽下通过共享
+memory/table32、数据/函数 GOT、构造、跨库调用与增长后的访问；不包含
+Linux/ELF/libc/TLS/浏览器或线程，不算生产加载器验收。实现顺序和边界见
+[ELF 与动态链接路线](architecture.md#elf-与动态链接应用兼容优先)。未提交的
+libkcapi 专用符号补丁暂不集成，优先调查工具链层能否使上游源码直接构建。
 
 `cc72990` 为 SDK 增加标准 `try_table` 异常指令的独立 C++ 消费者检查，针对
 Firefox 实际日志中的旧式 EH 弃用警告。它保持默认编译配置、内核和运行库不变，

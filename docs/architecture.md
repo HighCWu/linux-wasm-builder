@@ -10,6 +10,10 @@ libc、发行版和宿主必须以清晰边界协同，使普通 Linux 源码和
 服务器 Wasm runtime 中可用，并让用户像在普通 Linux 用户态一样，依照自身代码和
 依赖的许可证选择开源、闭源、非商业或商业发行方式。
 
+核心验收要求之一是程序源码基本不改，通过常规交叉编译即可构建和执行。
+兼容工作优先落在标准 syscall、工具链、执行 ABI 和 libc 的必要架构层；不能
+把持续增加程序专用补丁、替代函数或要求应用使用项目专有加载 API 当作完成。
+
 动态链接、某一种文件系统或某一个应用的成功运行，都只能证明相应能力达到
 了一个阶段，不能替代全平台目标。专项实现可以随实验结果演进或被替换，应用可见的
 Linux 接口和跨组件 ABI 则必须受到兼容性治理。
@@ -125,3 +129,47 @@ SBOM和对应源码包。
 平台第一阶段信任由配套工具链生成的用户模块。用户代码最终执行raw Wasm memory
 access；后续若要运行不可信模块，需要签名、验证/重写或更强的multi-memory
 capability边界。
+
+## ELF 与动态链接：应用兼容优先
+
+用户态 ELF 支持纳入后续实现路线，不包括把现成 x86/ARM ELF 当作 Wasm
+直接执行，也不等于支持 ELF 内核模块。ELF 是容器和链接元数据；Wasm 仍是
+交给引擎验证、实例化的代码。需要分别实现文件/段校验、符号和版本解析、
+重定位、解释器及库搜索，不能只加 ELF magic 或换扩展名就宣布兼容。
+ELF/Wasm 的机器标识、代码/数据/函数表索引表达及重定位映射必须先形成
+明确的架构契约，不能伪造 x86 machine ID，或把原生 CPU 重定位直接套用。
+
+参考 [Emscripten 动态链接](https://emscripten.org/docs/compiling/Dynamic-Linking.html)
+的多模块加载思路和 [Wasm 动态链接约定](https://github.com/WebAssembly/tool-conventions/blob/main/DynamicLinking.md)
+中的 dylink.0、GOT、memory/table 分配与初始化机制，但不直接采用其系统库和
+JavaScript 环境作为本平台 Linux ABI。该工具约定仍声明 ABI 未稳定，试验须
+固定版本、独立启用；自定义段不是新的引擎指令，不以未落地引擎提案作前提。
+
+优先顺序：
+
+1. 通用工具链兼容 ELF 风格的符号/版本语义，先核查 .symver、默认/指定版本、
+   weak/visibility 和版本脚本；不能把所有历史版本悄悄合并到最新实现。
+   libkcapi 尚未集成的专用符号补丁保留为调研草案，不作为正式交付路线。
+2. 实现进程内的 Wasm 动态加载基础：依赖图、共享地址空间、GOT/函数表、
+   重定位、构造顺序、失败回滚，再以不修改源码的真实共享库验证。
+3. 接入用户态 ELF 加载及 PT_INTERP/依赖搜索；应用使用通常的编译选项和
+   已有 dlopen/dlsym 等接口，不要求应用调用宿主 JavaScript 加载函数。
+   若 ELF 与 Wasm 同时携带元数据，必须明确权威来源并拒绝冲突，而非猜测。
+4. 补齐 TLS、跨库异常/SjLj、符号抢占/循环依赖、多线程装载与卸载安全。
+   Worker 之间不能假定一个 JS Table 对象可直接共享，需一致的模块世代与
+   函数表槽位协议；初期单 Worker 实验不得扩展为线程或 fork 已受支持。
+
+所有数据地址仍须存在于有界 linear memory，装载分配必须与现有 allocator
+协同，不能自行侵占 brk/mmap 区域或以 softmmu 模拟高地址。现有静态 SDK、
+线程和实验性静态 fork 的支持范围保持不变；动态模块的 fork/exec 恢复需要
+另行验证，不因新增加载器而解除原能力门禁。自有加载器与独立 ABI 支撑代码
+采用 MIT，LLVM/musl/Linux 的必要改动保留各自许可证。
+
+`scripts/probe_wasm_dynamic_linking.py` 是有界前期实验，不是生产加载器：
+本地 Clang/LLD 18.1.3 与 Node 25.9.0 下，两个 C 共享模块在 wasm32/64
+共享 memory 与 table32、数据/函数 GOT、构造函数、间接/跨模块调用和
+memory.grow 后访问通过，并检查缺少数据符号必须装载失败。wasm64 首轮因
+实验装载器漏设 __table_base32 而失败，补齐它与 __table_base 的一致基址后
+通过，未归咎于编译器。实验没有 libc、Linux syscall、文件系统依赖装载、
+ELF、TLS、浏览器、多 Worker 或卸载，不代表这些能力已实现，也不能代替
+配套 LLVM 22 SDK 的目标检查。

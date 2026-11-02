@@ -4546,6 +4546,15 @@ wasm32 消费者代验。当前仍是候选，修复后的完整目标尚未验�
 请求 alg-skcipher-wasm64-check-runtime，均已核对精确源码且在运行。
 它们是新 pin 的重验，不重复派发 15d8fbf 的已知失败版本。
 
+后续验收已补齐：上述固定 20ff576 两路工作流和 Heavy 均成功，已读取
+job125077553304（wasm32）与 job125077575293（wasm64）的完整实际日志。
+每路均确认 hash/HMAC 三阶段、skcipher 三阶段和唯一 pass；固定 20ff576
+的运行器在成功退出前必须等待 closeTestResources/machine.closed 并关闭
+磁盘句柄，关闭失败会令检查失败，故关闭门禁成立。接受 Linux d02917c85 /
+distro 20ff576 的 Node 双位宽同步 SHA/HMAC、CBC/CTR 范围，原 HMAC 库
+链接错误已得到实际目标修复证明；不代验后续 NETLINK_CRYPTO、libkcapi
+接入、ELF/动态链接、AEAD、AIO 或浏览器。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到
