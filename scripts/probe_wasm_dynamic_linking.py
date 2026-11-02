@@ -55,7 +55,7 @@ import {read_wasm_dylink,read_wasm_dynamic_imports,read_wasm_dynamic_signatures}
 import {plan_dylink_layout} from __LAYOUT_PLANNER__;
 import {link_dylink_graph} from __MODULE_LINKER__;
 import {ProcessDylink} from __PROCESS_LOADER__;
-const [bits, first, second, mainFile, mode] = process.argv.slice(2);
+const [bits, first, second, mainFile, cycleAFile, cycleBFile, mode] = process.argv.slice(2);
 const modules = [first, second].map(p => new WebAssembly.Module(readFileSync(p)));
 const layouts=[first,second].map(p=>read_wasm_dynamic_imports(new Uint8Array(readFileSync(p))));
 // Exercise the runtime's parser with actual LLD output, before instantiation.
@@ -195,7 +195,11 @@ const virtualFiles=new Map([
  ['/libraries/noexec.wasm',{bytes:files.get(names[1]),inode:12n}],
  ['/libraries/nomemory.wasm',{bytes:files.get(names[1]),inode:12n}],
  ['/libraries/denied.wasm',{bytes:files.get(names[1]),inode:12n}],
+ ['/libraries/'+basename(cycleAFile),{bytes:new Uint8Array(readFileSync(cycleAFile)),inode:21n}],
+ ['/libraries/'+basename(cycleBFile),{bytes:new Uint8Array(readFileSync(cycleBFile)),inode:22n}],
 ]);
+assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleAFile))).needed,[basename(cycleBFile)]);
+assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleBFile))).needed,[basename(cycleAFile)]);
 let processLoader,probeReentry=true,nextPin=1,currentFd=-1;
 const attempted=[];
 const pins=new Map();
@@ -237,7 +241,7 @@ const bridge={exports:{...main.exports,
 processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximumPages:Number(memoryLayout.maximum),
  tableType:{address:tableAddress,minimum:128n,maximum:512n},signatures,
  isControlFlow:error=>error===control,fatal:error=>{throw error;},
- pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert(inode===11n||inode===12n);
+ pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
 const beforeSearch=live.size;
@@ -268,6 +272,25 @@ assert.equal(processLoader.symbol(word(memoryAddress,0),runPointer),runAddress,'
 const dependency=processLoader.open(dependencyPointer,2);
 const dependencyCounter=Number(processLoader.symbol(dependency,counterPointer));
 assert.equal(new DataView(memory.buffer).getInt32(dependencyCounter,true),11,'opening an existing dependency must not rerun constructors or zero data');
+const cycle=processLoader.open(storeString(basename(cycleAFile)),2);
+assert.notEqual(cycle,word(memoryAddress,0),'load real mutual NEEDED graph');
+const address=name=>Number(processLoader.symbol(cycle,storeString(name)));
+const data=name=>new DataView(memory.buffer).getInt32(address(name),true);
+const pointerAt=name=>memoryAddress==='i64'?new DataView(memory.buffer).getBigUint64(address(name),true):BigInt(new DataView(memory.buffer).getUint32(address(name),true));
+assert.equal(data('cycle_a_value'),11);assert.equal(data('cycle_b_value'),8);
+assert.equal(data('cycle_a_count'),1);assert.equal(data('cycle_b_count'),1);
+assert.equal(data('cycle_a_observed'),8);assert.equal(data('cycle_b_observed'),3);
+assert.equal(pointerAt('cycle_a_saved'),BigInt(address('cycle_b_value')));
+assert.equal(pointerAt('cycle_b_saved'),BigInt(address('cycle_a_value')));
+const aStep=processLoader.symbol(cycle,storeString('cycle_a_step'));
+const bStep=processLoader.symbol(cycle,storeString('cycle_b_step'));
+assert.equal(pointerAt('cycle_a_function'),BigInt(bStep));assert.equal(pointerAt('cycle_b_function'),BigInt(aStep));
+assert.equal(table.get(word(tableAddress,aStep))(2),13);assert.equal(table.get(word(tableAddress,bStep))(2),10);
+const cyclePeer=processLoader.open(storeString(basename(cycleBFile)),2|4);
+assert.notEqual(cyclePeer,word(memoryAddress,0));
+assert.equal(processLoader.symbol(cyclePeer,storeString('cycle_a_value')),word(memoryAddress,address('cycle_a_value')));
+assert.equal(data('cycle_a_count'),1);assert.equal(data('cycle_b_count'),1);
+console.log(`Process loader cyclic model wasm${bits}: mutual NEEDED, relocated peer constructors, canonical pointers and reused instances pass; not Linux bridge acceptance`);
 const retained=live.size;
 assert.equal(processLoader.open(missingPointer,2),word(memoryAddress,0));
 assert.equal(processLoader.open(badPointer,2),word(memoryAddress,0));
@@ -327,6 +350,40 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 ],
                 check=True,
             )
+        sources = (
+            Path(__file__).resolve().parents[1] / "sources/distro/distro/dynamic-loader"
+        )
+        (directory / "bootstrap").mkdir(exist_ok=True)
+        for name, output, dependency in (
+            ("a", directory / "bootstrap" / f"cycle-a{bits}.wasm", None),
+            (
+                "b",
+                directory / f"cycle-b{bits}.wasm",
+                directory / "bootstrap" / f"cycle-a{bits}.wasm",
+            ),
+            ("a", directory / f"cycle-a{bits}.wasm", directory / f"cycle-b{bits}.wasm"),
+        ):
+            subprocess.run(
+                [
+                    args.clang,
+                    f"--target=wasm{bits}",
+                    "-nostdlib",
+                    "-O2",
+                    "-fPIC",
+                    "-shared",
+                    "-matomics",
+                    "-mbulk-memory",
+                    "-Wl,--shared-memory,--no-entry,--import-memory,--import-table",
+                    "-Wl,--unresolved-symbols=import-dynamic,--export-all,--export=__wasm_call_ctors",
+                    f"-Wl,--max-memory={4294967296 if bits == 32 else 17179869184}",
+                    f"-Wl,-soname,cycle-{name}{bits}.wasm",
+                    str(sources / f"cycle-{name}.c"),
+                    *([str(dependency)] if dependency else []),
+                    "-o",
+                    str(output),
+                ],
+                check=True,
+            )
         subprocess.run(
             [
                 args.node,
@@ -335,6 +392,8 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"a{bits}.wasm"),
                 str(directory / f"b{bits}.wasm"),
                 str(directory / f"main{bits}.wasm"),
+                str(directory / f"cycle-a{bits}.wasm"),
+                str(directory / f"cycle-b{bits}.wasm"),
             ],
             check=True,
         )
@@ -346,6 +405,8 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"a{bits}.wasm"),
                 str(directory / f"b{bits}.wasm"),
                 str(directory / f"main{bits}.wasm"),
+                str(directory / f"cycle-a{bits}.wasm"),
+                str(directory / f"cycle-b{bits}.wasm"),
                 "reverse-ctors",
             ],
             capture_output=True,
