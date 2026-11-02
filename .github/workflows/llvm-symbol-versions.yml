@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: MIT
+name: LLVM Wasm symbol versions experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Exact experimental HighCWu/llvm-project source commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '25'
+      - name: Fetch the exact candidate without changing default SDK pins
+        env:
+          LLVM_REVISION: ${{ inputs.revision }}
+        run: |
+          set -euo pipefail
+          [[ "$LLVM_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          git init "$RUNNER_TEMP/llvm-symbol-source"
+          git -C "$RUNNER_TEMP/llvm-symbol-source" remote add origin https://github.com/HighCWu/llvm-project.git
+          git -C "$RUNNER_TEMP/llvm-symbol-source" sparse-checkout init --cone
+          git -C "$RUNNER_TEMP/llvm-symbol-source" sparse-checkout set llvm clang lld cmake third-party
+          git -C "$RUNNER_TEMP/llvm-symbol-source" fetch --depth=1 --filter=blob:none origin "$LLVM_REVISION"
+          git -C "$RUNNER_TEMP/llvm-symbol-source" checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/llvm-symbol-source" rev-parse HEAD)" = "$LLVM_REVISION"
+      - name: Build candidate Clang, MC and Wasm linker without host backends
+        run: |
+          set -euo pipefail
+          cmake -S "$RUNNER_TEMP/llvm-symbol-source/llvm" -B "$RUNNER_TEMP/llvm-symbol-build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+            -DLLVM_TARGETS_TO_BUILD=WebAssembly '-DLLVM_ENABLE_PROJECTS=clang;lld' \
+            -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF \
+            -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF \
+            -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_TERMINFO=OFF
+          cmake --build "$RUNNER_TEMP/llvm-symbol-build" --target clang llvm-mc lld -j2
+          if [ ! -x "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld" ]; then
+            ln -s lld "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld"
+          fi
+      - name: Verify old/default versions using real generated Wasm objects
+        run: |
+          set -euo pipefail
+          python3 scripts/check_wasm_symbol_versions.py \
+            --mc "$RUNNER_TEMP/llvm-symbol-build/bin/llvm-mc" \
+            --ld "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld" \
+            --clang "$RUNNER_TEMP/llvm-symbol-build/bin/clang"
