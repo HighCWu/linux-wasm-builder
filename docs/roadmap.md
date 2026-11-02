@@ -2024,6 +2024,14 @@ Linux f090bca6a / distro608809b / 集成6264819已完成mm身份、注册确认�
 及原生Linux对照通过不算目标验收；musl接口、默认LLVM和MMU策略不变。
 详见[远端复制候选](architecture.md#远端用户内存的机器端复制候选)。
 
+distro a630876 / 集成390297e继续接纳原生clone3的CLONE_NEWTIME，解除早期
+callback布局的CSIGNAL限制；Linux负责实际namespace、时钟偏移和权限，旧clone
+仍拒绝冲突位。新增内部对象能力门控，旧对象在unwind前拒绝；无musl公共接口
+或内核配置变更。391项运行层和双位宽实际C传输、类型、前端/静态分析通过。
+独立Node双位宽目标已派发，需核实namespace身份、monotonic/boottime偏移、
+绝对定时、EPERM和后续fork恢复的三阶段及关闭；尚未宣称目标或浏览器通过。
+见[执行ABI](fork-continuation-abi.md#clone3-原生时间命名空间)。
+
 ## 质量矩阵
 
 标准 syscall 能力继续独立推进：Linux `b920e6b82` / distro `fd54b54`

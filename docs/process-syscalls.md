@@ -5579,6 +5579,34 @@ ASan/UBSan、伪造写入成功的反向控制、双位宽Wasm前端与Clang静�
 | Chromium remotevm | [41455376462](https://github.com/HighCWu/distro/actions/runs/41455376462) | [41455376746](https://github.com/HighCWu/distro/actions/runs/41455376746) |
 | Firefox remotevm | [41455375713](https://github.com/HighCWu/distro/actions/runs/41455375713) | [41455377791](https://github.com/HighCWu/distro/actions/runs/41455377791) |
 
+## 原生 clone3 接纳时间命名空间
+
+distro a630876 / 主仓库pin390297e修正早期callback传输留下的限制：clone3
+的CLONE_NEWTIME不再因与旧clone的CSIGNAL重叠而一律拒绝。请求仍是标准
+SYS_clone3，flags保留完整u64，exit_signal独立为SIGCHLD；Linux原来的
+copy_time_ns/timens_on_fork负责创建、进入、偏移复制/冻结和权限检查。
+当前TIME_NS已按官方默认启用，本轮不改内核、不增加libc接口。
+
+配套独立执行对象新增内部features查询，固定i32返回值bit0表示NEWTIME准入。
+运行层同时要求该位、宽flags helper和原生内核能力，旧对象/旧内核在descriptor
+初始化前拒绝；legacy clone及旧pointer-width helper继续拒绝0x80，不改变
+退出信号。可组合现有PIDFD、TID、namespace和CLEAR_SIGHAND，未知标志继续
+拒绝，负值后清除当次参数，不扩大CLONE_VM、TLS、自定义栈或多线程fork。
+
+新MIT消费者clone-timens使用标准syscall、procfs、unshare/setns和时钟接口：
+先核对clone3子任务获得不同时间namespace，父任务不变，PIDFD/TID由内核发布；
+再配置future-child namespace的monotonic120秒、boottime180秒偏移后clone3，
+核对新身份、独立偏移及绝对clock_nanosleep的时钟转换；最后降权子任务必须得到
+EPERM、保持输出不变且无子进程残留，之后普通fork与namespace/挂载清理成功。
+不在宿主运行这个命名空间消费者；GCC/Clang前端、双位宽Wasm静态分析通过。
+391项运行层检查、两套类型检查、8项SDK/实际编译对象检查和2项raw消费者检查
+通过，涵盖缺失/错误能力、旧内核、flag组合、失败恢复及旧CSIGNAL拒绝。
+
+固定a630876的[wasm32 41457372023](https://github.com/HighCWu/distro/actions/runs/41457372023)
+与[wasm64 41457373412](https://github.com/HighCWu/distro/actions/runs/41457373412)
+已各派发一次，仍待真实三阶段、唯一pass和机器关闭。此前608809b的远端复制
+八路任务仍运行，未取消或重复派发，也未沿用它们的未完成结果作为此版验收。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

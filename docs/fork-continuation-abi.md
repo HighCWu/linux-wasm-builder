@@ -162,9 +162,10 @@ distro `7273efc` 为 syscall 扩展 ABI 2 对象增加可选内部执行导出
 
 可传递 CLONE_NEWNS、NEWUTS、NEWIPC、NEWUSER、NEWPID、NEWNET、NEWCGROUP，
 掩码0x7e020000。内核负责配置、权限、组合合法性及失败回滚，传递能力不等于
-所有命名空间都已启用；例如当前官方默认 USER_NS=n 保留。CLONE_NEWTIME
-与旧 clone 的 CSIGNAL 位重叠，继续返回 EOPNOTSUPP，不截断/悄悄忽略。
-自定义栈、tid/TLS、CLONE_INTO_CGROUP 和线程/多线程 fork 的边界不变。
+所有命名空间都已启用；例如当前官方默认 USER_NS=n 保留。该旧传输中的
+CLONE_NEWTIME 与 clone 的 CSIGNAL 位重叠，返回 EOPNOTSUPP，不截断/悄悄忽略；
+后续原生 clone3 的独立准入见下文。自定义栈、TLS、CLONE_INTO_CGROUP 和
+线程/多线程 fork 仍未接纳，TID 的后续传输也见下文。
 
 缺少可选 helper 时在 descriptor 初始化前拒绝。与 PIDFD 组合仍要求内核的
 Worker abort 能力；旧对象普通 fork/PIDFD 路径保持。参数只复制一次，unwind
@@ -177,7 +178,7 @@ Worker abort 能力；旧对象普通 fork/PIDFD 路径保持。参数只复制�
 此为已实现待目标验收的增量：本地双位宽状态机及原始调用语料已接入，真实 Node
 与浏览器支持结论见[进程 syscall 验收](process-syscalls.md)，不能只凭此协议定义推定。
 
-入口处的 Wasm 执行适配器完成 unwind，再以现有非空回调 clone 进入真正的 Linux
+上述旧传输在 Wasm 执行适配器完成 unwind 后，以非空回调 clone 进入真正的 Linux
 进程创建路径。PID、资源继承、信号、退出与 wait 不是由适配器仿造；
 这仍是架构执行 ABI 的增量支持，不代表内核已有通用硬件式执行现场快照。
 libc 仍负责 atfork、锁和子线程状态收尾；绕过 libc 的 raw syscall 不会自动得到这些封装。
@@ -222,7 +223,7 @@ wasm32/64均为 i64，其余三个地址参数保留 uintptr_t 宽度。旧
 传入 BigInt/i64 或把高位截断。高位请求必须同时具备宽传输与原生内核能力，
 否则在 descriptor 初始化前拒绝；普通旧对象仍可用原来的低位传输。
 
-当前只新增 CLONE_CLEAR_SIGHAND（1ULL<<32）。Linux 原 copy_sighand 清除
+该版只新增 CLONE_CLEAR_SIGHAND（1ULL<<32）。Linux 原 copy_sighand 清除
 自定义处理器并保留 SIG_IGN，运行层不修改 sigaction 表冒充该行为。
 CLEAR_SIGHAND 与 SIGHAND 冲突按 Linux 返回 EINVAL；没有启用共享处理器、
 CLONE_VM、多线程 fork 或其它高位标志。legacy clone 仍使用低32位规则。
@@ -231,6 +232,27 @@ CLONE_VM、多线程 fork 或其它高位标志。legacy clone 仍使用低32位
 固定7233d8c的独立 `clone-flags64` 双位宽Node目标现已核实三个完整阶段、唯一
 pass与关闭，覆盖默认信号真实终止、IGN保留、冲突拒绝、PIDFD回收及后续普通
 fork；范围不推广为浏览器或其它flags。实际证据见[进程记录](process-syscalls.md)。
+
+### clone3 原生时间命名空间
+
+distro `a630876` / 集成 `390297e` 在原生路径接纳 CLONE_NEWTIME（0x80）。
+沿用宽 flags helper 的 i64 参数和规范化 clone_args，保持 exit_signal=SIGCHLD。
+新增内部 `__wasm_fork_clone3_features()->i32` 的 bit0 作为执行对象准入标记；
+同时要求宽 helper 与内核原生能力。旧对象缺少标记时在 descriptor 初始化前
+返回 EOPNOTSUPP，不能把该位送进旧 clone 的 CSIGNAL，也不能忽略后继续 fork。
+旧 pointer-width helper 和 legacy clone 的范围、签名保持不变。
+
+Linux 原 copy_time_ns/timens_on_fork 负责创建、进入、偏移复制和冻结；权限、
+PIDFD/TID 输出及失败回滚沿用内核。可组合现有 namespace、TID、PIDFD 和
+CLEAR_SIGHAND，但不新增 libc 函数、应用入口、共享内存或多线程 fork。
+本轮未改内核：当前 TIME_NS 已按官方默认启用，所需通用路径原已存在。
+
+391项运行层检查、两套类型检查、实际编译的双位宽执行对象参数检查，以及
+GCC/Clang 前端与双位宽 Wasm 静态分析通过。标准 C 消费者通过 procfs 核对
+不同时间命名空间，在 unshare 配置偏移后再 clone3，核对 monotonic/boottime
+及绝对定时；随后验证非特权 EPERM、输出不变与普通 fork 恢复。消费者不在
+宿主执行命名空间操作；两项 Node 目标待真实三阶段、唯一 pass 和关闭验收，
+不能以本地状态机/导入夹具证明 Linux 行为已通过。
 
 ## 保存区
 
