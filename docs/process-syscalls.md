@@ -5481,7 +5481,8 @@ machine.closed，两项实际任务均成功，关闭门禁成立。接受的是
 上的原程序fork/exec/wait、ctty/session/foreground、错误恢复与设备清理，不推广
 到新内核或任意交互式作业控制。
 
-固定92d79a5 / Linux60908a259的[wasm64 namespace/TID 41438630395](https://github.com/HighCWu/distro/actions/runs/41438630395)
+固定92d79a5 / Linux60908a259的
+[wasm64 namespace/TID 41438630395](https://github.com/HighCWu/distro/actions/runs/41438630395)
 已核实完整十阶段与唯一pass：压缩日志1,469,056字节、构建步6,987,675字节。
 其中三个TID阶段及PIDFD/TID别名拒绝实际通过，不是仅基础namespace通过。
 同版[wasm32 fork 41438638854](https://github.com/HighCWu/distro/actions/runs/41438638854)
@@ -5572,12 +5573,16 @@ ASan/UBSan、伪造写入成功的反向控制、双位宽Wasm前端与Clang静�
 
 本候选的异步任务（均固定608809b）：
 
-| 检查 | wasm32 | wasm64 |
+| 检查 | 位宽 | 任务 |
 | --- | --- | --- |
-| Node process-vm | [41455374334](https://github.com/HighCWu/distro/actions/runs/41455374334) | [41455374737](https://github.com/HighCWu/distro/actions/runs/41455374737) |
-| Node 完整 fork | [41455374880](https://github.com/HighCWu/distro/actions/runs/41455374880) | [41455375528](https://github.com/HighCWu/distro/actions/runs/41455375528) |
-| Chromium remotevm | [41455376462](https://github.com/HighCWu/distro/actions/runs/41455376462) | [41455376746](https://github.com/HighCWu/distro/actions/runs/41455376746) |
-| Firefox remotevm | [41455375713](https://github.com/HighCWu/distro/actions/runs/41455375713) | [41455377791](https://github.com/HighCWu/distro/actions/runs/41455377791) |
+| Node process-vm | wasm32 | [41455374334](https://github.com/HighCWu/distro/actions/runs/41455374334) |
+| Node process-vm | wasm64 | [41455374737](https://github.com/HighCWu/distro/actions/runs/41455374737) |
+| Node 完整 fork | wasm32 | [41455374880](https://github.com/HighCWu/distro/actions/runs/41455374880) |
+| Node 完整 fork | wasm64 | [41455375528](https://github.com/HighCWu/distro/actions/runs/41455375528) |
+| Chromium remotevm | wasm32 | [41455376462](https://github.com/HighCWu/distro/actions/runs/41455376462) |
+| Chromium remotevm | wasm64 | [41455376746](https://github.com/HighCWu/distro/actions/runs/41455376746) |
+| Firefox remotevm | wasm32 | [41455375713](https://github.com/HighCWu/distro/actions/runs/41455375713) |
+| Firefox remotevm | wasm64 | [41455377791](https://github.com/HighCWu/distro/actions/runs/41455377791) |
 
 ## 原生 clone3 接纳时间命名空间
 

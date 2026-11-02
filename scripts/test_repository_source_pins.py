@@ -10,18 +10,18 @@ import check_repository
 class SourcePinParserTests(unittest.TestCase):
     def test_kernel_copy_models_and_python_share_the_same_gate(self):
         recipe = (check_repository.ROOT / "sources/distro/distro/linux/package.nix").read_text()
-        self.assertIn("copyHostChecks = fileMmapCandidate || mmapCopyTest;", recipe)
+        self.assertIn("copyHostChecks = fileMmapCandidate || fileMmapStreamCandidate || mmapCopyTest;", recipe)
         self.assertIn("++ lib.optional copyHostChecks pkgs.python3;", recipe)
         self.assertIn("${lib.optionalString copyHostChecks ''", recipe)
 
-    def test_kernel_fetch_retry_keeps_mandatory_hash_and_pinned_mirrors(self):
+    def test_kernel_git_fetch_keeps_exact_revision_and_content_hash(self):
         recipe = (check_repository.ROOT / "sources/distro/distro/linux/fetch-source.nix").read_text()
-        self.assertIn("inherit hash;", recipe)
+        self.assertIn("pkgs.fetchgit {", recipe)
+        self.assertIn("inherit rev hash;", recipe)
         self.assertIn('assert builtins.match "[0-9a-f]{40}" rev != null;', recipe)
-        for option, value in (("--retry", "5"), ("--retry-delay", "15"), ("--retry-max-time", "180")):
-            self.assertRegex(recipe, '"' + option + '"\\s+"' + value + '"')
-        self.assertIn("https://codeload.github.com/${owner}/${repo}/tar.gz/${rev}", recipe)
-        self.assertIn("https://github.com/${owner}/${repo}/archive/${rev}.tar.gz", recipe)
+        self.assertIn('url = "https://github.com/${owner}/${repo}.git";', recipe)
+        self.assertIn("fetchSubmodules = false;", recipe)
+        self.assertIn("leaveDotGit = false;", recipe)
 
     def parse(self, fetcher, fields):
         with tempfile.TemporaryDirectory(prefix="source-pin-") as directory:
