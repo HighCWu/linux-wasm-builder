@@ -4595,6 +4595,58 @@ GCC/Clang 严格前端、Clang 静态分析及双位宽 Wasm 前端/静态分析
 符号版本候选独立验证，不把本轮协议支持视为 libkcapi、AEAD、AIO 或浏览器
 已通过。
 
+## 第九十八组：Wasm 同步 AEAD 接收与 AES-GCM
+
+原 AEAD 接收路径使用 extract_iter_to_sg 把用户输出变为密码后端的 RX 页表；
+Wasm 用户线性内存不能表示为这些内核 page。普通 skcipher 的单页暂存也不能
+直接用于 AEAD：人为按页拆开请求会改变 AAD、密文和认证标签的关系。Linux
+`c4420655e` 添加独立 MIT 内部头 include/crypto/wasm_aead_buffer.h，并在
+原 GPL algif_aead.c 做必要接入；三个命名配置启用 CRYPTO_USER_API_AEAD/GCM。
+原文件许可证保持不变，不新增 UAPI、libc API、内核 softmmu 或 MMU 配置。
+
+Wasm 用户输出在原请求输出长度、iterator 容量和现有 RX 预算内分配有记账的
+内核暂存区。探测合法前缀不写用户输出，也不推进其 iterator；原 RX SG、
+TX 消耗、AAD 复制和 crypto_wait_req 路径继续处理同一请求。释放所有请求 SG
+引用后，成功才把实际结果拷回；EBADMSG 等错误恢复原 iterator、丢弃暂存明文，
+所有分配路径用 kvfree_sensitive 清理。不会添加单页的记录长度上限，但临时
+内核内存和连续分配可能令资源紧张时返回 ENOMEM。保留原短输出语义，不把
+不足的目标缓冲区伪装为完整记录已接收。
+
+默认仍关闭 AIO；Wasm 用户 iterator 的非同步请求在分配前明确 EOPNOTSUPP，
+避免异步任务引用本次同步调用拥有的缓冲区。非 Wasm 和内部 kernel iterator
+保持原路径。本轮不启用 AIO，也不扩大 fork 或线程支持。
+
+review 核对零输出解密、tag 错误、探测/分配失败、部分拷回、RX 预算、请求
+完成与 SG/暂存区的释放顺序。GCC/Clang 直接执行真实暂存函数模型和 Clang
+静态分析通过；模型覆盖跨两页的单请求、错误时无明文交付和 iterator 不推进、
+资源释放等，并要求绕过暂存或在 EBADMSG 后发布输出的反向控制失败。
+原 hash/SG 轻量检查和三个消费者的原生及双位宽 Wasm 前端/静态分析通过。
+新消费者按 CMSG_SPACE 构造标准控制消息，不修改 musl。核查另发现现有
+CMSG_NXTHDR 宏在严格 -Wsign-compare/-Werror 下的告警，本轮未修通用宏，
+不将其算作已修复的源兼容能力。
+
+普通 C 消费者覆盖三阶段：AES-GCM NIST 零块/空记录、无效 key/tag 长度；
+跨 64 KiB 的 AAD 和跨页明文、独立密文摘要及认证往返；坏 tag 不改目标、
+同 operation 恢复、无效目的地址不消耗已排队输入及 fd 清理。固定向量和
+大记录常量另用独立 AESGCM/hashlib 核对；不在宿主运行 socket/凭据消费者。
+联合目标先运行已有 hash/HMAC、CBC/CTR 和 Netlink 消费者，再运行 AEAD。
+
+源码预取 [41391377143](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41391377143)
+的 job125103320280 实际日志核实完整 Linux revision
+`c4420655e524544a67ece9ca6cb8be66eda267b4` 和
+`sha256-Zxe6Fb1K3WZ6XN0uQvxRFVgofYwEb5tTmAFTo8Ol4AM=`。distro `107b069`
+随后集成该 pin、resolved Kconfig 门禁和双位宽联合运行目标；主仓库 `c98c591`
+再单独更新 Linux/distro gitlinks 与真实源码轻量检查。musl/LLVM pin 不变。
+
+固定 107b069 各派发一次
+[wasm32 41391834357](https://github.com/HighCWu/distro/actions/runs/41391834357)
+的 alg-aead-check-runtime 和
+[wasm64 41391840143](https://github.com/HighCWu/distro/actions/runs/41391840143)
+的 alg-aead-wasm64-check-runtime。目标结果尚待验收；每路必须核实 hash、
+skcipher、Netlink、AEAD 各三阶段、唯一 pass 和既有 machine.closed 门禁。
+静态模型、预取成功和排队/构建状态均不代替实际 AEAD 或关闭证据，也不代表
+libkcapi、异步密码操作、浏览器、ELF 或动态链接已经可用。
+
 ## 信号栈缺口的前期核查记录
 
 在 `a228fc8` 基线，sys_sigaltstack 被 Wasm 架构重定向到 ENOSYS，原因可追到

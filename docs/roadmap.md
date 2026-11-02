@@ -1983,6 +1983,12 @@ ABI 及完整 C++ 运行标记。固定 `ad839be` 的
 dump/权限和关闭检查已派发，尚待验收；不代表 libkcapi 或 ELF 加载已完成。
 精确版本和运行链接见 [进程与 syscall 记录](process-syscalls.md#第九十七组启用-linux-原有密码算法-netlink-元数据接口)。
 
+Linux `c4420655e` / distro `107b069` 进一步接入同步 AEAD/AES-GCM：Wasm
+输出按原请求暂存，不按页拆成不同认证操作，认证失败不发布暂存明文。
+精确函数模型、双位宽前端与静态分析已通过，联合 hash/skcipher/Netlink/AEAD
+的双位宽目标已派发，实际密码运行及关闭仍待验收。详情见
+[AEAD 记录](process-syscalls.md#第九十八组wasm-同步-aead-接收与-aes-gcm)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
