@@ -1970,7 +1970,12 @@ libkcapi 专用符号补丁暂不集成，优先调查工具链层能否使上�
 保留 MC 引用和旧版本/默认版本隔离，并拒绝类型、签名和 TLS 冲突。扩充后的
 双位宽编译/链接/执行语料由
 [41403636442](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41403636442)
-异步复验；当前仅有轻量检查及 GNU ELF 语义对照，不能视为 Wasm 目标通过。
+复验实际完成候选构建，但独立 MC 缺少 Clang 已启用的 reference-types 特性，
+在函数指针的显式表操作数处失败。主仓库 `8a2c7ca` 对齐两条 C 路径与所有 MC
+路径的参数，保留原有版本/函数指针检查；本机双位宽语料复现此特性差异。
+固定候选 533cc7e 的
+[新版 41410371324](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41410371324)
+已派发，目标链接/执行仍待证据，不能视为 Wasm 版本绑定通过。
 默认 LLVM pin 仍不变，下一阶段动态加载能力尚未实现。
 
 `cc72990` 为 SDK 增加标准 `try_table` 异常指令的独立 C++ 消费者检查，针对

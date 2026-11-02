@@ -209,6 +209,18 @@ C 源码到汇编再到对象、集成汇编器直接生成对象两条路径，
 前端配 GNU 汇编器/链接器的原生 ELF 对照均通过；本机 Clang18 集成 ELF 汇编器
 对该共存语料未能链接，而其原始 Wasm 汇编器会拒绝 .symver，均不作为候选通过证据。
 双位宽前端/代码生成仅在禁用本机旧汇编器验证的轻量检查中通过，Python/JS 语法、
-格式与静态 review 通过；真正候选编译、对象链接和 Node 执行仍待
-[41403636442](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41403636442)。
+格式与静态 review 通过；
+[41403636442](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41403636442)
+实际完成了候选构建，但独立 llvm-mc 在函数指针的 call_indirect 显式表操作数处
+报错，尚未完成对象链接/执行。实际日志 job125140679858 为432,616字节，失败
+发生在 definitions32.s 的汇编，不是已通过版本隔离后才出现的运行错误。
+
+Clang 默认输出该表操作数，而 llvm-mc 的默认特性不解析它；候选的实际 parser
+按 reference-types/call-indirect-overlong 选择语法。主仓库 `8a2c7ca` 将两条 C
+路径都明确设为 -mreference-types，所有 MC 路径对应 -mattr=+reference-types，
+没有删减函数指针或版本检查。本机 Clang18/MC18 的双位宽普通函数指针语料已
+复现默认 MC 失败、对齐特性后成功，但它不包含符号版本候选的验收。
+同一固定候选 533cc7e 的新版完整检查已各配置一次于
+[41410371324](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41410371324)，
+仍待目标结果，默认 SDK/compiler pin 未切换。
 本轮没有新增 libc API，也没有实现 ELF 文件加载或动态版本解析。
