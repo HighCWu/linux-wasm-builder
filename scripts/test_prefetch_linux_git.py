@@ -141,6 +141,23 @@ class GitHashPrefetch(unittest.TestCase):
             self.assertFalse(any(c[0] == "nix" for c in calls))
             self.assertEqual(summary, "")
 
+    def test_stream_mapping_paths_still_require_verified_baseline(self):
+        paths = "\n".join("M\tarch/wasm/" + path for path in (
+            "Kconfig", "include/asm/mmap_file.h", "include/asm/wasm_imports.h",
+            "kernel/mmap_file.c", "tests/mmap-file-host.c", "tests/mmap-file-host.h",
+            "tests/run-mmap-file-host.py"))
+        result, calls, summary = self.run_model({"MODEL_PATH": paths})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
+                         ["baseline", "candidate"])
+        self.assertIn("Candidate hash:", summary)
+        for broken in (paths.splitlines()[0], paths + "\nM\tfs/read_write.c",
+                       paths.replace("M\t", "A\t", 1)):
+            result, calls, summary = self.run_model({"MODEL_PATH": broken})
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(any(c[0] == "nix" for c in calls))
+            self.assertEqual(summary, "")
+
 
 if __name__ == "__main__":
     unittest.main()

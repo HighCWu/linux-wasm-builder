@@ -21,6 +21,7 @@ case "$changed_paths" in
 $'M\tkernel/futex/core.c') ;;
 $'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/process.c') ;;
 $'M\tarch/wasm/include/asm/mmu.h\nM\tarch/wasm/include/asm/remote_vm.h\nM\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/remote_vm.c\nM\tarch/wasm/mm/init.c') ;;
+$'M\tarch/wasm/Kconfig\nM\tarch/wasm/include/asm/mmap_file.h\nM\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/mmap_file.c\nM\tarch/wasm/tests/mmap-file-host.c\nM\tarch/wasm/tests/mmap-file-host.h\nM\tarch/wasm/tests/run-mmap-file-host.py') ;;
 $'M\tarch/wasm/configs/defconfig\nM\tarch/wasm/configs/wasm32_defconfig\nM\tarch/wasm/configs/wasm64_defconfig') ;;
 *) exit 64 ;;
 esac
