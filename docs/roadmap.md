@@ -2037,6 +2037,13 @@ PID选择、权限及命名空间顺序。2b6a078同时修正已失败cgroup语�
 默认SDK、musl/Linux源码及单线程fork边界未扩大。见
 [具体行为与验收](process-syscalls.md#pidfd-失败输出与-set_tid-pid-选择)。
 
+2b6a078的PID选择与cgroup双位宽现已逐项核实实际三/六阶段、唯一pass
+和关闭，3a77133双位宽的字段忽略/full fork回归也已核实完整语料与关闭。
+6350acf / 集成40e7aa2继续接通CLONE_FS/FILES：共享cwd/umask或fd表，用户
+内存仍独立。双位宽分别验证两个入口及UNSHARE恢复，403项运行层与静态
+检查通过，真实目标待验收；不扩大多线程fork。见
+[资源共享记录](process-syscalls.md#clone--clone3-共享-linux-fs-与文件表)。
+
 原生 clone3/TID 增量现集成为 Linux `60908a259`、distro `92d79a5`、主仓库
 `04725a8`。它补上 Wasm 无回调子任务的返回路径，使 clone3 真正进入 Linux
 原实现，并保留独立 PIDFD/parent/child TID；legacy clone 继续使用 syscall220。

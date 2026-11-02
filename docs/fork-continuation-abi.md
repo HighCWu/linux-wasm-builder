@@ -301,6 +301,20 @@ CLONE_VM/SETTLS及单线程fork边界，没有新增libc函数或应用入口。
 EPERM与后续普通clone3/fork恢复。399项运行层、两套类型检查、实际编译的
 双位宽执行对象与消费者前端/静态分析通过；目标三阶段与关闭尚待验收。
 
+### 独立地址空间的 CLONE_FS / CLONE_FILES
+
+6350acf / 集成40e7aa2允许flags-first clone及clone3传递CLONE_FS/CLONE_FILES，
+分别共享Linux cwd/umask与文件描述符表。用户线性内存仍独立，父进程仍需单线程。
+只扩展现有options/native传输的允许位，不增加导出签名；features的bit3防止
+旧执行对象丢掉这些标志后退成普通fork。无相应传输或能力时在unwind前拒绝。
+Linux负责FS/NEWNS冲突、共享引用及close_range UNSHARE后的分离，不在宿主
+模拟文件表。普通fork继续使用原有独立资源语义。
+
+真实目标语料分别通过两个syscall入口验证cwd/umask修改、共享close及UNSHARE
+后的父fd存活，同时核对独立用户变量、错误后普通fork与资源清理。403项运行层、
+两套类型检查、实际执行对象链接及消费者双位宽前端/分析通过；目标三阶段
+及关闭仍待核实。没有加入CLONE_VM/THREAD或多线程fork支持，musl/Linux不变。
+
 ## 保存区
 
 descriptor 是两个小端 `uintptr_t`：当前 cursor、保存区 end，字段分别占 4 或 8 字节。

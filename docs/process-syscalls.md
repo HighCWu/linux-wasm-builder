@@ -5997,6 +5997,48 @@ ab76dcf新增clone3 set_tid PID选择传输，c937e5a同步SDK元数据，最终
 | cgroup wasm32 | [41496568042](https://github.com/HighCWu/distro/actions/runs/41496568042) |
 | cgroup wasm64 | [41496577146](https://github.com/HighCWu/distro/actions/runs/41496577146) |
 
+## PID 选择、cgroup 及字段忽略的已核实结果
+
+固定2b6a078的PID选择两项目标现已读取完整实际日志，每路三个阶段和唯一pass，
+覆盖有符号范围/向量故障/深度、指定PID/TID/PIDFD与EEXIST、命名空间顺序、
+EPERM及普通clone3/fork恢复。压缩日志/构建步：wasm32为1,404,356/7,313,987
+字节，wasm64为730,476/3,927,632字节。运行器必须等待machine.closed，收尾
+错误使任务失败，双位宽关闭门禁成立。仅接受该源码的Node范围。
+
+同源cgroup wasm64的41496577146也核实六阶段、唯一pass及相同关闭门禁，
+压缩日志891,581字节/构建步4,468,943字节；PIDFD后期失败检查修正已通过真实
+目标，不将原先错误的“不改输出槽”要求移入内核。wasm32的41496568042现也
+已读取实际六阶段、唯一pass及相同关闭门禁，压缩日志1,557,001字节/构建步
+7,835,545字节，接受该源码的双位宽范围。
+
+固定3a77133的41493736877/41493747070已核实完整fork语料，包括新增ignored
+fields阶段、exec拒绝/替换、信号与多线程拒绝恢复、各唯一pass及发布runner
+关闭门禁。日志/构建步分别为1,412,000/7,314,428与748,619/3,928,114字节。
+这些结果不代替后继源码或浏览器范围。
+
+## clone / clone3 共享 Linux fs 与文件表
+
+6350acf / 集成40e7aa2接纳CLONE_FS/CLONE_FILES，保留独立用户地址空间与
+单线程父进程边界。Linux原copy_fs/copy_files路径已具备实际能力，原执行
+适配层拒绝这些位。现在分别捕获sharingFlags，经原options/native参数传输
+交给Linux；两入口均要求features bit3及正确helper。旧对象在descriptor
+初始化前拒绝，旧签名保留。错误/trap后清除分享选项，普通fork不继承它们。
+
+标准C语料分别用clone3和flags-first clone创建共享cwd/umask的子进程，
+验证修改对父可见、用户变量仍独立；共享文件表时子close使父fd成为EBADF，
+而close_range的UNSHARE先分离后关闭，父fd及精确文件内容保留。两入口还
+验证FS/NEWNS冲突由Linux返回EINVAL，最后普通fork必须隔离cwd/close并清理。
+语料仅在隔离Wasm机器运行，不在宿主改变cwd、umask或创建根目录。
+
+403项运行层、两套TypeScript、10项执行对象/SDK/工作负载检查、GCC/Clang
+前端及双位宽Wasm静态分析通过。共享资源由Linux维护，没有新增musl函数、
+内核softmmu或共享用户内存支持；每个新目标须实际三阶段、唯一pass和关闭。
+双位宽各派发一次，目标结果待核实。
+
+固定6350acf的目标为
+[wasm32 41500407394](https://github.com/HighCWu/distro/actions/runs/41500407394)、
+[wasm64 41500420663](https://github.com/HighCWu/distro/actions/runs/41500420663)。
+
 ## 静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
