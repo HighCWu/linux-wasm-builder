@@ -4989,10 +4989,13 @@ await machine.closed 后才关闭磁盘；Nix 必须取得退出0才完成。因
 641eb07 的双位宽 Node array/socket-filter 范围，保留前述其它 BPF 能力边界。
 
 本轮另核查了固定 libpcap 源码
-[`69733af23aa55f221aaa5e23053f13eb55af4d35`](https://github.com/the-tcpdump-group/libpcap/blob/69733af23aa55f221aaa5e23053f13eb55af4d35/pcap-linux.c)：
+[固定 pcap-linux.c 源码][pcap-linux-fixed]：
 其 activation 要求 TPACKET mmap capture，版本探测失败是错误，ring mmap
 失败也直接退出。不能靠更换 errno 声称会回退到普通 recvmsg。当前未修改
 AF_PACKET ring 选项、未加 libpcap 补丁；真正的共享 ring 仍为未完成能力。
+
+[pcap-linux-fixed]:
+  https://github.com/the-tcpdump-group/libpcap/blob/69733af23aa55f221aaa5e23053f13eb55af4d35/pcap-linux.c
 
 ## 第一百零三组：可选 fork 配置恢复正常 Autoconf 探测
 
