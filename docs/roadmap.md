@@ -2004,15 +2004,18 @@ call_indirect/return_call_indirect 按实际表类型选择索引宽度，保留
 内核源码哈希由41436227897对已验收基线校验后取得。379项运行层检查、实际
 双位宽 C helper 传输、两套类型检查和静态分析通过，双位宽 namespace/TID
 十阶段现已核实双位宽Node的完整阶段、唯一pass及关闭；完整fork回归32位通过，
-64位因下载HTTP429尚未进入运行并已针对性重试。不扩大为多线程fork或浏览器验收。
+64位原任务因下载HTTP429未进入运行；源码获取修复e6b13da的41440786848已核实
+同一运行层完整十二阶段、唯一pass与关闭。不扩大为多线程fork或浏览器验收。
 详见[原生返回路径](fork-continuation-abi.md#原生-clone3-返回路径与-tid-输出)。
 
 后续 distro `7233d8c` / 主仓库 `eb8d3a2` 在相同 Linux60908a259 上接通
 clone3 的 CLONE_CLEAR_SIGHAND。新增内部 i64 flags 传输兼顾 wasm32，不改变
 旧 helper 签名；实际信号处理器清理由 Linux 完成。381项运行层、实际双位宽
-C helper 和类型/静态分析通过，独立双位宽目标已派发，尚待真实信号终止、
-拒绝/恢复及关闭验收。另将 Linux 源码获取改为同一固定哈希下的 Git，修复
-实际 archive HTTP429；原 wasm64 fork 回归尚未进入运行，已针对性重试。
+C helper 和类型/静态分析通过；独立双位宽Node目标现已核实真实信号终止、
+拒绝/恢复的全部三阶段、唯一pass及关闭。Linux源码获取改为同一固定哈希下
+的Git，修复实际archive HTTP429，未放宽内容校验。当前另推进远端用户内存
+机器端RPC数据面：6251480已有实际Worker忙循环及增长后复制证明，尚未接入
+内核mm生命周期、权限或现有syscall，不记为process_vm_*能力完成。
 
 ## 质量矩阵
 

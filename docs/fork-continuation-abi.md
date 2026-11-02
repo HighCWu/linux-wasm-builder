@@ -210,7 +210,8 @@ parent_tid、child_tid 分别保留；legacy 的 PIDFD/parent_tid 共用槽位�
 
 本地状态机、实际编译的双位宽 C helper 传输、类型和静态分析已通过。
 固定92d79a5的双位宽Node实际十阶段、唯一pass及关闭现已核实，完整fork回归
-32位也通过；64位完整回归下载源码受限，独立重试仍待结果，不以协议定义代替验收。
+32位也通过；64位原任务下载失败，获取修复e6b13da的同运行层独立重试现已核实
+十二阶段与关闭，原失败记录保留。上述证据不扩大为浏览器或后续所有版本验收。
 musl 和默认 LLVM pin 不变，无新增 Linux syscall、libc 函数或应用 API。
 
 ### clone3 高位 flags 与 CLEAR_SIGHAND
