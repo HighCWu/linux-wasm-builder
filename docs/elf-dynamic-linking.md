@@ -487,3 +487,48 @@ start中重入dlsym的专门分支仍只有轻量模型证据，不能由这些�
 范围；旧Node通过不替代。9d15937的旧wasm32任务41530248183现已取实际
 日志，确认仍因main_value数据引用未选择动态导入失败于构建；1ec430b已
 修复并通过双位宽Node，无需重新派发旧版。
+
+### 数值及SIMD函数的原生前向调用
+
+源码`8c2a568` / 主仓库pin `d08d209`移除共享库函数ABI的一处实际限制：
+原签名解析器把v128当成非法类型；循环中的前向调用又经JavaScript包装，
+即使放宽解析也无法传递SIMD值。现在解析保留i32/i64/f32/f64/v128精确
+签名，前向边使用独立MIT Wasm跳板，参数和结果直接通过共享表的call_indirect
+进入提供者，不经过JS数值转换。表索引类型独立采用table32或table64。
+
+每个提供者实例化完成后就发布规范表项并更新跳板目标，保留后续start调用
+已就绪函数的行为；全部GOT/数据重定位仍在构造阶段之前完成。未绑定及未
+定义的弱目标保留空表项陷阱，签名不匹配继续在初始化前拒绝。规范函数指针
+仍指向提供者本身，跳板不成为dlsym或GOT.func的新地址。引用值ABI、函数
+重导出、TLS、跨库异常和JS host callback接收SIMD仍不在已实现范围内。
+
+普通C循环库用vector_size(16)和-msimd128构建，在B构造中跨前向边调用A的
+向量函数，并在后续标量入口中再次调用，核对结果220。双位宽Clang18/LLD18
+产物通过ProcessDylink模型；仅恢复旧JS转发器、保留新签名解析的反向控制
+实际在v128构造调用处产生JS/Wasm类型错误。另以真实Wasm标量入口执行
+v128跳板，分别验证table32/table64及空目标陷阱；这些是Node引擎fixture，
+不是Linux或浏览器验收。回归还核对提供者已就绪而整个图尚未完成时的start
+调用、规范指针、弱空指针及此前的start表项隔离。
+
+两套TypeScript、既有运行层、三份C消费者双位宽静态分析、浏览器协议及格式
+检查通过。Linux及浏览器语料增加第六阶段`cross-module SIMD signatures
+and typed forward calls pass`，并保留此前五阶段；浏览器仍每路两轮及关闭。
+默认SDK和内核/musl/LLVM pin均不变，没有新增公共函数或提案阶段的Wasm特性。
+以下精确8c2a568任务计划和Heavy检查名已核对，当前均在运行：
+
+| 目标 | 任务 |
+|---|---|
+| Node wasm32 | [41535070759](https://github.com/HighCWu/distro/actions/runs/41535070759) |
+| Node wasm64 | [41535070917](https://github.com/HighCWu/distro/actions/runs/41535070917) |
+| wasm32 Chromium | [41535070764](https://github.com/HighCWu/distro/actions/runs/41535070764) |
+| wasm32 Firefox | [41535071096](https://github.com/HighCWu/distro/actions/runs/41535071096) |
+| wasm64 Chromium | [41535071069](https://github.com/HighCWu/distro/actions/runs/41535071069) |
+| wasm64 Firefox | [41535070933](https://github.com/HighCWu/distro/actions/runs/41535070933) |
+
+须实际六阶段、唯一pass、正常收尾和关闭才可接受；较早版本任务不代验新ABI。
+
+此前3c3246e的wasm64任务41531559713现已读取实际完整五阶段及唯一pass，
+压缩日志/构建步分别为484,970/2,508,768字节。发布run-test.js/shutdown.js
+与已审计门禁无差异，仍须等待machine.closed且关闭异常使任务失败；该任务
+成功，接受该源码的wasm64 Node循环装载范围，不扩大为wasm32、后继SIMD、
+start专门分支或浏览器结果。
