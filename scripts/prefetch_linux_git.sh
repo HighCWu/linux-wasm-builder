@@ -19,6 +19,7 @@ git -C "$source_work/git" -c http.version=HTTP/1.1 fetch --quiet --depth=2 origi
 changed_paths=$(git -C "$source_work/git" diff --name-status "$BASELINE_REVISION" "$SOURCE_REVISION")
 case "$changed_paths" in
 $'M\tkernel/futex/core.c') ;;
+$'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/process.c') ;;
 $'M\tarch/wasm/configs/defconfig\nM\tarch/wasm/configs/wasm32_defconfig\nM\tarch/wasm/configs/wasm64_defconfig') ;;
 *) exit 64 ;;
 esac
