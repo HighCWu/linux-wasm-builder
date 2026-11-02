@@ -89,6 +89,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-symver-") as tmp:
                 [
                     args.clang,
                     f"--target=wasm{bits}",
+                    "-mreference-types",
                     "-O0",
                     "-S",
                     "-nostdlib",
@@ -101,6 +102,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-symver-") as tmp:
                 [
                     args.mc,
                     f"-triple=wasm{bits}",
+                    "-mattr=+reference-types",
                     "-filetype=obj",
                     str(asm),
                     "-o",
@@ -133,6 +135,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-symver-") as tmp:
                 [
                     args.clang,
                     f"--target=wasm{bits}",
+                    "-mreference-types",
                     "-O0",
                     "-nostdlib",
                     "-c",
@@ -182,6 +185,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-symver-") as tmp:
                 [
                     args.mc,
                     f"-triple=wasm{bits}",
+                    "-mattr=+reference-types",
                     "-filetype=obj",
                     str(asm),
                     "-o",
