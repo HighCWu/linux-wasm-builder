@@ -309,6 +309,10 @@ const dependency=processLoader.open(dependencyPointer,2);
 const dependencyCounter=Number(processLoader.symbol(dependency,counterPointer));
 assert.equal(new DataView(memory.buffer).getInt32(dependencyCounter,true),11,'opening an existing dependency must not rerun constructors or zero data');
 const cycle=processLoader.open(storeString(basename(cycleAFile)),2);
+if(cycle===word(memoryAddress,0)){
+ const diagnostic=allocate(512,1);processLoader.error(diagnostic,word(memoryAddress,512));
+ console.error('cyclic module load error:',readCString(diagnostic));deallocate(diagnostic);
+}
 assert.notEqual(cycle,word(memoryAddress,0),'load real mutual NEEDED graph');
 const address=name=>Number(processLoader.symbol(cycle,storeString(name)));
 const data=name=>new DataView(memory.buffer).getInt32(address(name),true);
@@ -331,6 +335,29 @@ assert.notEqual(cyclePeer,word(memoryAddress,0));
 assert.equal(processLoader.symbol(cyclePeer,storeString('cycle_a_value')),word(memoryAddress,address('cycle_a_value')));
 assert.equal(data('cycle_a_count'),1);assert.equal(data('cycle_b_count'),1);
 console.log(`Process loader cyclic model wasm${bits}: mutual NEEDED, relocated peer constructors, canonical pointers and reused instances pass; not Linux bridge acceptance`);
+const tlsFiles=new Map([[basename(cycleAFile),new Uint8Array(readFileSync(cycleAFile))],
+ [basename(cycleBFile),new Uint8Array(readFileSync(cycleBFile))]]);
+for(const bytes of tlsFiles.values())assert(dylink(new WebAssembly.Module(bytes)).exports.some(x=>(x.flags&0x100)&&(x.flags&6)),
+ 'real C producer must carry private TLS metadata');
+const tlsBefore=new Uint8Array(memory.buffer).slice();
+assert.throws(()=>link_dylink_graph({...options,root:basename(cycleAFile),files:tlsFiles}),/TLS/,
+ 'generic linker must require the explicit initial-thread ownership contract');
+assert.deepEqual(new Uint8Array(memory.buffer),tlsBefore,'TLS admission failure must precede writes');
+assert.equal(data('cycle_a_tls_observed'),42);assert.equal(data('cycle_b_tls_observed'),22);
+assert.equal(data('cycle_a_tls_reference_observed'),1);assert.equal(data('cycle_b_tls_reference_observed'),1);
+const invoke=(name,...args)=>table.get(word(tableAddress,processLoader.symbol(cycle,storeString(name))))(...args);
+assert.equal(invoke('cycle_a_tls_step',2),25);assert.equal(invoke('cycle_b_tls_step',3),46);
+const tlsA=Number(invoke('cycle_a_tls_data')),tlsB=Number(invoke('cycle_b_tls_data'));
+assert.equal(Number(invoke('cycle_a_tls_relocated')),address('cycle_b_value'));
+assert.equal(Number(invoke('cycle_b_tls_relocated')),address('cycle_a_value'));
+assert.notEqual(tlsA,tlsB);assert.equal(new DataView(memory.buffer).getInt32(tlsA,true),24);
+assert.equal(new DataView(memory.buffer).getInt32(tlsB,true),45);
+assert.equal(processLoader.symbol(cycle,storeString('cycle_a_tls')),word(memoryAddress,0),
+ 'hidden TLS cannot masquerade as an ordinary data symbol');
+assert.equal(processLoader.open(storeString(basename(cycleAFile)),6),cycle);
+assert.equal(invoke('cycle_a_tls_step',1),27);
+assert.equal(new DataView(memory.buffer).getInt32(tlsA,true),25,'resident reuse preserves first-thread TLS');
+console.log(`Process loader TLS model wasm${bits}: initial image, zero data, peer constructors, isolation and resident reuse pass; not dynamic threads or Linux bridge acceptance`);
 const starting=processLoader.open(storeString('start.wasm'),2);
 assert.notEqual(starting,word(memoryAddress,0),'load module with reentrant start lookup');
 const entry=processLoader.symbol(starting,storeString('entry'));
@@ -390,7 +417,14 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                     ),
                     "-Wl,--export-all",
                     "-Wl,--export=__wasm_call_ctors",
-                    *([] if name == "main" else [f"-Wl,-soname,{name}{bits}.wasm"]),
+                    *(
+                        []
+                        if name == "main"
+                        else [
+                            f"-Wl,-soname,{name}{bits}.wasm",
+                            "-Wl,--unresolved-symbols=import-dynamic",
+                        ]
+                    ),
                     f"-Wl,--max-memory={4294967296 if bits == 32 else 17179869184}",
                     str(directory / f"{name}.c"),
                     *([str(directory / f"a{bits}.wasm")] if name == "b" else []),
@@ -421,6 +455,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                     "-fPIC",
                     "-shared",
                     "-msimd128",
+                    "-Wl,--export=__tls_base",
                     "-matomics",
                     "-mbulk-memory",
                     "-Wl,--shared-memory,--no-entry,--import-memory,--import-table",
