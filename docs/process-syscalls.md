@@ -5470,6 +5470,46 @@ review 覆盖旧对象/旧内核回退、缺少 helper 时先拒绝、原 syscal
 阶段、唯一pass与关闭均待实际日志；不扩大为共享 futex、TLS、自定义栈或
 多线程 fork。详见[执行 ABI](fork-continuation-abi.md#原生-clone3-返回路径与-tid-输出)。
 
+## 原版 setsid 验收、原生 clone3 结果与源码限流
+
+固定46b0b87的[wasm32 41437631434](https://github.com/HighCWu/distro/actions/runs/41437631434)
+和[wasm64 41437640521](https://github.com/HighCWu/distro/actions/runs/41437640521)
+现均核实原版setsid三阶段、设备 fixture teardown 和唯一pass各一次。
+32位完整压缩日志1,570,796字节、构建步7,893,234字节；64位对应873,101字节、
+4,536,636字节。该版发布runner与当前run-test/shutdown一致，在退出0前等待
+machine.closed，两项实际任务均成功，关闭门禁成立。接受的是该版3dc991222内核
+上的原程序fork/exec/wait、ctty/session/foreground、错误恢复与设备清理，不推广
+到新内核或任意交互式作业控制。
+
+固定92d79a5 / Linux60908a259的[wasm64 namespace/TID 41438630395](https://github.com/HighCWu/distro/actions/runs/41438630395)
+已核实完整十阶段与唯一pass：压缩日志1,469,056字节、构建步6,987,675字节。
+其中三个TID阶段及PIDFD/TID别名拒绝实际通过，不是仅基础namespace通过。
+同版[wasm32 fork 41438638854](https://github.com/HighCWu/distro/actions/runs/41438638854)
+核实全部十二个fork/fork-exec阶段、唯一pass，压缩日志1,550,922字节、构建步
+7,311,485字节。相同发布runner的等待关闭门禁成立；32位TID独立目标仍待结果。
+这些结果不覆盖后续7233d8c的宽flags传输或浏览器。
+
+92d79a5的wasm64 fork41438646687明确失败在源码获取：两个archive端点均连续
+HTTP429，最后source.drv失败，尚未编译或运行。distro e6b13da / 集成8363f53
+改为fetchgit精确rev，去掉.git且不取子模块，保持同一已核验递归内容哈希。
+Nix仍必须拒绝内容/模式/链接差异；未降低哈希约束。六项构建材料正反检查通过。
+固定e6b13da针对性复验[41440786848](https://github.com/HighCWu/distro/actions/runs/41440786848)，
+未取消仍运行的其它任务，也不把下载失败解释为clone3语义失败。
+
+## clone3 的高位标志与信号处理器重置
+
+distro7233d8c / 集成eb8d3a2在相同内核上新增CLONE_CLEAR_SIGHAND传递。
+可选helper的flags在双位宽均为i64，旧helper签名和低位范围保留。Linux原
+copy_sighand完成重置，JS不代改处理器。381项运行层检查、两套类型检查、
+真实生成的双位宽C helper传输/拒绝检查、GCC/Clang前端与双位宽Wasm静态分析
+通过。原生消费者未在宿主执行，不把导入夹具返回值当作真实fork。
+
+独立目标[wasm32 41441174223](https://github.com/HighCWu/distro/actions/runs/41441174223)
+和[wasm64 41441190314](https://github.com/HighCWu/distro/actions/runs/41441190314)
+已各派发一次，仍待实际三阶段、唯一pass和关闭：子进程清除自定义处理器、保留
+SIG_IGN并被真实默认信号终止；SIGHAND冲突拒绝；后续普通fork继承父处理器并
+正常回收。没有新增libc函数，也未扩大共享处理器、线程、自定义栈或其它高位flags。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、

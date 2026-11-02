@@ -2006,6 +2006,13 @@ call_indirect/return_call_indirect 按实际表类型选择索引宽度，保留
 十阶段与完整 fork 回归已派发。真实目标运行仍待验收，不扩大为多线程 fork。
 详见[原生返回路径](fork-continuation-abi.md#原生-clone3-返回路径与-tid-输出)。
 
+后续 distro `7233d8c` / 主仓库 `eb8d3a2` 在相同 Linux60908a259 上接通
+clone3 的 CLONE_CLEAR_SIGHAND。新增内部 i64 flags 传输兼顾 wasm32，不改变
+旧 helper 签名；实际信号处理器清理由 Linux 完成。381项运行层、实际双位宽
+C helper 和类型/静态分析通过，独立双位宽目标已派发，尚待真实信号终止、
+拒绝/恢复及关闭验收。另将 Linux 源码获取改为同一固定哈希下的 Git，修复
+实际 archive HTTP429；原 wasm64 fork 回归尚未进入运行，已针对性重试。
+
 ## 质量矩阵
 
 标准 syscall 能力继续独立推进：Linux `b920e6b82` / distro `fd54b54`

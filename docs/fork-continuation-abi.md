@@ -212,6 +212,24 @@ parent_tid、child_tid 分别保留；legacy 的 PIDFD/parent_tid 共用槽位�
 还须核实既有六阶段、TID 四阶段、唯一 pass 和关闭，不以协议定义作为验收。
 musl 和默认 LLVM pin 不变，无新增 Linux syscall、libc 函数或应用 API。
 
+### clone3 高位 flags 与 CLEAR_SIGHAND
+
+distro `7233d8c` 新增可选内部导出 `__wasm_fork_clone3_flags64`，flags 参数在
+wasm32/64均为 i64，其余三个地址参数保留 uintptr_t 宽度。旧
+`__wasm_fork_clone3_native` 保持原签名及低位标志范围，避免给旧 wasm32 helper
+传入 BigInt/i64 或把高位截断。高位请求必须同时具备宽传输与原生内核能力，
+否则在 descriptor 初始化前拒绝；普通旧对象仍可用原来的低位传输。
+
+当前只新增 CLONE_CLEAR_SIGHAND（1ULL<<32）。Linux 原 copy_sighand 清除
+自定义处理器并保留 SIG_IGN，运行层不修改 sigaction 表冒充该行为。
+CLEAR_SIGHAND 与 SIGHAND 冲突按 Linux 返回 EINVAL；没有启用共享处理器、
+CLONE_VM、多线程 fork 或其它高位标志。legacy clone 仍使用低32位规则。
+捕获的高位值只属于当次请求，负返回和异常清理后不得污染下一次普通 fork。
+
+固定7233d8c的独立 `clone-flags64` 双位宽目标覆盖默认信号真实终止、IGN保留、
+冲突拒绝、PIDFD回收及后续普通fork。目标结果尚待实际阶段和关闭证据，不把
+本地真实 C helper 的字段传输测试当作内核信号验收。
+
 ## 保存区
 
 descriptor 是两个小端 `uintptr_t`：当前 cursor、保存区 end，字段分别占 4 或 8 字节。
