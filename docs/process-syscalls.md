@@ -4795,7 +4795,8 @@ Make 目标和静态库选项，libbpf 通过上游选项关闭。libutil 原始
 配方、SDK 材料链接与最终二进制摘要，运行前核对其版本与文件身份。
 
 普通 C 检查使用默认 libc 的 posix_spawn/exec 路径运行真实 /sbin/ss，要求三个
-阶段：按 fstat inode 和地址找到本次创建的抽象 UNIX、UDP4、TCP4 listener；
+阶段：按 fstat inode 和地址找到本次创建的抽象 UNIX listener、绑定 UDP4 socket
+与 TCP4 listener；
 关闭 fd 后新查询不再包含旧 inode；降为 uid/gid65534 后重复创建、核对 UID 与
 清理。所有 fixture socket 为 CLOEXEC，不让被查询工具延长其生命；工具必须
 正常退出且仅回收一次。标准输出有64 KiB上限，检查器按整行/完整数字 token
@@ -4825,6 +4826,14 @@ GCC/Clang 严格前端、Clang 分析、双位宽既有 musl 头下的前端/分
 的 socket-diag-wasm64-check-runtime。实际工具链接、三个阶段、唯一 pass 和
 machine.closed 仍待核实。不扩大为所有 ss 选项、BPF、socket 销毁管理、全套
 iproute2、动态链接或浏览器支持，也不把旧内核的 RNG 验收泛化到新 pin。
+
+上述两个 5fa0584 任务均在 formatting 门禁失败，尚未进入目标运行；实际日志
+确认 treefmt 的 unexpected changes，而不是 socket syscall 失败。后续 distro
+`94b4d3d` 按固定 shfmt 3.14.1 修正 shell case 分支格式，主仓库 `3deb86b`
+单独更新 pin。新源码各派发一次
+[wasm32 41402479096](https://github.com/HighCWu/distro/actions/runs/41402479096) 与
+[wasm64 41402485337](https://github.com/HighCWu/distro/actions/runs/41402485337)，
+仍待真实目标阶段和关闭结果，不能据格式修复宣布验收。
 
 ## 信号栈缺口的前期核查记录
 

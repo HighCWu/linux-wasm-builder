@@ -1962,7 +1962,9 @@ libkcapi 专用符号补丁暂不集成，优先调查工具链层能否使上�
 独立 LLVM `.symver` 候选 `b42af70` 已提交并推送，默认工具链 pin 保持原版。
 双位宽真实编译/链接/执行检查已派发至
 [公开 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41390102227)，
-尚待目标结果；不能视为 ELF 加载、动态符号版本表或 dlopen 已完成。
+首次候选编译完成，但实际链接被 `duplicate symbol name api@VER_1` 拒绝，
+需要修复同一编译单元旧版本引用/定义的重复符号后复验；不能视为 ELF 加载、
+动态符号版本表或 dlopen 已完成。默认 LLVM pin 未切换。
 
 `cc72990` 为 SDK 增加标准 `try_table` 异常指令的独立 C++ 消费者检查，针对
 Firefox 实际日志中的旧式 EH 弃用警告。它保持默认编译配置、内核和运行库不变，
