@@ -57,8 +57,9 @@ PID、长度或普通 JS 元数据，也不取消当前线性内存边界检查�
 linux_syscall_v2(SYS_clone, flags, stack, parent_tid, child_tid, tls, unused);
 ```
 
-当前只接受 `(SIGCHLD, 0, 0, 0, 0)`；未使用的第六寄存器忽略。其他组合返回
-`EOPNOTSUPP`，绝不回退到回调式 clone。musl 通用 `_Fork` 保持原来的
+当前接纳 SIGCHLD、默认栈，及经可选 helper 门控的 namespace/PIDFD 组合；
+无 TID/TLS 更新标志时忽略相关寄存器，PIDFD 输出使用 parent_tid 槽。其它未支持
+组合返回 `EOPNOTSUPP`，绝不回退到回调式 clone。musl 通用 `_Fork` 保持原来的
 `__syscall(SYS_clone, SIGCHLD, 0)` 调用体，由 Wasm 架构层选择 import。
 这不是声称所有 Linux 架构均采用相同参数顺序。
 
@@ -131,6 +132,24 @@ Linux kernel_clone 负责原子创建、pidfd 写回、CLOEXEC 和资源失败�
 和 signal callback 仍受原有状态机约束。未启用可选执行对象的 v2 请求拒绝；旧
 callback import 对 clone3 返回 ENOSYS，不再把未能保存用户现场的请求送入内核。
 raw caller 仍须自行承担 libc post-fork 收尾，不自动获得 fork() 的 atfork/锁处理。
+
+### flags-first clone 的 namespace/PIDFD 增量
+
+distro `1bf7c36` 在 v2 import 的标准号220入口复用下述 namespace/PIDFD
+传输与能力检查，未改动 callback import 的参数解释。legacy clone 按内核
+lower_32_bits(flags) 规则使用低32位，不套用 clone3 的完整 u64 flags 规则；
+PIDFD 指针仍按模块完整指针宽度验证，不能随 flags 一起截断。
+
+要求 stack=0、CSIGNAL=SIGCHLD。支持范围不含 PARENT_SETTID、CHILD_SETTID/
+CLEARTID、SETTLS 等标志，因此未请求更新的 parent_tid/child_tid/TLS 寄存器
+按 Linux 忽略，不能因为短 syscall 调用中未使用寄存器非零而拒绝普通 fork。
+CLONE_PIDFD 使用 parent_tid 槽并验证可写 int 的非零范围；第六寄存器忽略。
+clone3 的结构与有限形态规则保持原样，不能把 legacy 的高位忽略规则用于它。
+
+只在首次调用解析并捕获选项；parent/child rewind 完成此前接纳的请求，不再
+用可能已变化的寄存器决定另一次 clone。负值与异常清理继续共用既有状态机，
+无可选执行支持时先拒绝。独立目标将 clone3 与 flags-first clone 各运行三阶段，
+新六阶段的真实运行与关闭仍待验收。
 
 ### clone3 的命名空间传递
 

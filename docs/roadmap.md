@@ -2132,6 +2132,17 @@ cgroup78e85db与原版flock7081904的 Node wasm32 已分别核实三阶段/四�
 尚未运行 fork 阶段。47b4e74在专用 init 初始化/清理标准devtmpfs/devpts，
 不改应用源码，新两路待验证。见[实际结果记录](process-syscalls.md#第一百一十组已核实的32位进展与-setsid-设备前提)。
 
+distro `1bf7c36` 将同一 namespace/PIDFD 传输接到标准 flags-first clone，
+按真实 Linux 规则只取 legacy flags低32位、保留完整PIDFD指针，忽略未请求的
+TID/TLS和第六寄存器。clone与clone3各自解析、共用恢复和能力门禁，新目标
+各运行三阶段，六阶段尚待实际验收。主仓库pin `de07d1f`，见
+[标准clone记录](process-syscalls.md#第一百一十一组标准-flags-first-clone-与-linux-参数规则)。
+
+cgroup78e85db与原版flock7081904的wasm64现也逐项核实完整阶段、唯一pass及
+关闭，接受各自源码的双位宽Node范围；不扩大为新namespace或浏览器结果。
+setsid7081904的wasm64确认同样缺少设备前提，47b4e74修复仍待新目标日志。
+见[双位宽验收](process-syscalls.md#第一百一十二组cgroup-与原版-flock-的双位宽-node-验收)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |

@@ -5350,6 +5350,58 @@ devpts；消费者结束后全部卸载、发布 fixture teardown 阶段才允�
 [wasm64 41428166924](https://github.com/HighCWu/distro/actions/runs/41428166924)
 已派发，完整阶段与关闭待核实。
 
+## 第一百一十一组：标准 flags-first clone 与 Linux 参数规则
+
+distro `1bf7c36` 修复220号 v2入口仍只接纳普通 SIGCHLD、拒绝 namespace/PIDFD
+的缺口。显式 import 继续确定布局，不按数值猜测 callback；clone 与 clone3
+各自解码，再共用可选执行 helper、PIDFD 内核能力与恢复状态机。无 alternate
+stack、无 TID/TLS 更新标志、单线程 fork 的边界不变。不是新增 libc 包装或
+应用 API，Linux/musl/默认 LLVM pin 均未修改。
+
+核对真实内核 arch/wasm/kernel/fork.c 的 lower_32_bits(clone_flags)：legacy
+flags 只用低32位，不能照搬 clone3 保留 u64 的规则。PIDFD 指针仍保留完整
+模块位宽并验证范围。未请求相关标志时，parent_tid/child_tid/TLS 寄存器按
+Linux 忽略；若 CLONE_PIDFD 设置，则只把 parent_tid 作为输出地址验证。
+默认栈与 SIGCHLD 仍必需，第六寄存器忽略。这样短 syscall 调用未使用的
+寄存器不必人为清零；不把忽略寄存器误称为已支持 tid/TLS 语义。
+
+flags-first 的 parent/child rewind 完成已接纳请求，不因重放时参数改变而
+重做解析或创建另一个进程。与 clone3 共用一次捕获、旧 helper 能力拒绝、
+禁止回调/信号重入、负值/异常后清除 namespace/PIDFD 的流程。宿主检查覆盖
+EPERM/EAGAIN/异常后普通 fork、未知形态、缺少 helper、指针高位不被截断，
+以及显式 import、未用寄存器和不重新解析的恢复。
+
+原独立消费者改为分别运行 clone3 和标准 clone 三阶段：两种调用各验证 UTS/
+IPC隔离+PIDFD、PID namespace身份、权限拒绝和普通 fork恢复。clone 形式还
+刻意传入未使用的-1 TID/TLS寄存器及999号第六寄存器，64位再传入1<<40的
+flags高位，验证是 Linux 的忽略规则；不截断有效 PIDFD 地址。成功标记仍唯一，
+六个阶段包含各自 API 名称，不能把此前7273efc的三阶段视作新六阶段通过。
+
+375项内核宿主检查、8项SDK/raw检查、两套TypeScript项目、GCC/Clang严格前端
+和分析、当前头文件下wasm32/64前端/分析、固定格式和源码检查通过。没有在
+宿主运行 namespace/降权消费者。review 核对按 flags 决定参数用途、word与u64
+结构的区别、完整指针、能力门禁与恢复后的选项清理；不以宿主模型代替内核。
+主仓库 `de07d1f` 单独更新 distro pin，固定1bf7c36的新六阶段目标各派发一次：
+[wasm32 41432143238](https://github.com/HighCWu/distro/actions/runs/41432143238) 与
+[wasm64 41432152547](https://github.com/HighCWu/distro/actions/runs/41432152547)。
+六阶段、唯一pass与机器关闭均尚待验收。
+
+## 第一百一十二组：cgroup 与原版 flock 的双位宽 Node 验收
+
+cgroup78e85db的wasm64也已核实：完整压缩run日志1,480,642字节，构建步
+7,521,559字节，三阶段和唯一pass各一次，Heavy/workflow success；与已核实
+的wasm32共同接受该版Linux3dc991222的PIDs准入、继承、回滚、计数及清理。
+原版flock7081904的wasm64完整压缩日志1,488,790字节、构建步7,589,988字节，
+四阶段和唯一pass各一次，Heavy/workflow success；与已核实wasm32共同接受
+该版原程序的fork/wait、close/direct-exec、真实锁冲突/释放、超时和错误恢复。
+
+两个wasm64目标无fail/panic；各版已发布runner均在退出0之前等待machine.closed，
+Nix也要求退出0。它们与当前runner源码一致，关闭门禁成立，不只是工作流绿色。
+这些结果不推广到新 namespace 代码、浏览器、全部 cgroup controller 或全部
+util-linux。setsid7081904的wasm64完整压缩日志1,505,394字节、构建步
+7,586,446字节，确认同样在child input ENOENT停止，没有功能阶段；已发布的
+47b4e74设备挂载修复仍待新目标结果，不把flock/cgroup通过用于替代它。
+
 ## 本轮静态 review 与异步验收原则
 
 review 覆盖执行 ABI 版本选择、clone3 有界解析与重入、资源 syscall 的参数位宽、
