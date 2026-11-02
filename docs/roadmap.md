@@ -1960,8 +1960,8 @@ Linux/ELF/libc/TLS/浏览器或线程，不算生产加载器验收。实现顺�
 libkcapi 专用符号补丁暂不集成，优先调查工具链层能否使上游源码直接构建。
 
 独立 LLVM `.symver` 候选 `b42af70` 已提交并推送，默认工具链 pin 保持原版。
-双位宽真实编译/链接/执行检查已通过
-[公开 CI 派发](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41390102227)，
+双位宽真实编译/链接/执行检查已派发至
+[公开 CI](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41390102227)，
 尚待目标结果；不能视为 ELF 加载、动态符号版本表或 dlopen 已完成。
 
 `cc72990` 为 SDK 增加标准 `try_table` 异常指令的独立 C++ 消费者检查，针对
