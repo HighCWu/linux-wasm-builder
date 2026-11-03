@@ -163,6 +163,16 @@ jobs:
             "$revision" "$source_root/arch/wasm/kernel/syscall.c" arch/wasm/kernel/syscall.c
           WASM_MADVISE_KERNEL_SOURCE_ROOT="$source_root" WASM_MADVISE_COMPILERS=clang-18 \
             python3 -B scripts/check_madv_free.py
+      - name: Check bootstrap FDT allocation preserves preloaded initrd bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          setup_source="$RUNNER_TEMP/wasm-boot-setup.c"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$setup_source" arch/wasm/kernel/setup.c
+          WASM_BOOT_SETUP_SOURCE="$setup_source" WASM_BOOT_COMPILERS=clang-18 \
+            python3 -B scripts/check_boot_fdt_placement.py
       - name: Check detached exit stack and allocator lock lifetime
         run: WASM_RECLAIM_COMPILERS=clang python3 -B scripts/check_thread_reclaim.py
       - name: Check user callback and IRQ execution phases with exact pinned source
