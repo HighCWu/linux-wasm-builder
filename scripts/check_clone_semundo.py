@@ -203,33 +203,40 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                 f"{cc}: host policy blocks native pidfd_getfd; compiled only, no runtime acceptance"
             )
         else:
-            assert result.returncode == 0 and result.stdout.count(" pass\n") == 3, (
+            assert result.returncode == 0 and result.stdout.count(" pass\n") == 5, (
                 result.stdout + result.stderr
             )
-            subprocess.run(
-                [
-                    cc,
-                    "-O2",
-                    "-Wall",
-                    "-Wextra",
-                    "-Werror",
-                    "-DFORCE_LOCAL_DUP",
-                    str(pidfd_source),
-                    "-o",
-                    str(binary),
-                ],
-                check=True,
-            )
-            negative = subprocess.run(
-                [str(binary), str(target)], capture_output=True, text=True, timeout=20
-            )
-            assert (
-                negative.returncode != 0
-                and "copied descriptor reads child data" in negative.stderr
-            ), negative.stdout + negative.stderr
-            target.unlink(missing_ok=True)
+            for macro, expected in (
+                ("FORCE_LOCAL_DUP", "copied descriptor reads child data"),
+                ("DROP_CMSG_CLOEXEC", "received descriptor close-on-exec"),
+                ("KEEP_CONTROL_ROOM", "exact one-FD truncation status"),
+            ):
+                subprocess.run(
+                    [
+                        cc,
+                        "-O2",
+                        "-Wall",
+                        "-Wextra",
+                        "-Werror",
+                        "-D" + macro,
+                        str(pidfd_source),
+                        "-o",
+                        str(binary),
+                    ],
+                    check=True,
+                )
+                negative = subprocess.run(
+                    [str(binary), str(target)],
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
+                )
+                assert negative.returncode != 0 and expected in negative.stderr, (
+                    negative.stdout + negative.stderr
+                )
+                target.unlink(missing_ok=True)
             print(
-                f"{cc}: native pidfd_getfd three stages and local-dup negative control pass"
+                f"{cc}: native pidfd/Unix rights five stages and local-dup/CLOEXEC/truncation negative controls pass"
             )
     (work / "bits").mkdir()
     template = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (
