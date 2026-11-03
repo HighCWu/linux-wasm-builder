@@ -23,21 +23,23 @@ with tempfile.TemporaryDirectory(prefix="cooperative-poll-consumer-") as tmp:
     numbers = (MUSL / "arch/wasm32/bits/syscall.h.in").read_text()
     (path / "bits/syscall.h").write_text(numbers + numbers.replace("__NR_", "SYS_"))
     for cc in ("gcc", "clang"):
-        subprocess.run(
-            [
-                cc,
-                "-O2",
-                "-pthread",
-                "-Wall",
-                "-Wextra",
-                "-Werror",
-                "-c",
-                str(SOURCE),
-                "-o",
-                str(path / "native.o"),
-            ],
-            check=True,
-        )
+        for variant in ([], ["-DCOOPERATIVE_CPU_TIMERS=1"]):
+            subprocess.run(
+                [
+                    cc,
+                    "-O2",
+                    "-pthread",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    *variant,
+                    "-c",
+                    str(SOURCE),
+                    "-o",
+                    str(path / "native.o"),
+                ],
+                check=True,
+            )
     for cc in os.environ.get("WASM_POLL_COMPILERS", "clang clang-22").split():
         resource = subprocess.check_output(
             [cc, "-print-resource-dir"], text=True
@@ -47,33 +49,36 @@ with tempfile.TemporaryDirectory(prefix="cooperative-poll-consumer-") as tmp:
             for include in ("arch/wasm32", "arch/generic", "include"):
                 flags += ["-I", str(MUSL / include)]
             flags += ["-isystem", resource + "/include", "-Wall", "-Wextra", "-Werror"]
-            subprocess.run(
-                flags
-                + [
-                    "-matomics",
-                    "-mbulk-memory",
-                    "-mllvm",
-                    "-wasm-enable-sjlj",
-                    "-fsanitize-coverage=trace-pc,no-prune,edge",
-                    "-c",
-                    str(SOURCE),
-                    "-o",
-                    str(path / "consumer.o"),
-                ],
-                check=True,
-            )
-            subprocess.run(
-                flags
-                + [
-                    "--analyze",
-                    "-Xanalyzer",
-                    "-analyzer-werror",
-                    str(SOURCE),
-                    "-o",
-                    "/dev/null",
-                ],
-                check=True,
-            )
+            for variant in ([], ["-DCOOPERATIVE_CPU_TIMERS=1"]):
+                subprocess.run(
+                    flags
+                    + variant
+                    + [
+                        "-matomics",
+                        "-mbulk-memory",
+                        "-mllvm",
+                        "-wasm-enable-sjlj",
+                        "-fsanitize-coverage=trace-pc,no-prune,edge",
+                        "-c",
+                        str(SOURCE),
+                        "-o",
+                        str(path / "consumer.o"),
+                    ],
+                    check=True,
+                )
+                subprocess.run(
+                    flags
+                    + variant
+                    + [
+                        "--analyze",
+                        "-Xanalyzer",
+                        "-analyzer-werror",
+                        str(SOURCE),
+                        "-o",
+                        "/dev/null",
+                    ],
+                    check=True,
+                )
             print(
-                f"{cc} wasm{bits}: real signal consumer compiles with instrumentation/SjLj and passes static analysis; not Linux execution"
+                f"{cc} wasm{bits}: ordinary/CPU timer consumers compile with instrumentation/SjLj and pass static analysis; not Linux execution"
             )
