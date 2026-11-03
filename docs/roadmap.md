@@ -2484,6 +2484,14 @@ Clang18/22双位宽实际组件和分析通过；尚未接入Worker/SDK/libc，�
 异步验收libc初始化前观察、失败保留、后续恢复及同内核信号/fork/exec回归，见
 [exec架构状态](process-syscalls.md#exec-提交时清理架构线程指针)。
 
+74cb9fe的四路五阶段浏览器现已核实各两轮及机器/浏览器关闭，独立libc插桩
+双位宽Node六阶段及关闭也通过；均保持固定Linux5ab71f5d7/muslce9c4c50范围。
+muslf09c21d9 / distrobbdd8f3 / 集成1af6a1f随后修复原SIGEV_THREAD worker遗漏
+的SjLj编译与native TLS重置，未新增libc API。实际双位宽函数体和两个反向控制
+通过；41590872805异步验收正常返回/pthread_exit、TSD/TLS、helper回收与后续
+恢复，并覆盖普通/独立libc插桩配置，见
+[原有定时通知路径](process-syscalls.md#原有-sigev_thread-worker-的-wasm-收尾与-tls-重置)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

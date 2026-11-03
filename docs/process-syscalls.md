@@ -6487,6 +6487,11 @@ machine.closed，关闭失败非零退出，四个目标均通过关闭门禁。
 [wasm64 Firefox 41587800703](https://github.com/HighCWu/distro/actions/runs/41587800703)。
 均需同页两轮完整五阶段及机器/浏览器关闭；未沿用旧四阶段浏览器结论。
 
+上述四路74cb9fe浏览器现已全部完成并核实实际日志：Chromium149.0.7827.55、
+Firefox151.0各双位宽、各两轮五阶段，含嵌套handler阶段，每轮唯一pass、机器
+关闭及最终浏览器关闭标记均齐全。接受该固定Linux5ab71f5d7组合的浏览器范围，
+不推广到GEN浏览器、新内核或libc插桩配置。
+
 ## 库内检查点的线程所有权门控原型
 
 已有应用插桩不能覆盖未插桩 libc 的长循环。直接重编译 libc 还不安全：早期
@@ -6548,6 +6553,12 @@ Clang18/22 双位宽实际 IR 确认调用循环/启动单元没有检查点、m
 派发双位宽六阶段及机器关闭验收，未计为真实库内信号支持通过。尚不推定所有
 第三方库、原始自定义 clone、动态模块、C++ 异常或浏览器组合已经覆盖。
 
+74cb9fe的41587166248随后已完成，实际Heavy日志逐项确认双位宽各六阶段及
+唯一pass，包含真正libc搜索循环内的timer交付、嵌套handler和后续恢复。运行器
+与该固定发布版一致，等待machine.closed且收尾失败非零退出；两路通过关闭门禁。
+接受Linux5ab71f5d7/muslce9c4c50的此Node独立配置，不将其视为后继musl或浏览器
+libc插桩组合已经通过。
+
 ## exec 提交时清理架构线程指针
 
 Linux `94d6741a0` / distro `58eee0d` / 集成 `7f08c44` 修复实际架构缺口：
@@ -6574,6 +6585,37 @@ Clang18/22双位宽运行实际flush函数、当前线程隔离和重复清理�
 [41588670745](https://github.com/HighCWu/distro/actions/runs/41588670745) 已异步
 派发双位宽各三个新阶段及机器关闭，并包含同一新内核的普通检查点与fork/exec-fd
 回归。未核实实际目标日志前不接受新的内核组合；默认libc及MMU配置不变。
+
+## 原有 SIGEV_THREAD worker 的 Wasm 收尾与 TLS 重置
+
+musl `f09c21d9` / distro `bbdd8f3` / 集成 `1af6a1f` 修复两处实际调用路径
+缺口，没有添加公共函数、头文件API或Linux扩展。原timer_create.c的SIGEV_THREAD
+分支在通知回调返回后，经cleanup_fromsig无条件longjmp回start的setjmp循环，
+但arch.mak未给这个原有编译单元启用Wasm SjLj，因而会走未转换longjmp的trap。
+现在把其.o/.lo纳入已有SjLj列表，保留原逻辑和LLVM执行机制。
+
+另一个缺口在原__reset_tls：它只重置ELF DTV模块，Wasm linker独立native TLS
+没有重新初始化。现在在Wasm分支调用已有__wasm_init_tls，恢复同一已分配块的
+初值，使同一逻辑通知worker的后续回调能得到新TLS。增加的只是既有内部helper
+声明和架构路径，非Wasm函数体及公共接口保持不变。
+
+Clang22双位宽真实timer worker、cleanup push/pop、setjmp/longjmp helper和
+TLS-reset函数体在小模块中执行三次通知，检查callback正常返回、标记清理及
+每次native TLS初值。递送/线程状态和分配器为测试模型，不冒充Linux调度。
+去掉SjLj必然trap，去掉native TLS重置则后续初值断言失败；模块拒绝Emscripten
+JS异常shim。普通消费者前端/SjLj编译、实际函数与消费者静态分析通过。公开预取
+[41590127079](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41590127079)
+核实固定musl源码hash，两种既有独立profile补丁dry-run通过。
+
+新消费者使用已有timer_create/settime/delete、pthread、TSD和semaphore API，
+验证坏clock创建后的helper回滚，三次one-shot通知中的正常返回/pthread_exit/
+正常返回、每次TLS和TSD析构、删除后的proc task列表收敛，以及后续定时器恢复。
+不依赖需CHECKPOINT_RESTORE的/proc/self/timers，不凭线程数宣称全部timer资源
+无泄漏。使用普通SDK和独立libc插桩SDK各跑双位宽，并带普通检查点回归。
+
+[41590872805](https://github.com/HighCWu/distro/actions/runs/41590872805) 已异步
+派发上述真实三阶段及各机器关闭；仍待目标日志，不把组件模型当作kernel timer
+递送、pthread_exit回调或新musl组合已通过。内核继续94d6741a0，MMU和fork范围不变。
 
 ## 启动修复后的合并 syscall 回归结果
 
