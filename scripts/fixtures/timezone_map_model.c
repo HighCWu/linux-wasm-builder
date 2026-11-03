@@ -1,22 +1,21 @@
 /* SPDX-License-Identifier: MIT */
-/* Private fault model, not Linux VFS or libc acceptance. The actual Wasm
- * __map_file / __unmap_file bodies are inserted at the marker below. */
+/* Fault model around the actual helper, not VFS or allocator acceptance. */
 typedef __SIZE_TYPE__ size_t;
-typedef __PTRDIFF_TYPE__ ssize_t;
 typedef __UINTMAX_TYPE__ uintmax_t;
 struct stat { __INT64_TYPE__ st_size; };
 #define SIZE_MAX __SIZE_MAX__
-#define SSIZE_MAX __PTRDIFF_MAX__
 #define O_RDONLY 0
 #define O_CLOEXEC 0x80000
 #define O_NONBLOCK 0x800
 #define EINTR 4
-#define SYS_read 63
 #define SYS_close 57
-
+#define PROT_READ 1
+#define MAP_PRIVATE 2
+#define MAP_SHARED 1
+#define MAP_FAILED ((void *)-1)
+static int errno;
 static unsigned char storage[32];
-static int mode, opened, closes, allocations, frees, reads, cancellation_points, bad;
-static size_t position;
+static int mode, opened, closes, maps, unmaps, cancellation_points, bad;
 
 static int sys_open(const char *path, int flags)
 {
@@ -33,41 +32,33 @@ static int __fstat(int fd, struct stat *st)
     st->st_size = mode == 3 ? 0 : mode == 4 ? -1 : mode == 5 ? 0x100000000LL : 12;
     return 0;
 }
-static void *malloc(size_t count)
+static void *__mmap(void *address, size_t length, int prot, int flags, int fd, long offset)
 {
-    allocations++;
-    return mode == 1 || count > sizeof storage ? (void *)0 : storage;
+    maps++;
+    if (address || prot != PROT_READ || flags != MAP_PRIVATE || fd != 17 || !opened || offset) {
+        bad++; errno = 95; return MAP_FAILED;
+    }
+    if (mode == 1 || length > sizeof storage) { errno = 12; return MAP_FAILED; }
+    if (mode == 6 || mode == 7) { errno = 5; return MAP_FAILED; }
+    if (maps == 1) { errno = EINTR; return MAP_FAILED; }
+    for (size_t i = 0; i < length; i++) storage[i] = 0x40 + i;
+    return storage;
 }
-static void free(void *p)
+static int __munmap(void *address, size_t length)
 {
-    if (p != storage || frees) bad++;
-    frees++;
+    if (address != storage || length != 12 || unmaps) bad++;
+    unmaps++;
+    return 0;
 }
-static long model_syscall(long nr, long fd, long pointer, long count)
+static long __syscall(long nr, int fd)
 {
-    if (fd != 17 || !opened) { bad++; return -9; }
-    if (nr == SYS_close) { closes++; opened = 0; return 0; }
-    if (nr != SYS_read || count <= 0 || (size_t)count > SSIZE_MAX) { bad++; return -22; }
-    reads++;
-    if (mode == 7) return -5;
-    if (mode == 6 && reads > 1) return 0;
-    if (mode != 6 && reads == 1) return -EINTR;
-    size_t n = (size_t)count < 3 ? (size_t)count : 3;
-    unsigned char *destination = (void *)pointer;
-    if (destination != storage + position || n > sizeof storage - position) { bad++; return -14; }
-    for (size_t i = 0; i < n; i++) destination[i] = 0x40 + position + i;
-    position += n;
-    return n;
+    if (nr != SYS_close || fd != 17 || !opened) { bad++; return -9; }
+    closes++; opened = 0; return 0;
 }
-#define sc1(n,a) model_syscall(n,(long)(a),0,0)
-#define sc2(n,a,b) model_syscall(n,(long)(a),(long)(b),0)
-#define sc3(n,a,b,c) model_syscall(n,(long)(a),(long)(b),(long)(c))
-#define pick(_1,_2,_3,name,...) name
-#define __syscall(n,...) pick(__VA_ARGS__,sc3,sc2,sc1)(n,__VA_ARGS__)
-__attribute__((unused)) static ssize_t read(int fd, void *p, size_t count)
+__attribute__((unused)) static int close(int fd)
 {
     cancellation_points++;
-    return model_syscall(SYS_read,fd,(long)p,(long)count);
+    return __syscall(SYS_close, fd);
 }
 
 /* ACTUAL_WASM_TIMEZONE_MAP */
@@ -75,22 +66,19 @@ __attribute__((unused)) static ssize_t read(int fd, void *p, size_t count)
 int check(int scenario)
 {
     mode = scenario;
-    opened = closes = allocations = frees = reads = cancellation_points = bad = 0;
-    position = 0;
-    for (size_t i = 0; i < sizeof storage; i++) storage[i] = 0;
+    opened = closes = maps = unmaps = cancellation_points = bad = errno = 0;
     size_t length = 777;
     const unsigned char *mapped = __map_file("zone", &length);
     if (!scenario) {
-        if (mapped != storage || length != 12 || reads != 5 || allocations != 1) return 10;
+        if (mapped != storage || length != 12 || maps != 2) return 10;
         for (int i = 0; i < 12; i++) if (mapped[i] != 0x40 + i) return 11;
         __unmap_file((const char *)mapped, length);
-        if (frees != 1) return 12;
+        if (unmaps != 1) return 12;
     } else {
-        if (mapped || length != 777) return 13;
-        if (scenario == 1 && allocations != 1) return 14;
-        if ((scenario == 2 || scenario == 3 || scenario == 4 || scenario == 8) && allocations) return 15;
-        if (scenario == 5 && allocations != (sizeof(size_t) == 8)) return 16;
-        if ((scenario == 6 || scenario == 7) && frees != 1) return 17;
+        if (mapped || length != 777 || unmaps) return 13;
+        if ((scenario == 2 || scenario == 3 || scenario == 4 || scenario == 8) && maps) return 14;
+        if (scenario == 5 && maps != (sizeof(size_t) == 8)) return 15;
+        if ((scenario == 1 || scenario == 6 || scenario == 7) && maps != 1) return 16;
     }
     if (opened || closes != (scenario != 8)) return 20;
     if (cancellation_points || bad) return 21;
