@@ -2426,6 +2426,14 @@ distro `0d02ed7` / 集成 `e148d11` 随后接入 Worker 与独立应用插桩 SD
 定时器、siglongjmp 恢复、pthread 定向信号和 strict seccomp 四阶段及关闭，
 未据本地结果接受真实交付，见[独立接线](process-syscalls.md#计算检查点的-worker-与独立-sdk-接线)。
 
+49c86fa 的41575757161现已核实 USER_NS 独立配置双位宽 Node 各四阶段、唯一
+pass 和关闭，接受该范围，默认 USER_NS=n 不变。musl `ce9c4c50` / distro
+`73c266a` / 集成 `d283b03` 随后让既有时区/消息目录内部加载器复用标准私有
+文件 mmap/munmap，移除旧 malloc/read 回退，仅恢复既有隐藏函数声明，没有
+公共 API 增量。实际函数体/静态分析及宿主参考通过，41579425956/41579431820
+异步验收禁用 read 后的换源映射等四阶段与关闭；见
+[加载路径收敛](process-syscalls.md#标准私有文件映射复用既有-libc-内部加载器)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |

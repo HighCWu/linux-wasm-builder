@@ -5683,6 +5683,34 @@ FIFO不阻塞、UTC回退和之后恢复正常文件。原生GCC/Clang及ASan/UB
 关闭门禁成立。接受该版默认SDK的上述Node范围，不推广为浏览器、所有时区/
 取消竞态或默认文件mmap已开放。
 
+## 标准私有文件映射复用既有 libc 内部加载器
+
+文件 mmap 的默认 streaming 路径已实际验收后，musl `ce9c4c50` / distro
+`73c266a` / 集成 `d283b03` 移除 __map_file 中独立的 malloc/read 副本循环，
+既有时区、消息目录等内部消费者改走 __mmap(PROT_READ, MAP_PRIVATE)，释放
+改走 __munmap。保留 O_NONBLOCK/O_CLOEXEC、正且可表示的长度校验、EINTR
+重试、失败不发布 size 及非取消 close；非 Wasm 函数体不变。MAP_SHARED 别名
+仍不支持，没有用这个改造声明页保护或惰性映射。
+
+src/include/sys/mman.h 中 __mmap/__munmap 的隐藏声明原仍被 Wasm 门控；
+现在仅恢复这两个已存在内部函数的声明。没有新增函数、公共头文件、公共 API
+或通用 Linux 包装，比较基线仍是 tombl/musl。这条替代路径收敛依赖配套内核的
+私有文件映射能力，不保证旧的显式关闭配置还能加载时区文件。
+
+公开预取 [41579166436](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41579166436)
+核实精确源码哈希。Clang18/22 双位宽实际 helper/消费者前端、静态分析和函数体
+故障模型通过；省略 close、改用可取消 close、误用 MAP_SHARED 的反向版本分别
+在预期断言失败。GCC/Clang 原生参考仍通过 TZif/time64 与64次换源两个阶段；
+本机未执行 seccomp/FIFO 的 Wasm 专用分支。
+
+真实 timezone 语料在原三阶段后新增第四阶段：标准 seccomp BPF 拒绝 SYS_read，
+先确认拒绝发生在 fd 校验之前，再切换东京与纽约文件并核对时间和 fd 回收。
+旧 malloc/read 路径不能靠原字节内容或同一时区缓存通过该断言。两项目标为
+[wasm32 41579425956](https://github.com/HighCWu/distro/actions/runs/41579425956)、
+[wasm64 41579431820](https://github.com/HighCWu/distro/actions/runs/41579431820)，
+均固定73c266a；真实四阶段、唯一 pass 与关闭仍待核实。它不代表所有消息目录、
+截断竞态或新 musl 下全部应用回归已经完成。
+
 ## 文件mmap的有界分块填充候选
 
 Linux1b81174a8、distro5d47cf7、集成ee42f64接入新的默认关闭分块配置。
@@ -6172,6 +6200,14 @@ wasm64 已进入用户程序，在 initial root namespace 检查中因 /proc 路
 通过，同一四阶段目标用已集成启动修复的新组合复验
 [41575757161](https://github.com/HighCWu/distro/actions/runs/41575757161)；真实
 namespace 语义仍待核实，尚未计为通过。
+
+49c86fa 的41575757161随后已成功，实际读取13,775,264字节 Heavy 日志，
+wasm32/64 各核实四阶段：unshare 与单条 UID/GID map、重写和 unmapped ID/
+setns 拒绝、普通 exec 后凭据和 setgroups 策略、父 namespace/groups 不变及
+单次回收/清理；每个目标唯一 pass。run-test.js/shutdown.js 与核对版本无差异，
+作业退出成功要求等待 machine.closed 且无清理失败，关闭门禁成立。接受该独立
+USER_NS 配置的上述双位宽 Node 范围，默认仍按官方 USER_NS=n，不推定容器、
+浏览器、全部 namespace 组合或安全隔离已验收。
 
 ## 启动 FDT 覆盖预载 initrd 的实际缺陷
 

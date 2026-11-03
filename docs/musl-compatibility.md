@@ -322,3 +322,16 @@ SjLj 返回包装而非直接退出 handler，保留 cond_wait 的 masked ECANCE
 唯一pass及关闭门禁现已分别核实。
 这属于既有接口的必要Wasm替代路径修复，不新增Linux扩展包装，不作为文件mmap
 已开放的证据。详见[进程与兼容记录](process-syscalls.md#wasm既有时区文件读取路径的资源与取消边界)。
+
+## 标准文件映射后的内部加载路径收敛
+
+在默认文件 streaming mmap 已验收后，ce9c4c50 将同一既有 Wasm helper 改用
+标准私有 __mmap/__munmap，移除单独的 malloc/read 循环。恢复的是
+src/include/sys/mman.h 内两个已存在隐藏函数的声明；公共 include 目录没有
+变化，未增加函数或 API。非 Wasm 函数体不变，保留长度/非阻塞打开/非取消关闭
+和 EINTR 边界，不支持共享别名或页权限。
+
+distro73c266a / 集成d283b03固定已公开预取的源码，双位宽函数体及消费者静态
+分析/故障控制通过。真实消费者新增拒绝 SYS_read 后换源加载，以区分映射与旧
+读取副本；两项 Node 的四阶段和关闭异步验收中，未将宿主参考或旧三阶段结果
+代作新目标通过。见[映射接线](process-syscalls.md#标准私有文件映射复用既有-libc-内部加载器)。
