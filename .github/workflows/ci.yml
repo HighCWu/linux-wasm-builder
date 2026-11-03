@@ -47,9 +47,23 @@ jobs:
       - name: Install released compiler and linker for the small artifact corpus
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-18 lld-18
+          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt
       - name: Run actual Wasm32 and memory64 module binding with negative controls
         run: python3 -B scripts/probe_wasm_dynamic_linking.py --clang clang-18
+      - name: Check actual LSM registration sections and the pinned kernel collector
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          source_root="$RUNNER_TEMP/wasm-lsm-sections"
+          for path in include/linux/lsm_hooks.h security/lsm_init.c \
+            arch/wasm/kernel/sections.c arch/wasm/scripts/sections.pl scripts/Makefile.vmlinux_o; do
+            mkdir -p "$source_root/$(dirname "$path")"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$source_root/$path" "$path"
+          done
+          WASM_LSM_SOURCE_ROOT="$source_root" WASM_LSM_COMPILERS=clang-18 \
+            python3 -B scripts/check_lsm_sections.py
   repository:
     name: Repository metadata
     runs-on: ubuntu-24.04
@@ -122,6 +136,20 @@ jobs:
         run: |
           python3 -B scripts/test_brk_bounds.py
           python3 -B scripts/test_lite_malloc_failure.py
+      - name: Check standard brk with real kernel/libc bodies in separate Wasm memories
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          source_root="$RUNNER_TEMP/wasm-brk-syscall"
+          for path in arch/wasm/kernel/syscall.c include/linux/mm.h; do
+            mkdir -p "$source_root/$(dirname "$path")"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$source_root/$path" "$path"
+          done
+          WASM_BRK_KERNEL_SOURCE_ROOT="$source_root" WASM_BRK_COMPILERS=clang-18 \
+            python3 -B scripts/test_brk_syscall.py
+          node --test sources/distro/packages/kernel/test/user-brk.test.ts
       - name: Check detached exit stack and allocator lock lifetime
         run: WASM_RECLAIM_COMPILERS=clang python3 -B scripts/check_thread_reclaim.py
       - name: Check user callback and IRQ execution phases with exact pinned source
