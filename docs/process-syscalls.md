@@ -5731,6 +5731,13 @@ Wasm 对象，验证隐藏符号引用确实经过 wrapper 再到原目标；去
 需实际四阶段、唯一 pass 与机器关闭。内核配置和真实映射实现没有因这个测试
 修正而更改。
 
+53a8100 的新两项现已成功。实际 Heavy 日志 wasm32 为5,338,384字节、wasm64
+为2,075,676字节；各四阶段有序且唯一 pass，包括真实私有映射/解除映射的换源
+观察。固定 run-test.js/shutdown.js 与核对版本一致，成功退出必须等待
+machine.closed 并拒绝清理错误，双位宽关闭门禁成立。接受该组合的时区内部
+加载范围，不据此宣称 seccomp filter、所有 locale/catalog 文件或新内核组合
+已经验收。
+
 ## 文件mmap的有界分块填充候选
 
 Linux1b81174a8、distro5d47cf7、集成ee42f64接入新的默认关闭分块配置。
@@ -6420,6 +6427,47 @@ process-poll 浏览器配置；双位宽、双引擎均使用两 CPU，同页两
 
 目前实际目标轮次和关闭仍待核实，不据接线或工作流状态宣称浏览器能力通过。
 Node GEN 六阶段与普通四阶段聚合41580416330仍独立异步验收，不取消慢任务。
+
+b6b9911 的四路现已读取实际日志并逐项核实：各两轮完整四阶段、每轮唯一pass、
+两个 machine shutdown 及最终 browser shutdown。实际 Heavy 日志字节数依次为
+wasm32 Chromium 5,410,121、Firefox 5,409,686，wasm64 Chromium 2,146,921、
+Firefox 2,146,481。引擎为 Chromium149.0.7827.55、Firefox151.0，双CPU。
+接受该独立配置的双位宽、双浏览器四阶段范围；后继 handler 嵌套第五阶段不在
+这个结果内，也不扩大为未插桩库循环或默认 SDK。
+
+固定 b7b8b4a 的41580416330也已核实实际15,885,040字节 Heavy 日志，双位宽
+普通配置各四阶段、GEN配置各六阶段及每台唯一pass，阶段顺序逐项匹配。固定
+运行器未改变，必须等待 machine.closed 且无清理错误，四台机器通过关闭门禁。
+接受该版本普通计算区间/循环内ready门禁，以及 GEN 纯循环 ITIMER_VIRTUAL/
+PROF、用户CPU累计的双位宽Node范围。GEN仍不默认启用，后继嵌套阶段及宿主
+物理CPU精度不在此验收内。
+
+## 处理器纯计算中的嵌套信号检查点
+
+此前 Worker 一概延后 signal_depth 非零的检查点，导致 handler 的纯计算可能
+永远等不到另一个未屏蔽信号。Linux已有 signal frame/mask 链和嵌套 syscall
+返回工作；不能因此直接开放任意活的内核回调，尤其不能穿过分配器锁路径。
+
+Linux `5ab71f5d7` / distro `9973866` / 集成 `db482fb` 为经过该检查的内核
+增加私有固定i32 user_poll_nested_v1=1 能力，不分配syscall号或用户头文件。
+Worker 只在实际 signal callback 中允许嵌套，并要求该能力；旧内核继续延后。
+另行跟踪 allocator/startup 用户回调深度，这类回调及其中的 handler 仍全部延后，
+正常返回和非局部异常都恢复标记。原 pt_regs 保存、通用IRQ返回、用户相位与
+IRQ恢复继续使用原路径，不伪造 syscall 或放宽 seccomp。
+
+实际C语料新增第五阶段：SIGALRM handler 用已有 timer_settime 启动 SIGUSR2，
+随后在无syscall/读钟的循环等待它；内层处理器必须在这个循环中被调用，外层
+返回后删除timer并再次验证普通定时信号。GEN版本对应七阶段。普通Linux API
+与 libc 不变，没有新增公共函数或扩大fork/动态模块范围。
+
+466项相关宿主检查及两个TypeScript项目通过，包含旧/错误能力拒绝、普通内核
+嵌套延后、实际handler准入、allocator重叠拒绝及非局部退出后的恢复。Clang18/22
+双位宽的普通/GEN消费者插桩与SjLj编译/静态分析、入口真实函数体模型通过。
+公开预取 [41583244548](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41583244548)
+核实前驱归档及新源码hash。新聚合
+[41583750935](https://github.com/HighCWu/distro/actions/runs/41583750935) 已派发，
+需双位宽普通各五阶段、GEN各七阶段及各机器关闭，尚未计为真实能力通过。
+浏览器合同已同步到五阶段，待新Node结果后再定向验收，不沿用旧四阶段结论。
 
 ## 启动修复后的合并 syscall 回归结果
 
