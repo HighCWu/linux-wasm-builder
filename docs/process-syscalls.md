@@ -6157,6 +6157,20 @@ distro35ea6c0 / 集成b34347f把全部重定位后的图先发布，再执行构
 真实Linux和浏览器验收仍待核实。没有新增syscall或libc函数，见
 [构造函数接线](elf-dynamic-linking.md#构造函数中的标准-dlopen)。
 
+## 既有 dlinfo 的真实句柄与对象范围
+
+distro1894258 / 集成59b1ff5修复musl原始dlinfo将小整数句柄误当link_map
+指针返回的问题；加载器改为真实用户内存对象，保留完整依赖链表和稳定别名，
+依赖句柄只搜索/初始化自身子图。直接复用原始musl函数体，没有增加或修改公共
+函数及头文件，也不计为新增syscall。Wasm没有ELF动态节，l_ld为NULL；私有ABI
+能力导入拒绝旧宿主误接。双位宽Clang真实产物、原始C函数体及静态分析通过，
+九阶段Node/四路浏览器已派发，真实目标结果仍待核实，见
+[句柄修复](elf-dynamic-linking.md#原始-musl-dlinfo-与实际对象句柄)。
+
+此前eeebcd0四路浏览器七阶段各两轮及机器/浏览器关闭现已全核实；35ea6c0
+的双位宽Node八阶段、各唯一pass及关闭也已核实。不将旧源码通过泛化到新的
+句柄组合，见[对应验收](elf-dynamic-linking.md#已核实的七阶段浏览器与八阶段-node)。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的

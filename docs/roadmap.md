@@ -2307,6 +2307,13 @@ eeebcd0的双位宽Node七阶段及关闭均已核实；浏览器TLS目标继续
 反向控制通过，Node八阶段已派发，浏览器待Node结果后接续，不新增libc/syscall。
 见[构造函数接线](elf-dynamic-linking.md#构造函数中的标准-dlopen)。
 
+eeebcd0四路浏览器七阶段各两轮和关闭、35ea6c0双位宽Node八阶段及关闭现已
+核实。1894258 / 集成59b1ff5进一步修复dlinfo把小整数当指针的实际接口错误：
+提供真实link_map句柄及依赖子图范围，直接复用既有musl函数体，不改musl源码。
+双位宽原始C函数及模型通过；新九阶段Node/浏览器已派发，旧八阶段浏览器并入
+本组合验收，不等于ELF动态节或入口已实现。见
+[句柄修复与范围](elf-dynamic-linking.md#原始-musl-dlinfo-与实际对象句柄)。
+
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复实际内核
 nofault 访问越界会 trap 的架构缺陷：按当前线性内存容量校验完整访问后走
 Linux 原有错误出口，不引入 MMU。双位宽实际 Wasm 宏、溢出及失败写保护
