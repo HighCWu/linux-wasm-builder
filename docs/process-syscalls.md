@@ -7986,3 +7986,27 @@ or locked”。两种只读模式子测试已通过，不能据此接受整个�
 [41649317994](https://github.com/HighCWu/distro/actions/runs/41649317994)，尚未接受
 该版本的真实Linux/Wasm共享目录套件。这不修复上一节所述“已经打开的旧目录句柄在替换后枚举新目录”问题，
 不把拒绝错误inode发布当作完整目录生存期支持。
+
+## 父目录身份与相对操作
+
+实际源码原生复现发现另一处错误：缓存parent节点后，宿主把它rename到moved，
+在旧名建立新目录及同名victim；旧节点unlink请求删除了新目录的replacement，
+而旧目录文件仍在。这是误作用于无关inode，不能作为路径已支持的表现。
+
+distro d9f3ea8 / 集成afb1710为lookup、create、mkdir、symlink、unlink、rmdir、
+link目标及rename两端统一核对父目录inode和目录类型，再解析子路径。已完成
+的宿主目录替换返回ENOENT，避免修改新目录；先保留实际目录路径的包含性
+检查，维持符号链接越界EACCES。普通后端内部rename更新缓存的行为仍可用。
+
+33项实际源码后端回归及完整测试目录类型检查通过。九种操作逐项保留旧/新
+文件内容、源文件及目录状态，要求错误后新lookup/打开/读取恢复。移除父目录
+inode核验的临时bundle反向控制会重新暴露unlink误删，没有生产测试钩子。
+
+该修复防止错误对象被修改，尚不实现已打开旧目录的完整POSIX相对寻址：
+openat/unlinkat等通过原目录FD继续访问旧目录，以及readdir的稳定定位，仍需
+目录相对宿主能力、子节点身份和引用回收一起实现。标准Node目录枚举不能直接
+使用现有FileHandle，不能用预先缓存目录列表代替实时目录语义。本轮未引入
+私有应用接口、内核softmmu或musl新包装，也未将原生回归当作Linux/Wasm验收。
+固定d9f3ea8一次派发[41650336204](https://github.com/HighCWu/distro/actions/runs/41650336204)
+共享目录目标套件，尚待实际阶段和关闭结果。既有8d4d9a3与4480642任务保持
+运行，不因新版本而取消，也不代验本版本。
