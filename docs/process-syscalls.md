@@ -7630,3 +7630,31 @@ FSYNCDIR、自身rename、替换旧描述符和unlink/recreate回归。
 排空，外层套件成功说明这条关闭门禁已完成。Heavy与workflow均success。
 接受Linux94d6741a0/musl651ebf65的上述wasm32 Node固定源码范围，不代验后续
 无名元数据、创建mode、fork首次返回、wasm64或浏览器。
+
+## 保留路径开头的 U+FEFF
+
+distro9d6b563 / 集成f6eb53b修复标准文件操作中的UTF-8名字身份混淆。共享
+二进制Reader.cstring使用TextDecoder默认BOM处理，会把开头EF BB BF吞掉。
+Linux文件名中的U+FEFF是有效字符；因此带该字符的名字曾可能被LOOKUP、
+RENAME、UNLINK当作不带字符的另一个名字，符号链接目标也会丢失字符。
+
+协议字符串现在用fatal UTF-8加ignoreBOM=true解码，保留U+FEFF作为数据；目录项
+getdents64和readLink/realPath的路径解码作同样修正。只修改路径/协议字符串，
+不改变readTextFile的文本文件BOM处理。非法UTF-8仍严格拒绝，没有增加替换
+字符容错或声称支持JS后端的任意非UTF-8文件名字节；Linux syscall和libc均不
+需要新接口，也不要求普通程序改写文件操作。
+
+Reader直接源检查覆盖单个/重复U+FEFF、连续C字符串边界和非法UTF-8。实际FUSE
+请求检查带前缀与普通名字返回不同inode，并核对符号链接名/目标、READLINK
+返回字节及rename/unlink不误操作普通名字。去掉修正的反向控制会把两个FUSE
+节点合并并在身份断言失败。getdents64检查还要求带U+FEFF的点号名字不被误当
+成“.”而过滤。bytes构建包含Reader检查，主仓库CI增加独立路径源检查。
+
+当前bytes源码重定向下，运行库与目录解析共491项检查通过，另有两项Reader
+检查通过；bytes、kernel源码/测试、guest库及全部测试TypeScript通过，工作流
+静态检查通过。没有以本地旧dist代替新解码器执行。
+[41628363222](https://github.com/HighCWu/distro/actions/runs/41628363222) 固定9d6b563
+异步验收真实Linux共享目录：同时保留普通和前缀名字，读取正确内容、列举前缀、
+创建并读取相对链接目标、重命名和删除前缀文件后保留普通文件，并要求原链接
+变为ENOENT而不误指普通名字。全部共享目录回归及machine.closed仍待核实，
+不以协议/宿主检查或旧4ea796f结果代验，不宣称浏览器已通过。
