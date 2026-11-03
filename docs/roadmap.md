@@ -2591,6 +2591,15 @@ b0db175 / 集成c88c5ed另打通CLONE_PARENT，按独立能力保留标志并由
 空视图、独立子挂载、父不变及清理四阶段和关闭，见
 [空挂载命名空间](process-syscalls.md#原生-clone3-的空挂载命名空间)。
 
+44ec8bc的41609990548现已核实双位宽Node各四阶段、唯一pass及关闭，接受自动
+回收、最后拥有引用关闭时终止、独立观察PIDFD和错误恢复的固定源码范围。
+
+152e015 / 集成b8c9e0e另打通CLONE_IO，通过已有Linux io_context共享优先级
+状态，独立能力门控且保留wasm32符号位。原生共享/私有正反控制、真实字段、
+类型与双位宽分析通过，七阶段clone-sharing目标异步验收。不新增libc包装，
+不把内核状态解释为浏览器物理I/O调度保证，见
+[I/O context](process-syscalls.md#clone_io-共享已有-linux-io-context)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

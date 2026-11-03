@@ -7242,6 +7242,43 @@ runner/closer 与当前无差异，等待 machine.closed，关闭错误为非零
 复核。接受固定 Linux94d6741a0/musl651ebf65 的这一双位宽 Node 范围，不代验
 后继自动生命周期、PARENT、空挂载命名空间或浏览器。
 
+## CLONE_IO 共享已有 Linux I/O context
+
+distro `152e015` / 集成 `b8c9e0e` 打通标准 CLONE_IO，独立 capability bit 11
+防止旧对象丢弃该标志。legacy clone 保留低32位含符号位的精确位模式，原生
+clone3 保留 u64；native/legacy options helper 均支持。I/O context 分配、权限、
+引用和复制由原始 Linux 实现处理，不增加 musl ioprio 包装或新 syscall。
+
+固定源码的 copy_io 在当前任务没有 io_context 时直接返回，因此语料先通过
+标准 ioprio_set 把父进程设为 BE/4，确保 context 存在；共享子进程改为 BE/6
+后退出，父进程必须观察到6。普通 clone 控制中子进程改6，父进程仍为4；最后
+恢复原值。两种传输均验证独立用户内存、精确单次回收和原有资源清理。这是
+Linux 内核的 I/O 优先级状态，不宣称浏览器宿主或物理存储遵循该调度提示。
+
+扩展 clone-sharing-check-both 为各七阶段：原生的 FS/FILES、SEM_UNDO、IO，
+legacy 对应三阶段，以及普通 fork 隔离与清理。旧189068e的五阶段
+结果不覆盖新 IO 路径。目标还需各唯一 pass 和 machine.closed。
+
+GCC/Clang 实际原生共享/私有 IO 正控制和省略 CLONE_IO 的反向控制通过，原
+SEM_UNDO 正反控制保留。真实双位宽 Wasm 对象核对含32位符号位的 callback
+寄存器及 clone_args.flags，旧能力拒绝和错误后恢复通过；运行库/实际对象
+共472项检查、两套 TypeScript 和 Clang18/22 六个消费者双位宽前端/分析通过。
+检查使用固定原始 sched/ioprio/stddef UAPI，仅本地 Linux 标量类型建模；目标
+仍使用完整安装头文件。源码、pin 已推送，
+[公开目标41616290441](https://github.com/HighCWu/distro/actions/runs/41616290441)
+异步验收，未接受七阶段通过。
+
+## 自动回收与 PIDFD 最后关闭终止的目标验收
+
+[41609990548](https://github.com/HighCWu/distro/actions/runs/41609990548)
+固定44ec8bc，实际读取14,201,614字节 Heavy 日志，wasm32/64 各精确四阶段及
+唯一 pass：普通零信号 zombie 等待控制、AUTOREAP 自动释放/HUP、dup 最后关闭
+触发暂停子进程释放且独立 PIDFD 不保留拥有引用、无效组合无子/fd并恢复普通
+fork。源程序还核实 ESRCH、所有等待类别 ECHILD、NNP 和 fd 清理。Heavy 与
+工作流成功；固定源码 runner/closer 与当前无差异，等待 machine.closed，关闭
+错误为非零退出，已复核。接受固定 Linux94d6741a0/musl651ebf65 的这一双位宽
+Node 范围，不代验 PARENT、空挂载、CLONE_IO 或浏览器。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
