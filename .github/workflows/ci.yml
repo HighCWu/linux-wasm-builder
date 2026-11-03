@@ -52,6 +52,8 @@ jobs:
         run: python3 -B scripts/probe_wasm_dynamic_linking.py --clang clang-18
       - name: Check actual heap and SjLj objects with musl shared-link configuration
         run: WASM_SHARED_COMPILERS=clang-18 python3 -B scripts/check_musl_shared_imports.py
+      - name: Check automatic compiler polling and per-thread Wasm TLS budgets
+        run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/probe_cooperative_poll.py
       - name: Check actual LSM registration sections and the pinned kernel collector
         env:
           GH_TOKEN: ${{ github.token }}
