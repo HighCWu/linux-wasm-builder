@@ -145,6 +145,7 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
             for consumer in (
                 SOURCE,
                 SOURCE.parent.parent / "clone-flags64/runtime.c",
+                SOURCE.parent.parent / "clone-lifecycle/runtime.c",
                 exit_source,
             ):
                 subprocess.run([*flags, "-fsyntax-only", str(consumer)], check=True)
@@ -161,5 +162,5 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                     check=True,
                 )
             print(
-                f"{cc} wasm{bits}: clone SEM_UNDO/NNP/exit-signal consumers frontend and static analysis pass; not target acceptance"
+                f"{cc} wasm{bits}: clone resource/lifecycle consumers frontend and static analysis pass; not target acceptance"
             )
