@@ -69,6 +69,27 @@ Nix格式、差异及元数据检查通过，不代替实际SDK打包和双位�
 symbol-versions-check-both重新派发一次：41543946241，待核实原有C++回归、
 两个版本阶段及关闭。
 
+### 符号版本候选与标准共享驱动的目标结果
+
+[41543946241](https://github.com/HighCWu/distro/actions/runs/41543946241)
+现已完成，工作流及Heavy均成功。读取完整7,509,705字节构建日志，按固定
+446dbef的消费者源码逐项核对：wasm32/64各有六个C++阶段及唯一pass，覆盖
+类型异常/RAII、跨线程exception_ptr、继承异常/RTTI、thread_local析构、
+条件变量和容器/线程/TLS；各有两个符号版本阶段及唯一pass，覆盖旧/默认版本、
+不同函数签名、long宽度、同单元绑定、规范函数/数据指针及可写数据隔离。
+固定源码runner要求await machine.closed，清理失败使检查失败；两个位宽均完成
+该门禁。SDK profile也是聚合构建的必需依赖，未跳过许可证复制及校验和检查。
+接受独立候选SDK在此静态链接Linux进程范围的结果，不等于跨DSO符号版本、
+ELF入口或默认LLVM切换已经完成。
+
+[41542944612](https://github.com/HighCWu/distro/actions/runs/41542944612)
+也已完成且Heavy成功。读取完整6,019,556字节日志，按13b54fe合同核实wasm64
+六阶段及唯一pass，包括Linux文件/RUNPATH、GOT和构造函数、别名/局部全局范围、
+循环依赖/规范重定位、SIMD和错误恢复；固定runner的机器关闭门禁通过。
+接受该候选普通Clang -fPIC/-shared构建DSO的wasm64进程范围。wasm32任务
+41542937012仍运行，不扩大为双位宽通过；也不覆盖1894258的新九阶段组合、
+浏览器、共享TLS或跨库C++异常。
+
 ## C++ 共享异常的 TLS 前提核查
 
 本机Clang/LLD22的小型freestanding实验发现，仅给动态加载器增加异常tag绑定
