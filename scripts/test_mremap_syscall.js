@@ -219,8 +219,9 @@ for (const cc of ["gcc", "clang"])
 #define SYSCALL_DEFINE3(n,t0,a0,t1,a1,t2,a2) long n(t0 a0,t1 a1,t2 a2)
 static unsigned calls;
 static long response;
+static int expected_advice = MADV_DONTNEED;
 static long wasm_user_v2_madvise(unsigned long a, unsigned long b, int c) {
-  calls++; assert(a == 0x100010000UL && b == 2 * PAGE_SIZE && c == MADV_DONTNEED);
+  calls++; assert(a == 0x100010000UL && b == 2 * PAGE_SIZE && c == expected_advice);
   return response;
 }
 `;
@@ -230,7 +231,7 @@ int main(void) {
   assert(wasm_madvise(TASK_SIZE * 2, 0, MADV_NORMAL) == 0);
   assert(wasm_madvise(1, 0, MADV_NORMAL) == -EINVAL);
   assert(wasm_madvise(65536, 1, -1) == -EINVAL);
-  assert(wasm_madvise(65536, 1, MADV_FREE) == -EINVAL);
+  assert(wasm_madvise(65536, 1, MADV_REMOVE) == -EINVAL);
   assert(wasm_madvise(65536, ULONG_MAX, MADV_DONTNEED) == -EINVAL);
   assert(wasm_madvise(ULONG_MAX & PAGE_MASK, PAGE_SIZE * 2, 0) == -EINVAL);
   assert(wasm_madvise(TASK_SIZE, 1, MADV_DONTNEED) == -ENOMEM);
@@ -238,6 +239,10 @@ int main(void) {
   assert(wasm_madvise(0x100010000UL, PAGE_SIZE + 1, MADV_DONTNEED) == 0 && calls == 1);
   response = -ENOSYS;
   assert(wasm_madvise(0x100010000UL, PAGE_SIZE + 1, MADV_DONTNEED) == -ENOSYS && calls == 2);
+  expected_advice = MADV_FREE;
+  assert(wasm_madvise(0x100010000UL, PAGE_SIZE + 1, MADV_FREE) == -ENOSYS && calls == 3);
+  response = 0;
+  assert(wasm_madvise(0x100010000UL, PAGE_SIZE + 1, MADV_FREE) == 0 && calls == 4);
 }
 `;
     const input = join(dir, "test.c"),
