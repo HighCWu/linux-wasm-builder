@@ -62,6 +62,15 @@ jobs:
         run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/check_cooperative_poll_consumer.py
       - name: Check actual musl clone and C11 native TLS startup
         run: WASM_CLONE_TLS_COMPILERS=clang-18 python3 -B scripts/check_clone_native_tls.py
+      - name: Check kernel-driven robust-list death reference and consumer frontend
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/robust-futex-uapi.h" include/uapi/linux/futex.h
+          WASM_ROBUST_UAPI="$RUNNER_TEMP/robust-futex-uapi.h" WASM_ROBUST_COMPILERS=clang-18 \
+            python3 -B scripts/check_kernel_robust.py
       - name: Check the actual kernel interrupt-return checkpoint body
         env:
           GH_TOKEN: ${{ github.token }}
