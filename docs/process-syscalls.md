@@ -6049,6 +6049,36 @@ runner与已审计版本的run-test.js/shutdown.js无差异：必须等待machin
 关闭异常使任务失败，双位宽Node关闭门禁成立。该结果只接受对应源码与Node
 范围，不扩大为浏览器、多线程fork或共享用户地址空间。
 
+## 标准 brk 与 LSM 注册表的架构接线
+
+Linux `abf31db96`、`a21b84296` 接入标准号214，由原进程分配器管理直接堆，
+并校验实时 RLIMIT_AS/DATA、TASK_SIZE 和 errno 保留地址。拒绝增长返回原 break，
+不新增内核 MMU。内核不跨用户回调持锁；回调完成后的 mm 信息按高水位发布，
+避免较早帧覆盖后来增长。没有完整 VMA/RSS 记账，也保留原共享 mmap 堆不收缩的
+约束。musl 架构和调用路径边界见[musl 记录](musl-compatibility.md#标准-brk-的独立-syscall-调用路径)。
+
+新独立 SDK 配置先让既有 brk/sbrk 走标准 syscall；默认 libc 路径尚不切换。
+真实消费者检查 raw/libc 堆状态一致、errno、实时限额后的 malloc 失败与恢复、
+双线程堆分配及大 TLS、mmap/mremap 数据和清理。它不扩大多线程 fork 支持。
+Clang18/22 双位宽小型模型执行实际内核/libc 函数体和生产执行适配器，验证独立
+内存、回调重入、地址溢出、限额拒绝与恢复；这些不是 Linux 启动验收。
+
+此前 `9250e0c` 的默认组合以及 `3dc5c82` 的 wasm64 动态加载，在内核链接阶段
+因缺少 `__start/end_lsm_info` 及 early 对应符号失败。已读取实际 Heavy 日志，
+包括41555454796、41555461464、41555481442和41557119503；尚未执行应用语料，
+不能解释成 fork、动态加载或符号版本运行失败。Linux `5fcef04ca` 沿用现有
+Wasm section 收集与启动初始化，把真实普通/early LSM 注册表保留下来并设置
+边界，不关闭 SECURITY/Landlock，也不使用空表掩盖遗漏。Clang18/22 双位宽实际
+Wasm 产物、原始注册宏与生产收集脚本通过，涵盖 table64、空 early 表及非空表
+函数指针执行；完整 Linux 初始化仍待目标确认。
+
+公开预取41565925510核实立即父版本 a21b84296 的既有哈希及5fcef04ca源码树
+哈希。distro `5ef5878`、集成 `2e04906` 固定上述 Linux 与 musl `4bad222d`。
+CI 41566249073 的 `brk-syscall-check-both` 合并双位宽独立 brk、默认
+C++/符号版本、Landlock、
+fork、动态加载及跨库符号版本回归，共用构建图减少重复内核构建。实际阶段、
+唯一 pass 与关闭结果仍待逐项核实，不把派发或宿主检查当作目标通过。
+
 ## 静态 review 与异步验收原则
 
 标准dlfcn接线9cbe7d0的文件操作继续使用Linux syscall，未新增公共libc函数。

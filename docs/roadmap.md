@@ -2358,6 +2358,13 @@ musl 及默认 LLVM pin 不变，见[内核访问记录](process-syscalls.md#内
 1753810的41541813856/41541820839随后已核实全部三阶段、各唯一pass及
 发布runner的机器关闭门禁，接受c7b4f97ef的双位宽Node BPF/nofault范围。
 
+Linux `5fcef04ca` / musl `4bad222d` / distro `5ef5878` / 集成 `2e04906`
+接通标准 brk，并修复启用 SECURITY 后遗漏的真实 LSM 注册表边界。默认 libc
+尚不切换；独立 syscall 配置先验证实时 AS/DATA 限额及共享分配器消费者。
+双位宽轻量实际函数体和注册表检查通过，新的合并目标回归异步验收，不沿用旧
+组合成功，也不把原链接失败记成应用阶段失败。仍是 NOMMU、直接线性内存和
+单调共享堆，见[接线与验收边界](process-syscalls.md#标准-brk-与-lsm-注册表的架构接线)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
