@@ -172,6 +172,7 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                 SOURCE.parent.parent / "clone-flags64/runtime.c",
                 SOURCE.parent.parent / "clone-lifecycle/runtime.c",
                 parent_source,
+                SOURCE.parent.parent / "clone-empty-mount/runtime.c",
                 exit_source,
             ):
                 subprocess.run([*flags, "-fsyntax-only", str(consumer)], check=True)
