@@ -6205,6 +6205,35 @@ review 通过。这些不是新版本 GNU 程序已在 Wasm 编译/运行的证�
 机器关闭。此项保持单线程进程 fork 范围，不扩大多线程 fork、动态快照或默认
 SDK。它用于判断已有标准系统能力能否移除应用改造，尚未宣称该目标已通过。
 
+## 纯计算循环检查点的编译组件原型
+
+现有信号/定时器路径仍依赖程序进入内核，纯计算循环的异步交付缺口尚未关闭。
+distro `53be296` / 集成 `61154e5` 加入独立 MIT 编译执行组件：用现有 Clang
+trace-pc、no-prune、edge 插入编译器回调，应用循环源代码不用手工调用检查点。
+原理依据[Clang SanitizerCoverage](https://clang.llvm.org/docs/SanitizerCoverage.html)。
+不需要修改 LLVM 源码，也不使用尚未落地的引擎提案。
+
+隐藏的编译器 hook 通过原生 Wasm TLS 每4096次回调才调用宿主，TLS 初始化前
+直接返回；在进入宿主前重置计数，使非局部控制流退出后仍可再次进入。没有增加
+公共 libc 函数或头文件。当前组件未接入 Linux、Worker 或已发布 SDK，私有
+linux_user_poll_v1 导入尚不是可用的系统交付能力，默认构建和执行路径保持原状。
+
+Clang18/22 的双位宽实际 Wasm 产物及组件静态分析通过：纯计算语料导入中没有
+syscall，两实例共享 memory 但使用不同 TLS，分别经过三次批量宿主入口结束
+计算；验证初始化前不写内存、宿主非局部异常后计数恢复及拒绝返回值的可见失败。
+移除编译插入后，相同循环只耗尽迭代上限，反向检查明确失败。该结果不证明真实
+SIGALRM、pthread 信号、siglongjmp、并行 Worker 或性能开销已经验收。
+
+生产 pthread 原生 TLS 还须单独核实：当前 musl 的 Wasm clone 入口把父
+__tls_base 保存并设置给子实例。本原型显式调用合成 TLS 初始化函数，给两实例
+分配不同区域，不能代替实际 clone 路径的隔离证据；该项应在内核接线前处理。
+
+后续必须实现中断式内核返回检查点，保持 pt_regs、用户栈、RCU/IRQ 状态以及
+现有回调/非局部退出边界；不能用伪造 gettid 等 syscall 代替，以免改变 seccomp
+或 ptrace 行为。实际 Linux 要覆盖纯计算定时器、线程定向信号、siglongjmp、
+strict seccomp 与关闭。未插桩库循环、应用自己的 coverage hook、动态加载和
+fork 组合也需要明确处理，不据当前原型扩大已支持范围。
+
 ## 静态 review 与异步验收原则
 
 标准dlfcn接线9cbe7d0的文件操作继续使用Linux syscall，未新增公共libc函数。
