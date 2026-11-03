@@ -15,6 +15,11 @@ symlink边界、既有fd、关闭后规则生存、exec继承和父进程隔离�
 函数、无内核softmmu、无fork范围扩大，见
 [Landlock接线](process-syscalls.md#通用-landlock-syscall-与文件规则接线)。
 
+后续9250e0c / 集成90888ba修正先前普通SDK接线被statix要求的inherit写法；
+原默认工具链矩阵和首轮Landlock任务构建前失败，不记为运行验收。修复后的
+七项检查已各派发一次，按各自实际阶段及关闭继续核实，见
+[默认组合门禁](elf-dynamic-linking.md#普通-sdk-启用已有符号版本绑定)。
+
 - 浏览器和 Node 同时验证，浏览器是首要产品环境。
 - 优先修复平台能力，避免用越来越多的应用补丁长期掩盖内核或 libc 缺口。
 - 内核配置以 Linux 官方上游 Kconfig 的默认值、依赖和选择条件为恢复基准，
