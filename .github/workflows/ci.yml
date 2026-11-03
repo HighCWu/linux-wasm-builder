@@ -950,6 +950,12 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/node-fs-fd-limit.mjs"
           python3 -B scripts/check_nodefs_fd_limit.py "$RUNNER_TEMP/node-fs-fd-limit.mjs"
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/src/node.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/node-fs-open-identity.mjs"
+          python3 -B scripts/check_nodefs_open_identity.py "$RUNNER_TEMP/node-fs-open-identity.mjs"
           npx --yes esbuild@0.25.12 scripts/tests/nodefs-device-lifecycle.test.ts \
             --bundle --platform=node --format=esm \
             --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \

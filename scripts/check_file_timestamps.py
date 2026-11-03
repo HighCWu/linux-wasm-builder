@@ -94,7 +94,7 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
             )
             staging.replace(target)
             stdout, stderr = child.communicate("x", timeout=15)
-            assert child.returncode == 0 and stdout.count(" pass\n") == 3, (
+            assert child.returncode == 0 and stdout.count(" pass\n") == 4, (
                 stdout + stderr
             )
             assert (
@@ -106,7 +106,7 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
                 child.kill()
                 child.wait()
         print(
-            f"{compiler}: real host replacement with old-fd metadata and three-stage recovery pass"
+            f"{compiler}: real host replacement, old-fd metadata and four-stage truncate recovery pass"
         )
     (work / "bits").mkdir()
     template = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (
