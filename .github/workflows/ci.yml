@@ -56,6 +56,19 @@ jobs:
         run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/probe_cooperative_poll.py
       - name: Check actual musl clone and C11 native TLS startup
         run: WASM_CLONE_TLS_COMPILERS=clang-18 python3 -B scripts/check_clone_native_tls.py
+      - name: Check the actual kernel interrupt-return checkpoint body
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          source_root="$RUNNER_TEMP/wasm-user-poll-entry"
+          for path in arch/wasm/kernel/syscall.c arch/wasm/include/uapi/asm/sigcontext.h; do
+            mkdir -p "$source_root/$(dirname "$path")"
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$revision" "$source_root/$path" "$path"
+          done
+          WASM_POLL_KERNEL_SOURCE_ROOT="$source_root" WASM_POLL_ENTRY_COMPILERS=clang-18 \
+            python3 -B scripts/check_user_poll_entry.py
       - name: Check actual LSM registration sections and the pinned kernel collector
         env:
           GH_TOKEN: ${{ github.token }}
