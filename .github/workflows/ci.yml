@@ -150,6 +150,17 @@ jobs:
           WASM_BRK_KERNEL_SOURCE_ROOT="$source_root" WASM_BRK_COMPILERS=clang-18 \
             python3 -B scripts/test_brk_syscall.py
           node --test sources/distro/packages/kernel/test/user-brk.test.ts
+      - name: Check direct MADV_FREE with actual kernel and allocator bodies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          source_root="$RUNNER_TEMP/wasm-madv-free"
+          mkdir -p "$source_root/arch/wasm/kernel"
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$source_root/arch/wasm/kernel/syscall.c" arch/wasm/kernel/syscall.c
+          WASM_MADVISE_KERNEL_SOURCE_ROOT="$source_root" WASM_MADVISE_COMPILERS=clang-18 \
+            python3 -B scripts/check_madv_free.py
       - name: Check detached exit stack and allocator lock lifetime
         run: WASM_RECLAIM_COMPILERS=clang python3 -B scripts/check_thread_reclaim.py
       - name: Check user callback and IRQ execution phases with exact pinned source
