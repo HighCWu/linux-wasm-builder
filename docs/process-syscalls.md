@@ -7762,3 +7762,31 @@ Node双位宽范围：原218e10f的初始ptrace子端停止失败已由首次返
 显式PTRACE/UNTRACED及原fork/信号回归获得实际目标证据。不据此代验后续
 9577599旧clone退出通知、浏览器或多线程fork；1fafa42的较早三阶段候选无需
 再用workflow成功状态泛化验收。
+
+## ptrace 与退出通知的浏览器组合门禁
+
+distrof0ecfb5 / 集成15d22e1把上述clone消费者接入既有process-browser运行器。
+复用原clone-untraced和clone-exit-signal的runtimeAssets，不重新编写浏览器版
+syscall或消费者，不修改默认SDK/内核、musl API或fork支持范围。
+
+每个位宽/引擎有一个聚合检查，分别执行clonetrace五阶段和clonesignal六阶段。
+每组在同页启动两次独立机器，精确要求有序阶段和唯一pass、机器关闭、控制台
+排空，最终浏览器断开及无迟到页面错误。两组各自启动并关闭浏览器；全部通过
+才完成聚合检查。新退出通知必须同时包含clone3与旧clone三阶段，旧三阶段
+结果不能单独放行。
+
+本地34项轻量门禁检查通过，含新组的CPU配置、乱序/缺失/重复/混入其它组、
+两轮和关闭后错误拒绝，并核对阶段对应原C源码与双位宽资产。使用宿主模拟
+浏览器驱动，没有本地启动浏览器，不将这些结果当作浏览器目标证据。
+
+已各派发一次固定f0ecfb5的公开CI，Plan已发现相应Heavy检查，实际运行尚待验收：
+
+| 组合 | CI |
+| --- | --- |
+| wasm32 Chromium | [41633035041](https://github.com/HighCWu/distro/actions/runs/41633035041) |
+| wasm32 Firefox | [41633045847](https://github.com/HighCWu/distro/actions/runs/41633045847) |
+| wasm64 Chromium | [41633073381](https://github.com/HighCWu/distro/actions/runs/41633073381) |
+| wasm64 Firefox | [41633084979](https://github.com/HighCWu/distro/actions/runs/41633084979) |
+
+需逐项核实两组各两轮的完整阶段、对应机器关闭及两次浏览器关闭，不能用
+workflow成功状态、Node八次启动或本地模型替代，也不重复派发慢任务。

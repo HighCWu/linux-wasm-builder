@@ -2702,6 +2702,11 @@ pass并通过等待machine.closed的关闭门禁。原初始子端ptrace停止�
 组合中已修复；不代验之后的旧clone退出通知、浏览器或多线程fork。见
 [首次返回验收](process-syscalls.md#fork-首次返回与-ptrace-的双位宽目标验收)。
 
+f0ecfb5 / 集成15d22e1复用原C消费者和process浏览器运行器，增加ptrace五阶段
+及clone退出通知六阶段的双位宽/双引擎聚合门禁。每组各同页两轮和完整关闭，
+本地门禁正反检查通过；四路CI已发现正确Heavy检查，实际浏览器阶段尚待验收。
+见[浏览器组合](process-syscalls.md#ptrace-与退出通知的浏览器组合门禁)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
