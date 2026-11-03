@@ -7206,6 +7206,42 @@ Clang18/22 使用固定 Linux UAPI 对五个消费者做双位宽前端/静态�
 Linux94d6741a0/musl651ebf65 的这一双位宽 Node 范围，不代验退出通知、自动
 回收/终止、PARENT 或浏览器。
 
+## 原生 clone3 的空挂载命名空间
+
+distro `341f7f7` / 集成 `e6f6d57` 接通 CLONE_EMPTY_MNTNS。已核对
+[官方 Linux UAPI](https://github.com/torvalds/linux/blob/master/include/uapi/linux/sched.h)
+及固定内核实现，该标志已经存在。执行对象新增 capability bit 10，完整保留
+u64 标志；旧对象/缺失原生传输在展开前拒绝。Linux 自己隐含 CLONE_NEWNS、
+选择根挂载、重置子进程 root/cwd 并检查 CLONE_FS 冲突，宿主不做后置 unshare
+或挂载更改。固定内核 copy_namespaces/copy_mnt_ns 及其声明均使用 u64，未在
+wasm32 调用链上发现高位截断，不额外改内核或添加 musl API。
+
+新 clone-empty-mount-check-both 各位宽四阶段：普通 NEWNS 保留两个 ramfs
+挂载和其内 cwd；EMPTY_MNTNS 移除子挂载、暴露原根文件 inode 并重置 cwd；
+显式 NEWNS 组合具有相同行为；共享 FS 冲突返回 EINVAL、不改变父视图，后续
+普通 fork 和文件系统清理恢复。每个成功子进程另建自己的 ramfs 和 marker，
+父进程必须仍看到原 mount inode，不能看到 child-only 文件；挂载、根 inode、
+cwd、精确单次 wait 和清理均检查。使用 ramfs，不依赖 NOMMU 未提供的完整
+shmem。测试有原生编译拒绝保护，本地不执行任何挂载。
+
+真实双位宽 Wasm 对象确认传递原始 EMPTY_MNTNS，NEWNS 仅在显式输入时由
+适配器携带，隐含规则留给内核。旧能力拒绝、失败后恢复、运行库/实际对象
+464项检查和两套 TypeScript 通过，Clang18/22 六个消费者双位宽前端/静态分析
+通过。[公开目标41614528618](https://github.com/HighCWu/distro/actions/runs/41614528618)
+异步验收，仍待四阶段、唯一 pass 与 machine.closed；既有原生
+参考不能代验此挂载行为。默认 SDK、独立内存和多线程 fork 边界不变。
+
+## clone3 退出通知的目标验收
+
+[41607396846](https://github.com/HighCWu/distro/actions/runs/41607396846)
+固定5949088，实际读取14,201,092字节 Heavy 日志，wasm32/64 各精确三阶段和
+唯一 pass：零通知/PIDFD/__WCLONE；所选 SIGUSR1 恰好一次、无 SIGCHLD 且
+普通 wait 排除；后续 SIGCHLD 普通回收和无效请求清理。源程序还检查 PIDFD
+不被无效信号发布及 __WALL 下无剩余子进程。Heavy、工作流成功；固定源码
+runner/closer 与当前无差异，等待 machine.closed，关闭错误为非零退出，已
+复核。接受固定 Linux94d6741a0/musl651ebf65 的这一双位宽 Node 范围，不代验
+后继自动生命周期、PARENT、空挂载命名空间或浏览器。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的

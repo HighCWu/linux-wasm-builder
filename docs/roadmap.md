@@ -2582,6 +2582,15 @@ b0db175 / 集成c88c5ed另打通CLONE_PARENT，按独立能力保留标志并由
 两种传输和普通fork恢复三阶段及关闭，见
 [父子关系](process-syscalls.md#clone_parent-的真实父子关系与等待者)。
 
+5949088的41607396846现已核实双位宽Node各三阶段、唯一pass和关闭，接受
+零/所选退出通知、PIDFD及Linux等待类别的固定源码范围。
+
+341f7f7 / 集成e6f6d57另接通原生CLONE_EMPTY_MNTNS，保持u64字段并按独立
+能力门控，Linux选择根挂载/root/cwd及冲突规则，不做后置unshare。真实字段、
+拒绝/恢复、类型与双位宽分析通过，本地不执行挂载；公开目标异步验收复制/
+空视图、独立子挂载、父不变及清理四阶段和关闭，见
+[空挂载命名空间](process-syscalls.md#原生-clone3-的空挂载命名空间)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
