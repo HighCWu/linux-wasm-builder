@@ -938,6 +938,7 @@ jobs:
           node --test "$RUNNER_TEMP/path-strings.test.mjs"
       - name: Check Node directory sharing without installed workspace packages
         run: |
+          node --test sources/distro/packages/linux-guest/tests/ready-output.test.ts
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/virtio-fs-node.test.ts \
             --bundle --platform=node --format=esm \
             --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
