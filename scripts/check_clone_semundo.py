@@ -106,6 +106,41 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
         print(
             f"{cc}: real native notification/PIDFD/WCLONE semantics and forced-SIGCHLD negative control pass"
         )
+    trace_source = SOURCE.parent.parent / "clone-untraced/runtime.c"
+    for cc in ("gcc", "clang"):
+        for negative in (False, True):
+            binary = work / "trace-reference"
+            subprocess.run(
+                [
+                    cc,
+                    "-O2",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    *(["-DDROP_UNTRACED"] if negative else []),
+                    str(trace_source),
+                    "-o",
+                    str(binary),
+                ],
+                check=True,
+            )
+            result = subprocess.run(
+                [str(binary)], capture_output=True, text=True, timeout=15
+            )
+            if negative:
+                assert (
+                    result.returncode != 0
+                    and "UNTRACED suppresses forced child tracing" in result.stderr
+                ), result.stdout + result.stderr
+            else:
+                assert (
+                    result.returncode == 0
+                    and result.stdout.count(" pass\n") == 2
+                    and result.stdout.count("::vm-test::pass") == 1
+                ), result.stdout + result.stderr
+        print(
+            f"{cc}: native ptrace fork event, UNTRACED suppression and dropped-flag negative control pass"
+        )
     parent_source = SOURCE.parent.parent / "clone-parent/runtime.c"
     for cc in ("gcc", "clang"):
         binary = work / "parent-reference"
@@ -204,6 +239,7 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                 SOURCE.parent.parent / "clone-lifecycle/runtime.c",
                 parent_source,
                 SOURCE.parent.parent / "clone-empty-mount/runtime.c",
+                trace_source,
                 exit_source,
             ):
                 subprocess.run([*flags, "-fsyntax-only", str(consumer)], check=True)
