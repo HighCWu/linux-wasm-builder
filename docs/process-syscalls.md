@@ -6079,6 +6079,16 @@ C++/符号版本、Landlock、
 fork、动态加载及跨库符号版本回归，共用构建图减少重复内核构建。实际阶段、
 唯一 pass 与关闭结果仍待逐项核实，不把派发或宿主检查当作目标通过。
 
+后续静态产物 review 发现消费者自身的优化问题：Clang18/22 在 O2 下可删除
+只比较返回值是否为 NULL 的 malloc，进而删除整个后续线程/TLS 路径。不能因此
+用原语料证明 OOM 或大 TLS。distro `43195e4` / 集成 `6044f91` 仅修正消费者：
+测试专用 `-fno-builtin-malloc` 保留实际调用，逐字节 volatile TLS 读写确保触及
+完整数组；构建时检查优化后的实际对象包含 malloc、pthread_create 和8192字节
+TLS 数据段。Clang18/22 双位宽对象及分析通过，去掉编译选项的反向控制四路均
+被门禁拒绝。该增量没有新增 syscall、libc 函数或更改默认程序编译选项。
+CI 41567015097 的 `brk-syscall-check-runtime-both` 验收修正消费者，原合并任务继续运行，
+其独立回归结果可分别核实，不能将旧 brk 语料当作本修正的运行证据。
+
 ## 静态 review 与异步验收原则
 
 标准dlfcn接线9cbe7d0的文件操作继续使用Linux syscall，未新增公共libc函数。
