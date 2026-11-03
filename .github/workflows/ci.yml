@@ -50,6 +50,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt
       - name: Run actual Wasm32 and memory64 module binding with negative controls
         run: python3 -B scripts/probe_wasm_dynamic_linking.py --clang clang-18
+      - name: Check actual heap and SjLj objects with musl shared-link configuration
+        run: WASM_SHARED_COMPILERS=clang-18 python3 -B scripts/check_musl_shared_imports.py
       - name: Check actual LSM registration sections and the pinned kernel collector
         env:
           GH_TOKEN: ${{ github.token }}
