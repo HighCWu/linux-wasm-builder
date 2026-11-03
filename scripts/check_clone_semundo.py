@@ -108,7 +108,7 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
         )
     trace_source = SOURCE.parent.parent / "clone-untraced/runtime.c"
     for cc in ("gcc", "clang"):
-        for negative in (False, True):
+        for negative in (None, "UNTRACED", "PTRACE"):
             binary = work / "trace-reference"
             subprocess.run(
                 [
@@ -117,7 +117,7 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                     "-Wall",
                     "-Wextra",
                     "-Werror",
-                    *(["-DDROP_UNTRACED"] if negative else []),
+                    *(["-DDROP_" + negative] if negative else []),
                     str(trace_source),
                     "-o",
                     str(binary),
@@ -130,16 +130,21 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
             if negative:
                 assert (
                     result.returncode != 0
-                    and "UNTRACED suppresses forced child tracing" in result.stderr
+                    and (
+                        "UNTRACED suppresses forced child tracing"
+                        if negative == "UNTRACED"
+                        else "explicit PTRACE child inherits SIGSTOP"
+                    )
+                    in result.stderr
                 ), result.stdout + result.stderr
             else:
                 assert (
                     result.returncode == 0
-                    and result.stdout.count(" pass\n") == 2
+                    and result.stdout.count(" pass\n") == 3
                     and result.stdout.count("::vm-test::pass") == 1
                 ), result.stdout + result.stderr
         print(
-            f"{cc}: native ptrace fork event, UNTRACED suppression and dropped-flag negative control pass"
+            f"{cc}: native forced/explicit ptrace, UNTRACED combinations and dropped-flag negative controls pass"
         )
     parent_source = SOURCE.parent.parent / "clone-parent/runtime.c"
     for cc in ("gcc", "clang"):
