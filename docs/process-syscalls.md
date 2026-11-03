@@ -7420,3 +7420,32 @@ guest库和全部测试使用当前kernel/plugin/bytes源码的TypeScript检查�
 异步CI：[41619658360](https://github.com/HighCWu/distro/actions/runs/41619658360)
 固定bfc0f8c使用正确的共享目录检查。旧09eeeae结果不能覆盖这一身份增量；
 无musl公共API或内核MMU变更。
+
+## 空挂载命名空间的 nullfs 根校正
+
+[41614528618](https://github.com/HighCWu/distro/actions/runs/41614528618) 固定
+341f7f7，实际读取14,194,574字节Heavy日志：wasm32普通NEWNS第一阶段通过，
+随后在EMPTY_MNTNS的“exact backing inode visible in selected namespace”
+断言处失败，errno为ENOENT；没有最终pass，也未完成双位宽验收。
+
+审查固定Linux源码发现旧语料预期错误。init_mount_tree把不可变nullfs作为
+mnt_namespace.root，另将可变rootfs挂在其上，并让普通进程root/cwd指向rootfs。
+copy_mnt_ns的EMPTY_MNTNS分支只克隆ns->root并将子root/cwd重置到它，因此
+子进程看见空nullfs，不应保留/init或任一initramfs目录。旧语料将可见rootfs
+误当成命名空间根，不能据此修改通用Linux的正确行为。
+
+distro d1b0c47 / 集成280079e修正这一语料：先检查cwd=/、statfs的固定
+NULL_FS_MAGIC以及/init、两个fixture目录均不存在。父进程在clone前通过
+open_tree准备可见rootfs的非递归分离挂载；子进程确认空根后使用标准move_mount
+附到自己的命名空间，再fchdir/chroot明确选择新根。之后才检查原底层文件
+inode、父子挂载分离以及子私有挂载；父端保持原cwd和两处已挂载marker，关闭
+传入挂载描述符并精确回收子进程。带显式NEWNS的组合也执行相同验证；冲突、
+普通fork和文件系统清理要求保留。
+
+这没有放宽断言或改变内核/适配器：先增加空根契约，再显式执行原来漏掉的
+命名空间填入步骤。open_tree、move_mount仍用原syscall及机器字参数，不新增
+musl包装。本地Clang18/22七个消费者双位宽前端和静态分析通过，不在宿主执行
+挂载；原生资源/进程参考也通过，但不代验本项。
+[41620440385](https://github.com/HighCWu/distro/actions/runs/41620440385) 固定d1b0c47
+定向异步复验，仍待各四阶段、唯一pass及machine.closed。后继1857809仅更新
+对应README，主仓库c952318已单独pin，不能以该文档更新推定运行成功。

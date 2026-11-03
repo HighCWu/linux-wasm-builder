@@ -2623,6 +2623,13 @@ lookup/readdir身份归并和打开inode生命周期，真实宿主及源码类�
 追加Linux test -ef/ls -i验收；不把旧源码或本地检查当作新目标通过。见
 [宿主硬链接身份](process-syscalls.md#宿主预先存在的硬链接身份)。
 
+341f7f7 的41614528618在wasm32普通NEWNS阶段后失败；审查发现测试把可见
+rootfs误当成命名空间最底层nullfs。d1b0c47 / 集成280079e改为先验证空根，
+再用标准open_tree/move_mount及fchdir/chroot显式填入根并验证隔离；保留父视图、
+冲突和清理要求，不改正确的Linux行为。双位宽静态分析通过，41620440385
+定向异步复验，未接受目标通过。1857809/集成c952318另更新README。见
+[nullfs根校正](process-syscalls.md#空挂载命名空间的-nullfs-根校正)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
