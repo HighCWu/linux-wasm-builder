@@ -2609,6 +2609,13 @@ b0db175 的 41612535629 已核实双位宽 Node 各三阶段、唯一 pass 及�
 普通跟踪恢复及关闭，不代验浏览器或扩大多线程 fork 支持。见
 [跟踪策略](process-syscalls.md#clone_untraced-的内核跟踪策略)。
 
+09eeeae / 集成 7695d73 另补通 virtio-fs 的 FUSE_LINK 和 Node 后端真实硬链接，
+使标准 link/linkat 可在该共享目录后端创建同 inode 别名，并保持 unlink/rename/
+打开描述符的生命周期。协议与真实宿主文件检查、当前源码类型检查通过；
+41618857077 异步验收 Linux 中的普通 ln 和全部共享目录回归、机器关闭，尚未
+接受目标运行。未新增 libc 包装，见
+[共享目录硬链接](process-syscalls.md#virtio-fs-共享目录上的标准硬链接)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

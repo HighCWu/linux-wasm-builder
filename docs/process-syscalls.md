@@ -7356,3 +7356,36 @@ GCC/Clang 原生 legacy 正控制通过；刻意去掉 UNTRACED 时必须在抑�
 消费者双位宽前端和静态分析通过。原生参考不覆盖 clone3 或目标 Wasm 的运行。
 [41617718807](https://github.com/HighCWu/distro/actions/runs/41617718807)
 已异步派发，仍待双位宽各三阶段、唯一 pass 与关闭结果，不计为目标通过。
+
+## virtio-fs 共享目录上的标准硬链接
+
+distro 09eeeae / 集成 7695d73 修复共享目录标准 link/linkat 的执行缺口。固定
+Linux 已有 FUSE_LINK 路径，但宿主设备没有解码 opcode 13，一直按不支持返回。
+现在按固定内核 fuse_link_in 读取 oldnodeid、使用请求 nodeid 指定目标目录，
+调用后端添加名字，再返回原节点的 entry 和 lookup 引用。未修改 Linux syscall
+或添加 musl 包装；普通软件继续使用原 link/linkat 或 ln。
+
+Node 后端实际调用 node:fs 的硬链接操作，在同一串行路径操作内验证源及目标
+目录。新增名字绑定原 Node；unlink 只移除对应名字，rename 按实际路径键搬移，
+其余别名仍可访问同一节点。最后一个名字删除后，原打开描述符保留旧 inode，
+同名重建得到新节点。符号链接源不跟随最终目标；目录硬链接拒绝，保持只读和
+跨后端对象检查，并传递 EEXIST、EXDEV、EMLINK 等实际错误。此处是现有宿主
+文件系统协议的后端能力，不要求 Linux 程序调用项目专有接口。
+
+本地核对固定 Linux 的 FUSE_LINK 请求格式和父目录选择；协议验证 LINK 与后续
+LOOKUP 返回同一 inode，FORGET 计数不会提前释放，并保留重新查找的身份。
+真实 Node 文件系统验证新增别名、nlink、共享写入、原名删除、跨目录 rename、
+最后名字删除后的打开文件及同名重建、符号链接源、只读/跨后端拒绝。上述检查
+针对通过适配器建立的别名，不扩展为外部预先建立的全部宿主硬链接身份归并。
+宿主并发改动目录树的既有限制不变。
+
+474 项内核运行库检查、当前源码打包的24项 Node 文件系统检查通过，kernel
+源码/测试两套 TypeScript 通过；guest 库及其全部测试使用当前 kernel/plugin/
+bytes 源码重定向后类型检查通过，避免本地旧 dist 产生两套类型身份。
+
+[41618857077](https://github.com/HighCWu/distro/actions/runs/41618857077)
+独立执行 linux-guest-check-tests-node-filesystem，新增真实 Linux ln 场景检查
+相同 inode/nlink、原名删除及跨目录重命名、描述符写入宿主可见、最后删除与
+同名重建后的旧文件内容。现有所有共享目录回归一并执行，fixture 的 finally
+关闭机器并等待 machine.closed。目标仍在异步验收，不把本地 Node 或工作流
+状态当作 Linux 端通过。
