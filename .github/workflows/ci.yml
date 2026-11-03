@@ -77,6 +77,8 @@ jobs:
             WASM_CLONE_IOPRIO_UAPI="$RUNNER_TEMP/clone-ioprio.h" WASM_CLONE_STDDEF_UAPI="$RUNNER_TEMP/clone-stddef.h" \
             WASM_CLONE_SEMUNDO_COMPILERS=clang-18 \
             python3 -B scripts/check_clone_semundo.py
+      - name: Check signed filesystem timestamp reference and consumer frontend
+        run: WASM_FILE_TIMESTAMP_COMPILERS=clang-18 python3 -B scripts/check_file_timestamps.py
       - name: Check kernel-driven robust-list death reference and consumer frontend
         env:
           GH_TOKEN: ${{ github.token }}
