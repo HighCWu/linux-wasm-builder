@@ -6496,6 +6496,12 @@ Clang18/22 的 wasm32/64 实际模块和静态分析通过，核对启动前不�
 不将组件模型当作 Linux 并行启动、库内信号或新增 syscall 已经通过；默认配置、
 musl 公共 API 和 fork 支持范围不变。
 
+本轮检查另发现根仓库 db482fb 的41583668933失败于宿主 madvise 包装检查：
+旧 fixture 仍要求 MADV_FREE 被拒绝，和已接通并验收的 discard 能力冲突。
+集成 `28845bb` 改以仍不支持的 MADV_REMOVE 检查拒绝，并显式核对 MADV_FREE
+的 advice 原值、长度取整及后端错误/成功传递。GCC/Clang十项实际包装检查通过，
+不修改内核或放宽验收条件；新的根 CI 仍需结果。
+
 ## 启动修复后的合并 syscall 回归结果
 
 固定 `6b1777e` 的 [41572697826](https://github.com/HighCWu/distro/actions/runs/41572697826)
