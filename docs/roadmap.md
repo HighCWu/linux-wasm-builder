@@ -2529,6 +2529,12 @@ a471b65 / 集成242a070进一步在exec提交前校验所有已准许宿主函�
 exec-imports-check-both异步验收四阶段回滚与恢复；见
 [函数准入](process-syscalls.md#exec-提交前校验宿主函数导入类型)。
 
+166de77 / 集成259f43e再把既有`_start: () -> void`入口契约移至exec提交前检查，
+缺失、错误导出种类及不兼容参数/结果返回ENOEXEC，不再丢失旧映像后才报错。
+真实Clang18/22双位宽入口正控制、类型与静态分析通过，公开CI异步验收扩展
+后的五阶段及关闭；这一加载错误修复不计为新增syscall。见
+[入口准入](process-syscalls.md#exec-提交前拒绝缺失或类型不符的程序入口)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
