@@ -171,6 +171,66 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
         print(
             f"{cc}: real native CLONE_PARENT grandparent wait while caller stays alive pass"
         )
+    pidfd_source = SOURCE.parent.parent / "pidfd-getfd/runtime.c"
+    for cc in ("gcc", "clang"):
+        binary = work / "pidfd-getfd"
+        subprocess.run(
+            [
+                cc,
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                str(pidfd_source),
+                "-o",
+                str(binary),
+            ],
+            check=True,
+        )
+        target = work / "pidfd-child-only-file"
+        result = subprocess.run(
+            [str(binary), str(target)], capture_output=True, text=True, timeout=20
+        )
+        assert not target.exists(), (
+            "child-owned native file must be removed on both paths"
+        )
+        if result.returncode == 77:
+            assert (
+                "host policy" in result.stderr
+                and "::vm-test::pass" not in result.stdout
+            )
+            print(
+                f"{cc}: host policy blocks native pidfd_getfd; compiled only, no runtime acceptance"
+            )
+        else:
+            assert result.returncode == 0 and result.stdout.count(" pass\n") == 3, (
+                result.stdout + result.stderr
+            )
+            subprocess.run(
+                [
+                    cc,
+                    "-O2",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-DFORCE_LOCAL_DUP",
+                    str(pidfd_source),
+                    "-o",
+                    str(binary),
+                ],
+                check=True,
+            )
+            negative = subprocess.run(
+                [str(binary), str(target)], capture_output=True, text=True, timeout=20
+            )
+            assert (
+                negative.returncode != 0
+                and "copied descriptor reads child data" in negative.stderr
+            ), negative.stdout + negative.stderr
+            target.unlink(missing_ok=True)
+            print(
+                f"{cc}: native pidfd_getfd three stages and local-dup negative control pass"
+            )
     (work / "bits").mkdir()
     template = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (
         MUSL / "include/alltypes.h.in"
@@ -246,6 +306,7 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                 SOURCE.parent.parent / "clone-empty-mount/runtime.c",
                 trace_source,
                 exit_source,
+                pidfd_source,
             ):
                 subprocess.run([*flags, "-fsyntax-only", str(consumer)], check=True)
                 subprocess.run(
