@@ -79,7 +79,8 @@ with tempfile.TemporaryDirectory(prefix="wasm-terminal-") as tmp:
             assert baseline.returncode and "daemon" in baseline.stderr and "forkpty" in baseline.stderr, "default declarations stay hidden"
             profile = [*flags[:4], "-DWASM_FORK_CONTINUATION=1", "-I", str(overlay / "include"), *flags[4:]]
             subprocess.run([*profile, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(probe)], check=True)
-            for source in (overlay / "src/legacy/daemon.c", overlay / "src/misc/forkpty.c", workload):
+            for source in (overlay / "src/legacy/daemon.c", overlay / "src/misc/forkpty.c", workload,
+                           DISTRO / "fork-poll/runtime.c"):
                 subprocess.run([*profile, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", str(source)], check=True)
                 subprocess.run([*profile, "--analyze", "-Xanalyzer", "-analyzer-werror", str(source), "-o", "/dev/null"], check=True)
             print(f"{cc} wasm{bits}: original-body profile gating, default refusal and frontend/static checks passed")
