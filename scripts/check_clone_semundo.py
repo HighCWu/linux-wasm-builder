@@ -97,6 +97,31 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
         print(
             f"{cc}: real native notification/PIDFD/WCLONE semantics and forced-SIGCHLD negative control pass"
         )
+    parent_source = SOURCE.parent.parent / "clone-parent/runtime.c"
+    for cc in ("gcc", "clang"):
+        binary = work / "parent-reference"
+        subprocess.run(
+            [
+                cc,
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                str(parent_source),
+                "-o",
+                str(binary),
+            ],
+            check=True,
+        )
+        result = subprocess.run(
+            [str(binary)], capture_output=True, text=True, timeout=15
+        )
+        assert result.returncode == 0 and result.stdout.count(" pass\n") == 2, (
+            result.stdout + result.stderr
+        )
+        print(
+            f"{cc}: real native CLONE_PARENT grandparent wait while caller stays alive pass"
+        )
     (work / "bits").mkdir()
     template = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (
         MUSL / "include/alltypes.h.in"
@@ -146,6 +171,7 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                 SOURCE,
                 SOURCE.parent.parent / "clone-flags64/runtime.c",
                 SOURCE.parent.parent / "clone-lifecycle/runtime.c",
+                parent_source,
                 exit_source,
             ):
                 subprocess.run([*flags, "-fsyntax-only", str(consumer)], check=True)
