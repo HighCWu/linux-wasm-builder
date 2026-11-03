@@ -212,7 +212,8 @@ globalThis.TextDecoder=class extends NativeTextDecoder{
 };
 let heap=5*65536;
 const live=new Set();
-const readCString=p=>{const bytes=new Uint8Array(memory.buffer,Number(p));return new TextDecoder().decode(bytes.slice(0,bytes.indexOf(0)));};
+const readCStringBytes=p=>{const bytes=new Uint8Array(memory.buffer,Number(p));return bytes.slice(0,bytes.indexOf(0));};
+const readCString=p=>new TextDecoder('utf-8',{ignoreBOM:true}).decode(readCStringBytes(p));
 function storeString(value){const data=new TextEncoder().encode(value+'\0');const p=heap;heap+=data.length;
  new Uint8Array(memory.buffer,p,data.length).set(data);return word(memoryAddress,p);}
 const descriptor=120000,originPointer=121000;
@@ -251,6 +252,8 @@ const virtualFiles=new Map([
  ['/libraries/'+names[0],{bytes:files.get(names[0]),inode:11n}],
  ['/libraries/'+names[1],{bytes:files.get(names[1]),inode:12n}],
  ['/libraries/alias.wasm',{bytes:files.get(names[1]),inode:12n}],
+ ['/libraries/\ufeffbom.wasm',{bytes:files.get(names[1]),inode:12n}],
+ ['/libraries/中文-😀.wasm',{bytes:files.get(names[1]),inode:12n}],
  ['/bad.wasm',{bytes:new Uint8Array([1,2,3]),inode:13n}],
  ['/shadow/'+names[1],{bytes:new Uint8Array([1,2,3]),inode:13n}],
  ['/libraries/blocked.wasm',{bytes:files.get(names[1]),inode:12n}],
@@ -264,6 +267,9 @@ const virtualFiles=new Map([
  ['/libraries/reentrant-reject.so',{bytes:new Uint8Array(readFileSync(recursiveRejectFile)),inode:43n}],
  ['/libraries/start.wasm',{bytes:startModule,inode:31n}],
 ]);
+// Model libc's byte-level lookup independently of the host's string codec.
+const rawFilename=Buffer.concat([Buffer.from('/libraries/raw-'),Buffer.from([0x80,0xed,0xa0,0x80]),Buffer.from('.wasm')]);
+const rawFile={bytes:files.get(names[0]),inode:51n};
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleAFile))).needed,[basename(cycleBFile)]);
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleBFile))).needed,[basename(cycleAFile)]);
 let probeReentry=true,nextPin=1,currentFd=-1;
@@ -291,19 +297,21 @@ const bridge={exports:{...main.exports,
  __wasm_dlopen_library_path:()=>environmentPointer,
  __wasm_dlopen_origin:()=>word(memoryAddress,originPointer),
  __wasm_dlopen_fd:()=>currentFd,
- __wasm_dlopen_read:path=>{const name=readCString(path);if(name==='/control')throw control;
+ __wasm_dlopen_read:path=>{const pathBytes=readCStringBytes(path);const name=readCString(path);if(name==='/control')throw control;
   attempted.push(name);currentFd=-1;
   const view=new DataView(memory.buffer,descriptor,40);new Uint8Array(memory.buffer,descriptor,40).fill(0);
   if(name==='/shadow/blocked.wasm'){view.setBigUint64(32,24n,true);return word(memoryAddress,descriptor);}
   if(name==='/shadow/noexec.wasm'||name==='/shadow/nomemory.wasm'){
    currentFd=0;view.setBigUint64(32,name.includes('noexec')?13n:12n,true);return word(memoryAddress,descriptor);}
   if(name==='/shadow/denied.wasm'){view.setBigUint64(32,13n,true);return word(memoryAddress,descriptor);}
-  const file=virtualFiles.get(name);if(!file){view.setBigUint64(32,2n,true);return word(memoryAddress,descriptor);}
+  const rawMatch=Buffer.from(pathBytes).equals(rawFilename);
+  const file=rawMatch?rawFile:virtualFiles.get(name);if(!file){view.setBigUint64(32,2n,true);return word(memoryAddress,descriptor);}
   currentFd=0;
   const pointer=allocate(file.bytes.length,8);new Uint8Array(memory.buffer,Number(pointer),file.bytes.length).set(file.bytes);
   const refreshed=new DataView(memory.buffer,descriptor,40);refreshed.setBigUint64(0,BigInt(pointer),true);
   refreshed.setBigUint64(8,BigInt(file.bytes.length),true);refreshed.setBigUint64(16,1n,true);refreshed.setBigUint64(24,file.inode,true);
-  new Uint8Array(memory.buffer,originPointer,name.length+1).set(new TextEncoder().encode(name+'\0'));
+  const origin=rawMatch?rawFilename:new TextEncoder().encode(name);
+  new Uint8Array(memory.buffer,originPointer,origin.length+1).set([...origin,0]);
   return word(memoryAddress,descriptor);},
  __wasm_dlopen_read_release:()=>{const pointer=new DataView(memory.buffer,descriptor,40).getBigUint64(0,true);
   if(pointer)deallocate(pointer);
@@ -315,7 +323,7 @@ processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximu
  ['dlsym',JSON.stringify([[memoryAddress==='i64'?126:127,memoryAddress==='i64'?126:127],[memoryAddress==='i64'?126:127]])],
  ['dlerror',JSON.stringify([[],[memoryAddress==='i64'?126:127]])]]),
  isControlFlow:error=>error===control,fatal:error=>{throw error;},
- pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n].includes(inode));
+ pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n,51n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
 const mainHandle=processLoader.open(word(memoryAddress,0),2);
@@ -437,6 +445,15 @@ assert.equal(processLoader.symbol(dependency,storeString('run')),word(memoryAddr
 assert.equal(main.exports.modeled_bad_info(word(memoryAddress,3),2),1);
 assert.equal(main.exports.modeled_bad_info(mainHandle,-777),1);assert.equal(infoErrors,1);
 console.log(`Process loader link_map model wasm${bits}: actual musl dlinfo body, readable per-object handles, full chain, dependency scopes and output-preserving errors pass; not Linux process acceptance`);
+assert.equal(processLoader.open(storeString('\ufeffbom.wasm'),2|4),handle,'a leading BOM is part of the relative filename');
+assert.equal(processLoader.open(storeString('/libraries/中文-😀.wasm'),2|4),handle,'ordinary Unicode remains UTF-8');
+const rawPointer=heap;heap+=rawFilename.length+1;
+new Uint8Array(memory.buffer,rawPointer,rawFilename.length+1).set([...rawFilename,0]);
+const byteHandle=processLoader.open(word(memoryAddress,rawPointer),2);
+assert.notEqual(byteHandle,word(memoryAddress,0),'fresh non-UTF-8 inode reaches the modeled C byte lookup');
+assert.deepEqual(Buffer.from(readCStringBytes(mapWord(BigInt(byteHandle),1))),rawFilename,'link_map preserves original filename bytes');
+assert.equal(main.exports.modeled_link_map(byteHandle),1,'original musl dlinfo accepts the byte-named object');
+console.log(`Process loader byte-path model wasm${bits}: raw C lookup, leading BOM, Unicode and exact link_map bytes pass; not Linux process acceptance`);
 const starting=processLoader.open(storeString('start.wasm'),2);
 assert.notEqual(starting,word(memoryAddress,0),'load module with reentrant start lookup');
 const entry=processLoader.symbol(starting,storeString('entry'));
@@ -502,7 +519,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
         raise RuntimeError(
             "constructor blocking control did not replace the actual execution boundary"
         )
-    for name in ("dylink_linker", "dylink", "wasm_binary", "wasm"):
+    for name in ("dylink_linker", "dylink", "wasm_binary", "wasm", "linux-string"):
         blocked = blocked.replace(
             f'"./{name}.ts"', json.dumps((runtime / f"{name}.ts").as_uri())
         )
