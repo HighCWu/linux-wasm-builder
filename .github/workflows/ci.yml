@@ -69,7 +69,13 @@ jobs:
           revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
           python3 -B scripts/fetch_pinned_semaphore_source.py \
             "$revision" "$RUNNER_TEMP/clone-semundo-sched.h" include/uapi/linux/sched.h
-          WASM_CLONE_SEMUNDO_UAPI="$RUNNER_TEMP/clone-semundo-sched.h" WASM_CLONE_SEMUNDO_COMPILERS=clang-18 \
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/clone-ioprio.h" include/uapi/linux/ioprio.h
+          python3 -B scripts/fetch_pinned_semaphore_source.py \
+            "$revision" "$RUNNER_TEMP/clone-stddef.h" include/uapi/linux/stddef.h
+          WASM_CLONE_SEMUNDO_UAPI="$RUNNER_TEMP/clone-semundo-sched.h" \
+            WASM_CLONE_IOPRIO_UAPI="$RUNNER_TEMP/clone-ioprio.h" WASM_CLONE_STDDEF_UAPI="$RUNNER_TEMP/clone-stddef.h" \
+            WASM_CLONE_SEMUNDO_COMPILERS=clang-18 \
             python3 -B scripts/check_clone_semundo.py
       - name: Check kernel-driven robust-list death reference and consumer frontend
         env:

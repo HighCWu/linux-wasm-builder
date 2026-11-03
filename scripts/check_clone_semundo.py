@@ -14,13 +14,17 @@ MUSL = ROOT / "sources/musl"
 with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
     work = Path(tmp)
     for cc in ("gcc", "clang"):
-        for mode in ("normal", "drop-sharing"):
+        for mode in ("normal", "drop-sharing", "drop-io"):
             source = work / "runtime.c"
             text = SOURCE.read_text()
-            if mode != "normal":
+            if mode == "drop-sharing":
                 changed = text.replace(
                     "shared ? CLONE_SYSVSEM : 0", "0 /* omitted shared undo */"
                 )
+                assert changed != text
+                text = changed
+            if mode == "drop-io":
+                changed = text.replace("create(legacy, CLONE_IO)", "create(legacy, 0)")
                 assert changed != text
                 text = changed
             source.write_text(text)
@@ -48,14 +52,19 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                     result.returncode == 0
                     and result.stdout.count("::vm-test::pass") == 1
                 ), result.stdout + result.stderr
-                assert result.stdout.count(" pass\n") == 3
+                assert result.stdout.count(" pass\n") == 4
             else:
                 assert (
                     result.returncode != 0
-                    and "shared undo survives child exit" in result.stderr
+                    and (
+                        "shared I/O priority reaches parent"
+                        if mode == "drop-io"
+                        else "shared undo survives child exit"
+                    )
+                    in result.stderr
                 ), result.stdout + result.stderr
         print(
-            f"{cc}: real native clone shared/private SEM_UNDO, last-exit cleanup and omitted-sharing negative control pass"
+            f"{cc}: real native shared/private SEM_UNDO and IO priority, cleanup and omitted-flag negative controls pass"
         )
     exit_source = SOURCE.parent.parent / "clone-exit-signal/runtime.c"
     for cc in ("gcc", "clang"):
@@ -150,8 +159,30 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
         )
     )
     (work / "linux/sched.h").write_text(header)
+    for name, variable in (
+        ("ioprio.h", "WASM_CLONE_IOPRIO_UAPI"),
+        ("stddef.h", "WASM_CLONE_STDDEF_UAPI"),
+    ):
+        supplied = os.environ.get(variable)
+        data = (
+            Path(supplied).read_text()
+            if supplied
+            else subprocess.check_output(
+                [
+                    "git",
+                    "-C",
+                    str(ROOT / "sources/linux"),
+                    "show",
+                    "HEAD:include/uapi/linux/" + name,
+                ],
+                text=True,
+            )
+        )
+        (work / "linux" / name).write_text(data)
     (work / "linux/types.h").write_text(
-        "#define __aligned_u64 unsigned long long __attribute__((aligned(8)))\n"
+        "#ifndef CLONE_UAPI_SCALARS\n#define CLONE_UAPI_SCALARS\n"
+        "typedef unsigned short __u16;\n"
+        "#define __aligned_u64 unsigned long long __attribute__((aligned(8)))\n#endif\n"
     )
     for cc in os.environ.get("WASM_CLONE_SEMUNDO_COMPILERS", "clang clang-22").split():
         resource = subprocess.check_output(
