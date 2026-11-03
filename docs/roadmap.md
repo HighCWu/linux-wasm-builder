@@ -2630,6 +2630,16 @@ rootfs误当成命名空间最底层nullfs。d1b0c47 / 集成280079e改为先验
 定向异步复验，未接受目标通过。1857809/集成c952318另更新README。见
 [nullfs根校正](process-syscalls.md#空挂载命名空间的-nullfs-根校正)。
 
+4ea796f / 集成065d920修复FUSE SETATTR把负time64秒误读成巨大正数的问题，
+只恢复时间字段的signed语义，保留size和inode的unsigned语义。协议正反控制、
+实际宿主utimensat/futimens参考、双位宽前端/分析和完整源码类型检查通过；
+41621357543异步验收共享目录中的普通C程序三阶段及关闭。初始bc2f407测试
+类型错误已单独修正，root pin未选择该错误版本。见
+[时间解码](process-syscalls.md#virtio-fs-时间秒数的-signed-time64-解码)。
+
+152e015的41616290441已逐项核实双位宽Node七阶段、唯一pass及关闭，接受
+CLONE_IO与已有资源共享组合的固定版本范围，不代验后续或宿主物理I/O调度。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

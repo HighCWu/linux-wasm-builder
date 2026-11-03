@@ -7449,3 +7449,40 @@ musl包装。本地Clang18/22七个消费者双位宽前端和静态分析通过
 [41620440385](https://github.com/HighCWu/distro/actions/runs/41620440385) 固定d1b0c47
 定向异步复验，仍待各四阶段、唯一pass及machine.closed。后继1857809仅更新
 对应README，主仓库c952318已单独pin，不能以该文档更新推定运行成功。
+
+## virtio-fs 时间秒数的 signed time64 解码
+
+distro bc2f407，测试类型修正4ea796f / 集成065d920，修复标准utimensat/futimens
+经过共享目录时拒绝负时间的问题。固定Linux iattr_to_fattr把有符号time64秒数
+按补码写入FUSE u64槽；此前适配器直接把该槽解读为无符号大整数，再传给已经
+支持负时间的后端。现在仅对SETATTR的atime/mtime/ctime秒数执行64位有符号
+还原；文件size、inode标识等仍无符号，NOW标志仍传递为now。返回属性保留
+原补码位模式，Linux按自己的time64类型接收，不增加syscall或libc API。
+
+协议检查覆盖零、正数、负数和signed64两端、属性回传、NOW与高位unsigned size
+互不污染；撤去解码修正的反向控制在-1被误读为18446744073709551615处失败。
+GCC/Clang真实宿主参考验证标准utimensat和futimens的负秒/小数、无效纳秒不改
+原时间、UTIME_OMIT保留atime以及后续正时间更新。Clang18/22基于实际musl头
+做双位宽前端和静态分析，本地不替代FUSE/Linux目标执行。
+
+475项运行库检查通过，kernel源码/测试两套TypeScript和guest库/全部测试的
+当前源码类型检查通过。初始测试夹具调用泛型this.getattr未传参数，在本地
+测试项目及公开41621211316的backing步骤报TS2554；4ea796f改用独立属性函数
+并重新通过检查。主仓库pin选择修复后的4ea796f，没有为错误版本派发重型目标。
+
+新增MIT静态C消费者通过普通utimensat/futimens，目标必须精确输出三阶段：
+负time64秒及小数；描述符负时间与非法纳秒无变化；OMIT和正时间恢复。它只
+在Node共享目录套件中按需装入，已有浏览器资产不要求携带这个新文件。
+[41621357543](https://github.com/HighCWu/distro/actions/runs/41621357543) 固定4ea796f
+已启动正确的linux-guest-package-check-tests-node-filesystem；仍待该三阶段、
+全部共享目录回归及fixture关闭machine.closed，不宣称目标或浏览器已通过。
+
+## CLONE_IO 的目标验收
+
+[41616290441](https://github.com/HighCWu/distro/actions/runs/41616290441) 固定152e015，
+实际读取14,206,530字节Heavy日志：wasm32/64各精确七阶段和唯一pass，与固定
+源码字符串及执行顺序逐项匹配。包括native/legacy各自的FS/FILES、SEM_UNDO和
+CLONE_IO共享优先级/私有控制，以及普通fork隔离、错误恢复和清理。工作流与
+Heavy成功；固定runner/closer与当前无差异，等待machine.closed且关闭失败为
+非零退出，已复核。接受Linux94d6741a0/musl651ebf65的该双位宽Node范围，不
+把内核io_context状态解释为宿主物理I/O调度，也不代验UNTRACED、空挂载或浏览器。
