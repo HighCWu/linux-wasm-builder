@@ -6228,8 +6228,8 @@ trace-pc、no-prune、edge 插入编译器回调，应用循环源代码不用�
 
 隐藏的编译器 hook 通过原生 Wasm TLS 每4096次回调才调用宿主，TLS 初始化前
 直接返回；在进入宿主前重置计数，使非局部控制流退出后仍可再次进入。没有增加
-公共 libc 函数或头文件。随后已准备内核入口，Worker 与已发布 SDK 尚未接入，
-私有 linux_user_poll_v1 导入仍不是可用的系统交付能力，默认执行路径保持原状。
+公共 libc 函数或头文件。在这个原型版本中尚未接入 Worker/SDK；后续独立配置
+接线见下文，真实目标验收仍待完成，默认执行路径保持原状。
 
 Clang18/22 的双位宽实际 Wasm 产物及组件静态分析通过：纯计算语料导入中没有
 syscall，两实例共享 memory 但使用不同 TLS，分别经过三次批量宿主入口结束
@@ -6250,7 +6250,7 @@ scripts/check_clone_native_tls.py 编译真实 clone.c 及从当前源码提取�
 检查点接线必须避开原生 TLS 初始化窗口；base 非零本身不能证明属于当前线程。
 编译组件原型显式初始化不同区域的结果也不证明这一启动边界已被交付配置保护。
 
-后续必须完成中断式检查点的宿主/交付接线，保持 pt_regs、用户栈、RCU/IRQ 状态以及
+后续接线与验收必须保持 pt_regs、用户栈、RCU/IRQ 状态以及
 现有回调/非局部退出边界；不能用伪造 gettid 等 syscall 代替，以免改变 seccomp
 或 ptrace 行为。实际 Linux 要覆盖纯计算定时器、线程定向信号、siglongjmp、
 strict seccomp 与关闭。未插桩库循环、应用自己的 coverage hook、动态加载和
@@ -6277,6 +6277,43 @@ restart 返回值、误走 syscall 专用返回工作分别由反向版本拒绝
 工作在此检查中由模型承担，不算真实信号交付。新双位宽内核构建/既有 brk
 回归 [41577075102](https://github.com/HighCWu/distro/actions/runs/41577075102) 正在运行，
 也不代替后续纯计算 SIGALRM、定向 pthread、siglongjmp 和 strict seccomp 验收。
+
+## 计算检查点的 Worker 与独立 SDK 接线
+
+distro `0d02ed7` / 集成 `e148d11` 将上述内核入口接到 Worker，独立增加
+sdk-cooperative-poll / sdk-cooperative-poll-wasm64。它们保留普通 wasm-linux-cc
+等命令，应用源代码无需插入检查点；现有 Clang 编译配置自动插入 trace-pc 回调，
+链接独立 MIT 执行对象。默认 SDK、musl pin 和公共 API 不变，没有伪造 syscall。
+执行组件源代码、配方、说明及 MIT 许可随该 SDK 安装。
+
+Worker 在活的内核回调或信号处理器期间延后检查点；调用前核对当前用户阶段和
+C 栈，内核入口异常经过已有非局部退出恢复，exec 更换实例后停止旧用户调用。
+模块须有显式 ABI/TLS/stack 导出；动态加载与 continuation fork 组合拒绝准入，
+没有新内核入口的旧内核在 exec 阶段拒绝这个配置。没有扩大多线程 fork 范围。
+
+这个候选只给应用编译单元插桩，复用未插桩的现有 libc/启动库：普通 pthread
+先初始化自己的原生 TLS，再进入应用回调。禁止用该配置重编 libc/startup 或在
+TLS 初始化前插入应用回调；base 非零无法证明 clone 早期的所有权。自定义 raw
+clone 启动、未插桩库的纯循环、处理器内嵌套信号循环、自有 coverage hook、
+C++ 异常及动态/fork 组合仍须分别处理，不据此声称整个执行空间可异步抢占。
+
+普通 C 语料只调用现有 libc/Linux 接口，独立 raw initramfs 双 CPU 目标要求：
+
+1. 无 syscall/sleep/读钟的纯计算循环收到 setitimer 的 SIGALRM。
+2. handler 用 siglongjmp 离开检查点，再次计时/循环仍收到信号。
+3. pthread_kill 向正在纯计算的线程交付信号，核对原生 TLS 和父线程未被改写。
+4. posix_spawn 的子程序进入 strict seccomp 后仍可纯循环接收定时信号，用标准
+   raw SYS_exit 退出，父进程只回收一次。
+
+Clang18/22 双位宽消费者的真实插桩/SjLj 编译及静态分析、GCC/Clang 原生编译
+通过；原型真实 Wasm 产物现也通过生产模块准入检查，移除插桩的反向版本仍在
+纯循环断言失败。435 项宿主检查、两个 TypeScript 项目、Nix/JS/workflow 格式
+检查通过，包含 live callback 延后、无效 C 栈拒绝及非局部异常后状态恢复。
+这些均不代替真实 Linux 运行。
+
+已派发同源码的 [41578142626](https://github.com/HighCWu/distro/actions/runs/41578142626)
+cooperative-poll-check-both，需逐项核实上述四阶段、各唯一 pass 与机器关闭。
+当前尚未把纯计算信号交付记为已验收，也没有提升为默认配置。
 
 ## 启动修复后的合并 syscall 回归结果
 
