@@ -6160,6 +6160,51 @@ CI 41569680820 的 user-namespace-check-both 需核实各四阶段、唯一 pass
 完整目标通过。它不证明容器运行时、全部 namespace 组合或宿主安全隔离已经完成；
 USER_NS 未提升为默认构建选项，后续依据实际工作负载和目标结果决定。
 
+## 启动 FDT 覆盖预载 initrd 的实际缺陷
+
+6c6ac0a 的合并 CI 41568722379 已失败；实际读取21,903,713字节 Heavy 日志，
+本次已进入 Linux 启动并出现 landlock: Up and running，但在 Landlock 的
+wasm32 镜像中，外部 initrd 被报告为 invalid magic，随后 FDT CRC 检查失败，
+最终无法挂载根目录。没有进入应用阶段，不能将其当作完整 LSM、brk 或动态加载
+验收，也不把正常的 CMake 不支持特性探测误记为编译失败。
+
+Linux `1c15622fa` 修复 bootstrap FDT 的分配范围。原实现临时把所有已物化
+线性内存视为可分配 RAM，此时尚未读取 FDT 中的 initrd 保留区；当 __heap_base
+后空隙不足时，FDT 的清零/复制会覆盖已预载 initrd。之后释放 initrd 页也会
+破坏重叠 FDT。现在仅临时描述当前已物化内存之后的区域，使用已有 memblock
+materialization hook 在清零前增长内存，解析后再安装权威内存/保留区布局。
+不需要修改 host 文件、调大固定间隙、关闭 LSM 或隐藏 CRC 错误。
+
+Clang18/22 双位宽检查执行实际 load_devicetree 函数体，以 memblock/libfdt
+模型验证0、1296、65535字节空隙、预载 initrd 保持和释放后 FDT 生命周期。
+恢复旧前缀分配时，0与1296字节空隙明确破坏 initrd，而65535字节空隙的对照
+保留内容；反向检查要求精确匹配这些结果，不把任意 trap 当作复现。
+正常分配及静态分析通过。模型不等于真实
+内核启动，完整目标仍待复验。公开预取41572289993核实父版本 d988da3b9 既有
+哈希及新源码树哈希；distro `6b1777e` / 集成 `e8b6ab5` 完成固定输入接线。
+CI 41572697826 定向复验合并内核/libc/普通消费者矩阵，仍待真实阶段及关闭。
+
+## 原版 GNU split 的标准 fork 路径
+
+distro `46ca3dc` / 集成 `0e3102b` 新增独立 coreutils-split-fork 构建。
+它引用既有固定 GNU coreutils9.7 原始源码，不应用默认包的 split-posix-spawn
+或其它 fork 回避补丁。配置使用独立静态 C fork SDK，让 Autoconf 正常探测；
+构建前后 cmp 原始 split.c 并保存 SHA256，最终按现有执行 ABI 完成整个程序的
+链接后转换。GNU 源码及构建材料保留原 GPL 许可，自有包装和测试为 MIT，
+没有向 musl 或内核添加新接口，也尚未删除默认包的应用补丁。
+
+语料调用实际 GNU split：顺序过滤的文件前缀证明过滤命令执行，round-robin
+同时创建三个子进程并检查 pipe/EOF，验证退出码7、缺失 shell 的 exec 失败，
+再执行一次成功过滤并清理。宿主 GNU split 的四阶段通过；忽略 --filter 而
+进行普通分割的反向实现会失败。ShellCheck、shfmt、Nix/JS 格式和手工静态
+review 通过。这些不是新版本 GNU 程序已在 Wasm 编译/运行的证据。
+原版调用路径依据[固定 split.c](https://github.com/coreutils/coreutils/blob/v9.7/src/split.c)。
+
+双位宽真实构建/运行 CI 41572698904 使用含启动修复的6b1777e，
+分别核对各四阶段、唯一pass和
+机器关闭。此项保持单线程进程 fork 范围，不扩大多线程 fork、动态快照或默认
+SDK。它用于判断已有标准系统能力能否移除应用改造，尚未宣称该目标已通过。
+
 ## 静态 review 与异步验收原则
 
 标准dlfcn接线9cbe7d0的文件操作继续使用Linux syscall，未新增公共libc函数。

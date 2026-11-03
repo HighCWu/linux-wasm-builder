@@ -2382,6 +2382,17 @@ unshare、UID/GID 映射与 setns/exec 凭据路径，普通 SDK 及 musl 不变
 遵循官方 USER_NS=n；消费者前端和分析通过，双位宽真实四阶段和关闭异步验收，
 不当作容器或安全隔离的完整证明，见[配置和范围](process-syscalls.md#独立-user_ns-配置与标准进程凭据路径)。
 
+6c6ac0a 的合并任务已到内核启动，但 wasm32 Landlock 镜像在外部 initrd magic/
+FDT CRC 错误后无法挂载根目录。Linux `1c15622fa` / distro `6b1777e` / 集成
+`e8b6ab5` 修复早期 FDT 分配覆盖尚未登记保留区的预载 initrd；双位宽实际函数
+模型及旧行为反向控制通过，完整启动仍待复验，见
+[启动缺陷](process-syscalls.md#启动-fdt-覆盖预载-initrd-的实际缺陷)。
+
+同一后继源码包含原版 GNU split 的独立标准 fork 构建，编译前后验证源码相同，
+保留 GPL 原许可，自有测试 MIT。验证顺序/并发过滤、pipe EOF、错误传播及恢复，
+用于逐步移除应用 fork 回避补丁；宿主合同及静态 review 通过，Wasm 双位宽四阶段
+和关闭仍待实际结果，见[应用接线](process-syscalls.md#原版-gnu-split-的标准-fork-路径)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
