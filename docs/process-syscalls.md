@@ -7384,8 +7384,39 @@ LOOKUP 返回同一 inode，FORGET 计数不会提前释放，并保留重新查
 bytes 源码重定向后类型检查通过，避免本地旧 dist 产生两套类型身份。
 
 [41618857077](https://github.com/HighCWu/distro/actions/runs/41618857077)
-独立执行 linux-guest-check-tests-node-filesystem，新增真实 Linux ln 场景检查
+原定独立执行共享目录挂载检查，新增真实 Linux ln 场景检查
 相同 inode/nlink、原名删除及跨目录重命名、描述符写入宿主可见、最后删除与
 同名重建后的旧文件内容。现有所有共享目录回归一并执行，fixture 的 finally
 关闭机器并等待 machine.closed。目标仍在异步验收，不把本地 Node 或工作流
 状态当作 Linux 端通过。
+
+该次41618857077实际在计划阶段失败：派发名称漏掉package层级，日志明确报
+`unknown heavy check: linux-guest-check-tests-node-filesystem`，未构建或执行测试。
+核对导出路径和既有 host-storage 文档后，以正确的
+`linux-guest-package-check-tests-node-filesystem` 在同一09eeeae源码派发
+[41619155293](https://github.com/HighCWu/distro/actions/runs/41619155293)，已确认
+Heavy任务正在运行；没有重复派发仍在运行的同版本正确检查。
+
+## 宿主预先存在的硬链接身份
+
+distro bfc0f8c / 集成4774f06进一步修复lookup/readdir按路径分别创建节点的
+问题：固定宿主设备与inode相同的非目录节点复用同一Node，符号链接使用lstat
+身份而非目标。目录保留原路径拓扑，宿主不提供有效inode编号时不作身份归并。
+路径被替换为不同inode时，仅分离对应旧名字；旧描述符继续指向原inode。
+
+身份索引由已知名字和打开文件拥有：最后已知名字消失且无打开描述符时删除
+索引，避免宿主复用inode编号时合并到已删除节点；仍打开的无名inode保留索引，
+以后发现其另一硬链接时恢复同一节点及有效路径。最后描述符关闭也清理索引。
+create在获取文件身份失败时关闭已打开描述符。readdir在发布节点前读取lstat
+身份，不能先发布不同inode、等下一次stat才归并。既有宿主并发目录修改限制
+仍然适用，本项不把Node路径操作宣称为沙箱。
+
+审查更新了旧参考中“删除一个硬链接使该Node失效”的错误预期，要求剩余别名
+仍能访问同一inode。真实宿主26项检查和两项设备关闭检查通过；新增先删除
+原名再发现未查找别名、enumeration身份、打开旧inode后宿主替换路径等场景。
+guest库和全部测试使用当前kernel/plugin/bytes源码的TypeScript检查通过。
+目标新增普通Linux `test -ef`、`ls -i` 对宿主预建硬链接的身份验证，随后检查
+原名删除、剩余名字的inode和nlink、已打开描述符写入共享内容。目标结果仍待
+异步CI：[41619658360](https://github.com/HighCWu/distro/actions/runs/41619658360)
+固定bfc0f8c使用正确的共享目录检查。旧09eeeae结果不能覆盖这一身份增量；
+无musl公共API或内核MMU变更。

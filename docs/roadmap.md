@@ -2616,6 +2616,13 @@ b0db175 的 41612535629 已核实双位宽 Node 各三阶段、唯一 pass 及�
 接受目标运行。未新增 libc 包装，见
 [共享目录硬链接](process-syscalls.md#virtio-fs-共享目录上的标准硬链接)。
 
+共享目录41618857077在计划阶段因检查名缺少package层级失败，未运行目标。
+同一09eeeae改用正确linux-guest-package-check-tests-node-filesystem，
+41619155293的Heavy已启动。bfc0f8c / 集成4774f06再修复宿主预建硬链接的
+lookup/readdir身份归并和打开inode生命周期，真实宿主及源码类型检查通过，
+追加Linux test -ef/ls -i验收；不把旧源码或本地检查当作新目标通过。见
+[宿主硬链接身份](process-syscalls.md#宿主预先存在的硬链接身份)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
