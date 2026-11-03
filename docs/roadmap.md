@@ -2661,6 +2661,16 @@ b66bcb4 / 集成58056f5修复Node创建文件/目录时二次应用宿主umask�
 信号，共八次启动及各自关闭；原初始停止断言保留，未接受目标通过。见
 [子端首次返回](process-syscalls.md#fork-子进程完成-rewind-后的首次返回工作)。
 
+d4b557c / 集成912e507接通CLONE_PTRACE显式继承，和UNTRACED分别捕获/门控，
+让Linux处理未开启TRACEFORK时的继承及二者组合。原生正反控制、实际对象、
+类型和双位宽分析通过；41626641361合并五阶段跟踪及既有fork/信号共八次
+启动异步验收，未接受目标通过。见
+[显式ptrace](process-syscalls.md#clone_ptrace-显式继承跟踪关系)。
+
+4ea796f的41621357543已核实wasm32 Node共享目录八个子用例及关闭，含普通
+utimensat/futimens三阶段精确输出断言、两类硬链接和原回归。只接受固定源码，
+不代验后续元数据/创建mode、wasm64、浏览器或新fork返回工作。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

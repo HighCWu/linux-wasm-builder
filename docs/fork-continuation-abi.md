@@ -326,6 +326,20 @@ rewind 时禁止重新初始化 cursor，以免覆盖继承的活动帧。
 非空、有界大小和不覆盖 descriptor。Asyncify 的越界断言保持开启。
 保存区不足目前会 trap；尚未实现把中途 unwind 溢出安全恢复成父可见 errno。
 
+## 显式与强制 ptrace 继承
+
+d4b557c 起，flags-first clone 和 native clone3 均保留CLONE_PTRACE及
+CLONE_UNTRACED，分别要求私有执行对象capability bit13和bit12。组合请求必须
+同时具备两位；旧对象在展开前拒绝，不允许静默丢弃标志。tracingFlags仅捕获
+实际输入，不把支持的整个mask当作输入。返回与失败后清除，父/子rewind不重读。
+
+Linux决定真实跟踪关系：调用者已被跟踪时，CLONE_PTRACE显式请求子进程继承，
+无需tracer开启TRACEFORK；调用者未被跟踪时不凭空创建tracer。CLONE_UNTRACED
+禁止强制fork跟踪事件，但不取消调用者同时请求的CLONE_PTRACE。宿主不创建
+ptrace关系或模拟SIGSTOP。该低位标志适用于原有单线程独立内存形态，不放行
+共享VM、备用用户栈或多线程fork。新目标仍待
+[显式跟踪验收](process-syscalls.md#clone_ptrace-显式继承跟踪关系)。
+
 ## 一次分叉的次序
 
 1. 标准 musl `fork` 执行 atfork prepare 及既有锁处理。

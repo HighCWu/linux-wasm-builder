@@ -7586,3 +7586,47 @@ GCC/Clang实际ptrace正反参考仍通过；Clang18/22七个clone消费者双�
 完整阶段、唯一pass及machine.closed均需核实；旧218e10f失败及本地参考都不
 代验本次目标，尚未接受修复运行通过。单线程静态C、默认SDK与无softmmu边界
 没有扩大，musl没有新公共API。
+
+## CLONE_PTRACE 显式继承跟踪关系
+
+distro d4b557c / 集成912e507接通被适配层拒绝的标准CLONE_PTRACE。固定
+Linux copy_process通过ptrace_init_task处理显式继承，kernel_clone另决定
+是否报告强制fork事件。适配器分别保留PTRACE和UNTRACED实际输入，要求私有
+capability bit13和bit12；组合需两位，旧执行对象在展开前拒绝。实际C对象的
+legacy、pointer-width native和wide native均保留PTRACE，不改Linux策略。
+
+这两个标志不能互相覆盖：调用者已被跟踪时，显式PTRACE可在未开启TRACEFORK
+时让子进程继承；UNTRACED禁止强制事件，但不会取消显式继承。没有tracer的
+调用者不会因该标志被宿主强行跟踪。父子PID、初始停止、detach和真实父进程
+回收仍由Linux负责，捕获字段在错误后清除，保持单线程/默认栈/独立用户内存。
+
+GCC/Clang真实原生legacy验证普通强制事件、UNTRACED抑制，以及未开启TRACEFORK
+时PTRACE单独/与UNTRACED组合的初始SIGSTOP、detach、调用者自己回收和清理。
+测试显式阻塞调用者SIGCHLD以完成有界PID握手，不由宿主改信号掩码。刻意丢弃
+UNTRACED或PTRACE各自的反向控制均失败。Clang18/22七个消费者双位宽前端/
+静态分析、两套TypeScript通过；491项运行库/实际Wasm对象检查通过，含纯
+PTRACE和组合的精确字段、缺失能力拒绝及失败后的普通请求恢复。
+
+clone-untraced每个位宽扩为五阶段：原生/legacy各自强制事件与抑制；原生/legacy
+各自显式PTRACE的两种组合；后续普通跟踪恢复。原生主机参考仍只覆盖legacy，
+不能代验Wasm clone3。
+[41626641361](https://github.com/HighCWu/distro/actions/runs/41626641361) 固定d4b557c
+使用既有clone-untraced-check-return-work，连同双位宽普通fork、子端信号、恢复
+期信号共八次启动异步验收，各自完整阶段、唯一pass与关闭仍待核实。旧1fafa42
+只覆盖三阶段UNTRACED候选，不能代验本增量；无新musl API或内核softmmu。
+
+## signed time64 与硬链接共享目录的目标验收
+
+[41621357543](https://github.com/HighCWu/distro/actions/runs/41621357543) 固定4ea796f，
+实际读取11,092,125字节Heavy日志：wasm32 Linux中八个子用例和外层套件共9项
+通过，fail/cancelled/skipped均0。具体包括标准utimensat/futimens负时间、宿主
+预建硬链接的同inode、普通ln后的别名/重命名/打开生命周期，以及双向读写、
+FSYNCDIR、自身rename、替换旧描述符和unlink/recreate回归。
+
+时间消费者stdout由测试收集；已复核固定源码在真实进程status成功后精确比对
+三条阶段字符串，包含负秒及小数、非法纳秒不改原时间、UTIME_OMIT与正时间
+恢复，不能只凭外层workflow成功接受。原程序源码和资产构建绑定均已核对。
+固定fixture与当前无差异：finally关闭machine并等待machine.closed及console
+排空，外层套件成功说明这条关闭门禁已完成。Heavy与workflow均success。
+接受Linux94d6741a0/musl651ebf65的上述wasm32 Node固定源码范围，不代验后续
+无名元数据、创建mode、fork首次返回、wasm64或浏览器。
