@@ -6228,8 +6228,8 @@ trace-pc、no-prune、edge 插入编译器回调，应用循环源代码不用�
 
 隐藏的编译器 hook 通过原生 Wasm TLS 每4096次回调才调用宿主，TLS 初始化前
 直接返回；在进入宿主前重置计数，使非局部控制流退出后仍可再次进入。没有增加
-公共 libc 函数或头文件。当前组件未接入 Linux、Worker 或已发布 SDK，私有
-linux_user_poll_v1 导入尚不是可用的系统交付能力，默认构建和执行路径保持原状。
+公共 libc 函数或头文件。随后已准备内核入口，Worker 与已发布 SDK 尚未接入，
+私有 linux_user_poll_v1 导入仍不是可用的系统交付能力，默认执行路径保持原状。
 
 Clang18/22 的双位宽实际 Wasm 产物及组件静态分析通过：纯计算语料导入中没有
 syscall，两实例共享 memory 但使用不同 TLS，分别经过三次批量宿主入口结束
@@ -6250,11 +6250,57 @@ scripts/check_clone_native_tls.py 编译真实 clone.c 及从当前源码提取�
 检查点接线必须避开原生 TLS 初始化窗口；base 非零本身不能证明属于当前线程。
 编译组件原型显式初始化不同区域的结果也不证明这一启动边界已被交付配置保护。
 
-后续必须实现中断式内核返回检查点，保持 pt_regs、用户栈、RCU/IRQ 状态以及
+后续必须完成中断式检查点的宿主/交付接线，保持 pt_regs、用户栈、RCU/IRQ 状态以及
 现有回调/非局部退出边界；不能用伪造 gettid 等 syscall 代替，以免改变 seccomp
 或 ptrace 行为。实际 Linux 要覆盖纯计算定时器、线程定向信号、siglongjmp、
 strict seccomp 与关闭。未插桩库循环、应用自己的 coverage hook、动态加载和
 fork 组合也需要明确处理，不据当前原型扩大已支持范围。
+
+## 计算检查点的内核中断返回入口
+
+Linux `56e041088` / distro `696e67f` / 集成 `0ddd166` 增加私有固定 i32
+user_poll_v1 导出，不分配 Linux syscall 编号。入口拒绝内核阶段调用；从用户
+阶段进入后保存 pt_regs，清除本次 syscall/restart 状态，获取当前 C 栈，再处理
+定时器与远程请求，调用通用 irqentry_exit_to_user_mode_prepare。原寄存器在
+instrumentation_end / exit_to_user_mode 之前恢复，避免进入用户上下文后再调用
+可能由编译器生成的 memcpy。栈查询失败仍平衡上下文退出，但不运行待处理信号。
+
+该入口不执行 syscall entry/exit tracing 或 seccomp 检查，不用伪造 gettid
+突破纯计算循环；真正的应用 syscall 继续由原有策略路径处理。宿主仍须保证没有
+活的内核回调或信号帧，并避开用户栈/TLS 的初始化窗口；当前尚无 Worker 导入
+和 SDK 配置，因此不能用入口存在推定这些调用前提已经满足。
+
+公开预取 [41576709235](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41576709235)
+核对前驱归档哈希后得到新源码哈希。Clang18/22 双位宽实际函数体检查及静态分析
+通过：验证 entry/IRQ 顺序、完整寄存器恢复、栈错误和内核阶段拒绝；保留旧
+restart 返回值、误走 syscall 专用返回工作分别由反向版本拒绝。通用 Linux
+工作在此检查中由模型承担，不算真实信号交付。新双位宽内核构建/既有 brk
+回归 [41577075102](https://github.com/HighCWu/distro/actions/runs/41577075102) 正在运行，
+也不代替后续纯计算 SIGALRM、定向 pthread、siglongjmp 和 strict seccomp 验收。
+
+## 启动修复后的合并 syscall 回归结果
+
+固定 `6b1777e` 的 [41572697826](https://github.com/HighCWu/distro/actions/runs/41572697826)
+已成功，实际读取23,174,279字节 Heavy 日志。两种位宽分别完成 brk 三阶段
+（标准 query/growth 与 errno、实时 AS/DATA 限额与真实 malloc 拒绝、共享分配器
+线程/8KiB TLS/mmap 恢复），madvise 四阶段（含 FREE 后写入与保留预约），
+Landlock 三阶段及各唯一 pass。动态加载十阶段包括字节文件名/BOM/Unicode，
+动态符号版本三阶段、文件 mmap 三阶段、fork 主体/exec/拒绝恢复也有对应实际输出。
+
+已核对该源码的 run-test.js / shutdown.js：作业成功必须在 pass 后等待
+machine.closed、处理迟到错误且无清理失败；这些文件与当前发布版本一致。
+据此接受上述固定组合的双位宽 Node 范围，确认 FDT/initrd 启动修复可运行，
+不推定新增 user_poll_v1、USER_NS、GNU split 或新浏览器组合已经验收。
+
+GNU split 的同源码 [41572698904](https://github.com/HighCWu/distro/actions/runs/41572698904)
+失败，读取14,323,543字节实际日志：gnulib 编译缺少 mbszero/c32tolower 等生成
+头文件声明，尚未进入应用。独立配方从干净目录直接构建 src/split，跳过了
+Automake 对 all/check/install 的 BUILT_SOURCES 准备，见
+[官方说明](https://www.gnu.org/s/automake/manual/html_node/Built-Sources-Example.html)。
+distro `b7c5028` / 集成 `00fbe73` 先通过补充 make 目标构建原始 BUILT_SOURCES，
+再构建单个程序；不改 split.c、gnulib 实现或 musl 公共 API。格式及已有宿主
+工作负载合同通过，定向 [41577019058](https://github.com/HighCWu/distro/actions/runs/41577019058)
+正在复验，仍须确认实际 Wasm 构建、四阶段和关闭。
 
 ## 静态 review 与异步验收原则
 
