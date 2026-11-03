@@ -24,8 +24,11 @@ unsigned compute(unsigned limit) {
 """
 runner = r"""
 import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
 const [file,bits]=process.argv.slice(2),wide=bits==='64',word=n=>wide?BigInt(n):n;
 const module=await WebAssembly.compile(readFileSync(file));
+const {user_module_imports_supported}=await import(pathToFileURL(process.argv[4]));
+assert(user_module_imports_supported(module),'actual compiler object satisfies module admission');
 assert.deepEqual(WebAssembly.Module.imports(module).filter(i=>i.kind==='function'),
  [{module:'linux_user_poll_v1',name:'checkpoint',kind:'function'}]);
 const memory=new WebAssembly.Memory({initial:word(8),maximum:word(16),shared:true,address:wide?'i64':'i32'});
@@ -79,7 +82,7 @@ with tempfile.TemporaryDirectory(prefix="cooperative-poll-") as tmp:
                 "-mbulk-memory",
                 "-nostdlib",
                 "-Wl,--no-entry,--import-memory,--shared-memory,--max-memory=1048576",
-                "-Wl,--export=__wasm_init_tls,--export=__tls_base,--export=__tls_size,--export=__tls_align",
+                "-Wl,--export=__wasm_init_tls,--export=__tls_base,--export=__tls_size,--export=__tls_align,--export=__stack_pointer",
                 "-Wl,--export=__sanitizer_cov_trace_pc",
             ]
             for mode in ("instrumented", "plain"):
@@ -96,7 +99,13 @@ with tempfile.TemporaryDirectory(prefix="cooperative-poll-") as tmp:
                     check=True,
                 )
                 run = subprocess.run(
-                    ["node", str(path / "run.mjs"), str(binary), str(bits)],
+                    [
+                        "node",
+                        str(path / "run.mjs"),
+                        str(binary),
+                        str(bits),
+                        str(ROOT / "sources/distro/packages/kernel/src/wasm.ts"),
+                    ],
                     capture_output=True,
                     text=True,
                 )
