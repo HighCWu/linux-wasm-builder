@@ -14,10 +14,35 @@ parser.add_argument("--node", default="node")
 args = parser.parse_args()
 
 MAIN = r"""
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <link.h>
 int host_value = 5;
 int host_add(int x) { return host_value += x; }
 int (*main_function(void))(int) { return host_add; }
 int unaddressed_main(int n) { return n + 40; }
+int modeled_link_map(void *handle) {
+ struct link_map *map=0;
+ if(dlinfo(handle,RTLD_DI_LINKMAP,&map)||map!=handle)return -1;
+ return map->l_name!=0 && map->l_ld==0;
+}
+int modeled_link_count(void *handle) {
+ struct link_map *map=0,*previous=0; int count=0;
+ if(dlinfo(handle,RTLD_DI_LINKMAP,&map))return -1;
+ for(;map && count<32;map=map->l_next){
+  if(map->l_prev!=previous||!map->l_name||map->l_ld)return -2;
+  previous=map;count++;
+ }
+ return map?-3:count;
+}
+int modeled_bad_info(void *handle,int request) {
+ struct link_map *map=(void*)3;
+ return dlinfo(handle,request,&map)==-1 && map==(void*)3;
+}
+unsigned long modeled_info_pointer(void *handle) {
+ struct link_map *map=0;
+ return dlinfo(handle,RTLD_DI_LINKMAP,&map)?0:(unsigned long)map;
+}
 """
 
 LIB_A = r"""
@@ -113,7 +138,10 @@ assert(aRegion.base+metadata[0].memorySize<=bRegion.base);
 assert(aRegion.tableBase+metadata[0].tableSize<=bRegion.tableBase);
 const files=new Map([[names[0],new Uint8Array(readFileSync(first))],[names[1],new Uint8Array(readFileSync(second))]]);
 const mainBytes=new Uint8Array(readFileSync(mainFile));
-const main=new WebAssembly.Instance(new WebAssembly.Module(mainBytes),{env:{memory,__indirect_function_table:table}});
+let processLoader,infoErrors=0,legacyInfo=false;
+const main=new WebAssembly.Instance(new WebAssembly.Module(mainBytes),{env:{memory,__indirect_function_table:table,
+ __dl_invalid_handle:handle=>legacyInfo&&BigInt(handle)===1n?0:processLoader.valid(handle)?0:1,
+ __dl_seterr:()=>{infoErrors++;}}});
 const signatures=read_wasm_dynamic_signatures(mainBytes).exports;
 const externalSymbols=new Map();
 for(const [name,value] of Object.entries(main.exports)) {
@@ -238,7 +266,7 @@ const virtualFiles=new Map([
 ]);
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleAFile))).needed,[basename(cycleBFile)]);
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleBFile))).needed,[basename(cycleAFile)]);
-let processLoader,probeReentry=true,nextPin=1,currentFd=-1;
+let probeReentry=true,nextPin=1,currentFd=-1;
 const attempted=[];
 const pins=new Map();
 const allocate=(size,alignment)=>{size=Number(size);alignment=Math.max(8,Number(alignment));
@@ -290,8 +318,15 @@ processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximu
  pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
+const mainHandle=processLoader.open(word(memoryAddress,0),2);
+assert.notEqual(mainHandle,word(memoryAddress,0),'main handle is an allocated link_map');
+legacyInfo=true;
+assert.equal(BigInt(main.exports.modeled_info_pointer(word(memoryAddress,1))),1n,
+ 'old integer handle is returned as an invalid pointer by the actual musl body');
+legacyInfo=false;
+assert.equal(BigInt(main.exports.modeled_info_pointer(mainHandle)),BigInt(mainHandle));
 const beforeSearch=live.size;
-assert.notEqual(processLoader.symbol(word(memoryAddress,1),storeString('host_add')),word(memoryAddress,0),'main dlsym accepts browser decoder input restrictions');
+assert.notEqual(processLoader.symbol(mainHandle,storeString('host_add')),word(memoryAddress,0),'main dlsym accepts browser decoder input restrictions');
 assert.equal(processLoader.open(searchedPointer,2),word(memoryAddress,0),'opened malformed file must stop search');
 assert.deepEqual(attempted,['/shadow/'+names[1]],'do not substitute a later same-name library');
 assert.equal(live.size,beforeSearch,'shadow failure releases temporary buffers');
@@ -385,6 +420,23 @@ assert.equal(recursiveData(recursive,'reentrant_root_observed'),25);
 assert.equal(processLoader.open(storeString('reentrant-root.so'),6),recursive);
 assert.equal(recursiveData(recursive,'reentrant_root_count'),1);
 console.log(`Process loader constructor model wasm${bits}: new graph, failed nested admission recovery, GLOBAL imports, running-parent reopen and single constructors pass; not Linux libc or bridge acceptance`);
+const pointerBytes=memoryAddress==='i64'?8:4;
+const mapWord=(pointer,slot)=>{const view=new DataView(memory.buffer,Number(pointer)+slot*pointerBytes,pointerBytes);
+ return pointerBytes===8?view.getBigUint64(0,true):BigInt(view.getUint32(0,true));};
+const mapNames=new Set();let at=BigInt(mainHandle),previousMap=0n,countMaps=0;
+for(;at&&countMaps<16;at=mapWord(at,3)){
+ assert.equal(mapWord(at,4),previousMap);assert.equal(mapWord(at,2),0n);
+ assert.equal(main.exports.modeled_link_map(word(memoryAddress,at)),1,'actual musl dlinfo returns readable link_map');
+ const name=readCString(mapWord(at,1));assert(!mapNames.has(name));mapNames.add(name);
+ previousMap=at;countMaps++;
+}
+assert.equal(at,0n);assert.equal(countMaps,7);assert.equal(main.exports.modeled_link_count(mainHandle),7);
+assert(mapNames.has(''));assert(mapNames.has('/libraries/'+names[0]));assert(mapNames.has('/libraries/reentrant-leaf.so'));
+assert(!mapNames.has('/libraries/reentrant-reject.so'));
+assert.equal(processLoader.symbol(dependency,storeString('run')),word(memoryAddress,0),'dependency handle must not include consumer definitions');
+assert.equal(main.exports.modeled_bad_info(word(memoryAddress,3),2),1);
+assert.equal(main.exports.modeled_bad_info(mainHandle,-777),1);assert.equal(infoErrors,1);
+console.log(`Process loader link_map model wasm${bits}: actual musl dlinfo body, readable per-object handles, full chain, dependency scopes and output-preserving errors pass; not Linux process acceptance`);
 const starting=processLoader.open(storeString('start.wasm'),2);
 assert.notEqual(starting,word(memoryAddress,0),'load module with reentrant start lookup');
 const entry=processLoader.symbol(starting,storeString('entry'));
@@ -408,6 +460,24 @@ console.log(`PIC probe wasm${bits}: runtime linker dependencies, relocations, GO
 
 with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
     directory = Path(tmp)
+    musl = Path(__file__).resolve().parents[1] / "sources/musl"
+    headers = directory / "headers"
+    (headers / "bits").mkdir(parents=True)
+    templates = (musl / "arch/wasm32/bits/alltypes.h.in").read_text() + (
+        musl / "include/alltypes.h.in"
+    ).read_text()
+    generated = subprocess.run(
+        ["sed", "-f", str(musl / "tools/mkalltypes.sed")],
+        input=templates,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    (headers / "bits/alltypes.h").write_text(generated.stdout)
+    # Internal declarations only; compile the exact pinned upstream body.
+    (headers / "dynlink.h").write_text(
+        "struct link_map; int __dl_invalid_handle(void*); void __dl_seterr(const char*,...);\n"
+    )
     (directory / "a.c").write_text(LIB_A)
     (directory / "b.c").write_text(LIB_B)
     (directory / "main.c").write_text(MAIN)
@@ -444,6 +514,25 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
         )
     )
     for bits in (32, 64):
+        libc_info = directory / f"dlinfo{bits}.o"
+        subprocess.run(
+            [
+                args.clang,
+                f"--target=wasm{bits}",
+                "-O2",
+                "-matomics",
+                "-mbulk-memory",
+                "-isystem",
+                str(headers),
+                "-isystem",
+                str(musl / "include"),
+                "-c",
+                str(musl / "src/ldso/dlinfo.c"),
+                "-o",
+                str(libc_info),
+            ],
+            check=True,
+        )
         for name in ("main", "a", "b"):
             subprocess.run(
                 [
@@ -454,6 +543,12 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                     *([] if name == "main" else ["-fPIC", "-shared"]),
                     "-matomics",
                     "-mbulk-memory",
+                    "-isystem",
+                    str(headers),
+                    "-isystem",
+                    str(musl / "include"),
+                    "-isystem",
+                    str(musl / "arch/generic"),
                     "-Wl,--shared-memory",
                     "-Wl,--no-entry",
                     "-Wl,--import-memory",
@@ -475,6 +570,11 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                     ),
                     f"-Wl,--max-memory={4294967296 if bits == 32 else 17179869184}",
                     str(directory / f"{name}.c"),
+                    *(
+                        [str(libc_info), "-Wl,--allow-undefined"]
+                        if name == "main"
+                        else []
+                    ),
                     *([str(directory / f"a{bits}.wasm")] if name == "b" else []),
                     "-o",
                     str(directory / f"{name}{bits}.wasm"),
