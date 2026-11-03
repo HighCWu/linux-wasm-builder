@@ -6501,6 +6501,36 @@ musl 公共 API 和 fork 支持范围不变。
 集成 `28845bb` 改以仍不支持的 MADV_REMOVE 检查拒绝，并显式核对 MADV_FREE
 的 advice 原值、长度取整及后端错误/成功传递。GCC/Clang十项实际包装检查通过，
 不修改内核或放宽验收条件；新的根 CI 仍需结果。
+后续28845bb的41585921563继续定位到allocator fixture的同类旧断言。1045200
+同步该fixture，改用MADV_REMOVE验证拒绝，新增MADV_FREE内容清空及地址预约
+仍存在的断言。GCC/Clang六项检查通过，包含ASan/UBSan、实际分配器分析和原
+拷贝丢失反向控制；未修改已验收实现。新的根CI仍为异步验收。
+
+## 独立 libc 插桩配置与真实库循环候选
+
+distro `74cb9fe` / 集成 `c95758c` 配套接通原型：每实例私有 TP global 从零
+开始，只在标准 set_thread_area、clone 的 gettid 返回边界或已有 TP 读取后
+采用内核实际值，不采用传入参数。其他 exec 启动 syscall 不发布旧映像遗留 TP。
+ABI2 同时要求 checkpoint 和 thread_pointer，拒绝与 ABI1、动态加载或 fork
+continuation 混合；实例化核对导出版本、global 位宽和可变性。
+
+`sdk-cooperative-poll-libc` / `sdk-cooperative-poll-libc-wasm64` 使用相同固定
+musl 源码重建，不增加函数/声明。clone 与 pthread/C11 过渡单元不插桩，避免
+native TLS 初始化前触碰继承的父块及其生命周期；其它 libc C 单元使用覆盖率
+检查点。分离线程自身回收的独立 Wasm 补丁在 free 发布栈/TLS 前清空 native
+TLS base，保留 Linux/musl TP。宿主 allocator/startup 回调将 global 暂置零，
+阻止检查点读取 TLS，嵌套和非局部退出后恢复，内部 TP 读取不能重新启用它。
+原 SDK、应用插桩配置、C++/编译器运行库及支持的 fork 范围保持不变。
+
+真实消费者保留普通五阶段，并加第六阶段：不插桩的调用循环经 volatile 函数
+指针调用实际 memchr，在库搜索期间收到 SIGALRM，随后普通计算信号继续正常。
+Clang18/22 双位宽实际 IR 确认调用循环/启动单元没有检查点、memchr 有检查点，
+回收代码在 free 前清除 native TLS；消费者插桩/SjLj 编译与静态分析通过。
+440项宿主检查、两个 TypeScript 项目和原 ABI1/所有权组件回归通过。
+
+[41587166248](https://github.com/HighCWu/distro/actions/runs/41587166248) 已异步
+派发双位宽六阶段及机器关闭验收，未计为真实库内信号支持通过。尚不推定所有
+第三方库、原始自定义 clone、动态模块、C++ 异常或浏览器组合已经覆盖。
 
 ## 启动修复后的合并 syscall 回归结果
 
