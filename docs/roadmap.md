@@ -2724,6 +2724,12 @@ f0ecfb5 / 集成15d22e1复用原C消费者和process浏览器运行器，增加p
 分支，41637667371统一复验四阶段元数据、两种权限模式及共享目录关闭，
 实际目标仍待核实。见[准入修正](process-syscalls.md#virtio-fs-只读挂载准入修正)。
 
+f0ecfb5的四路浏览器clone矩阵现已逐项核实：wasm32/64 × Chromium149.0.7827.55/
+Firefox151.0，ptrace五阶段与退出通知六阶段各同页两轮，共16次机器完整阶段/
+关闭及8次浏览器关闭；9577599的Node双位宽通知六阶段也已核实。只接受固定
+可选单线程配置及实际语料组合，不代验之后的NodeFS/只读挂载修复。见
+[浏览器矩阵验收](process-syscalls.md#clone-通知与-ptrace-浏览器矩阵已核实)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

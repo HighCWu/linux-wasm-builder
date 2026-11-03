@@ -7869,3 +7869,38 @@ mixed/AT_EACCESS写探测均EROFS。两种模式各自还要求存在/读探测�
 [41637667371](https://github.com/HighCWu/distro/actions/runs/41637667371)，统一验收
 906f5dd的四阶段、上述两种只读模式及全套共享目录和关闭。排队/运行期间不
 重复派发。目标仍待实际阶段证据，0b35521失败不被删除或重写为已通过。
+
+## clone 通知与 ptrace 浏览器矩阵已核实
+
+固定f0ecfb5的四路目标现已读取实际Heavy日志，与固定版本processStages精确
+比较完整有序输出。相关C消费者、装配、运行器和关闭逻辑与当前对应文件无
+差异。四路Heavy及workflow均success，接受范围如下：
+
+| 组合 | 已核实目标 |
+| --- | --- |
+| wasm32 Chromium 149.0.7827.55 | [41633035041](https://github.com/HighCWu/distro/actions/runs/41633035041) |
+| wasm32 Firefox 151.0 | [41633045847](https://github.com/HighCWu/distro/actions/runs/41633045847) |
+| wasm64 Chromium 149.0.7827.55 | [41633073381](https://github.com/HighCWu/distro/actions/runs/41633073381) |
+| wasm64 Firefox 151.0 | [41633084979](https://github.com/HighCWu/distro/actions/runs/41633084979) |
+
+每项均以cpus=2运行两组，各自同页两轮：clonetrace每轮五阶段，覆盖原生
+clone3/legacy clone的强制fork事件、UNTRACED抑制、显式PTRACE单独及组合、
+后续跟踪与清理；clonesignal每轮六阶段，覆盖两种clone的零通知、SIGUSR1、
+SIGCHLD、PIDFD就绪、__WCLONE与普通wait区别、单次回收及普通libc fork恢复。
+所有16次启动各有唯一pass和机器关闭标记，8次浏览器运行均有最终关闭标记。
+
+固定runRuntimeSmoke只有在等待machine.closed并处理最终控制台回调、迟到
+运行错误后才返回；浏览器控制器逐轮严格校验输出，最终等待浏览器断开、
+拒绝迟到页面错误并关闭服务进程，才输出最终成功标记。已检查实际日志中的
+这些门禁结果，没有用工作流绿色替代阶段验收。wasm32 Chromium首轮日志
+下载曾URLError，重读同一已完成任务后取得完整证据，没有重新派发CI。
+
+独立Node [41631999976](https://github.com/HighCWu/distro/actions/runs/41631999976)
+固定9577599也已读取实际日志：wasm32/64各完整六阶段、有序且唯一pass，
+固定运行器等待machine.closed并将关闭错误转为失败，Heavy及workflow均成功。
+这补齐旧clone退出通知在Node双位宽的准入，不只复用原生参考。
+
+上述接受Linux94d6741a0、musl651ebf65与固定可选单线程静态C fork配置，
+退出通知实际场景限0/SIGUSR1/SIGCHLD及语料中的选项组合；不泛化到所有
+CSIGNAL字节、clone标志交叉、多线程fork、默认SDK、动态fork或后续NodeFS
+陈旧inode/只读挂载修复。32eb392的41637667371仍按自己的阶段单独验收。
