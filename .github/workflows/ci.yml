@@ -54,6 +54,8 @@ jobs:
         run: WASM_SHARED_COMPILERS=clang-18 python3 -B scripts/check_musl_shared_imports.py
       - name: Check automatic compiler polling and per-thread Wasm TLS budgets
         run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/probe_cooperative_poll.py
+      - name: Check private polling prototype against inherited parent TLS
+        run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/probe_cooperative_poll_owner.py
       - name: Compile and analyze the ordinary cooperative signal consumer
         run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/check_cooperative_poll_consumer.py
       - name: Check actual musl clone and C11 native TLS startup
