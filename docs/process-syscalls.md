@@ -6136,6 +6136,30 @@ brk 合并回归，CI 41568722379 共用构建图定向复验构建修复后的�
 旧任务不取消；不同源码的
 阶段与关闭结果分别核实，尚未成功的任务不能视为能力验收通过。
 
+## 独立 USER_NS 配置与标准进程凭据路径
+
+固定 Linux 的官方 Kconfig 将 USER_NS 默认为 n，本项目默认配置继续保持该值。
+distro `0417e65` / 集成 `d8ae363` 增加默认关闭的 userNamespaceCandidate
+内核构建参数；独立镜像显式启用 CONFIG_USER_NS，olddefconfig 后核对实际结果，
+并将所选配置记入构建材料。普通内核仍检查 USER_NS 关闭，所有配置检查 MMU
+未开启。此增量复用 Linux 通用实现，没有修改 Linux 源码、执行 ABI 或 musl，
+也没有新增公共函数、包装或扩大多线程 fork 支持。
+
+普通 SDK 构建父程序和独立 helper。helper 在普通 posix_spawn/exec 之后调用
+既有 unshare(CLONE_NEWUSER)，验证命名空间身份变化、写入单个 UID/GID 映射和
+setgroups=deny；检查映射不可重写、未映射 UID 被拒绝、setns 不允许重入自身或
+返回祖先命名空间。普通 exec 后再次核对身份、映射和 setgroups 策略，再退出。
+父程序检查原命名空间与组数保持、标准 wait 单次回收和关闭收尾。接口语义依据
+[user_namespaces](https://man7.org/linux/man-pages/man7/user_namespaces.7.html) 与
+[setns](https://man7.org/linux/man-pages/man2/setns.2.html)，拒绝顺序亦核对固定
+kernel/user_namespace.c 的实际实现。
+
+Clang18/22 双位宽实际消费者的前端和静态分析通过，GCC/Clang 原生编译通过；
+没有把宿主命名空间设置或权限策略当作 Wasm 目标证据。独立双位宽
+CI 41569680820 的 user-namespace-check-both 需核实各四阶段、唯一 pass 与机器关闭，尚未接受
+完整目标通过。它不证明容器运行时、全部 namespace 组合或宿主安全隔离已经完成；
+USER_NS 未提升为默认构建选项，后续依据实际工作负载和目标结果决定。
+
 ## 静态 review 与异步验收原则
 
 标准dlfcn接线9cbe7d0的文件操作继续使用Linux syscall，未新增公共libc函数。

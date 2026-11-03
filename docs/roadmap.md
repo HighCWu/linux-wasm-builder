@@ -2377,6 +2377,11 @@ Linux `d988da3b9` / musl `cd7dc871` / distro `1ebb4ea` / 集成 `e4d74e0`
 不变，小型实际重定位/tag 检查通过，完整目标阶段仍待核实，见
 [共享构建记录](process-syscalls.md#llvm-22-下保留的共享-libc-构建配置)。
 
+distro `0417e65` / 集成 `d8ae363` 增加独立 USER_NS 内核配置，复用通用 Linux
+unshare、UID/GID 映射与 setns/exec 凭据路径，普通 SDK 及 musl 不变。默认仍
+遵循官方 USER_NS=n；消费者前端和分析通过，双位宽真实四阶段和关闭异步验收，
+不当作容器或安全隔离的完整证明，见[配置和范围](process-syscalls.md#独立-user_ns-配置与标准进程凭据路径)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
