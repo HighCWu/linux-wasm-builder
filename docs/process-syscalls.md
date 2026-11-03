@@ -7658,3 +7658,35 @@ Reader直接源检查覆盖单个/重复U+FEFF、连续C字符串边界和非法
 创建并读取相对链接目标、重命名和删除前缀文件后保留普通文件，并要求原链接
 变为ENOENT而不误指普通名字。全部共享目录回归及machine.closed仍待核实，
 不以协议/宿主检查或旧4ea796f结果代验，不宣称浏览器已通过。
+
+## 创建权限与无名 inode 元数据的目标验收
+
+[41623399624](https://github.com/HighCWu/distro/actions/runs/41623399624) 固定b66bcb4，
+已读取实际Heavy日志并复核固定源码：wasm32 Node十个子用例及外层套件共11项
+通过，fail/cancelled/skipped均0。新增创建权限与unlink后描述符元数据消费者
+各自要求进程成功并精确匹配三条阶段输出，覆盖Linux umask不被宿主二次过滤、
+既有O_CREAT及排他碰撞，以及fchmod/owner/timestamp仍作用于旧inode、替换文件
+不被修改和关闭后错误。此前时间与硬链接回归同时通过。
+
+固定fixture在finally关闭机器，等待machine.closed及控制台排空；外层套件、
+Heavy和workflow均成功。只接受该版本Linux94d6741a0/musl651ebf65的wasm32 Node
+范围，不代验后续BOM、只读访问、fork首次返回或wasm64/浏览器。
+
+## 只读共享后端的标准访问探测
+
+distro9651f58 / 集成1baa33d修复NodeFS只读策略与access(W_OK)不一致的问题。
+原实现把探测交给宿主，宿主文件可写时报告成功，但该共享后端已拒绝写入。
+现在先保留节点存在性及符号链接检查，再对含W_OK的请求返回EROFS；F_OK、
+R_OK仍按原路径处理，不改变标准syscall或新增libc接口。
+
+现有28项实际源后端检查通过；移除策略判断的反向控制会在只读断言失败。
+既有三个元数据消费者的GCC/Clang原生参考通过，Clang18/22双位宽前端与静态
+分析还覆盖新的readonly-access消费者。新消费者只允许Wasm构建，本地没有
+以宿主文件权限或只读挂载模拟其目标执行。
+
+[41630231326](https://github.com/HighCWu/distro/actions/runs/41630231326) 固定9651f58
+异步运行完整Linux共享目录检查。新增共享目录由后端设为只读，刻意不使用
+内核只读挂载标志，以核对真正的后端访问策略。要求精确三阶段：存在/读取
+探测成功；文件、目录、混合及AT_EACCESS写探测均EROFS；实际写open拒绝后
+仍可读且缺失路径保持ENOENT。全套回归和机器关闭仍待核实，不把本地检查
+或此前b66bcb4成功当作本次目标通过。
