@@ -928,6 +928,14 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/browser-fs-directory.test.mjs"
           node --test "$RUNNER_TEMP/browser-fs-directory.test.mjs"
+      - name: Check binary path strings preserve leading characters
+        run: |
+          node --test sources/distro/packages/bytes/test/reader.test.js
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/path-strings.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/path-strings.test.mjs"
+          node --test "$RUNNER_TEMP/path-strings.test.mjs"
       - name: Check Node directory sharing without installed workspace packages
         run: |
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/virtio-fs-node.test.ts \
