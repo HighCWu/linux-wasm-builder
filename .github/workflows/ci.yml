@@ -56,6 +56,8 @@ jobs:
         run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/probe_cooperative_poll.py
       - name: Check private polling prototype against inherited parent TLS
         run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/probe_cooperative_poll_owner.py
+      - name: Check real exec images reject incompatible globals before commit
+        run: node --test sources/distro/distro/exec-imports/images.test.mjs
       - name: Compile and analyze the ordinary cooperative signal consumer
         run: WASM_POLL_COMPILERS=clang-18 python3 -B scripts/check_cooperative_poll_consumer.py
       - name: Check actual musl clone and C11 native TLS startup

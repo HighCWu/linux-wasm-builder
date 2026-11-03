@@ -119,6 +119,28 @@ with tempfile.TemporaryDirectory(prefix="exec-thread-state-") as tmp:
                 check=True,
             )
             binary = path / "probe.wasm"
+            imports_consumer = ROOT / "sources/distro/distro/exec-imports/runtime.c"
+            for action in (
+                [
+                    "-matomics",
+                    "-mbulk-memory",
+                    "-mllvm",
+                    "-wasm-enable-sjlj",
+                    "-c",
+                    str(imports_consumer),
+                    "-o",
+                    str(path / "imports.o"),
+                ],
+                [
+                    "--analyze",
+                    "-Xanalyzer",
+                    "-analyzer-werror",
+                    str(imports_consumer),
+                    "-o",
+                    "/dev/null",
+                ],
+            ):
+                subprocess.run(common + headers + action, check=True)
             for mode in ("normal", "missing-reset"):
                 source = path / "probe.c"
                 body = (
