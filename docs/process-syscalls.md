@@ -7945,3 +7945,44 @@ pidfd-getfd-check-both，要求wasm32/64各完整三阶段、唯一pass及machin
 该缺口未在本轮假称解决。后续需要同时处理目录相对定位、子节点身份及引用
 回收，单纯重走路径或只验证错误返回不能代替原目录的正确语义。它属于宿主
 共享后端，不据此否定Linux内部ramfs/ext4的目录语义，也不阻塞独立pidfd目标。
+
+## 描述符验收与共享目录控制器修复
+
+固定a72cc09的[41640837136](https://github.com/HighCWu/distro/actions/runs/41640837136)
+已读取实际14,211,403字节Heavy日志：wasm32/64各完整有序三个pidfd阶段和唯一
+pass；固定运行器等待machine.closed，关闭失败使检查失败，Heavy及workflow均
+success。这接受上文三个跨进程FD场景，不代验后续Unix辅助数据消费者。
+
+6c5d14c新增两阶段标准Unix socket消费者：SCM_RIGHTS排队的文件在发送者关闭、
+unlink及退出回收后仍可接收，SCM_CREDENTIALS保留发送者PID/UID/GID；另检查
+单FD控制空间截断、MSG_CMSG_CLOEXEC及多余接收FD清理。原生GCC/Clang五阶段、
+错误本地dup/去掉CLOEXEC/错误扩大控制空间的反向控制与双位宽静态分析通过。
+这是既有内核syscall的真实消费者准入，不冒称新增了内核实现或musl接口。
+
+32eb392的[41637667371](https://github.com/HighCWu/distro/actions/runs/41637667371)
+实际失败于测试控制器：virtio-fs-node-guest.test.ts在读过stdout就绪行后再次
+new Response(process.stdout)，触发“Response body object should not be disturbed
+or locked”。两种只读模式子测试已通过，不能据此接受整个共享目录套件。
+
+8d4d9a3 / 集成5579f0c使握手及后续输出保留同一个reader，保留四阶段与宿主
+文件状态断言，stdin仍在finally关闭。分块/合并输出、UTF-8、就绪先于EOF、
+错误传播和解锁检查及完整测试目录类型检查通过。没有改动Linux或musl。
+该固定版本一次派发两项，均尚待真实阶段与关闭验收：
+
+- [41648941984](https://github.com/HighCWu/distro/actions/runs/41648941984)：共享目录四阶段元数据、两种只读模式及全套回归。
+- [41648987859](https://github.com/HighCWu/distro/actions/runs/41648987859)：双位宽pidfd三阶段加Unix辅助数据两阶段。
+
+## 目录打开后的 inode 核验
+
+4480642将NodeFS.opendir接入已有验证后发布FD路径，避免宿主在预检与open之间
+替换目录时，把新目录FD绑定到旧Linux节点。打开后dev/ino不匹配返回ENOENT并
+关闭未发布FD；后续lookup可取得新目录并正常打开、枚举、关闭。Windows原有
+无目录FD分支保持原有边界。
+
+实际源码临时bundle在host open前插入测试暂停，真实rename旧目录并在原名创建
+新目录，验证拒绝、FD基线、旧目录内容保留和恢复。仅临时bundle有测试钩子；
+绕过inode核验的反向控制失败。32项后端回归、原文件截断交错正反控制及类型
+检查通过。root CI配置已接入该原生检查；固定4480642单独派发
+[41649317994](https://github.com/HighCWu/distro/actions/runs/41649317994)，尚未接受
+该版本的真实Linux/Wasm共享目录套件。这不修复上一节所述“已经打开的旧目录句柄在替换后枚举新目录”问题，
+不把拒绝错误inode发布当作完整目录生存期支持。
