@@ -6112,6 +6112,30 @@ musl 的精确 revision/hash。CI 41567995019 的 `toolchain-smoke-check-madvise
 双位宽 madvise 四阶段及文件流三阶段目标，复用构建图；真实阶段、唯一 pass
 和机器关闭仍待逐项核实，不沿用旧 DONTNEED 的运行结果。
 
+## LLVM 22 下保留的共享 libc 构建配置
+
+实际读取41566249073（5ef5878）7,770,060字节和41567015097（43195e4）
+2,176,662字节的 Heavy 日志，均在 musl-wasm32 的 libc.so 链接阶段失败，缺少
+堆边界 __heap_end/__global_base/__data_end 和 SjLj 的 __c_longjmp。
+尚未运行 brk 消费者，也不能据此判定先前 LSM 修复的启动结果。
+
+小型实际 Wasm 产物复现了版本差异：Clang18 的共享链接允许这些外部符号，
+Clang22 默认严格策略会拒绝。distro `0bd6c1b` 在既有 musl 构建配置中显式指定
+import-dynamic，配合共享导入内存及平台既定最大值，保留 libc.so 输出。
+这些 LDFLAGS_AUTO 仅用于 musl 自身的共享链接，不传入普通应用的 SDK 链接。
+没有关闭共享库构建、填入假堆边界、另造异常 tag，或新增 libc 函数/头文件 API。
+
+小型检查编译实际 brk 布局回调和 wasm_longjmp.c，使用生产 Nix 配置的链接参数；
+Clang18/22 双位宽均核实 GOT 数据重定位、宿主提供的同一个 SjLj tag 及异常
+payload，缺少真实堆导入会拒绝实例化，Clang22 严格反向控制明确链接失败。
+这不等于完整共享 libc 已能在 Linux 进程中动态装载，也不宣称跨库 C++ 异常或
+完整 ELF 入口已实现。完整 musl/内核启动仍由真实目标验收。
+
+后继 `6c6ac0a` / 集成 `ebbc71d` 将 MADV_FREE 匿名/文件目标纳入既有
+brk 合并回归，CI 41568722379 共用构建图定向复验构建修复后的组合。
+旧任务不取消；不同源码的
+阶段与关闭结果分别核实，尚未成功的任务不能视为能力验收通过。
+
 ## 静态 review 与异步验收原则
 
 标准dlfcn接线9cbe7d0的文件操作继续使用Linux syscall，未新增公共libc函数。

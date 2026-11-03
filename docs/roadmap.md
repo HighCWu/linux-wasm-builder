@@ -2371,6 +2371,12 @@ Linux `d988da3b9` / musl `cd7dc871` / distro `1ebb4ea` / 集成 `e4d74e0`
 实现惰性物理页回收。双位宽实际函数体及消费者分析通过，新目标异步验收，见
 [范围与证据](process-syscalls.md#直接匿名映射的-madv_free)。
 
+随后 brk 两个任务实际日志定位为 LLVM22 下共享 libc 链接策略缺失，尚未进入
+消费者。distro `0bd6c1b` 保留 libc.so，显式配置动态导入进程堆边界和 SjLj tag；
+`6c6ac0a` / 集成 `ebbc71d` 合并新 discard 目标定向复验。普通应用链接策略
+不变，小型实际重定位/tag 检查通过，完整目标阶段仍待核实，见
+[共享构建记录](process-syscalls.md#llvm-22-下保留的共享-libc-构建配置)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
