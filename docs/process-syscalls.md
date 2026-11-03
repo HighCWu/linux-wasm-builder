@@ -7502,7 +7502,7 @@ musl API或Linux syscall，没有改动权限决策与内核inode生命周期。
 
 27项真实宿主文件系统检查通过：新增无FH的模式/owner修改、unlink后同名重建
 的隔离、只读旧描述符保留内容、跨后端拒绝、最后关闭后拒绝。撤去描述符回退
-的反向控制在该SETATTR场景按预期报ENOENT。GCC/Clang原生静态C程序各三阶段
+的反向控制在该SETATTR场景按预期报ENOENT。GCC/Clang原生C参考程序各三阶段
 通过，Clang18/22对时间及无名元数据两个消费者做双位宽前端和静态分析，guest
 库与完整测试使用当前kernel/plugin/bytes源码的TypeScript检查通过。
 
