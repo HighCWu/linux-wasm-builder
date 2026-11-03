@@ -2555,6 +2555,15 @@ c4bb6f7 / 集成be0a5ac另接通固定Linux已实现的原生clone3 CLONE_NNP，
 首次观察、fork/exec继承、禁止清除及父/兄弟隔离五阶段和关闭；见
 [原生NNP](process-syscalls.md#native-clone3-在子进程运行前设置-no_new_privs)。
 
+166de77的41602628886现已核实双位宽Node各五阶段、唯一pass及关闭，接受包括
+入口类型在内的exec提交前拒绝和原状态恢复范围，不代验后继clone能力。
+
+5949088 / 集成4b0d1b5接通native clone3的非SIGCHLD退出通知，包括零信号。
+独立能力门控和逐次取用/默认恢复保留旧对象安全边界，Linux负责通知、PIDFD
+就绪及__WCLONE等待；原生语义正反控制、真实Wasm字段和类型/分析通过，
+clone-exit-signal-check-both异步验收双位宽三阶段及关闭。见
+[退出通知](process-syscalls.md#native-clone3-的退出通知与-linux-等待类别)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

@@ -7092,6 +7092,44 @@ machine.closed，关闭错误会导致非零退出，已核对这两个文件与
 接受固定 Linux94d6741a0/musl651ebf65 的这一双位宽 Node 范围，不覆盖后继
 166de77 的五阶段入口检查、SYSVSEM、CLONE_NNP 或浏览器。
 
+## native clone3 的退出通知与 Linux 等待类别
+
+distro `5949088` / 集成 `4b0d1b5` 移除 native clone3 适配器只准许 SIGCHLD 的
+限制。合法 exit_signal 字段按0..64捕获，SIGCHLD 保持原默认；其它值要求原生
+传输、执行对象 capability bit 6 和固定 i32 的私有字段准备函数。旧对象或缺失
+原生传输在展开前拒绝；legacy clone 两种入口仍保持原 SIGCHLD 子集。没有
+新增公共 API 或 syscall，也没有扩大共享内存或多线程 fork。
+
+每次原生请求都准备自己的退出信号，适用于普通宽标志、cgroup 和 set_tid
+传输。支持对象在校验/调用内核前取走该值并恢复 SIGCHLD，宿主也在 finally
+清除捕获状态；错误和后续普通请求不能复用旧值。通知和等待类别都由原始 Linux
+clone3/wait 实现决定，宿主不合成信号、不代回收进程。
+
+新 clone-exit-signal-check-both 的双位宽目标各三阶段：零通知、PIDFD 就绪、
+普通 wait 排除而 __WCLONE 精确单次回收；SIGUSR1 恰好一次且没有 SIGCHLD；
+后续 SIGCHLD 普通回收、无效信号不发布 PIDFD、所有等待类别无剩余子进程及
+fd/处理器清理。各唯一 pass 和机器关闭仍需实际目标日志。
+
+GCC/Clang 实际原生 legacy clone 参考通过通知/PIDFD/__WCLONE 正控制，强制
+SIGCHLD 的反向控制失败。原生参考不代验 clone3 的无效信号校验：本地 legacy
+clone 对该字段的验证与 clone3 不同，后者仍在隔离目标严格要求 EINVAL。
+Clang18/22 使用固定 Linux UAPI 完成三个消费者的双位宽前端/静态分析。实际
+Wasm 支持对象验证零值、非法值拒绝及失败后恢复默认；456项运行库/支持对象
+检查和两套 TypeScript 检查通过。
+[公开目标41607396846](https://github.com/HighCWu/distro/actions/runs/41607396846)
+异步验收，尚未接受运行通过。
+
+## exec 入口检查的目标验收
+
+[41602628886](https://github.com/HighCWu/distro/actions/runs/41602628886)
+固定166de77，实际读取10,313,159字节 Heavy 日志，wasm32/64 各精确五阶段和
+唯一 pass：global 类型、宿主函数导入类型、缺失/不兼容入口均在提交前拒绝；
+匹配映像正常执行；重复失败后 spawn/wait 恢复。失败路径保留真实 TP、native
+TLS、CLOEXEC fd 和偏移。Heavy 与工作流均成功，固定源码关闭门禁仍等待
+machine.closed 且关闭错误会非零退出，已核对 runner/closer 与当前无差异。
+接受固定 Linux94d6741a0/musl651ebf65 的双位宽 Node 范围，不代验后继 clone
+资源、NNP、退出通知或浏览器。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
