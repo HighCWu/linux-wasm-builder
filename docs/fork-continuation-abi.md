@@ -338,7 +338,8 @@ rewind 时禁止重新初始化 cursor，以免覆盖继承的活动帧。
 6. 现有 Worker 握手复制用户内存。仅这次 clone 传递 continuation 元数据；
    父返回后删除元数据，不能污染之后的普通 clone 或 exec。
 7. 子进程的 `switch_entry` 核对专用回调，不运行该 C 回调；恢复栈指针和 TLS base，
-   rewind `_start`，到 syscall 调用点停止 rewind 并返回 0。
+   rewind `_start`，到 syscall 调用点停止 rewind。1fafa42 起在清除恢复描述符后，
+   返回 0 前通过现有私有 `user_poll_v1` 执行待处理返回工作，包括初始 ptrace 停止。
 8. 父进程以 clone 返回的实际 PID 或负 errno rewind 到同一 syscall 调用点。
 9. 双方继续原有 musl `_Fork`/`fork` 收尾：子线程身份/robust list/线程链、锁、信号
    掩码及 parent/child atfork handler 均由标准封装处理。
@@ -346,6 +347,14 @@ rewind 时禁止重新初始化 cursor，以免覆盖继承的活动帧。
 父子不是重跑应用初始化；经过变换的恢复路径跳过分叉前已执行的副作用。
 默认 callback clone 的应用入口和已有 posix_spawn 路径保持原样。
 旧 checkpoint 模块继续使用原 v1 入口；上述 syscall 适配不移除其兼容路径。
+
+首次子返回工作独立于编译器计算期轮询标记，不要求应用修改。它只在 Asyncify
+停止 rewind 后执行一次，不能在 `switch_entry` 启动回调或父恢复中执行，也不
+制造额外 Linux syscall。原信号掩码由 Linux/musl 保持，宿主不临时修改它来绕过
+停止或处理器递送。返回工作的退出、exec 或非局部控制转移必须传播，不能像
+计时诊断回调一样忽略异常。exec 准入阶段检查内核的相应私有返回/上下文导出；
+缺失或签名不合的内核在提交新映像前返回 ENOEXEC。固定源码的目标复验见
+[首次返回修复](process-syscalls.md#fork-子进程完成-rewind-后的首次返回工作)。
 
 ## 明确限制
 

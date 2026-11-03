@@ -7556,3 +7556,33 @@ ptrace stop”断言失败，errno=0；尚未通过第一个阶段，更未接�
 执行现有私有user_poll返回工作；不得在switch_entry初始化回调中提前递送，
 也不通过虚构gettid等syscall制造额外ptrace/seccomp事件。此为下一项修复方向，
 尚未作为实现或通过结论；原初始停止断言保留，不能删去以让目标变绿。
+
+## fork 子进程完成 rewind 后的首次返回工作
+
+distro1fafa42 / 集成3693661落实上述失败修复：ForkContinuation完成子端
+asyncify_stop_rewind、清除descriptor/result并恢复C栈/TLS后，返回fork的零结果
+之前，执行独立的首次返回回调。Worker通过已有user_poll_v1运行Linux待处理
+返回工作，不添加gettid等syscall，不改变SIGSTOP/ptrace策略，也不在启动回调
+或正在展开/恢复的栈中递送信号。schedule_tail已按通用Linux计算SIGPENDING，
+此处补齐原来漏掉的返回工作消费点，而非另写停止状态机。
+
+该回调不依赖编译器轮询标记，也不等同于可忽略的计时回调；异常、任务退出、
+exec和非局部处理器控制转移必须传播。初始返回若仍处于内核/用户启动回调则
+失败，不能像普通计算期轮询那样静默推迟。嵌套内核深度继续阻止信号回调fork，
+父恢复和之后普通分叉不重复执行首次子返回。原Linux/musl信号掩码保持不变。
+exec提交前检查内核私有user_poll_v1和user_context_v1导出及签名，缺失则
+ENOEXEC；默认未链接fork执行对象的程序不受此额外准入条件影响。
+
+481项运行库测试、kernel源码/测试两套TypeScript通过。新检查覆盖默认无编译器
+轮询标记的子进程、停止rewind后的栈/TLS与状态、严格一次、计时异常不妨碍
+返回工作、返回工作控制转移不被吞掉，以及内核/启动回调拒绝且不制造syscall。
+GCC/Clang实际ptrace正反参考仍通过；Clang18/22七个clone消费者双位宽前端和
+静态分析通过。原目标的“ordinary child inherits ptrace stop”断言保留，另在
+失败时输出实际waitpid返回值、期望PID、原始status和errno，便于区分后续问题。
+
+[41625499845](https://github.com/HighCWu/distro/actions/runs/41625499845) 固定1fafa42，
+使用clone-untraced-check-return-work合并同一构建图：wasm32/64各运行UNTRACED
+三阶段、普通fork完整语料、子端信号和恢复期信号语料，共八次独立启动。各自
+完整阶段、唯一pass及machine.closed均需核实；旧218e10f失败及本地参考都不
+代验本次目标，尚未接受修复运行通过。单线程静态C、默认SDK与无softmmu边界
+没有扩大，musl没有新公共API。
