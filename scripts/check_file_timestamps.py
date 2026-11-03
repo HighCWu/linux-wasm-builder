@@ -15,6 +15,7 @@ SOURCES = [
     SOURCE.with_name("open-file-metadata.c"),
     SOURCE.with_name("file-creation-modes.c"),
 ]
+ANALYSIS_SOURCES = [*SOURCES, SOURCE.with_name("readonly-access.c")]
 
 with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
     work = Path(directory)
@@ -82,7 +83,7 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
             for part in ("arch/wasm32", "arch/generic", "include"):
                 flags += ["-I", str(MUSL / part)]
             flags += ["-isystem", resource + "/include", "-Wall", "-Wextra", "-Werror"]
-            for source in SOURCES:
+            for source in ANALYSIS_SOURCES:
                 subprocess.run([*flags, "-fsyntax-only", str(source)], check=True)
                 subprocess.run(
                     [
