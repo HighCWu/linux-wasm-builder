@@ -2640,6 +2640,13 @@ rootfs误当成命名空间最底层nullfs。d1b0c47 / 集成280079e改为先验
 152e015的41616290441已逐项核实双位宽Node七阶段、唯一pass及关闭，接受
 CLONE_IO与已有资源共享组合的固定版本范围，不代验后续或宿主物理I/O调度。
 
+25c5be7 / 集成d72e9fd修复无FH的FUSE SETATTR在文件unlink/替换后误用路径
+而失败的问题，使用该inode自己仍存活的描述符，保留同名新文件与后端隔离。
+真实宿主正反控制、普通C的fchmod/fchown/futimens参考、双位宽静态分析和
+源码类型检查通过。41622279466异步验收无名旧inode三阶段、全部共享目录
+回归及关闭，不新增libc包装。见
+[打开文件元数据](process-syscalls.md#无-fh-的-setattr-保留已删除打开文件)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

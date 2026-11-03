@@ -7486,3 +7486,31 @@ CLONE_IO共享优先级/私有控制，以及普通fork隔离、错误恢复和�
 Heavy成功；固定runner/closer与当前无差异，等待machine.closed且关闭失败为
 非零退出，已复核。接受Linux94d6741a0/musl651ebf65的该双位宽Node范围，不
 把内核io_context状态解释为宿主物理I/O调度，也不代验UNTRACED、空挂载或浏览器。
+
+## 无 FH 的 SETATTR 保留已删除打开文件
+
+distro25c5be7 / 集成d72e9fd修复Node共享目录中fchmod/fchown处理无名打开
+inode的路径。固定Linux的vfs_fchmod调用chmod_common，后者只设置ATTR_MODE
+和ATTR_CTIME，不保证ATTR_FILE；FUSE因此可发送不带FH的inode SETATTR。
+原Node后端没有FH就按路径修改，文件unlink或被替换后返回ENOENT。
+
+现在在原有串行路径操作内校验Node所有权；节点已无已知名字时，从它自己的
+仍打开描述符选择目标，再使用原来的文件描述符元数据操作。不会按旧路径修改
+同名新文件，不跨后端取用描述符，也不保留额外FD。最后一个描述符关闭后，
+无名节点仍不可通过路径复活。默认只读拒绝及显式FH调用路径不变；没有增加
+musl API或Linux syscall，没有改动权限决策与内核inode生命周期。
+
+27项真实宿主文件系统检查通过：新增无FH的模式/owner修改、unlink后同名重建
+的隔离、只读旧描述符保留内容、跨后端拒绝、最后关闭后拒绝。撤去描述符回退
+的反向控制在该SETATTR场景按预期报ENOENT。GCC/Clang原生静态C程序各三阶段
+通过，Clang18/22对时间及无名元数据两个消费者做双位宽前端和静态分析，guest
+库与完整测试使用当前kernel/plugin/bytes源码的TypeScript检查通过。
+
+新增独立MIT消费者只使用标准open/unlink/fchmod/fchown/futimens等接口，目标
+必须精确完成三阶段：只读FD的fchmod修改无名旧inode而保留同名新文件；owner/
+时间修改及原、新内容分离；关闭FD报EBADF并保留新文件权限。程序通过既有
+测试资产按需装入，不修改应用或libc接口。现有时间、硬链接及其它共享目录
+回归一并执行。
+[41622279466](https://github.com/HighCWu/distro/actions/runs/41622279466) 固定25c5be7
+已异步派发linux-guest-package-check-tests-node-filesystem，仍待实际阶段、
+完整套件及machine.closed证据；不以本地宿主通过或旧源码CI代验。
