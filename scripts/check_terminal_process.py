@@ -19,16 +19,19 @@ assert compilers
 
 
 def profile_recipe(recipe):
-    # Dynamic loading shares the optional patch attribute now, but must not
-    # enable fork declarations or bodies in the default/dynamic profile.
+    # The independent dynamic/poll profiles share patch dispatch, but must not
+    # enable fork declarations or bodies in the default or other profiles.
     text = " ".join(recipe.split())
     return all(fragment in text for fragment in (
         "enableForkContinuation ? false",
         "assert !(enableForkContinuation && enableDynamicLoader);",
-        "// lib.optionalAttrs (enableForkContinuation || enableDynamicLoader) {",
+        "enableCooperativePoll ? false",
+        "assert !(enableCooperativePoll && (enableForkContinuation || enableDynamicLoader));",
+        "// lib.optionalAttrs (enableForkContinuation || enableDynamicLoader || enableCooperativePoll) {",
         'lib.optionalString enableForkContinuation " -DWASM_FORK_CONTINUATION=1"',
         "patches = lib.optional enableForkContinuation ./fork-continuation.patch "
-        "++ lib.optional enableDynamicLoader ./dynamic-loader.patch;",
+        "++ lib.optional enableDynamicLoader ./dynamic-loader.patch "
+        "++ lib.optional enableCooperativePoll ./cooperative-poll.patch;",
     ))
 
 
@@ -51,6 +54,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-terminal-") as tmp:
         recipe.replace("enableForkContinuation ? false", "enableForkContinuation ? true"),
         recipe.replace("lib.optional enableForkContinuation ./fork-continuation.patch", "[ ./fork-continuation.patch ]"),
         recipe.replace("assert !(enableForkContinuation && enableDynamicLoader);", ""),
+        recipe.replace("assert !(enableCooperativePoll && (enableForkContinuation || enableDynamicLoader));", ""),
     ):
         assert not profile_recipe(broken), "unconditional or mixed profiles must be rejected"
     (work / "bits").mkdir()
