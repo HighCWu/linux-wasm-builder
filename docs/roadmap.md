@@ -2707,6 +2707,12 @@ f0ecfb5 / 集成15d22e1复用原C消费者和process浏览器运行器，增加p
 本地门禁正反检查通过；四路CI已发现正确Heavy检查，实际浏览器阶段尚待验收。
 见[浏览器组合](process-syscalls.md#ptrace-与退出通知的浏览器组合门禁)。
 
+134f7f7 / 集成9a168a0修复宿主rename替换后、Linux再次LOOKUP前，无FH元数据
+请求误用新路径的问题；已有fd的fstat/fchmod/futimens优先保持原inode。后端
+两处独立反向控制、标准C实际宿主握手和双位宽分析通过，41634318694异步核对
+真实Linux三阶段、替换文件不被修改及关闭，尚未接受目标通过。见
+[宿主替换](process-syscalls.md#宿主替换路径后再次-lookup-前的-fd-元数据)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

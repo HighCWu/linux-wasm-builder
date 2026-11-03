@@ -7790,3 +7790,27 @@ syscall或消费者，不修改默认SDK/内核、musl API或fork支持范围。
 
 需逐项核实两组各两轮的完整阶段、对应机器关闭及两次浏览器关闭，不能用
 workflow成功状态、Node八次启动或本地模型替代，也不重复派发慢任务。
+
+## 宿主替换路径后、再次 LOOKUP 前的 fd 元数据
+
+distro134f7f7 / 集成9a168a0修复Node共享后端剩余的打开inode身份问题。此前
+无FH的GETATTR/SETATTR只在节点已标为detached时使用活跃描述符；宿主先用
+rename替换名字，而Linux尚未重新LOOKUP时，缓存节点仍为attached，因而可能
+把fstat结果取自替换文件，或把旧fd的fchmod操作应用到替换文件。
+
+现在两类无FH请求都优先使用该inode持有的活跃描述符，不要求先发现名字变化。
+显式FH、只读拒绝和没有描述符时的路径行为保持原有边界。没有增加syscall或
+libc包装，仍不把Node路径API当作抵御外部并发重构目录的安全沙箱。
+
+原后端28项回归通过，其中替换场景故意把元数据检查/修改放在新LOOKUP之前。
+分别撤回GETATTR或SETATTR的描述符优先逻辑，两项反向控制均实际失败。
+新的标准C消费者先open/fstat旧文件并输出ready，控制器宿主rename替换文件
+后通过stdin释放程序；它先核对旧fd的inode/nlink/size，再执行fchmod/futimens
+和读取，最后才stat/open新路径，核对替换文件内容和权限不变及关闭清理。
+
+GCC/Clang实际原生握手及三阶段通过；Clang18/22双位宽前端/静态分析、当前源
+guest及测试类型检查通过。原生结果只证明标准程序预期，不替代Wasm后端。
+现有元数据参考也同时通过，新资产保持lazy读取，不改变浏览器资产要求。
+[41634318694](https://github.com/HighCWu/distro/actions/runs/41634318694) 固定134f7f7
+异步验证Linux真实进程三条精确阶段、宿主替换文件状态及全套共享目录回归和
+machine.closed，目标尚待核实，不沿用旧b66bcb4或纯宿主结果接受本增量。
