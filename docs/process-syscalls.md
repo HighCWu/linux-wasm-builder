@@ -6159,6 +6159,12 @@ distro35ea6c0 / 集成b34347f把全部重定位后的图先发布，再执行构
 
 ## 通用 Landlock syscall 与文件规则接线
 
+独立distroaf63fe8 / 集成5934ac3另增加跨共享库版本绑定实验：复用原始
+提供者，检查强版本缺失拒绝、跨库旧/默认签名、long宽度、GOT数据及函数指针、
+普通dlsym默认定义和失败恢复。没有改Linux/musl或新增syscall，真实Wasm
+链接/执行仍待验收，不能用已有静态结果代替，见
+[独立动态绑定实验](elf-dynamic-linking.md#跨共享库的符号版本绑定实验)。
+
 后续distro3dc5c82 / 集成23a091f修复已有dlopen的非UTF-8路径和前导BOM，
 保留Linux文件名字节、link_map名称及严格Wasm元数据边界。新十阶段组合待验收，
 不计为新增syscall。此前1894258六路九阶段现已全部核实，浏览器各两轮及机器/
