@@ -2684,6 +2684,12 @@ b66bcb4的41623399624已核实wasm32 Node共享目录十个子用例和外层套
 核对标准access/faccessat、实际open策略、恢复和关闭，目标尚未接受。见
 [只读探测](process-syscalls.md#只读共享后端的标准访问探测)。
 
+0b35521 / 集成e66d51b让Node共享后端保留标准资源/I/O errno，避免把EMFILE、
+EDQUOT等统一改成EIO。隔离子进程真实fd耗尽经FUSE返回-24，释放后打开/读取
+恢复、关闭回到fd基线，反向控制能检出原错误。其它错误只完成UAPI/转换审查，
+Linux共享目录回归41631033684仍待核实；不把宿主协议验证当作所有资源故障
+或浏览器通过。见[错误保留](process-syscalls.md#共享后端资源错误保留)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

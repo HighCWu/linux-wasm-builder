@@ -7690,3 +7690,24 @@ R_OK仍按原路径处理，不改变标准syscall或新增libc接口。
 探测成功；文件、目录、混合及AT_EACCESS写探测均EROFS；实际写open拒绝后
 仍可读且缺失路径保持ENOENT。全套回归和机器关闭仍待核实，不把本地检查
 或此前b66bcb4成功当作本次目标通过。
+
+## 共享后端资源错误保留
+
+distro0b35521 / 集成e66d51b修复Node后端把标准资源或I/O错误改成EIO的问题。
+FUSE错误表和宿主转换白名单补齐EINTR、ENXIO、EAGAIN、ENOMEM、EBUSY、ENODEV、
+ENFILE、EMFILE、ETXTBSY、EFBIG、ESPIPE、EPIPE、EOVERFLOW、EDQUOT；数值已逐项
+对照固定Linux asm-generic UAPI。未知宿主异常仍返回EIO，不透传宿主数字errno，
+也不改变Linux自身资源限制、重试策略或musl公共API。
+
+独立子进程的RLIMIT_NOFILE设为96，真实打开/dev/null直到宿主EMFILE，然后
+通过实际共享Wasm memory/virtqueue发起FUSE OPEN，要求回复-24。释放一个fd后
+同一节点OPEN/READ恢复，关闭设备后/proc/self/fd计数回到基线。限制仅作用于
+测试子进程，未改变开发者或CI主进程限制。去掉EMFILE白名单的反向控制得到
+-5而失败；该验证已加入主仓库轻量CI，不需伪造OS错误或启动重型内核构建。
+
+kernel现有490项及Node后端28项回归通过，源码/测试与当前源guest类型检查通过，
+workflow静态检查通过。真实资源耗尽证据只覆盖EMFILE及协议恢复，其余新增错误
+为数值和转换路径审查，未声称实际触发磁盘配额、系统级ENFILE或所有设备故障。
+[41631033684](https://github.com/HighCWu/distro/actions/runs/41631033684) 固定0b35521
+异步运行Linux共享目录回归及关闭，目标仍待核实；该任务不主动耗尽CI宿主fd，
+也不能代验浏览器或所有资源压力。
