@@ -6475,6 +6475,18 @@ IRQ恢复继续使用原路径，不伪造 syscall 或放宽 seccomp。
 需双位宽普通各五阶段、GEN各七阶段及各机器关闭，尚未计为真实能力通过。
 浏览器合同已同步到五阶段，待新Node结果后再定向验收，不沿用旧四阶段结论。
 
+9973866 的41583750935现已完成，实际Heavy日志逐项核实普通双位宽各五阶段、
+GEN双位宽各七阶段、各唯一pass，包含嵌套处理器和后续恢复。发布运行器等待
+machine.closed，关闭失败非零退出，四个目标均通过关闭门禁。接受Linux5ab71f5d7
+对应独立Node范围，不扩大到之后的libc插桩或新内核。
+
+同语料的后继74cb9fe已派发四路浏览器，分别为
+[wasm32 Chromium 41587774709](https://github.com/HighCWu/distro/actions/runs/41587774709)、
+[wasm32 Firefox 41587782692](https://github.com/HighCWu/distro/actions/runs/41587782692)、
+[wasm64 Chromium 41587791495](https://github.com/HighCWu/distro/actions/runs/41587791495)、
+[wasm64 Firefox 41587800703](https://github.com/HighCWu/distro/actions/runs/41587800703)。
+均需同页两轮完整五阶段及机器/浏览器关闭；未沿用旧四阶段浏览器结论。
+
 ## 库内检查点的线程所有权门控原型
 
 已有应用插桩不能覆盖未插桩 libc 的长循环。直接重编译 libc 还不安全：早期
@@ -6535,6 +6547,33 @@ Clang18/22 双位宽实际 IR 确认调用循环/启动单元没有检查点、m
 [41587166248](https://github.com/HighCWu/distro/actions/runs/41587166248) 已异步
 派发双位宽六阶段及机器关闭验收，未计为真实库内信号支持通过。尚不推定所有
 第三方库、原始自定义 clone、动态模块、C++ 异常或浏览器组合已经覆盖。
+
+## exec 提交时清理架构线程指针
+
+Linux `94d6741a0` / distro `58eee0d` / 集成 `7f08c44` 修复实际架构缺口：
+Wasm 的 flush_thread 原为空，标准 begin_new_exec 提交新映像后仍留下旧 TP。
+现在只在通用 exec 提交点清零当前线程的 tp_value，保留其它线程/架构状态。
+编译模块、复制参数失败等提交前错误仍返回原映像，不提前清空其 TLS。
+参考同一固定官方源码的 fs/exec.c 调用点及 arm64 TLS flush 路径；没有引入
+MMU、额外 syscall 号或新的 musl 函数。内核修改沿用GPL，消费者/构建/检查MIT。
+
+新增普通SDK消费者验证ENOENT、有效Wasm头但无内存导入的准备失败保持原TP
+和TLS；随后posix_spawn执行不链接CRT/libc的观察程序，在任何TLS初始化前
+通过已有get_thread_area执行导入观察零TP，非零则exit_group(31)。父线程TP和
+native TLS保持不变；普通libc子程序须初始化自己的TLS，之后再次原始入口仍成功。
+不能只观察main中的TLS，因为libc会覆盖原指针而掩盖内核问题。
+
+Clang18/22双位宽运行实际flush函数、当前线程隔离和重复清理；删除重置的
+反向控制失败。真实libc-free模块的零/继承TP输入分别正确退出和拒绝，父程序
+使用固定musl头文件编译/SjLj和静态分析通过。此处是组件证据，不是Linux exec
+已经验收。公开预取41588100308曾因Git归档实验尚未允许processor.h而退出64；
+6e2eb57补齐精确路径后，
+[41588397321](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41588397321)
+重新核实父版本hash和新源码hash，未跳过基线等价校验。
+
+[41588670745](https://github.com/HighCWu/distro/actions/runs/41588670745) 已异步
+派发双位宽各三个新阶段及机器关闭，并包含同一新内核的普通检查点与fork/exec-fd
+回归。未核实实际目标日志前不接受新的内核组合；默认libc及MMU配置不变。
 
 ## 启动修复后的合并 syscall 回归结果
 
