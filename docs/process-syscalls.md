@@ -7057,6 +7057,41 @@ robust-list 清理范围，不扩大到所有 PI 或跨独立内存共享映射�
 无差异，runner await machine.closed 且关闭错误为非零退出。它们固定 Linux
 94d6741a0/musl651ebf65，不证明后继 SYSVSEM 或新的 exec 类型门禁已经通过。
 
+## native clone3 在子进程运行前设置 no_new_privs
+
+distro `c4bb6f7` / 集成 `be0a5ac` 接通固定 Linux 7.1.5 已有的 CLONE_NNP。
+此前 clone3 的 u64 标志过滤和支持对象掩码拒绝它，现在完整传递给原始内核，
+由 copy_process 在子进程运行前设置 no_new_privs；不以子进程返回后补一次
+prctl 代替。没有新增 musl 函数、syscall 编号或内核实现代码。
+
+该标志要求原生 clone3 和执行对象 capability bit 5；旧对象、缺失原生传输
+或畸形 capability 在展开 continuation 前拒绝，不能截断高位或回退为普通
+fork。原 flags32 入口的语义不改变。错误后的宽标志状态清除仍通过原路径。
+
+扩展 clone-flags64 目标为五阶段：保留 CLEAR_SIGHAND 的真实信号及冲突检查；
+新增子进程首次观察即为 NNP=1、不能清除、孙进程 fork 继承；新增 exec 后仍
+为1且不能清除；父进程和后续普通兄弟进程均保持0，原信号继承和资源清理保留。
+所有 prctl 测试只调用标准 syscall，参数显式使用完整机器字；没有新增包装。
+
+真实双位宽 Wasm 支持对象确认 0x800000000 保存在 clone_args.flags 中，旧能力
+拒绝与错误恢复控制通过；运行库/实际对象共454项检查、两套 TypeScript 通过。
+Clang18/22 使用实际固定 Linux UAPI 对两个消费者做双位宽前端/静态分析通过。
+本地原生参考验证的是此前 SEM_UNDO，不作为新 NNP 的实际内核证据。
+[clone-flags64-check-both 41605449203](https://github.com/HighCWu/distro/actions/runs/41605449203)
+已公开异步派发，仍待五阶段、唯一 pass 和机器关闭。
+没有扩大多线程 fork、共享用户映射、MMU 或默认 SDK。
+
+## exec 函数导入类型的目标验收
+
+[41601839652](https://github.com/HighCWu/distro/actions/runs/41601839652)
+固定 a471b65，实际读取10,312,053字节 Heavy 日志，wasm32/64 各精确四阶段及
+唯一 pass：global 类型拒绝；syscall/检查点函数参数、结果和数量拒绝；匹配
+映像执行且父状态保留；重复错误后 spawn/wait 恢复。错误路径检查真实 TP、
+native TLS、CLOEXEC fd 及偏移。Heavy 和工作流均成功，固定源码 runner 等待
+machine.closed，关闭错误会导致非零退出，已核对这两个文件与当前没有差异。
+接受固定 Linux94d6741a0/musl651ebf65 的这一双位宽 Node 范围，不覆盖后继
+166de77 的五阶段入口检查、SYSVSEM、CLONE_NNP 或浏览器。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的

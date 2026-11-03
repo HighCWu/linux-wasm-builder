@@ -2545,6 +2545,16 @@ ee278a8的41599761764和04951a3的41600067842现已分别核实双位宽Node各�
 共享/私有撤销、最后所有者退出和原资源共享回归五阶段及关闭；见
 [共享撤销记录](process-syscalls.md#clone-与-clone3-共享-system-v-semaphore-撤销记录)。
 
+a471b65的41601839652现已核实双位宽Node各四阶段、唯一pass及关闭，接受宿主
+函数导入错误在exec提交前返回ENOEXEC并保留旧进程状态的固定源码范围；不代验
+后继五阶段入口检查。
+
+c4bb6f7 / 集成be0a5ac另接通固定Linux已实现的原生clone3 CLONE_NNP，保留u64
+标志并要求独立能力位，由内核在子进程运行前设置限制，不以后置prctl替代。
+轻量转发/拒绝/恢复、类型和双位宽分析通过，clone-flags64-check-both异步验收
+首次观察、fork/exec继承、禁止清除及父/兄弟隔离五阶段和关闭；见
+[原生NNP](process-syscalls.md#native-clone3-在子进程运行前设置-no_new_privs)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
