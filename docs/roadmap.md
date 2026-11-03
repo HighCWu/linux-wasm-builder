@@ -2690,6 +2690,12 @@ EDQUOT等统一改成EIO。隔离子进程真实fd耗尽经FUSE返回-24，释�
 Linux共享目录回归41631033684仍待核实；不把宿主协议验证当作所有资源故障
 或浏览器通过。见[错误保留](process-syscalls.md#共享后端资源错误保留)。
 
+9577599 / 集成f075c32接通旧clone的CSIGNAL退出通知，以独立能力门控保留
+号220及原PIDFD/TID槽位，不改写为clone3；bit7不误作时间命名空间选项。
+状态/实际Wasm对象、原生通知正反控制及双位宽分析通过；41631999976异步
+核对每个位宽clone3/旧clone各三阶段及普通fork恢复和关闭，尚未接受目标通过。
+见[旧clone通知](process-syscalls.md#旧-clone-的退出通知接通)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

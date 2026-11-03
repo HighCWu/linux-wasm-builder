@@ -57,11 +57,24 @@ PID、长度或普通 JS 元数据，也不取消当前线性内存边界检查�
 linux_syscall_v2(SYS_clone, flags, stack, parent_tid, child_tid, tls, unused);
 ```
 
-当前接纳 SIGCHLD、默认栈，及经可选 helper 门控的 namespace/PIDFD 组合；
+基础形态接纳 SIGCHLD、默认栈，及经可选 helper 门控的 namespace/PIDFD 组合；
 无 TID/TLS 更新标志时忽略相关寄存器，PIDFD 输出使用 parent_tid 槽。其它未支持
 组合返回 `EOPNOTSUPP`，绝不回退到回调式 clone。musl 通用 `_Fork` 保持原来的
 `__syscall(SYS_clone, SIGCHLD, 0)` 调用体，由 Wasm 架构层选择 import。
 这不是声称所有 Linux 架构均采用相同参数顺序。
+
+9577599增加flags-first旧clone的非默认退出通知。新执行对象capability bit14
+与可选__wasm_fork_clone_exit_signal同时存在时，接纳CSIGNAL低字节并仍通过
+标准号220的旧clone路径执行。没有把旧clone改写为clone3；两者的信号验证、
+CLONE_PARENT和parent_tid/PIDFD别名规则不同，实际行为继续由Linux处理。
+旧helper签名及SIGCHLD路径不变，缺少能力时在展开保存区前返回EOPNOTSUPP。
+
+解析旧clone时先剥离整个CSIGNAL字节，再解析namespace/其它标志，避免把
+bit7当作clone3的CLONE_NEWTIME。保留Linux旧接口的整个低字节，不套用clone3
+独立exit_signal的0..64限制。v2 import明确选择布局：数值(0,0,17,0,0,0)
+现在可表示signal=0及未使用parent_tid=17，不能再仅凭数值像callback而拒绝。
+旧linux.syscall的空callback checkpoint仍限SIGCHLD；没有启用新任意回调入口。
+对应双位宽目标六阶段及关闭尚待核实，见[退出通知增量](process-syscalls.md#旧-clone-的退出通知接通)。
 
 原 `linux.syscall` 保持既有回调布局：
 

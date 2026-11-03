@@ -7711,3 +7711,29 @@ workflow静态检查通过。真实资源耗尽证据只覆盖EMFILE及协议恢
 [41631033684](https://github.com/HighCWu/distro/actions/runs/41631033684) 固定0b35521
 异步运行Linux共享目录回归及关闭，目标仍待核实；该任务不主动耗尽CI宿主fd，
 也不能代验浏览器或所有资源压力。
+
+## 旧 clone 的退出通知接通
+
+distro9577599 / 集成f075c32接通flags-first旧clone此前被适配器拒绝的非默认
+CSIGNAL。Linux/Wasm原回调clone已把低字节送入kernel_clone.exit_signal，真正
+缺口在用户执行适配及其只允许SIGCHLD的helper。新增MIT可选执行helper与
+capability bit14，沿用号220、默认栈和独立用户内存；没有新增Linux syscall、
+musl公共函数、共享VM或多线程fork支持，也不改写为clone3。
+
+旧clone的信号字节先从选项中剥离，bit7不会误变成CLONE_NEWTIME。整个字节
+保留供Linux旧接口处理，不强加clone3的信号字段验证。新旧helper有显式门控，
+不完整或旧对象在展开前拒绝；负返回及trap后清除捕获值，普通SIGCHLD继续
+使用原helper。旧import的空callback checkpoint范围不变，v2不猜数字布局。
+
+494项运行库/实际Wasm C对象检查通过，kernel源码与测试两套TypeScript通过。
+真实双位宽C对象检查号220、信号0/10/17/255、PIDFD/child槽位及无效helper输入，
+状态检查覆盖缺失能力、负返回、trap及普通请求恢复。GCC/Clang宿主运行既有
+legacy通知/PIDFD/__WCLONE参考和强制SIGCHLD反向控制，Clang18/22七个clone
+消费者双位宽前端及静态分析通过；原生参考不证明Wasm现场恢复或clone3执行。
+
+[41631999976](https://github.com/HighCWu/distro/actions/runs/41631999976) 固定9577599
+运行clone-exit-signal-check-both：每个位宽先clone3、再flags-first旧clone，各
+要求零通知/PIDFD及WCLONE回收、选定SIGUSR1及普通wait排除、后续SIGCHLD和
+实际libc fork/wait恢复三阶段，共六阶段、唯一pass及机器关闭。clone3仍单独
+检查65号退出信号拒绝；不把该规则施加到旧clone。目标阶段尚待核实，旧三阶段
+通过不能代验本次六阶段，更不代表浏览器或完整clone选项已支持。
