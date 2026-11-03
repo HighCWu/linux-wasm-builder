@@ -7737,3 +7737,28 @@ legacy通知/PIDFD/__WCLONE参考和强制SIGCHLD反向控制，Clang18/22七个
 实际libc fork/wait恢复三阶段，共六阶段、唯一pass及机器关闭。clone3仍单独
 检查65号退出信号拒绝；不把该规则施加到旧clone。目标阶段尚待核实，旧三阶段
 通过不能代验本次六阶段，更不代表浏览器或完整clone选项已支持。
+
+## fork 首次返回与 ptrace 的双位宽目标验收
+
+[41626641361](https://github.com/HighCWu/distro/actions/runs/41626641361) 固定d4b557c，
+已读取14,593,036字节Heavy日志，并从固定源码提取阶段字符串逐项比较：
+wasm32、wasm64各完成四次独立启动，共八次。每次完整有序阶段及唯一最终
+pass均已核实，不只依据workflow状态。
+
+| 每个位宽的工作负载 | 已核实阶段 |
+| --- | --- |
+| clone-untraced | 5：原生/legacy强制fork事件与UNTRACED抑制、原生/legacy显式PTRACE的两种组合、后续普通跟踪及清理恢复 |
+| fork-continuation | 12：原始clone/clone3、身份/内存/TLS/atfork/信号隔离、失败exec恢复、成功exec的三条子程序阶段、回收、线程/信号回调拒绝与恢复 |
+| fork-child-signals | 2：child pre-rewind pending及父隔离；两次恢复的栈/TLS及单次投递 |
+| fork-resume-signals | 2：父端post-clone pre-rewind pending及子隔离；两次恢复的栈/TLS及单次投递 |
+
+固定版本的程序、运行器和关闭助手与当前对应文件无差异。运行器在成功标记
+之后调用closeTestResources，等待machine.closed后才关闭磁盘；任何启动、
+迟到运行错误或清理错误均令退出码非零。该Heavy及workflow均success，因此
+上述八次启动也通过对应关闭门禁。
+
+接受Linux94d6741a0、无新增公共包装的musl651ebf65及d4b557c执行对象组合的
+Node双位宽范围：原218e10f的初始ptrace子端停止失败已由首次返回工作修复，
+显式PTRACE/UNTRACED及原fork/信号回归获得实际目标证据。不据此代验后续
+9577599旧clone退出通知、浏览器或多线程fork；1fafa42的较早三阶段候选无需
+再用workflow成功状态泛化验收。

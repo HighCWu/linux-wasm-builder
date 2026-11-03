@@ -2696,6 +2696,12 @@ Linux共享目录回归41631033684仍待核实；不把宿主协议验证当作�
 核对每个位宽clone3/旧clone各三阶段及普通fork恢复和关闭，尚未接受目标通过。
 见[旧clone通知](process-syscalls.md#旧-clone-的退出通知接通)。
 
+固定d4b557c的41626641361现已逐项核实Node双位宽八次独立启动：每个位宽
+ptrace五阶段、普通fork十二阶段、子端及父端恢复期信号各两阶段，均有唯一
+pass并通过等待machine.closed的关闭门禁。原初始子端ptrace停止缺口在该
+组合中已修复；不代验之后的旧clone退出通知、浏览器或多线程fork。见
+[首次返回验收](process-syscalls.md#fork-首次返回与-ptrace-的双位宽目标验收)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
