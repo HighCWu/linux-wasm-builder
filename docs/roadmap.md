@@ -2564,6 +2564,15 @@ c4bb6f7 / 集成be0a5ac另接通固定Linux已实现的原生clone3 CLONE_NNP，
 clone-exit-signal-check-both异步验收双位宽三阶段及关闭。见
 [退出通知](process-syscalls.md#native-clone3-的退出通知与-linux-等待类别)。
 
+189068e的41604324578现已核实双位宽Node各五阶段、唯一pass和关闭，接受原生/
+legacy clone的SEM_UNDO与既有资源共享组合范围，不代验后继能力。
+
+44ec8bc / 集成1e3d2b6另接通原生CLONE_AUTOREAP与CLONE_PIDFD_AUTOKILL，由
+Linux自动回收及在最后拥有引用关闭时终止；独立能力门控并修复负数/越界能力
+值的按位截断。真实字段、拒绝/恢复、类型与双位宽分析通过，公开目标异步验收
+普通回收控制、自动回收、dup/独立观察描述及错误恢复四阶段和关闭；见
+[生命周期](process-syscalls.md#原生-clone3-的自动回收与-pidfd-最后关闭终止)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

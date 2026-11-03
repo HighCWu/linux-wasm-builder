@@ -7130,6 +7130,45 @@ machine.closed 且关闭错误会非零退出，已核对 runner/closer 与当�
 接受固定 Linux94d6741a0/musl651ebf65 的双位宽 Node 范围，不代验后继 clone
 资源、NNP、退出通知或浏览器。
 
+## 原生 clone3 的自动回收与 PIDFD 最后关闭终止
+
+distro `44ec8bc` / 集成 `1e3d2b6` 打通固定内核已有的 CLONE_AUTOREAP 和
+CLONE_PIDFD_AUTOKILL。u64 标志完整保留，分别要求执行对象 capability bit 7、
+bit 8；零退出信号和 NNP 仍需各自的能力。原始 Linux 检查组合、权限并处理
+自动回收和 SIGKILL，宿主不合成回收或终止消息。没有新增 libc API、syscall
+编号、共享用户映射或多线程 fork。
+
+静态 review 同时修复 capability 数值校验：它是非负 C int，负 errno 或大于
+i32 正范围的数值不能通过 JS 按位截断伪装成能力位。此检查统一应用于已有
+各处 capability 位检查；合法已发布对象的正数位掩码保持兼容。
+
+clone-lifecycle-check-both 的双位宽目标各四阶段：普通零信号子进程保持 zombie
+直到 __WCLONE wait；AUTOREAP 不经 wait 释放任务，PIDFD 出现 HUP 且所有
+等待类别 ECHILD、signal-0 探测 ESRCH；持有 dup 时第一次关闭不终止暂停中的
+NNP 子进程，最后关闭才终止，并由独立 pidfd_open 观察任务释放；无效信号/
+标志/PIDFD 组合不发布 fd 或子进程，随后普通 fork 保持 SIGCHLD 及可等待性。
+观察 PIDFD 是独立 file description，不保留自动终止描述的引用。
+
+双位宽真实 Wasm 支持对象验证 u64 标志、PIDFD 地址和零退出信号；缺少任一
+能力、负数/越界 capability 拒绝及错误后恢复通过。运行库与实际对象共458项
+检查、两套 TypeScript、Clang18/22 四个消费者双位宽前端/静态分析通过。
+本地原生正反控制仍只验证已有 SEM_UNDO/退出通知，不能代验新内核生命周期。
+四阶段、唯一 pass 及 machine.closed 仍待
+[公开目标41609990548](https://github.com/HighCWu/distro/actions/runs/41609990548)
+实际日志。
+
+## CLONE_SYSVSEM 资源共享的目标验收
+
+[41604324578](https://github.com/HighCWu/distro/actions/runs/41604324578)
+固定189068e，实际读取14,200,861字节 Heavy 日志，两位宽各精确五阶段及唯一
+pass：原生 clone3 的 cwd/umask、共享关闭/UNSHARE；其 SEM_UNDO 共享、私有
+控制和最后退出恢复；legacy clone 的对应两阶段；普通 fork 隔离及清理。
+完整语料还严格检查 Linux SYSVSEM/NEWIPC 冲突 EINVAL 和精确单次回收。
+Heavy、工作流成功；固定源码 runner/closer 与当前无差异，等待 machine.closed，
+关闭错误会非零退出，已复核。第一次日志下载网络失败，随后同任务取证成功，
+没有重复派发构建。接受固定 Linux94d6741a0/musl651ebf65 的这一双位宽 Node
+范围，不代验后继 NNP、退出通知、自动回收/终止或浏览器。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
