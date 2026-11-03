@@ -8,6 +8,13 @@
 
 ## 全程原则
 
+当前新增接线：Linux45a10e599 / distro5eb9dbe / 集成9a460d4启用通用
+Landlock三个标准syscall及文件LSM钩子。普通SDK消费者核对路径读写拒绝、
+symlink边界、既有fd、关闭后规则生存、exec继承和父进程隔离；宿主三阶段和
+双位宽前端/分析通过，Wasm双位宽Node目标阶段及关闭仍待验收。无musl新增
+函数、无内核softmmu、无fork范围扩大，见
+[Landlock接线](process-syscalls.md#通用-landlock-syscall-与文件规则接线)。
+
 - 浏览器和 Node 同时验证，浏览器是首要产品环境。
 - 优先修复平台能力，避免用越来越多的应用补丁长期掩盖内核或 libc 缺口。
 - 内核配置以 Linux 官方上游 Kconfig 的默认值、依赖和选择条件为恢复基准，

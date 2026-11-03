@@ -6157,6 +6157,48 @@ distro35ea6c0 / 集成b34347f把全部重定位后的图先发布，再执行构
 真实Linux和浏览器验收仍待核实。没有新增syscall或libc函数，见
 [构造函数接线](elf-dynamic-linking.md#构造函数中的标准-dlopen)。
 
+## 通用 Landlock syscall 与文件规则接线
+
+Linux45a10e599 / distro5eb9dbe / 集成9a460d4在三套Wasm defconfig启用
+SECURITY和SECURITY_LANDLOCK，复用Linux已有的landlock_create_ruleset、
+landlock_add_rule、landlock_restrict_self及凭据/文件LSM钩子。它们是官方
+可选功能，不宣称这些选项default y；未修改通用安全实现、MMU或应用API。
+构建门禁要求resolved SECURITY/SECURITY_NETWORK/SECURITY_PATH/
+SECURITY_LANDLOCK=y及最终LSM列表确实包含landlock，未覆盖官方LSM默认列表。
+
+独立MIT消费者使用普通SDK、已有libc声明及标准syscall编号；所有可变参数均按
+机器字传递，不新增musl函数或头文件。父端以posix_spawn启动独立消费者，
+不用可选fork SDK，也不扩大多线程fork范围。规定三个完整阶段：
+
+- 查询标准ABI；空规则集、坏用户指针和无效规则/限制fd按Linux返回错误，
+  随后仍可创建规则集。目录规则只授予READ_FILE/READ_DIR，处理WRITE_FILE
+  以确保写打开被拒绝；未列目录的读/写及目录读取返回EACCES，允许目录内
+  指向拒绝目录的symlink也不能绕过。规则目录fd和ruleset fd关闭后策略保留，
+  之前打开的拒绝目录文件fd仍可读取，符合既有fd不被追溯撤销的语义。
+- 再启动独立消费者，设置no_new_privs并限制自身，使用普通execve切换到同一
+  静态程序验证入口后重复权限检查。显式授予程序文件READ_FILE；EXECUTE未
+  被本规则集处理，不把该场景描述为执行权限控制的验收。
+- 两个消费者各退出37且只回收一次；父进程仍可读写两目录的文件，最后删除
+  symlink、文件、目录，全部成功后发布第三阶段和唯一pass。
+
+GCC/Clang静态宿主程序已实际通过完整三阶段及symlink/exec检查；Clang18/22
+的wasm32/64前端与静态分析通过，使用当前musl头文件和原始Linux Landlock
+UAPI，轻量分析仅为linux/types.h提供固定宽度标量定义。它不代替最终Linux
+headers_install、链接、Wasm内核运行或关闭。review核对未依赖宿主路径访问、
+规则生存期、关闭的fd、exec静态程序读取、长整型参数及父子策略隔离。
+
+[公开预取41554571667](https://github.com/HighCWu/linux-wasm-builder/actions/runs/41554571667)
+的实际日志先核实c7b4f97ef的既有哈希，再得到45a10e599的
+`sha256-zWc7zqO5BohnH61GHYRK8og0J1W6dSsZ2xeNwt/oVWI=`；只有三套
+defconfig改变，符合已有Git归档允许范围。双位宽Node检查各派发一次：
+wasm32为41555124028，wasm64为41555131902，均固定5eb9dbe；目标
+三个阶段、唯一pass及runner等待machine.closed的关闭门禁仍待核实。
+当前只验收上述基础文件规则范围，不宣称Landlock所有网络、线程同步、日志和
+作用域特性均已在Wasm验证，也不把宿主通过算作浏览器通过。后续浏览器需使用
+同一镜像独立核对阶段及两轮关闭。语义依据
+[官方Landlock文档](https://docs.kernel.org/userspace-api/landlock.html)，能力范围
+仍由固定内核源码及实际目标证据决定。
+
 ## 既有 dlinfo 的真实句柄与对象范围
 
 后续591d8bf / 集成9c41615已将验证过的LLVM9035266接入普通SDK，移除
