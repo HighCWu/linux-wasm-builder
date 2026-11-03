@@ -41,6 +41,8 @@ for(let index=0;index<2;index++){
  }}});
  state.instance=instance;threads.push(state);
  assert.equal(instance.exports.__wasm_user_poll_abi(),1);
+ assert(Number(instance.exports.__tls_size.value)<=64);
+ instance.exports.__tls_base.value=word(0);
  const prefix=new Uint8Array(memory.buffer,0,64).slice();
  instance.exports.__sanitizer_cov_trace_pc();
  assert.equal(state.polls,0,'pre-TLS hook must not enter the host');
