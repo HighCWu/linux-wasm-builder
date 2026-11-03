@@ -2464,6 +2464,13 @@ Linux5ab71f5d7 / distro9973866 / 集成db482fb进一步接通handler纯计算中
 旧四阶段浏览器结论不覆盖新增嵌套处理器；默认SDK、GEN选择、MMU和fork范围
 保持原状，见[嵌套处理器记录](process-syscalls.md#处理器纯计算中的嵌套信号检查点)。
 
+6a69459 的41580829257已核实原版GNU split双位宽各四阶段、唯一pass和
+机器关闭门禁，接受该Node范围。127d3a8 / 集成36b4654随后验证库内插桩所需
+的私有线程所有权门控：启动前及临时继承父TLS时不消耗预算，所有者只写一次。
+Clang18/22双位宽实际组件和分析通过；尚未接入Worker/SDK/libc，不作为库内
+信号交付或新syscall通过。下一步配套接通就绪发布与独立库构建，见
+[原型边界](process-syscalls.md#库内检查点的线程所有权门控原型)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
