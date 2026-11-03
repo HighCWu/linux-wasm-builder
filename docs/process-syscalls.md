@@ -6910,6 +6910,58 @@ distro1894258 / 集成59b1ff5修复musl原始dlinfo将小整数句柄误当link_
 的双位宽Node八阶段、各唯一pass及关闭也已核实。不将旧源码通过泛化到新的
 句柄组合，见[对应验收](elf-dynamic-linking.md#已核实的七阶段浏览器与八阶段-node)。
 
+## 单线程 fork 与应用计算期信号的组合候选
+
+distro `ee278a8` / 集成 `d4db62b` 提供独立的
+`sdk-fork-cooperative-poll[-wasm64]`，让普通静态 C 程序同时使用已有 fork 和
+应用计算检查点。没有增加应用 API、musl 公共函数或内核 syscall；这一增量补齐
+两个执行配置之间的兼容缺口，不计为新增 syscall 数量。默认 SDK 和原独立配置
+保持原有选择。
+
+新的私有执行标记只允许 poll ABI 1 与 continuation fork 组合。运行库在
+Asyncify 展开、快照描述符仍被持有和恢复期间延后检查点，空闲时才进入既有
+Linux 信号交付路径，并记录活的内核调用深度。信号回调中的 fork 继续拒绝，
+嵌套信号和 allocator 回调仍受既有门禁约束。完整链接产物统一经过 Asyncify，
+支持对象和 libc 不被这个配置插桩；没有启用 libc poll ABI 2、动态加载、
+C++ EH/SjLj 组合或多线程 fork。
+
+轻量验证包括 442 项内核运行库测试、源码及测试 TypeScript 项目、真实双位宽
+支持对象链接/标记、Clang18/22 双位宽消费者前端与静态分析。最初新测试将
+i64 模式下固定 i32 checkpoint 返回误写为 bigint，已修正测试期望；实际指针
+参数仍按机器字位宽传递。模型检查不能证明真实 Asyncify 或 Linux 运行通过。
+`fork-poll-check-both` 的真实目标要求两位宽各依次完成 fork 前计时信号、父子
+孙进程纯计算及私有 TLS/数据/重复回收、回调 fork 拒绝后正常恢复三阶段，
+各唯一 pass 和机器关闭；公开 CI
+[41599761764](https://github.com/HighCWu/distro/actions/runs/41599761764)
+异步验收，尚未接受目标通过。
+
+## 定时通知错误修复的目标验收
+
+[41596167405](https://github.com/HighCWu/distro/actions/runs/41596167405)
+固定 distro `2eede8325cadbb3e264b5af7c588af2050f4f7fc`，实际读取
+14,463,989 字节 Heavy 日志。wasm32/64 的普通与独立 libc 插桩配置各精确完成
+三个阶段和唯一 pass：错误时钟的 helper/内核计时器回滚、正常返回及 pthread_exit
+回调的全新 native TLS/TSD、删除后的线程收敛和后续创建恢复。另有普通计算
+检查点双位宽各五阶段和唯一 pass。复核该源码 runner 等待 machine.closed，
+关闭错误会使检查失败；Heavy 和工作流均成功。
+
+接受固定 Linux `94d6741a0` / musl `651ebf65` 的这一 Node 范围，确认原错误
+保留及原有通知调用路径可用；不将其泛化为浏览器、fork/poll 组合或所有线程
+计时场景。
+
+内核独立 robust-list 的 `41597155614` 随后失败。实际 Heavy 日志确认 wasm32
+原始 syscall 退出清理、SIGKILL 唤醒已睡眠 futex 等待者两个阶段通过，后续在
+查询注册头处失败，未得到第三阶段、最终 pass 或双位宽验收。审查固定源码发现
+测试用 `-8` 表示坏地址，而当前 Linux 的 get_robust_list 将 ERR_PTR 范围内的
+注册头值按错误返回；宿主旧内核参考没有检出这一差异。
+
+distro `04951a3` / 集成 `28deb16` 改用错误编码范围外的 `-8192`，仍是本目标
+线性内存之外的地址，并为查询失败加入 mode、原始返回值和长度诊断。没有修改
+Linux 的错误判定或放松 owner-death、真实唤醒和资源回收要求。GCC/Clang 原生
+正反控制和 Clang18/22 双位宽前端/分析再次通过；公开目标
+[41600067842](https://github.com/HighCWu/distro/actions/runs/41600067842)
+定向复验，仍待实际三阶段与关闭证据。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
