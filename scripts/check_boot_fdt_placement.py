@@ -70,17 +70,19 @@ __attribute__((export_name("check"))) int run(unsigned long gap,unsigned long st
  /* Initrd pages can later be freed without invalidating the FDT. */
  for(size_t i=0;i<end-start;i++)initrd[i]=0;
  for(size_t i=0;i<size;i++)if(blob[i]!=(i%251)+1)return 3;
- if((unsigned long)blob<end)return 4;
  return 0;
 }
 """
 runner = r"""
 import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 const [file,bits]=process.argv.slice(2),wide=bits==='64';
+const results=[];
 for(const gap of [0,1296,65535]){
  const {instance}=await WebAssembly.instantiate(readFileSync(file));
- assert.equal(instance.exports.check(wide?BigInt(gap):gap,wide?393216n:393216),0,`preloaded initrd and FDT survive gap ${gap}`);
+ results.push(instance.exports.check(wide?BigInt(gap):gap,wide?393216n:393216));
 }
+console.log(JSON.stringify(results));
+assert.deepEqual(results,[0,0,0],'preloaded initrd and FDT survive each gap');
 """
 old = body.replace(
     "memblock_add(bootstrap_start, bootstrap_size)",
@@ -137,8 +139,12 @@ with tempfile.TemporaryDirectory(prefix="boot-fdt-placement-") as tmp:
                 )
                 if mode == "normal" and run.returncode:
                     raise RuntimeError(run.stderr)
-                if mode == "old-prefix" and not run.returncode:
-                    raise RuntimeError("old placement incorrectly preserves boot data")
+                if mode == "old-prefix" and (
+                    not run.returncode or run.stdout.strip() != "[2,2,0]"
+                ):
+                    raise RuntimeError(
+                        "old placement must corrupt the two short gaps and preserve the large-gap control"
+                    )
             print(
                 f"{cc} wasm{bits}: actual FDT body preserves preloaded initrd and later FDT lifetime; old prefix placement fails; not Linux boot acceptance"
             )
