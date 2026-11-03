@@ -102,19 +102,20 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
             for directory in ("arch/wasm32", "arch/generic", "include"):
                 flags += ["-I", str(MUSL / directory)]
             flags += ["-isystem", resource + "/include", "-Wall", "-Wextra", "-Werror"]
-            subprocess.run([*flags, "-fsyntax-only", str(SOURCE)], check=True)
-            subprocess.run(
-                [
-                    *flags,
-                    "--analyze",
-                    "-Xanalyzer",
-                    "-analyzer-werror",
-                    str(SOURCE),
-                    "-o",
-                    "/dev/null",
-                ],
-                check=True,
-            )
+            for consumer in (SOURCE, SOURCE.parent.parent / "clone-flags64/runtime.c"):
+                subprocess.run([*flags, "-fsyntax-only", str(consumer)], check=True)
+                subprocess.run(
+                    [
+                        *flags,
+                        "--analyze",
+                        "-Xanalyzer",
+                        "-analyzer-werror",
+                        str(consumer),
+                        "-o",
+                        "/dev/null",
+                    ],
+                    check=True,
+                )
             print(
-                f"{cc} wasm{bits}: actual clone UAPI frontend and static analysis pass; not target SEM_UNDO acceptance"
+                f"{cc} wasm{bits}: clone SEM_UNDO/NNP consumers frontend and static analysis pass; not target acceptance"
             )
