@@ -5711,6 +5711,26 @@ src/include/sys/mman.h 中 __mmap/__munmap 的隐藏声明原仍被 Wasm 门控�
 均固定73c266a；真实四阶段、唯一 pass 与关闭仍待核实。它不代表所有消息目录、
 截断竞态或新 musl 下全部应用回归已经完成。
 
+首轮两项随后都失败，实际 Heavy 日志分别5,343,988和5,172,471字节。前三阶段
+均已完成，第四阶段在安装 filter 时返回 EINVAL，尚未执行拒绝 read 后的断言。
+这是验收前提选错：本项目只接通 strict seccomp，filter 仍缺正式架构标识等
+条件，HAVE_ARCH_SECCOMP_FILTER/SECCOMP_FILTER 明确关闭，不能用现有 arch=0
+占位冒充可用 ABI。前三阶段不单独冒充四阶段目标通过。
+
+distro `53a8100` / 集成 `4da0f8d` 去掉这个不可用的 filter 前提，改在测试
+二进制用 --wrap=__mmap/--wrap=__munmap 观察后继续调用真实目标。换源两次必须
+新增至少两次匹配参数的私有文件映射及解除映射，仍核对时区数据、fd 恢复与
+前三阶段；旧 malloc/read 路径不能只凭正确文件内容通过计数门禁。观察函数只
+存在于测试二进制，不进入 musl、SDK 公共头文件或应用 API。
+
+Clang18/22 双位宽前端/静态分析与原生参考通过。另把真实 helper 编成独立
+Wasm 对象，验证隐藏符号引用确实经过 wrapper 再到原目标；去掉 wrapping 的
+版本恰在观察门禁失败。后端在这个轻量检查里是模型，仍不算 VFS 验收。新两项
+[41582384057](https://github.com/HighCWu/distro/actions/runs/41582384057)/
+[41582391405](https://github.com/HighCWu/distro/actions/runs/41582391405) 固定53a8100，
+需实际四阶段、唯一 pass 与机器关闭。内核配置和真实映射实现没有因这个测试
+修正而更改。
+
 ## 文件mmap的有界分块填充候选
 
 Linux1b81174a8、distro5d47cf7、集成ee42f64接入新的默认关闭分块配置。
@@ -6378,6 +6398,28 @@ handler 核对当前已处于计算区间，避免信号恰在线程启动或循
 cooperative-poll-cpu-check-both 同时包含双位宽普通四阶段与 GEN 六阶段，均须
 唯一 pass 与机器关闭。该新组合仍在异步验收，没有扩大多线程 fork 或动态模块
 范围。
+
+## 计算检查点的浏览器交付接线
+
+distro `b6b9911` / 集成 `b56c63e` 将普通四阶段程序的同一 raw initramfs 接到
+process-poll 浏览器配置；双位宽、双引擎均使用两 CPU，同页两次独立机器，
+要求有序完整四阶段和唯一 pass、每轮 machine.closed、最后 browser shutdown，
+拒绝 RCU stall/panic、迟到页面错误及关闭失败。复用固定 Playwright/引擎与原
+运行器，没有新应用 API，也未选择 GEN CPU 记账、动态加载或 continuation fork。
+
+本地53项合同检查及 Nix/JS 格式通过，覆盖该 corpus 的缺阶段/重复/乱序拒绝、
+两轮与迟到错误；控制器替身不是浏览器证据。此前0d02ed7 Node已核实，不代验
+本轮较强的计算区间门禁和新源码组合。四路公开任务均各派发一次：
+
+| 位宽 | 引擎 | 任务 |
+|---|---|---|
+| wasm32 | Chromium | [41581546885](https://github.com/HighCWu/distro/actions/runs/41581546885) |
+| wasm32 | Firefox | [41581553944](https://github.com/HighCWu/distro/actions/runs/41581553944) |
+| wasm64 | Chromium | [41581561393](https://github.com/HighCWu/distro/actions/runs/41581561393) |
+| wasm64 | Firefox | [41581566942](https://github.com/HighCWu/distro/actions/runs/41581566942) |
+
+目前实际目标轮次和关闭仍待核实，不据接线或工作流状态宣称浏览器能力通过。
+Node GEN 六阶段与普通四阶段聚合41580416330仍独立异步验收，不取消慢任务。
 
 ## 启动修复后的合并 syscall 回归结果
 
