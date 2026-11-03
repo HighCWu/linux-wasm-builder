@@ -6159,6 +6159,12 @@ distro35ea6c0 / 集成b34347f把全部重定位后的图先发布，再执行构
 
 ## 通用 Landlock syscall 与文件规则接线
 
+后续distro3dc5c82 / 集成23a091f修复已有dlopen的非UTF-8路径和前导BOM，
+保留Linux文件名字节、link_map名称及严格Wasm元数据边界。新十阶段组合待验收，
+不计为新增syscall。此前1894258六路九阶段现已全部核实，浏览器各两轮及机器/
+浏览器关闭完整通过；不扩大为默认编译器/内核新组合或Landlock通过，见
+[字节路径与对应验收](elf-dynamic-linking.md#linux-文件名字节与前导-bom)。
+
 Linux45a10e599 / distro5eb9dbe / 集成9a460d4在三套Wasm defconfig启用
 SECURITY和SECURITY_LANDLOCK，复用Linux已有的landlock_create_ruleset、
 landlock_add_rule、landlock_restrict_self及凭据/文件LSM钩子。它们是官方
