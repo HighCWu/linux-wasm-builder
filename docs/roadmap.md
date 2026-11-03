@@ -2713,6 +2713,17 @@ f0ecfb5 / 集成15d22e1复用原C消费者和process浏览器运行器，增加p
 真实Linux三阶段、替换文件不被修改及关闭，尚未接受目标通过。见
 [宿主替换](process-syscalls.md#宿主替换路径后再次-lookup-前的-fd-元数据)。
 
+906f5dd / 集成5d24cc1增加路径inode核对及验证后截断，拒绝陈旧节点误绑定，
+保留已知硬链接回退、逻辑只读权限，并修复已有只读fd妨碍路径truncate的问题。
+真实rename交错及提前截断反向控制、fd回收、标准C四阶段和双位宽分析通过，
+目标由后续32eb392统一复验，未计为Linux/Wasm通过。
+
+0b35521的41631033684实际失败于只读access探测。官方virtio-fs默认本地检查
+权限，后端readOnly不能代替MS_RDONLY；此前不设只读挂载而要求EROFS的目标
+假设已撤回。32eb392 / 集成f80eeb6同时保留backend-only对照与标准只读挂载
+分支，41637667371统一复验四阶段元数据、两种权限模式及共享目录关闭，
+实际目标仍待核实。见[准入修正](process-syscalls.md#virtio-fs-只读挂载准入修正)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

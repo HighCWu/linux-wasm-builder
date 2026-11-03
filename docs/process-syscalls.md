@@ -7679,6 +7679,10 @@ distro9651f58 / 集成1baa33d修复NodeFS只读策略与access(W_OK)不一致的
 现在先保留节点存在性及符号链接检查，再对含W_OK的请求返回EROFS；F_OK、
 R_OK仍按原路径处理，不改变标准syscall或新增libc接口。
 
+这里修复的是后端ACCESS hook。后续0b35521的真实目标否定了下述旧验收假设：
+virtio-fs默认default_permissions会绕过该hook，Linux只读挂载仍需MS_RDONLY。
+具体失败证据和修正门禁见[只读挂载准入修正](#virtio-fs-只读挂载准入修正)。
+
 现有28项实际源后端检查通过；移除策略判断的反向控制会在只读断言失败。
 既有三个元数据消费者的GCC/Clang原生参考通过，Clang18/22双位宽前端与静态
 分析还覆盖新的readonly-access消费者。新消费者只允许Wasm构建，本地没有
@@ -7814,3 +7818,54 @@ guest及测试类型检查通过。原生结果只证明标准程序预期，不
 [41634318694](https://github.com/HighCWu/distro/actions/runs/41634318694) 固定134f7f7
 异步验证Linux真实进程三条精确阶段、宿主替换文件状态及全套共享目录回归和
 machine.closed，目标尚待核实，不沿用旧b66bcb4或纯宿主结果接受本增量。
+
+## 陈旧 inode 拒绝与验证后的截断
+
+distro906f5dd / 集成5d24cc1修复已完成宿主替换后，旧节点OPEN、无描述符
+GETATTR/SETATTR、ACCESS及READLINK误绑定新文件的问题。路径属性按dev/ino
+核对缓存身份，移除失效名字；如果仍有已知硬链接，则重试该inode的其它名字。
+新LOOKUP可以得到替换文件的新节点，已有打开fd继续保留原inode元数据。
+
+普通OPEN在打开后再次fstat确认身份才发布句柄。regular file的O_TRUNC延迟
+到该确认之后，通过已验证fd执行，避免在拒绝旧绑定前已截断替换文件。
+O_RDONLY|O_TRUNC保持逻辑只读，write仍EBADF；显式只读fd修改长度按Linux
+do_ftruncate返回EINVAL。路径truncate则可借用已有可写fd，或临时打开并验证
+可写fd，不再因任意选中已有只读fd而误报失败。句柄回收同步移除可写记录。
+
+32项后端实际文件回归、当前源guest/测试类型及workflow检查通过。临时实际源
+bundle在预检查与host open之间受控执行真实rename：只读、只读TRUNC及只写
+TRUNC都拒绝旧绑定、保留替换数据、关闭未发布fd，随后新LOOKUP/read恢复。
+恢复原先提前O_TRUNC的反向控制会实际破坏替换数据并失败；关闭身份检查的
+控制也检出错误成功及硬链接别名误绑定。生产代码未加入测试hook或应用API。
+真实EMFILE到FUSE回复、释放后恢复及fd回到基线仍通过。
+
+标准external-file-metadata消费者从三阶段扩为四阶段：新增持有新文件只读fd
+时的路径truncate、显式只读fd的EINVAL及写入恢复，最终替换数据仍恢复原值。
+GCC/Clang原生四阶段、Clang18/22五个元数据消费者双位宽前端/静态分析通过。
+这些是后端/宿主证据，不是Linux/Wasm验收，也不建立任意外部并发目录重构下
+的沙箱或所有命名操作原子性保证。最新目标由下节32eb392组合统一复验，旧
+134f7f7三阶段结果不能代验新四阶段。
+
+## virtio-fs 只读挂载准入修正
+
+[41631033684](https://github.com/HighCWu/distro/actions/runs/41631033684) 固定0b35521
+已明确失败。实际11,101,487字节Heavy日志中，readonly-access在file write probe
+处报告errno=0，父测试断言失败；不能将后端unit通过当作Linux access已拒绝。
+
+已核对[官方Linux v7.1 virtio-fs默认配置](https://github.com/torvalds/linux/blob/v7.1/fs/fuse/virtio_fs.c)：
+default_permissions=1；固定内核fuse_permission因此在本地检查inode权限，不
+调用后端ACCESS。后端readOnly拒绝实际修改，并不自动设置Linux挂载只读状态。
+没有删除该标准内核默认条件，也没有伪造权限mode位来替代只读挂载。
+
+distro32eb392 / 集成f80eeb6修正消费者和装配：保留普通挂载上的backend-only
+分支，明确检查根用户的本地权限探测成功而实际写open仍由后端返回EROFS；
+另用独立tag和标准MountFlags.RDONLY挂载同一只读后端，要求file/directory/
+mixed/AT_EACCESS写探测均EROFS。两种模式各自还要求存在/读探测、拒绝写后
+读恢复及缺失路径ENOENT，均精确三阶段。后端选项注释说明此配置边界，没有
+新增SDK应用接口、musl包装或内核修改。
+
+新四阶段元数据原生参考、双位宽编译/分析和类型检查通过；只读C分支按原有
+约束仅做Wasm前端/分析，本地不执行特权只读挂载。已一次派发固定32eb392的
+[41637667371](https://github.com/HighCWu/distro/actions/runs/41637667371)，统一验收
+906f5dd的四阶段、上述两种只读模式及全套共享目录和关闭。排队/运行期间不
+重复派发。目标仍待实际阶段证据，0b35521失败不被删除或重写为已通过。
