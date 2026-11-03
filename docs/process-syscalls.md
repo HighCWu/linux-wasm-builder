@@ -6089,6 +6089,29 @@ TLS 数据段。Clang18/22 双位宽对象及分析通过，去掉编译选项�
 CI 41567015097 的 `brk-syscall-check-runtime-both` 验收修正消费者，原合并任务继续运行，
 其独立回归结果可分别核实，不能将旧 brk 语料当作本修正的运行证据。
 
+## 直接匿名映射的 MADV_FREE
+
+Linux `d988da3b9` / musl `cd7dc871` / distro `1ebb4ea` / 集成 `e4d74e0`
+接入已有标准 madvise 的 MADV_FREE 建议。Linux 允许已建议的匿名内容立即丢弃，
+或延迟至内存压力出现；本直接内存实现选择在调用内立即清零，保留地址预约，
+后续写入照常保留，不设置延迟丢弃状态。只接受登记的完整私有匿名映射范围；
+支持相邻拆分记录，文件副本返回 EINVAL，空洞返回 ENOMEM。所有记录先校验，
+失败不会清零前面的合法匿名部分。它不启用页表、共享映射或内核 softmmu，也不
+缩小 Wasm 内存容量、降低已保留的堆高水位或保证向宿主归还物理页。
+语义依据[Linux madvise 手册](https://man7.org/linux/man-pages/man2/madvise.2.html)。
+
+新增代码没有公共 API 或包装函数；标准常量和 madvise 入口原本已经存在。
+Clang18/22 的 wasm32/64 实际内核准入和分配器函数体执行、静态分析通过，覆盖
+立即清零、相邻页保留、之后写入、文件/匿名混合失败、空洞及零长度。禁用实际
+清零的反向控制四路均失败。GCC/Clang 原生消费者检查标准允许的延迟或立即回收
+行为；Wasm 消费者额外要求本实现的立即清零。真实文件复制语料检查 EINVAL 后
+原数据、fd 及 split-unmap 清理。前端与分析通过不等于真实 Linux 已验收。
+
+公开预取41567625770核实 Linux 立即父版本和新源码树哈希，41567626517核实
+musl 的精确 revision/hash。CI 41567995019 的 `toolchain-smoke-check-madvise-free-both` 合并
+双位宽 madvise 四阶段及文件流三阶段目标，复用构建图；真实阶段、唯一 pass
+和机器关闭仍待逐项核实，不沿用旧 DONTNEED 的运行结果。
+
 ## 静态 review 与异步验收原则
 
 标准dlfcn接线9cbe7d0的文件操作继续使用Linux syscall，未新增公共libc函数。

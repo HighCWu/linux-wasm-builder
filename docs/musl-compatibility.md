@@ -55,6 +55,17 @@ brk.c 中拆出私有执行回调 `__wasm_brk_layout_v1`、`__wasm_brk_update_v1
 检查约束，不能称作所有分配路径的资源隔离。双位宽实际内核/libc 函数体的小型
 Wasm 模型已通过；真实 Linux 启动、线程和 malloc 消费者结果仍须分别核实。
 
+## 既有 madvise 回调的匿名 FREE 兼容
+
+musl `cd7dc871` 只扩展已有 Wasm 私有映射回调，不新增函数、导出、公共声明或
+通用 Linux 扩展。标准 MADV_FREE 常量和 madvise 包装在直接上游已经存在；新
+内核接线允许其到达分配器，沿用完整映射登记与锁校验，在调用内立即清零匿名
+内容并保留地址。后续写入没有延迟清除标记，因此不会被该次 FREE 再丢弃。
+文件副本返回 EINVAL，保留旧 DONTNEED 的 EOPNOTSUPP；混合区间先校验再修改。
+此策略不缩小 WebAssembly.Memory，不声称向宿主归还物理页或提供惰性回收优势。
+双位宽实际函数体模型已通过，真实系统结果另见
+[MADV_FREE 接线](process-syscalls.md#直接匿名映射的-madv_free)。
+
 ## Wasm 轻量分配器的错误收尾
 
 后续独立修复 `b1c51ef9` 仅修改既有 lite_malloc.c 的 Wasm 增长失败分支：不再
