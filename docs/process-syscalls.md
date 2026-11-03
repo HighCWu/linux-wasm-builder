@@ -6586,6 +6586,12 @@ Clang18/22双位宽运行实际flush函数、当前线程隔离和重复清理�
 派发双位宽各三个新阶段及机器关闭，并包含同一新内核的普通检查点与fork/exec-fd
 回归。未核实实际目标日志前不接受新的内核组合；默认libc及MMU配置不变。
 
+58eee0d的41588670745现已完成。实际14,251,453字节Heavy日志逐项确认双位宽
+exec-thread-state各三阶段、普通检查点各五阶段、fork/exec-fd各八阶段及各唯一
+pass。三个语料每个位宽均通过发布运行器等待machine.closed的关闭门禁，运行器
+与固定58eee0d一致，收尾失败非零退出。接受Linux94d6741a0/muslce9c4c50对应
+Node组合，不由此接受后继muslf09c21d9的timer路径或浏览器新内核组合。
+
 ## 原有 SIGEV_THREAD worker 的 Wasm 收尾与 TLS 重置
 
 musl `f09c21d9` / distro `bbdd8f3` / 集成 `1af6a1f` 修复两处实际调用路径
@@ -6616,6 +6622,27 @@ JS异常shim。普通消费者前端/SjLj编译、实际函数与消费者静态
 [41590872805](https://github.com/HighCWu/distro/actions/runs/41590872805) 已异步
 派发上述真实三阶段及各机器关闭；仍待目标日志，不把组件模型当作kernel timer
 递送、pthread_exit回调或新musl组合已通过。内核继续94d6741a0，MMU和fork范围不变。
+
+## exec 提交前校验宿主供给的线程指针 global
+
+distro `a0dcd2b` / 集成 `1b9ba2b` 修复实际执行准入缺口：此前只核对导入名和
+kind，合法Wasm模块仍可请求immutable、相反位宽或浮点thread_pointer，而宿主
+实际供给mutable且匹配进程地址宽度的global。这样可能在Linux提交exec后才出现
+LinkError，无法保留原程序。现在复用已有有界导入段读取器收集global类型，在
+pending memory分配和exec提交前拒绝不兼容global，按原通道返回ENOEXEC。
+不实例化生产模块做探测，也不套用动态链接的numeric函数类型限制。
+
+新增四种引擎合法映像，导入名/执行ABI marker/入口/shared memory完全相同，仅
+global契约不同。Node双位宽真实模块验证类型匹配者可通过标准exit_group退出，
+其余三种在旧名称检查下仍被接纳且实际实例化会LinkError，新检查提前拒绝。
+440项内核宿主检查、源码/测试TypeScript、Clang18/22双位宽消费者前端/SjLj编译
+和静态分析通过；根CI接入这些真实映像检查，未更改kernel或musl源码/API。
+
+普通SDK消费者重复execve不兼容映像，要求ENOEXEC且原实际TP、native TLS、
+CLOEXEC fd与offset保留；正确映像必须实际spawn/exit/wait，随后错误与成功路径
+继续恢复。[41592334251](https://github.com/HighCWu/distro/actions/runs/41592334251)
+已异步派发双位宽各三阶段和机器关闭，尚不接受目标运行已通过。本轮只修复这项
+global契约，不宣称所有import/function签名或其它执行ABI错误已得到完整校验。
 
 ## 启动修复后的合并 syscall 回归结果
 

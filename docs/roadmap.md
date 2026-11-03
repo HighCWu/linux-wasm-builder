@@ -2492,6 +2492,13 @@ muslf09c21d9 / distrobbdd8f3 / 集成1af6a1f随后修复原SIGEV_THREAD worker�
 恢复，并覆盖普通/独立libc插桩配置，见
 [原有定时通知路径](process-syscalls.md#原有-sigev_thread-worker-的-wasm-收尾与-tls-重置)。
 
+58eee0d的41588670745现已核实新内核双位宽exec状态各三阶段、普通检查点各
+五阶段、fork/exec-fd各八阶段及关闭，接受Linux94d6741a0/muslce9c4c50该Node
+组合。a0dcd2b / 集成1b9ba2b进一步把poll TP global的位宽/可变性校验移至exec
+提交前，避免合法Wasm在原映像已丢失后才LinkError。引擎正/反控制、类型和双
+位宽分析通过；41592334251异步验收ENOEXEC保留TP/TLS/CLOEXEC fd及后续恢复，见
+[global准入](process-syscalls.md#exec-提交前校验宿主供给的线程指针-global)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
