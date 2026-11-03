@@ -4,6 +4,7 @@
 
 import os
 from pathlib import Path
+import select
 import subprocess
 import tempfile
 
@@ -15,7 +16,8 @@ SOURCES = [
     SOURCE.with_name("open-file-metadata.c"),
     SOURCE.with_name("file-creation-modes.c"),
 ]
-ANALYSIS_SOURCES = [*SOURCES, SOURCE.with_name("readonly-access.c")]
+EXTERNAL_SOURCE = SOURCE.with_name("external-file-metadata.c")
+ANALYSIS_SOURCES = [*SOURCES, SOURCE.with_name("readonly-access.c"), EXTERNAL_SOURCE]
 
 with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
     work = Path(directory)
@@ -56,6 +58,56 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
             print(
                 f"{compiler}: native {source.stem} three-stage syscall reference pass"
             )
+    for compiler in ("gcc", "clang"):
+        program = work / "external-metadata"
+        subprocess.run(
+            [
+                compiler,
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                str(EXTERNAL_SOURCE),
+                "-o",
+                str(program),
+            ],
+            check=True,
+        )
+        target, staging = work / "external-file", work / "external-staging"
+        target.write_text("old")
+        staging.write_text("replacement")
+        staging.chmod(0o640)
+        child = subprocess.Popen(
+            [str(program), str(target)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            assert select.select([child.stdout], [], [], 10)[0], (
+                "consumer readiness timeout"
+            )
+            assert (
+                child.stdout.readline()
+                == "external metadata: ready for host replacement\n"
+            )
+            staging.replace(target)
+            stdout, stderr = child.communicate("x", timeout=15)
+            assert child.returncode == 0 and stdout.count(" pass\n") == 3, (
+                stdout + stderr
+            )
+            assert (
+                target.read_text() == "replacement"
+                and target.stat().st_mode & 0o777 == 0o640
+            )
+        finally:
+            if child.poll() is None:
+                child.kill()
+                child.wait()
+        print(
+            f"{compiler}: real host replacement with old-fd metadata and three-stage recovery pass"
+        )
     (work / "bits").mkdir()
     template = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (
         MUSL / "include/alltypes.h.in"
