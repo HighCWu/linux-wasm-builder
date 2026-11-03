@@ -7514,3 +7514,45 @@ musl API或Linux syscall，没有改动权限决策与内核inode生命周期。
 [41622279466](https://github.com/HighCWu/distro/actions/runs/41622279466) 固定25c5be7
 已异步派发linux-guest-package-check-tests-node-filesystem，仍待实际阶段、
 完整套件及machine.closed证据；不以本地宿主通过或旧源码CI代验。
+
+## 创建权限不重复套用宿主 umask
+
+distro b66bcb4 / 集成58056f5修复Node共享目录新建文件/目录的权限。FUSE的
+create_context已按Linux调用者的umask过滤mode，Node的open/mkdir随后又应用
+宿主进程的umask，导致Linux的umask=0等请求仍被额外收紧。
+
+新建文件现在通过O_EXCL尝试原子确认创建，再按原FD恢复请求的低九位权限。
+实际内核保留/过滤的特殊位继续保留，不修改生产宿主进程的全局umask。非排他
+O_CREAT遇到已有名字时用不带创建标志的open保留原mode；若名字在两次操作间
+消失，则重试创建，不能把新建mode套到旧inode。O_TRUNC等原请求仍传给实际
+open。目录创建后同样恢复已过滤的请求权限并保留实际继承的setgid位；路径
+验证、串行操作与既有宿主并发目录变动边界不变，不宣称POSIX ACL完整支持。
+
+28项真实宿主检查通过；新用例在隔离测试进程中设宿主umask=077，核对新文件
+0666、新目录0777、继承setgid、旧文件0640不变和排他冲突，以及后端没有改动
+测试进程的umask，finally恢复原值。撤去修正的反向控制按预期得到0600而非
+0666并失败。GCC/Clang普通C程序各三阶段参考通过；Clang18/22对三个文件
+元数据消费者做双位宽前端/静态分析，guest库及全部测试的当前源码TypeScript
+检查通过。测试进程改变umask不是生产实现的一部分。
+
+新的普通C消费者用标准umask、open、mkdir、stat等接口验证：Linux零umask
+保留0666/0777；已有O_CREAT保留mode且排他冲突无变化；Linux自身umask=027
+仍正确生成0640/0750并完成清理。没有新增musl函数或应用接口。
+[41623399624](https://github.com/HighCWu/distro/actions/runs/41623399624) 固定b66bcb4
+异步验收三阶段、全部共享目录回归及machine.closed，尚未接受目标运行。
+
+## UNTRACED 目标失败：首次子进程停止待修复
+
+[41617718807](https://github.com/HighCWu/distro/actions/runs/41617718807) 固定218e10f，
+实际读取14,197,396字节Heavy日志，wasm32在普通对照的“ordinary child inherits
+ptrace stop”断言失败，errno=0；尚未通过第一个阶段，更未接受UNTRACED或
+双位宽运行。该断言前已检查父端FORK事件及GETEVENTMSG中的子PID；现有失败
+输出没有展开waitpid实际返回值和原始status，不推定具体退出信号。
+
+审查固定内核ptrace_init_task在跟踪子任务中加入初始SIGSTOP，而Wasm启动路径
+为等待CPU、schedule_tail、选择用户入口、wasm_run_user；它明确推迟返回工作，
+避免用户C栈/TLS未恢复时运行处理器。这指出首次返回工作的执行时机缺口。
+安全修复应在Asyncify停止rewind、C栈/TLS已恢复、但fork结果尚未返回程序时
+执行现有私有user_poll返回工作；不得在switch_entry初始化回调中提前递送，
+也不通过虚构gettid等syscall制造额外ptrace/seccomp事件。此为下一项修复方向，
+尚未作为实现或通过结论；原初始停止断言保留，不能删去以让目标变绿。

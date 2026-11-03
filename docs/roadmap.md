@@ -2647,6 +2647,13 @@ CLONE_IO与已有资源共享组合的固定版本范围，不代验后续或宿
 回归及关闭，不新增libc包装。见
 [打开文件元数据](process-syscalls.md#无-fh-的-setattr-保留已删除打开文件)。
 
+b66bcb4 / 集成58056f5修复Node创建文件/目录时二次应用宿主umask的问题，
+恢复Linux已过滤的请求权限并保留实际特殊位；已有O_CREAT不改变原mode，
+不修改生产宿主全局umask。真实宿主正反控制、普通C三阶段参考、双位宽静态
+分析和源码类型检查通过；41623399624异步验收Linux零/非零umask、已有文件
+及完整共享目录套件和关闭，未认定目标通过。见
+[创建权限](process-syscalls.md#创建权限不重复套用宿主-umask)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
