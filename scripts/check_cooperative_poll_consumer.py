@@ -4,6 +4,7 @@
 
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 
@@ -22,8 +23,21 @@ with tempfile.TemporaryDirectory(prefix="cooperative-poll-consumer-") as tmp:
     (path / "bits/alltypes.h").write_text(generated)
     numbers = (MUSL / "arch/wasm32/bits/syscall.h.in").read_text()
     (path / "bits/syscall.h").write_text(numbers + numbers.replace("__NR_", "SYS_"))
+    (path / "src/thread").mkdir(parents=True)
+    unmap = path / "src/thread/__unmapself.c"
+    unmap.write_text((MUSL / "src/thread/__unmapself.c").read_text())
+    subprocess.run(
+        ["patch", "--fuzz=0", "-s", "-p1", "-d", tmp],
+        input=(ROOT / "sources/distro/distro/musl/cooperative-poll.patch").read_text(),
+        text=True,
+        check=True,
+    )
     for cc in ("gcc", "clang"):
-        for variant in ([], ["-DCOOPERATIVE_CPU_TIMERS=1"]):
+        for variant in (
+            [],
+            ["-DCOOPERATIVE_CPU_TIMERS=1"],
+            ["-DCOOPERATIVE_LIBRARY_POLL=1"],
+        ):
             subprocess.run(
                 [
                     cc,
@@ -49,7 +63,86 @@ with tempfile.TemporaryDirectory(prefix="cooperative-poll-consumer-") as tmp:
             for include in ("arch/wasm32", "arch/generic", "include"):
                 flags += ["-I", str(MUSL / include)]
             flags += ["-isystem", resource + "/include", "-Wall", "-Wextra", "-Werror"]
-            for variant in ([], ["-DCOOPERATIVE_CPU_TIMERS=1"]):
+            for source in (
+                "src/thread/wasm32/clone.c",
+                "src/thread/pthread_create.c",
+                "src/string/memchr.c",
+                str(unmap),
+            ):
+                ir = path / "library.ll"
+                startup = source in (
+                    "src/thread/wasm32/clone.c",
+                    "src/thread/pthread_create.c",
+                )
+                subprocess.run(
+                    flags[:4]
+                    + [
+                        "-I",
+                        str(MUSL / "src/include"),
+                        "-I",
+                        str(MUSL / "src/internal"),
+                    ]
+                    + flags[4:]
+                    + [
+                        "-Wno-unused-parameter",
+                        "-Wno-cast-function-type",
+                        "-matomics",
+                        "-mbulk-memory",
+                        "-fsanitize-coverage=trace-pc,no-prune,edge",
+                        *(
+                            ["-fno-sanitize-coverage=trace-pc,no-prune,edge"]
+                            if startup
+                            else []
+                        ),
+                        "-S",
+                        "-emit-llvm",
+                        str(MUSL / source),
+                        "-o",
+                        str(ir),
+                    ],
+                    check=True,
+                )
+                assert ("@__sanitizer_cov_trace_pc" in ir.read_text()) != startup, (
+                    source
+                )
+                if source == str(unmap):
+                    body = re.search(
+                        r"^define [^\n]*@__unmapself\(.*?^}",
+                        ir.read_text(),
+                        re.M | re.S,
+                    )
+                    assert body and body[0].index("global.set __tls_base") < body[
+                        0
+                    ].index("@free_and_exit")
+            for variant in (
+                [],
+                ["-DCOOPERATIVE_CPU_TIMERS=1"],
+                ["-DCOOPERATIVE_LIBRARY_POLL=1"],
+            ):
+                if "-DCOOPERATIVE_LIBRARY_POLL=1" in variant:
+                    ir = path / "consumer.ll"
+                    subprocess.run(
+                        flags
+                        + variant
+                        + [
+                            "-fsanitize-coverage=trace-pc,no-prune,edge",
+                            "-S",
+                            "-emit-llvm",
+                            str(SOURCE),
+                            "-o",
+                            str(ir),
+                        ],
+                        check=True,
+                    )
+                    driver = re.search(
+                        r"^define [^\n]*@library_spin\(.*?^}",
+                        ir.read_text(),
+                        re.M | re.S,
+                    )
+                    assert driver and "@__sanitizer_cov_trace_pc" not in driver[0]
+                    assert "load volatile ptr" in driver[0], (
+                        "keep the actual libc function call"
+                    )
                 subprocess.run(
                     flags
                     + variant
@@ -80,5 +173,5 @@ with tempfile.TemporaryDirectory(prefix="cooperative-poll-consumer-") as tmp:
                     check=True,
                 )
             print(
-                f"{cc} wasm{bits}: ordinary/CPU timer consumers compile with instrumentation/SjLj and pass static analysis; not Linux execution"
+                f"{cc} wasm{bits}: ordinary/CPU/libc consumers compile with instrumentation/SjLj and pass static analysis; library driver has no checkpoints; not Linux execution"
             )
