@@ -2573,6 +2573,15 @@ Linux自动回收及在最后拥有引用关闭时终止；独立能力门控并
 普通回收控制、自动回收、dup/独立观察描述及错误恢复四阶段和关闭；见
 [生命周期](process-syscalls.md#原生-clone3-的自动回收与-pidfd-最后关闭终止)。
 
+c4bb6f7的41605449203现已核实双位宽Node各五阶段、唯一pass和关闭，接受
+CLONE_NNP首次观察、fork/exec继承及父/普通兄弟隔离的固定源码范围。
+
+b0db175 / 集成c88c5ed另打通CLONE_PARENT，按独立能力保留标志并由Linux设置
+真实父关系与等待者；原生clone3仍要求零exit_signal。原生参考在调用者活着时
+验证外层回收，真实字段、旧对象拒绝、类型与双位宽分析通过，公开目标异步验收
+两种传输和普通fork恢复三阶段及关闭，见
+[父子关系](process-syscalls.md#clone_parent-的真实父子关系与等待者)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

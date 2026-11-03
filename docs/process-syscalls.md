@@ -7169,6 +7169,43 @@ Heavy、工作流成功；固定源码 runner/closer 与当前无差异，等待
 没有重复派发构建。接受固定 Linux94d6741a0/musl651ebf65 的这一双位宽 Node
 范围，不代验后继 NNP、退出通知、自动回收/终止或浏览器。
 
+## CLONE_PARENT 的真实父子关系与等待者
+
+distro `b0db175` / 集成 `c88c5ed` 打通标准 CLONE_PARENT。此前 flags-first clone
+和 clone3 参数过滤拒绝它；现在独立捕获低位父关系标志，并要求私有 capability
+bit 9 及对应的 legacy options/native helper。旧对象在展开前拒绝，捕获字段
+在返回或错误后清除，不污染普通 fork。Linux 自己分配 real_parent、继承通知、
+验证 init/标志限制并决定可等待者，宿主没有重挂接任务。
+
+原生 clone3 使用零 exit_signal 并保留该字段的独立能力要求；legacy 请求仍
+使用 SIGCHLD。新子进程的通知由 Linux 从调用者线程组继承，因此测试由外层
+真实父进程用普通 wait 回收，不能把输入零信号误当作普通无 PARENT 子进程的
+__WCLONE 等待规则。独立用户内存、单线程 fork 和默认 SDK 的边界不变。
+
+新 clone-parent-check-both 各位宽三阶段：原生 clone3、legacy clone 分别让
+新进程检查实际 getppid，调用者 wait sibling 得 ECHILD，外层控制者按报告的
+PID 精确回收；最后 namespace init 创建 sibling 必须 EINVAL，普通 fork 的
+父关系/单次 wait 和 pipe 清理恢复。调用者必须在控制者回收 sibling 后收到
+release token 才能成功退出，排除“调用者先死，普通孤儿重挂接”的假通过。
+
+GCC/Clang 实际原生 legacy clone 参考通过调用者存活期间的父子关系与等待。
+Clang18/22 使用固定 Linux UAPI 对五个消费者做双位宽前端/静态分析；真实 Wasm
+支持对象验证 legacy 标志和 native clone_args 字段。缺失能力拒绝、错误后默认
+恢复、运行库/实际对象共462项检查及两套 TypeScript 通过。
+[公开目标41612535629](https://github.com/HighCWu/distro/actions/runs/41612535629)异步验收，
+仍待三阶段、唯一 pass 和 machine.closed，不把原生参考代为 Wasm 通过。
+
+## CLONE_NNP 的目标验收
+
+[41605449203](https://github.com/HighCWu/distro/actions/runs/41605449203)
+固定c4bb6f7，实际读取14,201,253字节 Heavy 日志，wasm32/64 各精确五阶段及
+唯一 pass：清除/保留 signal disposition 和真实默认信号、冲突拒绝、NNP 首次
+子进程观察和 fork 继承、exec 后保留且不能清除、普通兄弟及父进程保持未限制
+和原 handler/资源恢复。Heavy 与工作流成功；固定源码 runner/closer 与当前
+无差异，等待 machine.closed，关闭错误为非零退出，已复核。接受固定
+Linux94d6741a0/musl651ebf65 的这一双位宽 Node 范围，不代验退出通知、自动
+回收/终止、PARENT 或浏览器。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
