@@ -6311,8 +6311,10 @@ instrumentation_end / exit_to_user_mode 之前恢复，避免进入用户上下�
 通过：验证 entry/IRQ 顺序、完整寄存器恢复、栈错误和内核阶段拒绝；保留旧
 restart 返回值、误走 syscall 专用返回工作分别由反向版本拒绝。通用 Linux
 工作在此检查中由模型承担，不算真实信号交付。新双位宽内核构建/既有 brk
-回归 [41577075102](https://github.com/HighCWu/distro/actions/runs/41577075102) 正在运行，
-也不代替后续纯计算 SIGALRM、定向 pthread、siglongjmp 和 strict seccomp 验收。
+回归 [41577075102](https://github.com/HighCWu/distro/actions/runs/41577075102) 已成功。
+读取12,198,642字节 Heavy 日志，双位宽各核实标准 brk 三阶段与唯一 pass；固定
+运行器的关闭门禁通过。这接受新内核构建、启动和既有 brk 路径，不以此代替
+user_poll_v1 的真实调用验收。
 
 ## 计算检查点的 Worker 与独立 SDK 接线
 
@@ -6349,7 +6351,33 @@ Clang18/22 双位宽消费者的真实插桩/SjLj 编译及静态分析、GCC/Cl
 
 已派发同源码的 [41578142626](https://github.com/HighCWu/distro/actions/runs/41578142626)
 cooperative-poll-check-both，需逐项核实上述四阶段、各唯一 pass 与机器关闭。
-当前尚未把纯计算信号交付记为已验收，也没有提升为默认配置。
+0d02ed7 的该任务随后已成功，读取8,355,929字节 Heavy 日志，wasm32/64 各
+核实四阶段与唯一 pass：计算定时信号、siglongjmp 后恢复、线程定向信号/TLS、
+strict seccomp 子程序的定时信号与 raw exit/单次回收。run-test.js/shutdown.js
+与核对版本一致，必须等待 machine.closed 且无清理错误，关闭门禁成立。接受该
+独立静态 C 配置的对应双位宽 Node 范围，不推广到未插桩库循环、浏览器、动态
+加载/fork 或整个系统的异步抢占；没有提升为默认 SDK。
+
+## 计算检查点与 GEN CPU 定时器的独立组合
+
+distro `b7b8b4a` / 集成 `e10e9f1` 新增 cooperative-poll-cpu / wasm64 独立
+配置，把已有插桩 SDK 与现有 WASM_VTIME/VIRT_CPU_ACCOUNTING_GEN 内核连接，
+不新增 syscall、libc API 或默认 Kconfig 变更。旧 GEN 验收使用有 syscall 的
+有界计算，本组合要验证无 syscall/读钟/睡眠的循环仍能交付 ITIMER_VIRTUAL
+与 ITIMER_PROF，并用 getrusage 确认用户 CPU 时间增长。GEN 仍记录逻辑调度
+区间，不保证扣除宿主暂停/GC 或达到原生物理 CPU 精度。
+
+静态 review 还修正接受语料的早到信号漏洞：线程从循环内部才发布 ready，
+handler 核对当前已处于计算区间，避免信号恰在线程启动或循环前收到也算作循环
+交付。siglongjmp 离开时清除这个区间标志。后继普通配置四阶段与 CPU 配置
+六阶段仍须重新验收，不直接沿用0d02ed7的较早语料结果。
+
+普通/CPU 两种 C 语料在 GCC/Clang 编译，以及 Clang18/22 双位宽插桩/SjLj
+编译与静态分析通过；Nix 格式和源码 review 通过。这些不是目标运行证明。
+[41580416330](https://github.com/HighCWu/distro/actions/runs/41580416330)
+cooperative-poll-cpu-check-both 同时包含双位宽普通四阶段与 GEN 六阶段，均须
+唯一 pass 与机器关闭。该新组合仍在异步验收，没有扩大多线程 fork 或动态模块
+范围。
 
 ## 启动修复后的合并 syscall 回归结果
 
@@ -6374,6 +6402,15 @@ distro `b7c5028` / 集成 `00fbe73` 先通过补充 make 目标构建原始 BUIL
 再构建单个程序；不改 split.c、gnulib 实现或 musl 公共 API。格式及已有宿主
 工作负载合同通过，定向 [41577019058](https://github.com/HighCWu/distro/actions/runs/41577019058)
 正在复验，仍须确认实际 Wasm 构建、四阶段和关闭。
+
+b7c5028 的41577019058也已失败，但失败点不同。实际读取12,023,398字节
+Heavy 日志，确认 config.status 创建 lib/config.h，编译、最终变换和 wasm32
+共享内存/4GiB声明边界检查已通过；安装阶段归档错误地引用根目录 config.h，
+因此没有进入运行。distro `6a69459` / 集成 `ab88cd2` 只修正构建材料复制路径
+为 lib/config.h，保留输出材料中的 config.h 文件名，源码指纹和应用实现不变。
+Nix 格式及静态 review 通过，新的双位宽目标
+[41580829257](https://github.com/HighCWu/distro/actions/runs/41580829257) 继续定向
+复验，不重发原任务，完整四阶段和关闭仍待核实。
 
 ## 静态 review 与异步验收原则
 

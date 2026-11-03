@@ -2415,16 +2415,27 @@ Landlock 三阶段、动态加载十阶段及相关回归的实际输出与发�
 接受对应固定组合。GNU split 的41572698904另因生成头文件准备缺失编译失败；
 b7c5028 / 集成00fbe73补齐原始 BUILT_SOURCES，41577019058定向复验中。
 Linux `56e041088` / distro `696e67f` / 集成 `0ddd166` 已准备私有中断返回
-入口，不伪造 syscall。双位宽函数体/静态分析通过，41577075102验证新内核构建
-与既有运行路径；该版本 Worker/SDK尚未接通，不声明纯计算信号已完成，见
+入口，不伪造 syscall。41577075102已核实双位宽新内核构建、启动、brk三阶段
+及关闭；该版本 Worker/SDK尚未接通，不据此声明纯计算信号已完成，见
 [入口与实际回归](process-syscalls.md#计算检查点的内核中断返回入口)。
 
 distro `0d02ed7` / 集成 `e148d11` 随后接入 Worker 与独立应用插桩 SDK，
 不改 musl 公共 API 或默认配置。活的内核回调/handler 延后，动态/fork 组合
 明确拒绝；保留未插桩 libc 的正常 TLS 初始化路径。435 项宿主检查、双位宽
-消费者编译/静态分析及生产准入产物通过。41578142626正在异步验收纯计算
-定时器、siglongjmp 恢复、pthread 定向信号和 strict seccomp 四阶段及关闭，
-未据本地结果接受真实交付，见[独立接线](process-syscalls.md#计算检查点的-worker-与独立-sdk-接线)。
+消费者编译/静态分析及生产准入产物通过。41578142626现已核实双位宽 Node
+定时器、siglongjmp 恢复、pthread 定向信号和 strict seccomp 四阶段、唯一pass
+及关闭，接受对应独立配置范围，见[独立接线](process-syscalls.md#计算检查点的-worker-与独立-sdk-接线)。
+
+b7b8b4a / 集成e10e9f1进一步连接 GEN CPU 记账的独立计算配置，验证纯循环
+的 ITIMER_VIRTUAL/PROF 和用户 CPU 时间；同时加入计算区间/循环内 ready
+门禁，避免早到信号造成假通过。普通与 CPU 配置双位宽编译/静态分析通过，
+41580416330异步验收普通各四阶段、GEN各六阶段及关闭；不修改默认内核或
+SDK，不宣称物理宿主 CPU 精度，见[组合记录](process-syscalls.md#计算检查点与-gen-cpu-定时器的独立组合)。
+
+原版 GNU split 的 b7c5028 复验已通过编译/最终处理和 wasm32 内存 ABI 检查，
+但归档阶段错取根目录 config.h，实际生成于 lib/config.h。6a69459 / 集成
+ab88cd2修正这一材料路径，41580829257定向复验中，未把安装失败当作 syscall
+运行结果，也没有修改应用实现。
 
 49c86fa 的41575757161现已核实 USER_NS 独立配置双位宽 Node 各四阶段、唯一
 pass 和关闭，接受该范围，默认 USER_NS=n 不变。musl `ce9c4c50` / distro
