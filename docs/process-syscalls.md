@@ -7325,3 +7325,34 @@ fd 与 limit 的 fork/exec 生命周期、错误后的原状态和默认模式�
 
 Dash 的 wasm64 Node 结果和浏览器/wasm32 进度独立记录在
 [Dash 接入记录](dash-processes.md)，不将其中的 shell 通过泛化到 pidfd。
+
+## CLONE_PARENT 的目标验收
+
+[41612535629](https://github.com/HighCWu/distro/actions/runs/41612535629)
+固定 b0db175，实际读取 14,201,561 字节 Heavy 日志：wasm32/64 各精确三阶段和
+唯一 pass，覆盖原生 clone3 和 legacy clone 的真实父关系、调用者存活期间由
+外层控制者回收、调用者不能等待兄弟进程，以及普通 fork 恢复与清理。Heavy 和
+工作流成功；固定源码 runner/closer 与当前没有差异，等待 machine.closed，
+关闭失败导致非零退出，已复核。接受固定 Linux94d6741a0/musl651ebf65 的该
+双位宽 Node 范围，不代验后继标志、空挂载或浏览器。
+
+## CLONE_UNTRACED 的内核跟踪策略
+
+distro 218e10f / 集成 937e5ef 打通 flags-first clone 和 native clone3 的标准
+CLONE_UNTRACED。此前适配层直接拒绝；现在独立捕获 tracingFlags，通过私有
+capability bit 12 检查执行对象支持，再原样传递给 Linux。旧对象在展开前拒绝，
+错误后字段清除；不将它归入共享资源标志，不在宿主模拟 ptrace。固定内核
+kernel_clone 已负责在该标志存在时抑制强制子进程跟踪事件，因此无需内核更改。
+
+新增 clone-untraced-check-both：每个位宽分别验证原生与 legacy 的普通 fork
+事件、GETEVENTMSG 的实际子 PID、子进程继承的跟踪停止，以及带 UNTRACED 时
+事件消失而真实父进程仍能精确回收。最后再次验证普通跟踪恢复和全部子进程清理。
+只转发普通 SIGCHLD 停止，不能把 fork 事件误当作退出。默认 SDK、musl 公共 API、
+单线程独立用户内存边界均不变。
+
+GCC/Clang 原生 legacy 正控制通过；刻意去掉 UNTRACED 时必须在抑制事件断言处
+失败。实际双位宽 Wasm 支持对象核对原始标志和 clone_args 字段，旧能力拒绝及
+错误恢复通过；476 项运行库/实际对象检查、两套 TypeScript、Clang18/22 七个
+消费者双位宽前端和静态分析通过。原生参考不覆盖 clone3 或目标 Wasm 的运行。
+[41617718807](https://github.com/HighCWu/distro/actions/runs/41617718807)
+已异步派发，仍待双位宽各三阶段、唯一 pass 与关闭结果，不计为目标通过。

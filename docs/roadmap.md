@@ -2600,6 +2600,15 @@ b0db175 / 集成c88c5ed另打通CLONE_PARENT，按独立能力保留标志并由
 不把内核状态解释为浏览器物理I/O调度保证，见
 [I/O context](process-syscalls.md#clone_io-共享已有-linux-io-context)。
 
+b0db175 的 41612535629 已核实双位宽 Node 各三阶段、唯一 pass 及关闭，接受
+调用者仍存活时的真实 CLONE_PARENT 父关系、等待权限及恢复范围。
+
+218e10f / 集成 937e5ef 另打通标准 CLONE_UNTRACED，独立能力门控后由 Linux
+决定强制 fork 跟踪事件，错误后清除捕获字段。原生事件正控制和去标志反向控制、
+实际对象、类型和双位宽静态分析通过；41617718807 异步验收原生/legacy 各场景、
+普通跟踪恢复及关闭，不代验浏览器或扩大多线程 fork 支持。见
+[跟踪策略](process-syscalls.md#clone_untraced-的内核跟踪策略)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |
