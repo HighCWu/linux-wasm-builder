@@ -2535,6 +2535,16 @@ exec-imports-check-both异步验收四阶段回滚与恢复；见
 后的五阶段及关闭；这一加载错误修复不计为新增syscall。见
 [入口准入](process-syscalls.md#exec-提交前拒绝缺失或类型不符的程序入口)。
 
+ee278a8的41599761764和04951a3的41600067842现已分别核实双位宽Node各三阶段、
+唯一pass和关闭：独立fork/计算期信号组合及内核独立robust-list死亡清理通过。
+均限定固定源码及Linux94d6741a0/musl651ebf65，不代验后继增量。
+
+189068e / 集成128d0e6另打通被适配器拒绝的标准CLONE_SYSVSEM，让已有Linux
+实现管理共享SEM_UNDO列表；独立能力位防止旧对象漏传标志。原生正反控制、
+双位宽前端/静态分析、运行库/类型检查通过，clone-sharing-check-both异步验收
+共享/私有撤销、最后所有者退出和原资源共享回归五阶段及关闭；见
+[共享撤销记录](process-syscalls.md#clone-与-clone3-共享-system-v-semaphore-撤销记录)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

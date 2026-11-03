@@ -7011,6 +7011,52 @@ distro `166de77` / 集成 `259f43e` 进一步检查 Wasm 执行入口。原来�
 [公开 CI 41602628886](https://github.com/HighCWu/distro/actions/runs/41602628886)
 异步进行。
 
+## clone 与 clone3 共享 System V semaphore 撤销记录
+
+distro `189068e` / 集成 `128d0e6` 打通已有 Linux `CLONE_SYSVSEM` 标志。此前
+通用内核已有 copy_semundo/exit_sem 路径，Wasm continuation 参数过滤和执行
+对象掩码却拒绝该标志，程序无法请求共享 SEM_UNDO 记录。这次保留它并交给
+原始 clone/clone3 内核实现，不新增 syscall、musl 公共 API 或用户内存共享。
+
+私有执行对象能力 bit 4 独立表示 SYSVSEM 支持；旧 bit 3 仍只表示 FS/FILES。
+新宿主配旧对象会在展开 continuation 前拒绝新标志，不能静默丢弃。组合标志
+分别核对所需能力；负返回、恢复和下一次普通 fork 清除之前捕获的资源标志。
+自定义栈、CLONE_VM 和多线程 fork 的拒绝边界不变。
+
+真实语料扩展已有 clone-sharing：外层观察者创建值为5的 semaphore；中间所有者
+用 SEM_UNDO 减为4，再以普通或 SYSVSEM clone 创建子进程，子进程也减1。
+私有列表在子进程退出后恢复为4；共享列表仍为3，直到最后所有者退出才恢复5。
+两种传输各验证这一差异、精确单次 wait 和 semaphore 删除；Linux 自己检查
+SYSVSEM/NEWIPC 冲突并必须返回 EINVAL。原 cwd/umask、共享关闭、close_range
+UNSHARE 和普通 fork 隔离/清理阶段保留，共五阶段及唯一 pass、机器关闭。
+
+GCC/Clang 实际原生 clone 正控制和故意漏传共享标志的反向控制通过；本地主机
+会在命名空间冲突检查前拒绝 NEWIPC，因此原生参考不冒充该 EINVAL 门禁的
+证据，Wasm 隔离目标仍严格要求。失败清理会删除测试拥有的 semaphore，原生
+正反控制后核实没有残留 IPC 对象。Clang18/22 双位宽真实 Linux clone UAPI
+消费者前端/分析、真实 Wasm 支持对象转发、450 项运行库测试、两套 TypeScript
+检查及工作流静态检查通过。这些不代替目标 Linux 的 SEM_UNDO 验收；
+[clone-sharing-check-both 41604324578](https://github.com/HighCWu/distro/actions/runs/41604324578)
+已异步派发，尚未接受五阶段通过。
+
+## fork 计算期信号与内核 robust-list 的目标验收
+
+[41599761764](https://github.com/HighCWu/distro/actions/runs/41599761764)
+固定 ee278a8，实际读取14,196,446字节 Heavy 日志，wasm32/64 各精确三阶段、
+唯一 pass：fork 前纯计算计时信号；父子孙进程计算、私有 TLS/数据、重复 fork
+和 wait；回调 fork 拒绝后正常 fork/计时器恢复。接受这一独立应用插桩静态 C
+组合的双位宽 Node 范围，不扩大为 libc 插桩、浏览器、动态或多线程 fork。
+
+[41600067842](https://github.com/HighCWu/distro/actions/runs/41600067842)
+固定04951a3，实际读取10,310,435字节 Heavy 日志，两位宽各精确三阶段和唯一
+pass：原始 syscall 退出的内核 owner-death 清理；SIGKILL 唤醒已睡眠 futex
+等待者；pending/坏地址遍历和后续有效退出恢复。接受该普通 SDK 的内核独立
+robust-list 清理范围，不扩大到所有 PI 或跨独立内存共享映射。
+
+两项 Heavy 和工作流均成功；逐一核对固定源码 run-test.js/shutdown.js 与当前
+无差异，runner await machine.closed 且关闭错误为非零退出。它们固定 Linux
+94d6741a0/musl651ebf65，不证明后继 SYSVSEM 或新的 exec 类型门禁已经通过。
+
 ## 内核 nofault 访问的实际线性内存边界
 
 Linux `c7b4f97ef` / distro `1753810` / 集成 `7fe1593` 修复 Wasm 架构的
