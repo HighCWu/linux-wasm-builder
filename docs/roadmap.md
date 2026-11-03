@@ -2499,6 +2499,14 @@ muslf09c21d9 / distrobbdd8f3 / 集成1af6a1f随后修复原SIGEV_THREAD worker�
 位宽分析通过；41592334251异步验收ENOEXEC保留TP/TLS/CLOEXEC fd及后续恢复，见
 [global准入](process-syscalls.md#exec-提交前校验宿主供给的线程指针-global)。
 
+a0dcd2b的41592334251现已核实双位宽exec global准入三阶段和关闭。定时通知
+bbdd8f3的41590872805首阶段实际errno=EAGAIN失败；musl651ebf65 / distro2eede83 /
+集成0858811保留kernel错误至helper握手结束，加入实际helper创建结果诊断，
+41596167405定向复验，尚未计为通知回调通过。2039315 / 集成33eadd3另接入内核
+独立robust-list退出、SIGKILL/已睡眠waiter唤醒、pending/坏地址和恢复的普通SDK
+语料；原生正反控制和双位宽分析通过，41597155614异步验收三阶段及关闭，见
+[内核独立清理](process-syscalls.md#内核独立-robust-list-死亡清理候选)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

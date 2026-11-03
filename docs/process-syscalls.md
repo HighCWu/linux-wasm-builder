@@ -6623,6 +6623,18 @@ JS异常shim。普通消费者前端/SjLj编译、实际函数与消费者静态
 派发上述真实三阶段及各机器关闭；仍待目标日志，不把组件模型当作kernel timer
 递送、pthread_exit回调或新musl组合已通过。内核继续94d6741a0，MMU和fork范围不变。
 
+bbdd8f3的41590872805实际失败于首个坏clock断言，报告errno=EAGAIN，尚未进入
+通知回调阶段。musl651ebf65 / distro2eede83 / 集成0858811修复Wasm调用路径的
+错误保留：保留原始SYS_timer_create负返回值，待helper semaphore握手结束后
+才经既有__syscall_ret转换errno。组件真实create函数复现了握手sem_wait先失败
+一次而把错误覆盖为EAGAIN的路径；恢复旧返回方式则无法保留原kernel EINVAL。
+这与目标现象相符，但不只凭该errno推定helper创建一定成功。因此目标加入透明
+pthread_create link wrapper记录实际返回值，继续严格要求EINVAL，不放宽预期。
+非Wasm路径与公共API不变，公开预取41595369149核实源码hash；Clang22双位宽
+实际函数/错误转换及三个反向控制通过。
+[41596167405](https://github.com/HighCWu/distro/actions/runs/41596167405) 定向复验中，
+仍须实际通知/TSD/TLS/退出和关闭证据，不将组件错误复现当作原CI已修复通过。
+
 ## exec 提交前校验宿主供给的线程指针 global
 
 distro `a0dcd2b` / 集成 `1b9ba2b` 修复实际执行准入缺口：此前只核对导入名和
@@ -6643,6 +6655,36 @@ CLOEXEC fd与offset保留；正确映像必须实际spawn/exit/wait，随后错�
 继续恢复。[41592334251](https://github.com/HighCWu/distro/actions/runs/41592334251)
 已异步派发双位宽各三阶段和机器关闭，尚不接受目标运行已通过。本轮只修复这项
 global契约，不宣称所有import/function签名或其它执行ABI错误已得到完整校验。
+
+a0dcd2b的41592334251现已成功，实际10,310,673字节Heavy日志逐项确认双位宽
+各三阶段及各唯一pass，包括三种不兼容global的ENOEXEC、原TP/TLS/CLOEXEC fd
+与offset保留、正确映像实际退出及后续恢复。发布runner与该固定版一致，等待
+machine.closed且关闭失败使目标非零退出，两路通过收尾门禁。接受该Node范围，
+不据此推定后继musl定时路径或浏览器执行准入已通过。
+
+## 内核独立 robust-list 死亡清理候选
+
+distro2039315 / 集成33eadd3新增独立普通SDK消费者，明确区分现有pthread
+退出测试的musl用户态清理和Linux内核独立robust-list路径。使用已有公共clone
+callback、CLONE_VM|SIGCHLD和独立C栈，在父进程创建waiter pthread前创建owner；
+owner只使用原始syscall，不经过pthread退出/robust用户态清理，不访问native TLS
+或libc allocator/errno。未修改内核/musl实现或扩大continuation fork支持。
+
+- 查询真实set/get_robust_list注册身份，原始SYS_exit后要求TID清零且保留
+  FUTEX_OWNER_DIED/WAITERS；缺少注册的反向控制必须明确失败。
+- 用proc标准task状态确认waiter已经在futex中睡眠后，SIGKILL owner；要求内核
+  死亡清理唤醒它，不能仅改word或靠超时通过。wasm32显式选SYS_futex_time64，
+  两位宽都传精确64位sec/nsec数组，避免偶然匹配旧time32布局。
+- 验证list_op_pending、坏next链接、无效注册head及后续有效退出。无效head不得
+  凭空把无注册项变成OWNER_DIED；所有案例只回收一次，释放stack/pipe，无残留waiter。
+
+GCC/Clang真实原生Linux三阶段与跳过注册反向控制通过。Clang18/22双位宽使用
+当前musl公共头和固定Linux futex UAPI声明编译/分析通过；轻量前端仅模拟UAPI
+scalar/compiler包含文件，目标使用完整安装头。根CI接入此参考和前端，不将它们
+当作Wasm kernel退出清理证据。
+[41597155614](https://github.com/HighCWu/distro/actions/runs/41597155614) 已异步派发
+双位宽三阶段及机器关闭。此项仍是候选，不宣称独立mm的共享映射、PI、任意链表
+损坏、所有竞争交错或应用数据自动恢复已经支持。
 
 ## 启动修复后的合并 syscall 回归结果
 

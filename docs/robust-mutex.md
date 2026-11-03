@@ -47,6 +47,11 @@ syscall、进程被杀、process-shared、PI、robust pending 窗口、死亡前
 异步取消、应用数据自动恢复或任意并发交错。ERRORCHECK 对象成功解锁只验证当前
 所有者可操作，不替代对其他线程错误解锁的完整负向测试。
 
+另有独立的[内核 robust-list 死亡清理候选](process-syscalls.md#内核独立-robust-list-死亡清理候选)：
+通过共享地址空间的原始退出和 SIGKILL，避开 musl 的正常退出清理，并确认已经
+排队的 futex waiter 被唤醒。原生参考及双位宽前端/分析已通过，真实 Wasm 三阶段
+和关闭仍待 CI；不能把这项候选当作本页旧测试已经覆盖上述内核路径。
+
 ## 并发竞争后的所有者退出
 
 distro `c184e08` 追加四轮并发恢复，每轮一名所有者和四名竞争者，仍只使用标准
