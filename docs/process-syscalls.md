@@ -6112,6 +6112,10 @@ musl 的精确 revision/hash。CI 41567995019 的 `toolchain-smoke-check-madvise
 双位宽 madvise 四阶段及文件流三阶段目标，复用构建图；真实阶段、唯一 pass
 和机器关闭仍待逐项核实，不沿用旧 DONTNEED 的运行结果。
 
+41567995019（1ebb4ea）随后已失败，7,685,329字节实际 Heavy 日志确认仍是
+musl 共享链接缺少堆边界和 SjLj tag，未执行 madvise 语料。对应配置修复已纳入
+后继合并回归41572697826，不重复派发或将该旧失败解释为 MADV_FREE 运行失败。
+
 ## LLVM 22 下保留的共享 libc 构建配置
 
 实际读取41566249073（5ef5878）7,770,060字节和41567015097（43195e4）
@@ -6159,6 +6163,15 @@ Clang18/22 双位宽实际消费者的前端和静态分析通过，GCC/Clang �
 CI 41569680820 的 user-namespace-check-both 需核实各四阶段、唯一 pass 与机器关闭，尚未接受
 完整目标通过。它不证明容器运行时、全部 namespace 组合或宿主安全隔离已经完成；
 USER_NS 未提升为默认构建选项，后续依据实际工作负载和目标结果决定。
+
+上述0417e65的41569680820已失败；读取15,710,311字节 Heavy 日志，确认
+wasm64 已进入用户程序，在 initial root namespace 检查中因 /proc 路径不存在
+返回 ENOENT。原始 initramfs 不自动挂载 procfs，这不是 unshare 的 ENOSYS
+或权限语义结果。distro `49c86fa` / 集成 `77cd647` 给 fixture 显式建立 /proc、
+挂载 procfs，并在子进程回收和父状态核对后卸载。Clang18/22 双位宽前端/分析
+通过，同一四阶段目标用已集成启动修复的新组合复验
+[41575757161](https://github.com/HighCWu/distro/actions/runs/41575757161)；真实
+namespace 语义仍待核实，尚未计为通过。
 
 ## 启动 FDT 覆盖预载 initrd 的实际缺陷
 
@@ -6224,9 +6237,18 @@ syscall，两实例共享 memory 但使用不同 TLS，分别经过三次批量�
 移除编译插入后，相同循环只耗尽迭代上限，反向检查明确失败。该结果不证明真实
 SIGALRM、pthread 信号、siglongjmp、并行 Worker 或性能开销已经验收。
 
-生产 pthread 原生 TLS 还须单独核实：当前 musl 的 Wasm clone 入口把父
-__tls_base 保存并设置给子实例。本原型显式调用合成 TLS 初始化函数，给两实例
-分配不同区域，不能代替实际 clone 路径的隔离证据；该项应在内核接线前处理。
+完整源码核对发现，musl 的 pthread_create 已为新线程分配独立原生 TLS，
+start/start_c11 在调用应用入口前执行 __wasm_init_tls。clone 早期暂存父
+__tls_base 不代表应用线程一直共享它，不应据此补写已有初始化。
+scripts/check_clone_native_tls.py 编译真实 clone.c 及从当前源码提取的 C11
+启动体，在共享 memory 的两实例间调用真实函数表入口。Clang18/22 双位宽
+产物确认：首次 gettid 边界仍暂用父 TLS，应用回调前已初始化独立区域，子写入
+不影响父数据；删除初始化的反向版本明确因父数据污染失败。两份 C 函数体静态
+分析通过。syscall 传输与线程退出由模型承担，故此证据不替代并行 Worker、
+完整 pthread_create 分配/回收或 Linux 目标运行验收。
+
+检查点接线必须避开原生 TLS 初始化窗口；base 非零本身不能证明属于当前线程。
+编译组件原型显式初始化不同区域的结果也不证明这一启动边界已被交付配置保护。
 
 后续必须实现中断式内核返回检查点，保持 pt_regs、用户栈、RCU/IRQ 状态以及
 现有回调/非局部退出边界；不能用伪造 gettid 等 syscall 代替，以免改变 seccomp

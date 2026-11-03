@@ -2399,6 +2399,17 @@ distro `53be296` / 集成 `61154e5` 验证现有 Clang 能自动给纯计算路�
 信号交付限制仍存在；下一步需保持中断返回、seccomp/ptrace 和回调边界，见
 [原型与必要验收](process-syscalls.md#纯计算循环检查点的编译组件原型)。
 
+USER_NS 的0417e65任务已到 wasm64 用户程序，因 raw initramfs 未挂载 procfs
+在查询命名空间路径时失败。distro `49c86fa` / 集成 `77cd647` 补齐挂载和卸载
+fixture 并定向复验，不把这个前提错误记为 unshare 语义失败或通过，见
+[实际失败记录](process-syscalls.md#独立-user_ns-配置与标准进程凭据路径)。
+
+随后完整核对 pthread_create 与真实 clone/C11 启动体的双位宽 Wasm 产物，
+确认已有独立原生 TLS 初始化，无需重复补写 musl。clone 早期仍有继承父 TLS
+的窗口，后续检查点不能只凭 base 非零判断线程已经就绪。静态分析和删除初始化
+的反向控制通过；模型传输不是并行 Linux 线程验收，见
+[启动边界](process-syscalls.md#纯计算循环检查点的编译组件原型)。
+
 每项工作至少在以下维度选择适用组合：
 
 | 维度 | 组合 |
