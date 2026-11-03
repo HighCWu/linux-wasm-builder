@@ -44,12 +44,15 @@ __attribute__((export_name("check"))) int check(void) {
 runner = r"""
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
 const [file,bits,mode]=process.argv.slice(2),wide=bits==='64',word=n=>wide?BigInt(n):n;
 const module=await WebAssembly.compile(readFileSync(file));
 if(mode!=='entry'){
  const instance=await WebAssembly.instantiate(module);
  assert.equal(instance.exports.check()===0,mode==='normal');
 }else{
+ const {user_function_imports_supported}=await import(pathToFileURL(process.argv[5]).href);
+ assert(user_function_imports_supported(readFileSync(file),wide?'i64':'i32',true),'actual Clang entry must pass the exec ABI gate');
  assert.deepEqual(WebAssembly.Module.imports(module).map(i=>`${i.module}.${i.name}:${i.kind}`).sort(),
   ['env.memory:memory','linux.get_thread_area:function','linux.syscall:function']);
  for(const tp of [0,0x90010000]){
@@ -187,7 +190,8 @@ with tempfile.TemporaryDirectory(prefix="exec-thread-state-") as tmp:
                 check=True,
             )
             subprocess.run(
-                ["node", str(path / "run.mjs"), str(binary), str(bits), "entry"],
+                ["node", str(path / "run.mjs"), str(binary), str(bits), "entry",
+                 str(ROOT / "sources/distro/packages/kernel/src/user-functions.ts")],
                 check=True,
             )
             print(
