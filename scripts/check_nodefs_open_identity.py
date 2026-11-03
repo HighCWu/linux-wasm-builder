@@ -45,3 +45,26 @@ with tempfile.TemporaryDirectory(prefix="nodefs-open-identity-") as directory:
         else:
             assert result.returncode == 0, result.stdout + result.stderr
             print(result.stdout, end="")
+    identity_check = "actual.dev !== expected.dev || actual.ino !== expected.ino"
+    assert injected.count(identity_check) == 1
+    for negative in (False, True):
+        module.write_text(
+            injected.replace(identity_check, "false") if negative else injected
+        )
+        result = subprocess.run(
+            ["node", str(fixture), str(module), "directory"],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if negative:
+            assert (
+                result.returncode != 0
+                and "directory identity mismatch must reject" in result.stderr
+            ), result.stdout + result.stderr
+            print(
+                "NodeFS: directory identity bypass negative control detects wrong-inode publication pass"
+            )
+        else:
+            assert result.returncode == 0, result.stdout + result.stderr
+            print(result.stdout, end="")
