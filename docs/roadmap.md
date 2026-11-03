@@ -2730,6 +2730,16 @@ Firefox151.0，ptrace五阶段与退出通知六阶段各同页两轮，共16次
 可选单线程配置及实际语料组合，不代验之后的NodeFS/只读挂载修复。见
 [浏览器矩阵验收](process-syscalls.md#clone-通知与-ptrace-浏览器矩阵已核实)。
 
+a72cc09 / 集成5058334接入独立pidfd_getfd真实消费者：子进程fork后创建文件，
+核对共享offset/status、独立CLOEXEC、错误后fd槽回收和源退出后的文件生存。
+GCC/Clang原生三阶段及本地dup反向控制、双位宽静态分析通过；41640837136
+异步验证真实Linux/Wasm双位宽三阶段及关闭，尚未接受目标。没有新增libc包装
+或伪称重写已有内核实现，见[跨进程FD](process-syscalls.md#pidfd_getfd-跨进程文件描述符消费者)。
+
+目录审查另已实际复现NodeFS旧目录句柄在宿主替换后按路径枚举新目录的问题，
+正确修复还需目录相对定位、子节点身份和回收。此项仍未完成，不把已有普通
+文件修复当作完整目录生存语义。见[目录定位缺口](process-syscalls.md#仍待解决的宿主目录句柄定位)。
+
 | 维度 | 组合 |
 |---|---|
 | 宿主 | Chromium、Firefox/WebKit可用路径、Node |

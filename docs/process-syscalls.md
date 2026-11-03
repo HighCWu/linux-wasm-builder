@@ -7904,3 +7904,44 @@ SIGCHLD、PIDFD就绪、__WCLONE与普通wait区别、单次回收及普通libc 
 退出通知实际场景限0/SIGUSR1/SIGCHLD及语料中的选项组合；不泛化到所有
 CSIGNAL字节、clone标志交叉、多线程fork、默认SDK、动态fork或后续NodeFS
 陈旧inode/只读挂载修复。32eb392的41637667371仍按自己的阶段单独验收。
+
+## pidfd_getfd 跨进程文件描述符消费者
+
+distroa72cc09 / 集成5058334新增独立pidfd-getfd配置，接入固定Linux已存在的
+标准号438，不冒称新写了内核实现。程序使用已有musl syscall()，显式传入
+六机器字参数；不提供pidfd公共包装、头文件API或项目自有syscall。仍使用
+可选单线程静态C fork配置，内核、musl及默认SDK未改。
+
+子进程在fork后才创建普通文件，父进程不能通过继承获得该打开描述。双方用
+标准pipe握手，依次要求三个阶段：
+
+1. pidfd_getfd取得真正的子文件，复制fd为CLOEXEC而子fd保持原描述符flags；
+   父读ab使子读cd，子设置O_APPEND使父可见，证明共享打开描述的offset/status。
+2. flags=1、坏pidfd、普通文件冒充pidfd和坏远端fd分别EINVAL/EBADF；失败不
+   消耗fd槽，后续复制仍成功并共享原offset。
+3. 子进程关闭源fd后复制返回EBADF，回收后ESRCH；父复制fd在unlink/源关闭/
+   子退出后仍可读ef且nlink为0，最终关闭所有fd并正常fork/wait恢复，无遗留子进程。
+
+GCC/Clang实际原生三阶段通过。把真实远程复制替换为本进程dup(target_number)
+的反向控制失败，避免把碰巧相同的fd编号或继承文件误当作复制成功。原生
+参考只使用显式临时路径；若其它宿主策略阻止真实调用，会以77且无pass退出，
+不记为原生或目标通过。Clang18/22双位宽前端及静态分析通过，既有clone参考
+仍通过。原生结果不证明Wasm寄存器、进程上下文与copy_to_user路径。
+
+一次派发固定a72cc09的
+[41640837136](https://github.com/HighCWu/distro/actions/runs/41640837136)，选择
+pidfd-getfd-check-both，要求wasm32/64各完整三阶段、唯一pass及machine.closed。
+首次派发在获取workflow元数据的GET阶段EOF退出；核对没有该源码的已建任务
+后才重试，最终仅一项派发成功。实际目标仍待核实，不扩大为其它凭据、命名空间、
+全部pidfd flags或浏览器已支持。
+
+## 仍待解决的宿主目录句柄定位
+
+本轮实际源NodeFS轻量复现：opendir持有旧目录后，宿主把目录rename到新名字，
+再在旧名字创建含不同条目的目录；旧句柄readdir返回了替换目录的条目。
+当前NodeFS保存的FileHandle可用于旧inode属性与fsync，但枚举仍按parts路径，
+因此普通文件身份修复不能被描述为完整目录句柄生命周期支持。
+
+该缺口未在本轮假称解决。后续需要同时处理目录相对定位、子节点身份及引用
+回收，单纯重走路径或只验证错误返回不能代替原目录的正确语义。它属于宿主
+共享后端，不据此否定Linux内部ramfs/ext4的目录语义，也不阻塞独立pidfd目标。
