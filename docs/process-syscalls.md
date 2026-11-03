@@ -6505,6 +6505,10 @@ musl 公共 API 和 fork 支持范围不变。
 同步该fixture，改用MADV_REMOVE验证拒绝，新增MADV_FREE内容清空及地址预约
 仍存在的断言。GCC/Clang六项检查通过，包含ASan/UBSan、实际分配器分析和原
 拷贝丢失反向控制；未修改已验收实现。新的根CI仍为异步验收。
+另据c95758c的41587156253实际日志，terminal检查仍按两种可选补丁配置匹配
+recipe，未识别新增的第三种独立poll配置。bf7fdbf同步该检查，同时要求poll
+默认关闭、禁止与fork/dynamic组合，并保留原有错误配置反向控制。Clang18/22
+双位宽前端/分析及GCC/Clang原始daemon/forkpty/login_tty宿主参考通过。
 
 ## 独立 libc 插桩配置与真实库循环候选
 
