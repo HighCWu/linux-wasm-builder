@@ -57,6 +57,46 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
         print(
             f"{cc}: real native clone shared/private SEM_UNDO, last-exit cleanup and omitted-sharing negative control pass"
         )
+    exit_source = SOURCE.parent.parent / "clone-exit-signal/runtime.c"
+    for cc in ("gcc", "clang"):
+        for negative in (False, True):
+            source = work / "exit-reference.c"
+            text = exit_source.read_text()
+            if negative:
+                changed = text.replace(
+                    "CLONE_PIDFD | signal", "CLONE_PIDFD | (signal * 0) | SIGCHLD"
+                )
+                assert changed != text
+                text = changed
+            source.write_text(text)
+            binary = work / "exit-reference"
+            subprocess.run(
+                [
+                    cc,
+                    "-O2",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    str(source),
+                    "-o",
+                    str(binary),
+                ],
+                check=True,
+            )
+            result = subprocess.run(
+                [str(binary)], capture_output=True, text=True, timeout=15
+            )
+            if negative:
+                assert (
+                    result.returncode != 0 and "ordinary wait excludes" in result.stderr
+                ), result.stdout + result.stderr
+            else:
+                assert result.returncode == 0 and result.stdout.count(" pass\n") == 3, (
+                    result.stdout + result.stderr
+                )
+        print(
+            f"{cc}: real native notification/PIDFD/WCLONE semantics and forced-SIGCHLD negative control pass"
+        )
     (work / "bits").mkdir()
     template = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (
         MUSL / "include/alltypes.h.in"
@@ -102,7 +142,11 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
             for directory in ("arch/wasm32", "arch/generic", "include"):
                 flags += ["-I", str(MUSL / directory)]
             flags += ["-isystem", resource + "/include", "-Wall", "-Wextra", "-Werror"]
-            for consumer in (SOURCE, SOURCE.parent.parent / "clone-flags64/runtime.c"):
+            for consumer in (
+                SOURCE,
+                SOURCE.parent.parent / "clone-flags64/runtime.c",
+                exit_source,
+            ):
                 subprocess.run([*flags, "-fsyntax-only", str(consumer)], check=True)
                 subprocess.run(
                     [
@@ -117,5 +161,5 @@ with tempfile.TemporaryDirectory(prefix="clone-semundo-") as tmp:
                     check=True,
                 )
             print(
-                f"{cc} wasm{bits}: clone SEM_UNDO/NNP consumers frontend and static analysis pass; not target acceptance"
+                f"{cc} wasm{bits}: clone SEM_UNDO/NNP/exit-signal consumers frontend and static analysis pass; not target acceptance"
             )
