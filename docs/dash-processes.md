@@ -10,8 +10,9 @@
 ## 构建边界
 
 - 使用现有可选 fork libc、执行对象和完整链接后的 Asyncify 变换。
-- Dash 无条件调用 `vfork()`；仅给该应用添加 `-Dvfork=fork` 编译参数，明确改走
-  普通 fork。没有新增 libc vfork 或共享地址空间／暂停父进程的语义。
+- Dash 无条件调用 `vfork()`。从 distro `0a36554` 起，可选 fork 配置恢复
+  tombl/musl 已有的通用 C fork-like 回退，Dash 直接使用原函数名构建，已移除
+  `-Dvfork=fork` 参数。父子采用独立快照并可独立执行，完整新组合仍待目标验收。
 - 源码生成工具使用构建机编译器，目标代码使用匹配位宽的 fork 编译入口。
 - Dash 使用 setjmp/longjmp。其与 fork 执行现场恢复的组合必须由此候选的真实
   运行验证，不能据原有静态 C 微测试宣称任意 SjLj/C++ EH 程序已受支持。

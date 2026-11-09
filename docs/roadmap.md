@@ -2911,3 +2911,10 @@ e36e7d8 / 集成bbeed98实现可选动态SDK的已有dladdr调用路径。主程
 前端及静态分析、两套类型检查和538项运行层测试通过，Linux/Wasm聚合CI待验收。
 这是已有动态加载能力的兼容性增量。见
 [dladdr实现](elf-dynamic-linking.md#已有-dladdr-接口的动态模块支持)。
+
+0a36554 / 集成cce0ab6恢复可选fork配置下tombl/musl既有vfork的通用C回退，
+Dash已去掉-Dvfork=fork，直接按原函数名构建。五个既有Luna子代理实施，主会话
+决定契约、审查并验证错误恢复与收尾。父子使用独立快照，采用普通fork-like行为。
+原生三阶段、双位宽实际C ABI微型执行、前端和静态分析通过；42613237502异步
+验收双位宽新消费者、Dash、fork回归及关闭。9485b3e只补充SDK说明。见
+[vfork回退](process-syscalls.md#既有-vfork-的通用回退与原版-dash-构建)。

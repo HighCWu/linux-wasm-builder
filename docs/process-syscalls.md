@@ -8240,3 +8240,32 @@ EOPNOTSUPP，旧 allocator 不会收到新请求。公共 musl 函数和头文�
 等待 machine.closed，关闭或迟到错误会使检查非零退出，该任务与 Heavy 均成功。
 这接受登记匿名映射的 WIPEONFORK/KEEPONFORK 范围，浏览器仍待独立验收。
 [实际目标日志](https://github.com/HighCWu/distro/actions/runs/42600310846)。
+
+## 既有 vfork 的通用回退与原版 Dash 构建
+
+distro `0a36554` / 集成 `cce0ab6` 恢复 tombl/musl 已有 `vfork` 的 Wasm 门控，
+仅可选 fork profile 编译通用 C 实现。原函数体保留，通过标准 SIGCHLD clone
+进入既有 continuation。父子采用独立内存快照，可独立运行，调用不执行
+pthread_atfork hooks。使用既有 libc 接口，没有新增公共 API 或 Linux syscall。
+
+Dash 配方移除 `-Dvfork=fork`，按原函数名链接原始源码。可选 CONFIG_SITE
+同时清除 fork/vfork 的默认否定缓存，让正常声明和链接检测运行，不预填成功。
+默认 SDK 的缓存策略保留。单线程、静态 C 和完整链接后 finalizer 的前提继续适用。
+
+五个既有默认 Luna 子代理实现门控、配方、配置和消费者，主会话决定契约并
+审查全部差异。新消费者检查缺文件 exec 的 ENOENT 与精确退出状态、随后成功
+exec 的 PID/PPID/参数环境、继承 fd 和共享文件 offset，以及 atfork 未调用。
+helper 使用普通 SDK，父程序使用 fork profile。主会话修正重复 pass、报告管道
+自持写端与 child 中 errno 宏引入的额外函数调用。通过标记只在程序正常退出及
+临时文件清理后发送。
+
+GCC、Clang22 原生三阶段、双位宽修补头文件的 C 前端和补丁零 fuzz dry-run
+通过。主会话直接编译修补后的真实 vfork.c 与 syscall_ret.c，在 Wasm32/64
+微型执行中核对 clone 的六机器字参数、父子返回值和 EAGAIN 转换。该微型执行
+使用固定返回的 syscall import 和 errno 存储辅助，只验证 ABI。静态分析保留
+unix.Vfork 检查，仅排除消费者刻意调用 vfork 所触发的 insecureAPI 名称提示。
+原生消费者与微型执行均不替代 Linux/Wasm 验收。
+
+固定代码版本 `0a36554` 的聚合任务要求双位宽新消费者三阶段、既有 Dash 完整
+进程语料、fork/exec 回归与机器关闭。后续 `9485b3e` 仅更新 SDK 说明。
+实际目标结果待日志核实。[目标 CI](https://github.com/HighCWu/distro/actions/runs/42613237502)。
