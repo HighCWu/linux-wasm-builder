@@ -8276,7 +8276,8 @@ distro `b8c7e2a` / 集成 `8a9ddb4` 接通 FUSE 与 POSIX NodeFS 的原始路径
 普通 openat/readdir/renameat/readlinkat/unlinkat 可区分非 UTF-8 名字与真实
 U+FFFD名字，避免错误访问替换字符文件。六个既有Luna子代理实施，主会话
 审查并验证真实源代码。内核和 musl 不变，新增消费者使用普通 SDK。
-原生三阶段及轻量检查通过，Linux/Wasm共享目录完整套件待真实CI验收。见
+原生三阶段及轻量检查通过。固定版本的 Node/Wasm32 实际目标日志已核实，
+新用例和旧回归共15项通过，包含三阶段精确输出、宿主状态及关闭收尾。见
 [字节路径实现与边界](host-storage.md#linux-文件名与链接目标的字节保真)。
 
 ## GNU 进程工具构建的材料清单修复
