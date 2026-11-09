@@ -8516,3 +8516,37 @@ done，已补齐；终端检查的临时副本遗漏 vfork.c，且仍匹配旧�
 Clang18/22 双位宽前端、原始 musl 终端函数的 GCC/Clang 参考通过。主会话也
 检查了135个工作流 Bash 块的语法，并直接执行修复后 Make、Gawk、Git 的三个
 native CI 步骤，GCC/Clang18 组合均通过。公开 CI 的后续结果继续独立跟进。
+
+## 单线程 fork 与 libc 计算检查点的组合候选
+
+distro `21a1c53` / 集成 `4a87f84` 新增独立
+sdk-fork-cooperative-poll-libc 及 wasm64 配置，接通原来分隔的 continuation fork
+与 libc 计算期检查点。显式组合 marker 和用户 poll marker 必须同为零参数函数，
+同时返回1或2。版本2使用既有的每实例线程指针 global 和 native TLS 所有权保护。
+展开、快照持有及恢复仍通过同一状态门禁，动态配置另有互斥条件。
+
+libc 按既有 coverage 机制编译，clone/pthread 启动路径保留原排除规则，独立
+执行支持对象使用单独编译配置。三个现有 CRT、fork、poll 补丁可以依次零 fuzz
+应用。musl 只调整 Wasm 执行配置兼容条件，公共函数与头文件 API 沿用原接口。
+材料记录实际 musl 源码和补丁选择。源组件说明以独立 e529bec 提交记录。
+
+五个复用 Luna 子代理实施运行时准入、SDK、配置接线、执行支持和消费者，主会话
+决定协议并审查全部差异。新增阶段在覆盖回调被禁用的应用包装函数内，反复通过
+volatile 函数指针调用 libc memchr，要求计时信号发生于该区间。另覆盖 pthread
+退出后的普通 fork，以及父子私有 TLS 和数据。线程退出窗口复用原有的有界恢复
+规则，仅重试 EOPNOTSUPP。原来的回调 fork 拒绝阶段保留。
+
+主会话独立核对 Clang22 支持对象的双位宽导入与 marker、源码与测试 TypeScript、
+内核运行库测试、实际 profile 头文件下的前端及包装函数 IR。IR 保留间接调用，
+包装函数内没有应用 coverage 回调。Clang18 的两个新 ABI 子检查因旧 linker
+输出的导入名 UTF-8 错误明确跳过，Clang22 全部通过且无跳过。
+
+GCC/Clang native 参考通过真实退出码和完整回收验证，使用专用宏排除私有内核
+回调 fork 拒绝检查，并以不同 native 标记报告该范围。目标配置要求原三阶段
+加 libc 阶段。固定21a1c53的
+[42657155385](https://github.com/HighCWu/distro/actions/runs/42657155385)一次派发，
+聚合要求新旧配置双位宽各完整阶段、唯一 pass 与关闭门禁，真实结果待验收。
+
+此前9d9e9cb的主仓库任务42653263913已成功，并读取实际 native 步骤日志核对
+Make、Gawk、Git 的 GCC/Clang18 各四阶段，以及终端原函数体检查。该结果限主仓库
+参考检查，候选 Wasm 运行继续按各自固定源码验收。

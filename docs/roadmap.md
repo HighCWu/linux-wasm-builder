@@ -3010,3 +3010,8 @@ BusyBox42636405345在最终链接遇到--warn-common，LLVMfb960167 / distrobe7c
 另以9d9e9cb修复主仓库Make CI循环与终端临时副本、配方匹配，实际native步骤
 和完整工作流shell语法检查通过。见
 [诊断参数与CI修复](process-syscalls.md#gnu-common-诊断参数与主仓库-ci-修复)。
+
+21a1c53 / 集成4a87f84接通单线程fork与libc计算检查点的独立ABI2组合。五个复用
+Luna子代理实施，主会话决定协议与审查，双位宽支持对象、IR、类型检查及native
+参考通过。42657155385异步验收新四阶段、旧三阶段与关闭，见
+[libc检查点组合](process-syscalls.md#单线程-fork-与-libc-计算检查点的组合候选)。
