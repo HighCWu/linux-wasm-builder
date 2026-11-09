@@ -8293,3 +8293,40 @@ distro `82aa6db` / 集成 `7d12763` 补齐这两个既有产物，并保留缺�
 审查清单、实际 sysroot 来源及打包调用路径，14项本地检查通过。固定82aa6db的
 42616826592已一次派发双位宽 GNU 进程工具聚合复验，完整阶段及关闭待核实。
 [修复版复验](https://github.com/HighCWu/distro/actions/runs/42616826592)。
+
+## 官方 BusyBox 源码的普通 fork 构建
+
+distro `164df4c` / 集成 `fdc5d21` 新增可选 busybox-fork 及 wasm64 产品。源码
+来自固定 nixpkgs 的官方 BusyBox1.37.0 发行包，沿用该包已有的上游安全与集成
+补丁。主会话下载发行包并核对 SHA256 与固定定义一致。项目自有配方、配置、
+消费者和 helper 为 MIT，BusyBox 与上游补丁保留其 GPL 许可。
+
+配置选择普通 fork 路径和 Ash，启用基础文件工具、find、xargs、awk、tar 等
+选定 applet。BusyBox 的 CONFIG_NOMMU 关闭后可使用现有 fork 执行 ABI，Linux
+内核的 CONFIG_MMU 仍为 n。Ash 的 SjLj 使用已有 Clang 参数，整个可执行文件
+在链接后经过 fork finalizer。helper 由普通 SDK 构建。
+
+真实二进制和所有上游 applet 链接安装到 /opt/busybox-fork，另提供
+/bin/busybox-fork 入口。配置与构建前后校验 ash.c 和 vfork_daemon_rexec.c 的
+摘要，保留上游补丁、配置、生成头文件及 SDK 来源材料。四个既有 Luna 子代理
+分工实现，主会话负责契约与审查，并修正 Kconfig 精确匹配、真实材料文件名、
+Nix 中单文件测试路径及 busybox.links 的生成。finalizer 之后直接运行上游
+安装脚本，避免 make install 重新复制未经变换的链接产物。
+
+独立运行语料要求四个阶段依次完成。
+
+1. Ash 的管道、命令替换、后台 wait 和精确退出状态，显式调用外部 helper。
+2. find -exec 完整文件参数，以及 xargs 的 NUL 输入和2+1参数分组。
+3. awk system() 与命令 getline 的输出、退出状态、close 和重新执行。
+4. 缺失 exec 的127、helper 的7，以及随后正常外部命令恢复。
+
+主会话使用 GCC/Clang22 编译 helper，在原生 BusyBox1.36.1 上核实四阶段及唯一
+pass。原版1.37.0 的 Kconfig 生成和选项保留已核实；Clang22 检查 Ash、进程
+辅助和 applet 入口的 Wasm32/64 前端语法。该发行 Clang 的 wasm64 Linux
+triple 不可用，64位前端使用 Wasm64 加 Linux 宏，完整定制工具链仍需 CI。
+原版安装脚本另用标记文件核对字节保留和 Ash 的隔离链接，此检查仅验证安装
+路径。helper 静态分析、位宽前端、ShellCheck、shfmt、Nixfmt 和工作流检查通过。
+
+固定164df4c的聚合任务已一次派发，要求双位宽真实1.37.0产品四阶段、既有
+fork/exec语料和机器关闭。目标运行结果待实际日志核实，原生1.36.1参考与
+前端检查各自保留证据范围。[目标 CI](https://github.com/HighCWu/distro/actions/runs/42619738115)。

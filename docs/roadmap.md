@@ -2930,3 +2930,10 @@ GNU进程工具42602956896失败于SDK材料打包，首错是Nix新加入的两
 未进入Python严格白名单。82aa6db / 集成7d12763修复集合并用真实Nix定义校验
 防止漂移，未放宽输入验证。消费者尚未运行，修复版42616826592异步复验中。
 见[材料清单修复](process-syscalls.md#gnu-进程工具构建的材料清单修复)。
+
+164df4c / 集成fdc5d21接入官方BusyBox1.37.0及固定nixpkgs补丁，提供独立
+busybox-fork产品和普通fork路径的Ash、选定文件与进程工具。四个既有Luna子代理
+实施，主会话审查配置、构建、变换和隔离安装。Linux仍保持CONFIG_MMU=n。
+原生1.36.1参考四阶段、配置生成及轻量检查通过；42619738115异步验收双位宽
+目标1.37.0产品、fork回归及关闭。见
+[官方BusyBox普通fork构建](process-syscalls.md#官方-busybox-源码的普通-fork-构建)。
