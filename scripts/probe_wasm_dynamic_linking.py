@@ -490,6 +490,7 @@ const allocate=(size,alignment)=>{size=Number(size);alignment=Math.max(8,Number(
   assert.equal(processLoader.open(rootPointer,2),word(memoryAddress,0),'failed recursive call must not unlock outer loading');}
  return word(memoryAddress,p);};
 const deallocate=p=>{assert(live.delete(Number(p)),'exactly one owner frees each temporary allocation');};
+const mainAddressPath=storeString('/bin/dylink-probe');
 const bridge={exports:{...main.exports,
  dlopen:(path,flags)=>{const result=processLoader.open(path,flags);if(!BigInt(result))modeledDlerror=true;return result;},
  during_start:()=>{fromStart=processLoader.symbol(word(memoryAddress,0),unaddressedPointer);
@@ -499,6 +500,7 @@ const bridge={exports:{...main.exports,
  __wasm_dlopen_allocate:allocate,
  __wasm_dlopen_deallocate:deallocate,
  __wasm_dlopen_library_path:()=>environmentPointer,
+ __wasm_dlopen_main_path:()=>mainAddressPath,
  __wasm_dlopen_origin:()=>word(memoryAddress,originPointer),
  __wasm_dlopen_fd:()=>currentFd,
  __wasm_dlopen_read:path=>{const pathBytes=readCStringBytes(path);const name=readCString(path);if(name==='/control')throw control;
@@ -831,6 +833,56 @@ assert.equal(processLoader.symbol(nextFront, storeString('private_next')), word(
 const privateAlias = mainMetadata.privateExports.values().next().value;
 assert.equal(processLoader.symbol(word(memoryAddress, 0), storeString(privateAlias)), word(memoryAddress, 0));
 console.log(`Process loader NEXT model wasm${bits}: constructor and indirect/private caller scopes, canonical pointers and main callbacks pass`);
+const infoBytes=4*pointerBytes;
+const addressInfo=allocate(infoBytes,pointerBytes);
+const addressFields=()=>{
+ const view=new DataView(memory.buffer,Number(addressInfo),infoBytes);
+ return Array.from({length:4},(_,index)=>pointerBytes===8
+  ?view.getBigUint64(index*pointerBytes,true):BigInt(view.getUint32(index*pointerBytes,true)));
+};
+const addressedRun=processLoader.symbol(handle,storeString('run'));
+const tableBeforeAddress=table.length;
+// Force the name allocator to grow memory after the output range was checked.
+heap=memory.buffer.byteLength-1;
+assert.equal(processLoader.address(addressedRun,addressInfo),1);
+let addressResult=addressFields();
+assert.equal(readCString(word(memoryAddress,addressResult[0])),'/libraries/'+names[1]);
+assert.equal(readCString(word(memoryAddress,addressResult[2])),'run');
+assert.equal(addressResult[3],BigInt(addressedRun));
+const counterAddress=processLoader.symbol(dependency,storeString('counter'));
+assert.equal(processLoader.address(counterAddress,addressInfo),1);
+addressResult=addressFields();
+assert.equal(readCString(word(memoryAddress,addressResult[0])),'/libraries/'+names[0]);
+assert.equal(readCString(word(memoryAddress,addressResult[2])),'counter');
+assert.equal(addressResult[3],BigInt(counterAddress));
+assert.equal(processLoader.address(word(memoryAddress,BigInt(counterAddress)+1n),addressInfo),1);
+addressResult=addressFields();
+assert.equal(readCString(word(memoryAddress,addressResult[0])),'/libraries/'+names[0]);
+assert.equal(addressResult[2],0n);assert.equal(addressResult[3],0n);
+assert.equal(processLoader.address(fromStart,addressInfo),1);
+addressResult=addressFields();
+assert.equal(readCString(word(memoryAddress,addressResult[0])),'/bin/dylink-probe');
+assert.equal(addressResult[1],0n);
+assert.equal(readCString(word(memoryAddress,addressResult[2])),'unaddressed_main');
+assert.equal(processLoader.address(main.exports.host_value.value,addressInfo),1);
+addressResult=addressFields();
+assert.equal(readCString(word(memoryAddress,addressResult[0])),'/bin/dylink-probe');
+assert.equal(readCString(word(memoryAddress,addressResult[2])),'host_value');
+assert.equal(addressResult[3],BigInt(main.exports.host_value.value));
+assert.equal(processLoader.address(word(memoryAddress,BigInt(main.exports.host_value.value)+1n),addressInfo),1);
+addressResult=addressFields();
+assert.equal(readCString(word(memoryAddress,addressResult[0])),'/bin/dylink-probe');
+assert.equal(addressResult[1],0n);
+assert.equal(addressResult[2],0n);assert.equal(addressResult[3],0n);
+new Uint8Array(memory.buffer,Number(addressInfo),infoBytes).fill(0xa5);
+const savedAddressInfo=new Uint8Array(memory.buffer,Number(addressInfo),infoBytes).slice();
+assert.equal(processLoader.address(word(memoryAddress,0),addressInfo),0);
+assert.equal(processLoader.address(word(memoryAddress,(1n<<BigInt(bits))-1n),addressInfo),0);
+assert.deepEqual(new Uint8Array(memory.buffer,Number(addressInfo),infoBytes),savedAddressInfo);
+assert.equal(processLoader.address(addressedRun,word(memoryAddress,memory.buffer.byteLength-1)),0);
+assert.equal(table.length,tableBeforeAddress,'address lookup must not assign new function slots');
+deallocate(addressInfo);
+console.log(`Process loader address model wasm${bits}: actual table ownership, data/interior ranges, main metadata, memory growth and output-preserving misses pass; not Linux bridge acceptance`);
 const retained=live.size;
 assert.equal(processLoader.open(missingPointer,2),word(memoryAddress,0));
 assert.equal(processLoader.open(badPointer,2),word(memoryAddress,0));
@@ -894,6 +946,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
         "dylink_linker",
         "dylink",
         "dylink_call_metadata",
+        "dylink_address",
         "dylink_call_wrapper",
         "wasm_binary",
         "wasm",

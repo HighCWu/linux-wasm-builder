@@ -54,6 +54,20 @@ jobs:
         run: python3 -B scripts/probe_python_load_extension.py --python python3 --cc clang-18
       - name: Check C++ shared-library exceptions and cleanup against native Linux
         run: python3 -B scripts/probe_cxx_dynamic_linking.py --cxx clang++-18
+      - name: Check dladdr standard consumer against native Linux
+        run: |
+          for compiler in gcc clang-18; do
+            plugin="$RUNNER_TEMP/dladdr-plugin-$compiler.so"
+            program="$RUNNER_TEMP/dladdr-runtime-$compiler"
+            "$compiler" -O2 -Wall -Wextra -Werror -fPIC -shared \
+              -Wl,-soname,dladdr-plugin.so \
+              sources/distro/distro/dladdr-runtime/plugin.c -o "$plugin"
+            "$compiler" -O2 -Wall -Wextra -Werror -rdynamic \
+              sources/distro/distro/dladdr-runtime/main.c -ldl -o "$program"
+            DLADDR_RUNTIME_PROGRAM="$program" DLADDR_RUNTIME_PLUGIN="$plugin" \
+              NATIVE_REFERENCE=1 timeout 30 sh \
+              sources/distro/distro/dladdr-runtime/runtime-test.sh
+          done
       - name: Check PIC partial links with released Clang and real Wasm execution
         run: python3 -B scripts/probe_wasm_partial_link.py --clang clang-18
       - name: Check original Lua C modules and nonlocal error recovery against native Linux
@@ -175,6 +189,7 @@ jobs:
       - name: Check dynamic module metadata and independent memory/table layouts
         run: |
           node --test sources/distro/packages/kernel/test/dylink.test.ts \
+            sources/distro/packages/kernel/test/dylink-address.test.ts \
             sources/distro/packages/kernel/test/dylink-linker.test.ts \
             sources/distro/distro/dynamic-loader/io.test.js
       - name: Check pinned kernel module file-reference ownership
