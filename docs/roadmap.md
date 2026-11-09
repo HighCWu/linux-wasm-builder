@@ -2838,3 +2838,11 @@ cb42db0 / 集成c1c55c6继续接通原版SQLite3.51标准.load、API表回调和
 42570603052异步验收双位宽Linux/Wasm四阶段与关闭。此增量提升已有动态加载
 能力的真实程序可用性，未新增syscall或libc公共API。详见
 [SQLite扩展](elf-dynamic-linking.md#原版-sqlite-的标准扩展加载)。
+
+7ae8bc1 / 集成1bc606b新增可选CPython标准C扩展构建，沿用上游dynload_shlib和
+PyInit入口，标准库仍静态构建。四个Luna子代理复用上下文实现，主会话审查并
+修正实际.so来源核验、失败后新路径重新加载、位宽校验、通知路径和退出门禁。
+GCC/Clang22的本机3.11.15参考四阶段、原生analyzer与轻量检查通过；固定版本
+42572763311异步构建3.13.14并验收两位宽扩展、已有十三阶段loader及关闭。
+musl公共API与fork范围不扩展，默认Python产品保持独立。见
+[CPython扩展](elf-dynamic-linking.md#cpython-的标准-c-扩展导入)。

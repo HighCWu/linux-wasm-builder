@@ -1093,3 +1093,44 @@ Clang18/22 的双位宽前端和 analyzer、Nixfmt、ShellCheck/shfmt、Ruff 及
 [42570603052](https://github.com/HighCWu/distro/actions/runs/42570603052) 固定
 `cb42db0`，请求 sqlite3-extension-runtime-check-both。Linux/Wasm 的四阶段、
 唯一 pass 和机器关闭尚待实际日志验收，原生结果不扩大为目标环境通过。
+
+## CPython 的标准 C 扩展导入
+
+`7ae8bc1` / 集成 `1bc606b` 新增独立 python-dynamic、对应动态 stdenv 和双位宽
+扩展消费者。默认 stdenv 的 config.site 仍作为形参默认值，原有 SDK 策略检查
+同步适配。动态配置采用现有 SDK 的编译器、启动 sysroot 和 config.site，
+由真实 dlopen 探测启用 CPython 原有 dynload_shlib 路径。
+
+CPython 3.13.14 在 Wasm 下仍将标准库模块静态构建，Linux 的普通 C 扩展入口
+则由 PyInit_*、dlopen 和 dlsym 提供。该配置保留 --disable-shared，不额外修改
+CPython 源码或使用 Emscripten 专用开关。其静态主程序原本直接链接完整对象集，
+动态 stdenv 增加 export-all 和 growable-table 以提供 API 与后续函数槽。
+上游选择路径见 [CPython 配置](https://raw.githubusercontent.com/python/cpython/v3.13.14/configure.ac)。
+
+新消费者通过 Python.h、PyModuleDef 和模块局部状态实现普通扩展。四阶段核对
+指定目录的真实 .so 导入、返回42、Python 回调及异常传播、初始化失败后的新路径
+重新加载，以及标准库 JSON 和文件往返。重载使用普通 import、独立文件副本和
+新模块状态，随后恢复 sys.path 和 sys.modules；旧模块状态也必须保留。
+解释器成功退出并清理临时目录后，由 shell 输出第四阶段与唯一最终 pass。
+
+目标镜像显式提供地址位数，消费者校验实际解释器的指针宽度。产品保留原有
+Python 及依赖通知，扩展包的通知放在独立目录，避免 initramfs 路径冲突。
+新增 recipe 与消费者采用 MIT，musl 公共接口和 fork 范围不作扩展。
+
+主会话完成静态审查。GCC/Clang22 与本机 CPython 3.11.15 的原生四阶段通过，
+Clang22 对两个 C 文件的原生静态分析、Nixfmt、ShellCheck/shfmt、Ruff、
+工作流语法及原有 SDK 策略检查通过。本地没有构建 CPython 3.13.14，也没有用
+宿主头文件结果代替其实际 Wasm 头文件和 ABI 检查。
+
+[42572763311](https://github.com/HighCWu/distro/actions/runs/42572763311) 固定
+`7ae8bc1`，请求 python-extension-runtime-check-both，同时复用双位宽 SDK 驱动
+及现有十三阶段动态加载检查。实际 CPython 构建、Linux/Wasm 四阶段与机器关闭
+尚待目标日志验收，浏览器扩展消费者尚未验收。
+
+同期已核实旧 `8f1c28f` 的
+[42558908006](https://github.com/HighCWu/distro/actions/runs/42558908006) 失败于同一
+旧版 SDK 省略启动文件检查，其 wasm64 重定位错误与前述已修用例相同。
+该结果不构成 RTLD_NEXT 的目标验收。`c1c55c6` 的根仓库轻量 CI
+[42570599904](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42570599904)
+已成功，范围包括实际 Clang 小型 Wasm 语料和原生 SQLite 参考，不扩大为上述
+完整 Linux/Wasm 产品验收。
