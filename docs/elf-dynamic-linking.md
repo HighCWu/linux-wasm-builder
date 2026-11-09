@@ -1473,3 +1473,17 @@ distro `2e38449` / 集成 `14a081b` 修正此检查。通用 profile 只要求�
 检查因本地没有候选 SDK 而跳过。
 [42681240190](https://github.com/HighCWu/distro/actions/runs/42681240190)
 继续异步验收双位宽实际驱动、ELF 三阶段消费者及关闭，尚未取得目标通过证据。
+
+## 动态地址查询的函数类型准入修复
+
+[42638173513](https://github.com/HighCWu/distro/actions/runs/42638173513)
+在 wasm64 动态加载回归启动 `/init` 时返回 ENOEXEC，阶段尚未执行。主会话核对
+加载链后发现，普通导入白名单已包含 `linux_dlopen_v1.address`，函数类型提供表
+却漏了这一项。动态 SDK 的执行对象始终导入此入口，以调用已有 `dladdr`。
+双位宽有效 Wasm 模块均可重现类型准入拒绝。
+
+distro `6ab0360` / 集成 `878b4c3` 补齐两机器字参数、i32 返回值的类型契约。
+子代理实施，主会话审查并独立完成双位宽实际 Clang22 产物准入、错误类型拒绝、
+545 项内核运行库检查及源码/测试 TypeScript 检查。未降低未知导入的准入要求。
+[42682754978](https://github.com/HighCWu/distro/actions/runs/42682754978)
+异步复验原双位宽动态加载与 dladdr 的实际阶段及关闭，尚待目标结果。
