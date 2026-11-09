@@ -1222,3 +1222,34 @@ SDK 检查覆盖普通和嵌套 response file 的 -r，再从结果构建共享�
 固定 `ce94a9c` 的双位宽聚合检查包含 C++、加载器及 GNU libltdl、SQLite、
 CPython 扩展路径。其真实阶段和关闭仍待验收，普通默认 SDK 的配置本轮未变。
 [本增量聚合检查](https://github.com/HighCWu/distro/actions/runs/42584789604)。
+
+## 原版 Lua 的标准 C 模块与跨库 SjLj
+
+`9313076` / 集成 `dc21c12` 新增可选 lua-dynamic 和 lua-extension-runtime
+双位宽产品。Lua5.4.8复用现有 lua.src 的固定源码，直接使用上游 make linux
+目标，由其选择 LUA_USE_LINUX、POSIX、dlopen 和通常的导出参数。解释器和
+luac 使用同一动态 SDK，开发输出包含原版头文件与 liblua.a。
+
+标准模块入口为 luaopen_nativeprobe，通过普通 require 和 package.loadlib
+加载。模块使用主解释器导出的 Lua C API。回调错误从主程序的 Lua error 路径
+穿过模块调用帧回到 protected frame；另有模块内 setjmp，经共享 libc 的
+__wasm_longjmp 返回模块 catchpad，复用已有规范 __c_longjmp tag 接线。
+消费者源码使用普通 Lua 和 C 接口。
+
+四阶段核对 require 的表身份与累计状态、模块错误和 Lua 回调错误、标准
+longjmp 的7及0转1语义，以及错误后的正常调用。缺失文件加载失败后再加载
+有效副本，要求新副本具有独立原生状态、原模块状态保留。解释器成功退出并
+清理临时目录后，shell 才输出第四阶段和唯一 pass。按可选动态 SDK 的单线程、
+驻留加载范围验收。
+
+主会话复核本地解包目录的 NAR SHA256，精确匹配产品固定输入。原版 make linux
+构建的 GCC 与 Clang18 原生四阶段通过。使用当前 musl 生成头文件的 Clang22
+双位宽 PIC 前端编译，以及新增 C 模块的静态分析通过；实际对象含预期 SjLj
+helper 和 tag 引用。Nixfmt、Ruff、ShellCheck/shfmt、工作流与仓库检查通过。
+新增 recipe、模块及运行脚本采用 MIT，产品保留 Lua、musl、SDK 和 compiler-rt
+通知。此增量恢复的是普通软件的构建与运行路径，没有新增 libc 公共接口。
+
+固定 `9313076` 的聚合检查请求双位宽 SDK 驱动、既有十三阶段 Linux 加载器和
+Lua 四阶段及各自关闭。真实 Linux/Wasm 和浏览器结果仍待验收，原生和前端
+结果限定于上述范围。
+[Lua 双位宽聚合检查](https://github.com/HighCWu/distro/actions/runs/42587510265)。

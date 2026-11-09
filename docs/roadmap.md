@@ -71,6 +71,12 @@ partial object 构建库。Clang18/22 双位宽轻量引擎参考通过，定制
 Linux/Wasm 路径由42584789604异步验收，见
 [标准部分链接](elf-dynamic-linking.md#动态-sdk-的标准部分链接)。
 
+`9313076` / 集成 `dc21c12` 增加原版 Lua5.4.8 的可选动态模块产品，采用
+上游 make linux，接通标准 require/package.loadlib 与跨库错误恢复。原生
+GCC/Clang18 四阶段、双位宽 Wasm 前端和静态分析通过。双位宽聚合任务
+42587510265已派发，实际目标阶段及关闭待核实，见
+[Lua 标准 C 模块](elf-dynamic-linking.md#原版-lua-的标准-c-模块与跨库-sjlj)。
+
 当前已核实 [Dash](dash-processes.md) 的 wasm32/wasm64 Node 完整非交互语料与
 运行器关闭门禁，以及 wasm64 Chromium/Firefox 各两轮完整阶段、机器及浏览器关闭。
 仍使用显式的应用局部 vfork→fork 参数与可选执行 ABI，不做 callback 重写，不
