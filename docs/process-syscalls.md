@@ -8623,3 +8623,26 @@ shell与内嵌JS语法检查通过。验收继续采用单线程静态C范围。
 聚合自动SDK、fork语料、Findutils和上述四个程序的双位宽阶段及关闭门禁。
 [42669541393](https://github.com/HighCWu/distro/actions/runs/42669541393)
 针对性复验已修正入口配置的 BusyBox，结果分别待核实。
+
+## CPython 原始 fork 路径候选
+
+`7f229de` / 集成 `ce84651` 新增独立 python-fork 和 wasm64 配置。其 stdenv
+复用 fork SDK 的完整编译参数、sysroot 和 Autoconf 策略，通过普通 CC 完成
+构建。CPython 配方的可选门控撤去 forkless 补丁、模块禁用值和该补丁所需的
+兼容宏，让上游 fork 声明探测与 `_posixsubprocess` 模块选择正常执行。
+
+构建会核对 HAVE_FORK、模块启用记录，以及 posixmodule、_posixsubprocess、
+subprocess.py 和 popen_fork.py 与固定 CPython3.13.14 源码一致。既有解释器
+材料和依赖许可证继续随产物交付，追加 fork SDK 的材料与通知。
+
+运行语料使用标准 os.fork/register_at_fork、subprocess 的 preexec_fn、
+cwd/env/pass_fds、错误传播与恢复，以及 multiprocessing 显式 fork 上下文的
+Process/Pipe。四阶段检查身份、私有堆和回收，采用单线程 fork 范围，包含
+有限等待与异常清理。启动脚本先核对实际解释器位宽和安装布局，再运行语料。
+
+四个复用 Luna 子代理实施，主会话决定构建契约并审查。主会话独立运行的宿主
+Python3.11.15 四阶段参考、既有 Python/SDK 检查、格式、语法和静态检查通过。
+这些结果尚未证明目标解释器成功。固定7f229de的
+[42671986041](https://github.com/HighCWu/distro/actions/runs/42671986041)
+异步构建并验收双位宽 CPython3.13.14、ABI/布局、完整四阶段、唯一 pass
+及机器关闭，同时复验基础 fork 组合。真实目标结果待核实。

@@ -3039,3 +3039,9 @@ LLVM53ed8fa4 / distro6739c56 / 集成b1e4dcd接通独立的自动fork链接配�
 和Git接入普通自动链接流程，四个复用Luna子代理实施，主会话审查与集成。
 42669529696验收程序组合，42669541393复验BusyBox，各自要求实际阶段和关闭。
 见[自动链接迁移](process-syscalls.md#普通-shell-和进程工具使用自动链接)。
+
+7f229de / 集成ce84651接通独立CPython原始fork配置，撤去该配置中的forkless
+补丁和_posixsubprocess禁用值，使用配套stdenv普通构建。四个复用Luna子代理
+实施，主会话审查并独立完成宿主参考与轻量检查。42671986041异步验收双位宽
+3.13.14的标准fork、preexec_fn、错误恢复、Process/Pipe及关闭。见
+[CPython候选](process-syscalls.md#cpython-原始-fork-路径候选)。
