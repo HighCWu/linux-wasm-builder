@@ -8550,3 +8550,21 @@ GCC/Clang native 参考通过真实退出码和完整回收验证，使用专用
 此前9d9e9cb的主仓库任务42653263913已成功，并读取实际 native 步骤日志核对
 Make、Gawk、Git 的 GCC/Clang18 各四阶段，以及终端原函数体检查。该结果限主仓库
 参考检查，候选 Wasm 运行继续按各自固定源码验收。
+
+## Git 许可证安装路径修复与 Hush 补验
+
+固定c79c7c8的42651278083已明确失败于安装阶段，日志执行到 SDK-MIT.txt
+复制。源码编译及 Wasm 转换已经执行，消费者尚未运行。标准 SDK 的
+buildMaterials 产物提供归档文件，已安装许可证由 SDK 的 licenseTexts 部分
+放在 share/linux-wasm-sdk/licenses。旧配方引用了材料目录中不存在的展开路径。
+
+复用 Luna 子代理实施一行修复，主会话核对材料生成器、SDK 组合及许可证输出
+路径。`f0596ff` / 集成 `27a2b72` 从实际安装位置复制该文本，fork SDK 自身
+的材料路径继续按其输出契约使用。固定版本的
+[42661210500](https://github.com/HighCWu/distro/actions/runs/42661210500)一次派发，
+仍要求原版 Git 双位宽完整四阶段、唯一 pass 和关闭门禁，结果待核实。
+
+旧 Hush 任务42635983289已取消，实际日志停在 LLVM 构建并报告 operation was
+canceled，取消原因未给出，尚无目标运行结果。确认该任务终止后，同一固定
+f0596ff由[42661221204](https://github.com/HighCWu/distro/actions/runs/42661221204)
+补验 busybox-check-shell-status-both，继续要求两位宽完整 shell 状态阶段和关闭。
