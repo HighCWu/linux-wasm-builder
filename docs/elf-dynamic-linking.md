@@ -1419,3 +1419,28 @@ load 的一次初始化、正常 recipe 与第二次 no-op。坏插件须实际�
 固定 distro `3404432` / 集成 `59deda3` 已一次派发聚合，要求双位宽动态 SDK
 driver、新 Make 消费者四阶段、原动态加载器十三阶段与关闭门禁。实际目标
 结果待日志核实。[目标 CI](https://github.com/HighCWu/distro/actions/runs/42645087631)。
+
+## GNU Awk 的标准 C 扩展
+
+distro `90a8697` / 集成 `8fd7de7` 新增可选 gawk-dynamic 与 wasm64 产品，
+接通原配方关闭的扩展加载。沿用固定 GNU Awk5.3.1 源码及已有的 posix_spawn、
+pty callback-clone 两个进程兼容补丁，动态 SDK 编译主程序与共享扩展。
+configure 实际探测 dlfcn/dlopen 并要求 DYNAMIC，持久化地址分配器显式关闭。
+ext.c 与 gawkapi.h 对照原始源码，进程源码及构建配置、补丁、依赖源码和许可证
+一并留作材料。自有配方、示例扩展和消费者采用 MIT。
+
+标准 dl_load 入口接收 GNU API 表，注册字符串和数组函数，并在初始化时发布
+普通 AWK 标量。字符串通过 API 分配器取得所有权，数组更新使用已有 API。
+扩展安装于编译进主程序的搜索目录，目标恢复阶段直接使用 -l wasmext。
+坏扩展缺少 dl_load，须在 BEGIN 前失败，随后新的 Gawk 进程加载正常扩展恢复。
+源码中的初始化返回零仅产生警告，消费者遵循 GNU 的这一行为。
+
+四个复用 Luna 子代理实施扩展、消费者、配方和双位宽集成，主会话完成方案、
+源码与差异审查。审查修正材料 Makefile 同名冲突、安装搜索路径和 AWK 换行
+语法。宿主 Gawk5.2.1/API3.2 的 GCC、Clang 扩展四阶段通过，GNU5.3.1/API4.0
+头文件下的 Wasm32/64 前端与 Clang 静态分析通过。两者的 API 版本分别记录，
+完整定制 SDK 和 GNU5.3.1 的目标运行尚待验收。
+
+固定版本的 gawk-dynamic-check-both 已一次派发，要求双位宽四阶段、唯一 pass、
+SDK driver、既有动态加载器阶段及关闭门禁。
+[目标 CI](https://github.com/HighCWu/distro/actions/runs/42648082562)。
