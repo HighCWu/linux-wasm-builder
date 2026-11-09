@@ -8487,3 +8487,32 @@ upload-pack/pack-objects，核对内容与 fsck；前台 repack/gc 留下 pack �
 [42651278083](https://github.com/HighCWu/distro/actions/runs/42651278083)异步验收，
 选择 git-fork-check-both。daemon 后台行为另需目标验证，多线程 fork 仍按既有
 边界处理。此增量接通真实软件的原版进程路径，未计为新增内核 syscall 实现。
+
+## GNU common 诊断参数与主仓库 CI 修复
+
+固定 distro86bbf93 的官方 BusyBox 任务42636405345在最终链接明确失败，实际
+日志报告 wasm-ld 不识别 --warn-common。归档组参数已通过该轮解析，程序尚未
+运行。LLVM `fb960167` 为 --warn-common/-warn-common 增加 GNU 兼容参数。
+Wasm 对象没有 COMMON 表达，当前 MCWasmStreamer 的 COMMON 发射仍未实现，
+该诊断参数无需改变正常符号解析。普通重复强定义继续报错。
+
+复用的 Luna 子代理实施参数和聚焦 lit fixture，另一子代理把实际参数接入
+已有 SDK 最终 C 链接检查。主会话审查对象格式、驱动未知参数处理与符号解析，
+独立执行 TableGen、双位宽无参数基线和重复强定义负向检查。新参数下的真实
+链接与完整 BusyBox 阶段仍待验收，COMMON 发射与合并保留为独立能力缺口。
+
+公开源码任务42652363934核实 LLVMfb960167，NAR 为
+`sha256-f+N7lZBuoTiBGNB4fPZ1PWYKxsOKsZV8s2RCzon20/g=`。distro `be7c9b0`、
+集成 `6d96fc4` 固定该输入和 SDK 回归，以
+[42653315018](https://github.com/HighCWu/distro/actions/runs/42653315018)针对性
+复验 busybox-fork-check-both。其余在途版本按自己的源码及运行阶段分别核实。
+
+主仓库任务42651189973还暴露两处检查接线错误。Make native CI 的循环缺少
+done，已补齐；终端检查的临时副本遗漏 vfork.c，且仍匹配旧的可选属性结构。
+当前生产配方总是应用基础 CRT patch，fork patch、编译宏与互斥条件仍按配置
+选择。`9d9e9cb` 更新副本清单与精确配方匹配，保留默认值和负向检查。
+
+终端副本与配方修复由复用 Luna 子代理实施，主会话审查并独立运行原检查。
+Clang18/22 双位宽前端、原始 musl 终端函数的 GCC/Clang 参考通过。主会话也
+检查了135个工作流 Bash 块的语法，并直接执行修复后 Make、Gawk、Git 的三个
+native CI 步骤，GCC/Clang18 组合均通过。公开 CI 的后续结果继续独立跟进。

@@ -3004,3 +3004,9 @@ c79c7c8 / 集成2fdb01c接入原版Git2.55.0的独立单线程静态fork配置�
 Nix接线与产物转换。宿主2.43四阶段、助手双位宽前端与静态分析通过，真实
 2.55双位宽和关闭由42651278083异步验收。见
 [Git进程路径](process-syscalls.md#原版-git-的单线程-fork-配置)。
+
+BusyBox42636405345在最终链接遇到--warn-common，LLVMfb960167 / distrobe7c9b0 /
+集成6d96fc4补齐该GNU诊断参数，公开NAR核实后由42653315018针对性复验。
+另以9d9e9cb修复主仓库Make CI循环与终端临时副本、配方匹配，实际native步骤
+和完整工作流shell语法检查通过。见
+[诊断参数与CI修复](process-syscalls.md#gnu-common-诊断参数与主仓库-ci-修复)。
