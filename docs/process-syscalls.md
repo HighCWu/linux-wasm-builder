@@ -31,6 +31,21 @@ dead-store 警告，主会话核对析构计数的实际使用及原生结果，
 探测显式链接 C++ 运行库，这些 profile 输入在 -nostdlib/-nodefaultlibs 下仍存在。
 完整 Linux/Wasm 三阶段、唯一 pass 与机器关闭须由独立目标 CI 验收。
 
+后续 `7f5db96` / 集成 `fb3c925` 修正静态 C++ 的 tag 检查。此前 ELF 候选
+42681240190 在构建门禁要求普通静态 executable 导出 __cpp_exception，实际无需
+此动态共享契约。优化对象现在必须保留 tag 引用，最终静态成品须在模块内部解析
+该引用。没有为通过检查新增生产导出。新 C++ fork 检查
+[42719238077](https://github.com/HighCWu/distro/actions/runs/42719238077)
+与 ELF 候选
+[42719246681](https://github.com/HighCWu/distro/actions/runs/42719246681)
+均固定该源码，运行阶段与关闭待核实。
+
+同期 BusyBox `55b3964` 的 42683518444 已实际通过前两阶段，在 awk 输出比对失败。
+官方 1.37.0 原生 awk applet 可得到期望输出，目标日志未保留实际 stdout。
+`77000a8` 增加失败时的 stdout、stderr 和子进程记录，保留全部成功要求，交由
+[42719254899](https://github.com/HighCWu/distro/actions/runs/42719254899)
+获取恢复修复所需的目标证据。该诊断增量尚未修复已确认的目标运行错误。
+
 ## Node 共享目录的追加标志切换修复候选
 
 distro `fbf7a08` / 集成 `d8545d0` 修复 NodeFS 中一个真实写入位置错误。
@@ -8605,7 +8620,10 @@ GCC/Clang native 参考通过真实退出码和完整回收验证，使用专用
 回调 fork 拒绝检查，并以不同 native 标记报告该范围。目标配置要求原三阶段
 加 libc 阶段。固定21a1c53的
 [42657155385](https://github.com/HighCWu/distro/actions/runs/42657155385)一次派发，
-聚合要求新旧配置双位宽各完整阶段、唯一 pass 与关闭门禁，真实结果待验收。
+现已核实实际日志。libc 配置 wasm32/wasm64 各四阶段，应用配置双位宽各三阶段，
+每个运行均有唯一 pass。相应 vm-test 在 finally 等待 machine.closed，关闭失败
+会使检查失败，四项运行和聚合均成功。该固定版本的 Node 组合通过，不代表
+C++、动态模块或浏览器组合已通过。
 
 此前9d9e9cb的主仓库任务42653263913已成功，并读取实际 native 步骤日志核对
 Make、Gawk、Git 的 GCC/Clang18 各四阶段，以及终端原函数体检查。该结果限主仓库
