@@ -26,6 +26,7 @@ $'M\tarch/wasm/kernel/setup.c') ;;
 $'M\tarch/wasm/kernel/sections.c\nM\tarch/wasm/scripts/sections.pl\nM\tsecurity/lsm_init.c') ;;
 $'M\tarch/wasm/include/asm/uaccess.h') ;;
 $'M\tarch/wasm/include/asm/processor.h') ;;
+$'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/syscall.c') ;;
 $'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/include/uapi/asm/unistd.h\nM\tarch/wasm/kernel/syscall.c') ;;
 $'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/process.c') ;;
 $'M\tarch/wasm/include/asm/mmu.h\nM\tarch/wasm/include/asm/remote_vm.h\nM\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/remote_vm.c\nM\tarch/wasm/mm/init.c') ;;
