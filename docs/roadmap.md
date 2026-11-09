@@ -65,6 +65,12 @@ C++、十三阶段加载器及三种原版软件消费者；运行阶段和关�
 证据包括521项运行层检查、两套类型检查及原生 C++ 参考，见
 [实现与证据边界](elf-dynamic-linking.md#c-动态模块的共享异常运行时)。
 
+后续 `ce94a9c` / 集成 `e980281` 接通可选动态 SDK 的普通 -r 部分链接，消除
+默认进程内存/table 参数对对象合并的阻碍。原有 Linux 加载器消费者现在也从
+partial object 构建库。Clang18/22 双位宽轻量引擎参考通过，定制 SDK 与完整
+Linux/Wasm 路径由42584789604异步验收，见
+[标准部分链接](elf-dynamic-linking.md#动态-sdk-的标准部分链接)。
+
 当前已核实 [Dash](dash-processes.md) 的 wasm32/wasm64 Node 完整非交互语料与
 运行器关闭门禁，以及 wasm64 Chromium/Firefox 各两轮完整阶段、机器及浏览器关闭。
 仍使用显式的应用局部 vfork→fork 参数与可选执行 ABI，不做 callback 重写，不

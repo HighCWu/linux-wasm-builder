@@ -1195,3 +1195,30 @@ _start，-nostdlib 与 -nodefaultlibs 继续控制默认库。SDK 检查同步�
 CPython 扩展消费者，复用同一次编译器构建。各消费者的实际阶段、唯一 pass 与
 关闭仍待日志核实，宿主参考和工作流状态不作为替代。
 [修复后聚合检查](https://github.com/HighCWu/distro/actions/runs/42582967182)。
+
+后续读取 SQLite 固定 `cb42db0` 的42570603052实际日志，确认同样失败于 wasm64
+SDK -nostartfiles 的上述三个缺失定义，尚未运行 SQLite 消费者。根仓库 `ecba22e`
+的42579888864日志则已核实521项运行层检查和原生 Clang18 C++ 四阶段通过，
+这些证据限定于相应轻量检查。
+
+## 动态 SDK 的标准部分链接
+
+`ce94a9c` / 集成 `e980281` 为可选动态 SDK 接通普通 -r。Clang 识别部分链接后
+省略默认 CRT、libc/C++ 运行库、进程 table base、profile runtime 和 wasm-opt。
+动态 sysroot 的共享内存、growable table 与栈指针导出默认值移到最终链接阶段，
+用户显式传入的链接参数继续传递。正常共享库仍采用可重定位 table 布局。
+
+SDK 检查覆盖普通和嵌套 response file 的 -r，再从结果构建共享库，核对未定义
+主程序函数与 C++ 异常 tag 保留。十三阶段 Linux 加载器消费者的 libplugin-a 也
+改为从实际 partial object 构建，原有构造函数、数据与调用断言保留。聚合目标
+加入底层 Clang driver 检查，核实同一编译器的真实 PIC 部分链接和引擎调用。
+
+主会话完成代码审查，并独立使用 Clang18/22 验证双位宽的两对象合并、共享链接、
+未定义 provider 导入和实际调用返回42。补丁在固定 LLVM90352668上 dry-run
+通过，Nixfmt、Ruff、固定 JS 格式、语法与工作流检查通过。本地没有构建后的
+定制 SDK，相关两项 Node 检查跳过，未计为通过。纯对象链接仍可能报告已有
+-mllvm -wasm-enable-sjlj 的 unused 警告，本增量未全局屏蔽参数诊断。
+
+固定 `ce94a9c` 的双位宽聚合检查包含 C++、加载器及 GNU libltdl、SQLite、
+CPython 扩展路径。其真实阶段和关闭仍待验收，普通默认 SDK 的配置本轮未变。
+[本增量聚合检查](https://github.com/HighCWu/distro/actions/runs/42584789604)。
