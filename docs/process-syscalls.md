@@ -8337,3 +8337,29 @@ version/src/patches 的选择赋值会被 fix 改写。`f3eb829` / 集成 `b4df2
 改用 inherit 并同步配方检查，Nixfmt 与检查通过。本地依据规则源码进行静态
 核对，完整格式门禁仍交由 CI 执行。当前固定f3eb829的42620736032负责该候选
 双位宽验收。[格式修复版 CI](https://github.com/HighCWu/distro/actions/runs/42620736032)。
+
+## 异步目标检查的三个接线修复
+
+主会话读取了上述候选的实际失败日志，并逐项定位。
+
+- DONTUNMAP 的42607124232停在普通 toolchain-smoke 的旧信号模块夹具。
+  新 Clang 自动读取 sysroot 的 executable response file，显式参数中过滤
+  `__stack_pointer` 已不足以撤去导出。`c43fd26` 为该夹具复用 link-sysroot
+  配方生成专用响应文件，原来要求无栈指针导出的断言保留。
+- vfork 的42613237502与 BusyBox 的42620736032停在隔离 fork SDK 检查。
+  复制后的 execution-link.test.js 找不到真实 user-functions.ts。
+  `e823d2f` 镜像原始 distro/packages 目录关系，复制实际模块及其依赖。
+  新临时隔离目录中原有8项检查通过。
+- GNU 工具42616826592已在 Wasm32 输出 tar 前三个阶段，第四阶段失败。
+  tar 明确报告过滤器退出37，但旧 Hush 的 else 分支读到状态0。该 shell
+  源码在跳过 then 分支时会清零状态，原脚本写法本身符合 POSIX。
+  `37840b2` 在命令后立即保存状态，再进入条件判断。非零错误和后续普通归档
+  恢复断言保留，GCC/Clang 原生消费者四阶段通过。目标复验仍需确认。
+
+三个修复按独立源码提交发布，集成 pin 为 `cd34295`。复验固定 distro
+`37840b2`，分别为 DONTUNMAP 42628068112、vfork 42628083775、GNU 工具
+42628094264及 BusyBox 42628105424。这些旧失败任务均不算完整目标验收。
+[DONTUNMAP](https://github.com/HighCWu/distro/actions/runs/42628068112)、
+[vfork](https://github.com/HighCWu/distro/actions/runs/42628083775)、
+[GNU 工具](https://github.com/HighCWu/distro/actions/runs/42628094264)、
+[BusyBox](https://github.com/HighCWu/distro/actions/runs/42628105424)。
