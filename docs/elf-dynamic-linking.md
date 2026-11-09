@@ -1382,3 +1382,8 @@ SDK C/C++ 驱动、三阶段消费者、唯一 pass 及发布 runner 的关闭�
 检查器发现 lambda 参数未被使用；`8bb4720` 改为 `"$" + flag` 显式构造仅链接
 参数。固定 `6dbc8d5` 包含该修复，已一次派发
 [复验 CI](https://github.com/HighCWu/distro/actions/runs/42634205111)。
+
+后续默认工具链更新为 GNU 归档组兼容的 LLVM `dc787527`，固定 distro86bbf93
+的候选 SDK 检查同步覆盖 LLVM ar 与带组最终链接。新组合由
+[42636418886](https://github.com/HighCWu/distro/actions/runs/42636418886)验收，
+不沿用旧编译器组合的结果证明新组合通过。

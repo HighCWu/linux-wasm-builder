@@ -8401,6 +8401,14 @@ busybox-check-shell-status-both。固定修复版的
 [42634218310](https://github.com/HighCWu/distro/actions/runs/42634218310)已派发，
 原 Plan 失败不算执行过 Hush 目标语料。
 
+42634218310已进入 Heavy，但材料宿主测试在刻意篡改 fixture 时遇到 EACCES。
+Nix 输入复制出的补丁只读，原生仓库里的可写文件没有暴露这一测试前提。
+`db9d5b6` / 集成 `4fa6b9d` 仅将负向测试的复制件设为可写，再修改内容核验
+checksum 拒绝，生产材料仍保留原权限。只读输入下两项宿主检查及只读 hush.c
+的真实 patch 应用均通过。该修复版的
+[42635983289](https://github.com/HighCWu/distro/actions/runs/42635983289)已派发，
+真实 Hush 阶段仍待验收。
+
 ## DONTUNMAP 与 vfork 的固定版本 Node 验收
 
 主会话已读取固定 distro `37840b2` 的完整实际 Heavy 日志，并对照该版本源码
@@ -8418,3 +8426,24 @@ Node组合。vfork沿既定独立快照回退语义，浏览器和后续ELF/Hush
 官方 BusyBox 的42628105424已进一步到最终链接，实际报 Wasm LLD 不识别
 --start-group/--end-group。原版 BusyBox 运行语料尚未执行，归档组参数的
 工具链兼容实现继续推进，保留原软件构建脚本。
+
+## GNU 归档组参数的工具链兼容
+
+LLVM `dc787527` 在 Wasm LLD 接受 GNU --start-group/--end-group、单横线形式和
+`-(`/`-)` 别名。既有 Wasm 符号表会全局保存懒归档成员，后续未定义符号可提取
+先前归档中的成员；因此沿用现有提取机制。--start-lib 的对象归档语义保持原实现。
+普通 Makefile 无需删除原有归档组参数，官方 BusyBox 的已确认链接障碍由此接通。
+
+两个复用 Luna 子代理实施 LLD 选项与 SDK 消费路径，主会话审查符号解析调用链，
+并纠正测试中输出文件名影响 name section、递归提取日志顺序的问题。TableGen
+生成通过，发布版 LLVM 工具的双位宽基线验证了跨归档回溯及未引用成员不提取。
+主会话另核对归档依赖链的实际 Wasm 执行。新选项的接受及带组链接仍需新编译器
+真实构建后验收，未把旧工具的无组基线当作新选项通过。
+
+固定 distro `86bbf93` / 集成 `35c6838` 已接入经公开42635599723核实哈希的源码。
+SDK 的既有 C 驱动检查显式使用配套 LLVM ar，将部分链接对象打包后以 GNU 组
+参数执行最终链接，原模块、内存和 ELF 候选断言保留。两个聚合已各派发一次，
+分别要求官方 BusyBox 双位宽真实程序与 fork 回归，以及 ELF 候选双位宽 SDK
+驱动、exec 三阶段及关闭门禁。
+[BusyBox 复验](https://github.com/HighCWu/distro/actions/runs/42636405345)、
+[ELF/SDK 复验](https://github.com/HighCWu/distro/actions/runs/42636418886)。
