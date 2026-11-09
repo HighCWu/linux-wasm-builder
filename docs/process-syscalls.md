@@ -8017,10 +8017,13 @@ openat/unlinkat等通过原目录FD继续访问旧目录，以及readdir的稳�
 
 | 固定源码与任务 | 已核实范围 |
 | --- | --- |
-| 8d4d9a3 / [41648941984](https://github.com/HighCWu/distro/actions/runs/41648941984) | wasm32 Node共享目录13个子用例及外层套件，共14 pass，0 fail/skip |
+| 8d4d9a3 / [41648941984](https://github.com/HighCWu/distro/actions/runs/41648941984) | wasm32 共享目录，14项通过 |
 | 4480642 / [41649317994](https://github.com/HighCWu/distro/actions/runs/41649317994) | 同一共享目录完整套件与关闭 |
 | d9f3ea8 / [41650336204](https://github.com/HighCWu/distro/actions/runs/41650336204) | 同一共享目录完整套件与关闭 |
-| 8d4d9a3 / [41648987859](https://github.com/HighCWu/distro/actions/runs/41648987859) | wasm32/64各有序通过pidfd三阶段、Unix辅助数据两阶段及唯一pass |
+| 8d4d9a3 / [41648987859](https://github.com/HighCWu/distro/actions/runs/41648987859) | 双位宽 pidfd 与 Unix 辅助数据五阶段 |
+
+共享目录包含13个子用例和外层套件，零失败、零跳过。描述符任务的双位宽各
+有序通过pidfd三阶段、Unix辅助数据两阶段和唯一最终pass。
 
 三份共享目录日志分别为11,128,056、11,128,651和11,193,326字节。成功的固定
 控制器严格比较四阶段元数据输出、两种只读模式各三阶段，以及宿主文件内容
