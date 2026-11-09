@@ -68,6 +68,19 @@ jobs:
               NATIVE_REFERENCE=1 timeout 30 sh \
               sources/distro/distro/dladdr-runtime/runtime-test.sh
           done
+      - name: Check the existing vfork consumer against native Linux
+        run: |
+          for compiler in gcc clang-18; do
+            helper="$RUNNER_TEMP/vfork-helper-$compiler"
+            program="$RUNNER_TEMP/vfork-runtime-$compiler"
+            "$compiler" -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/vfork-runtime/helper.c -o "$helper"
+            "$compiler" -O2 -Wall -Wextra -Werror -pthread \
+              sources/distro/distro/vfork-runtime/main.c -o "$program"
+            VFORK_RUNTIME_PROGRAM="$program" VFORK_RUNTIME_HELPER="$helper" \
+              NATIVE_REFERENCE=1 timeout 30 sh \
+              sources/distro/distro/vfork-runtime/runtime-test.sh
+          done
       - name: Check PIC partial links with released Clang and real Wasm execution
         run: python3 -B scripts/probe_wasm_partial_link.py --clang clang-18
       - name: Check original Lua C modules and nonlocal error recovery against native Linux
