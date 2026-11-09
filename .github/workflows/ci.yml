@@ -47,7 +47,20 @@ jobs:
       - name: Install released compiler and linker for the small artifact corpus
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev python3-dev busybox
+          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev python3-dev busybox make
+      - name: Check GNU Make standard load plugins against native Linux
+        run: |
+          set -euo pipefail
+          for compiler in gcc clang-18; do
+            plugin="$RUNNER_TEMP/makeplugin-$compiler.so"
+            bad_plugin="$RUNNER_TEMP/badplugin-$compiler.so"
+            "$compiler" -O2 -Wall -Wextra -Werror -fPIC -shared \
+              sources/distro/distro/make-dynamic/plugin.c -o "$plugin"
+            "$compiler" -O2 -Wall -Wextra -Werror -fPIC -shared \
+              sources/distro/distro/make-dynamic/badplugin.c -o "$bad_plugin"
+            MAKE_DYNAMIC_PROGRAM=/usr/bin/make MAKE_DYNAMIC_PLUGIN="$plugin" \
+              MAKE_DYNAMIC_BAD_PLUGIN="$bad_plugin" NATIVE_REFERENCE=1 timeout 30 sh \
+              sources/distro/distro/make-dynamic/runtime-test.sh
       - name: Check the ELF carrier bridge against pinned LLD and Linux sources
         env:
           GH_TOKEN: ${{ github.token }}
