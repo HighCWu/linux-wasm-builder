@@ -47,7 +47,7 @@ jobs:
       - name: Install released compiler and linker for the small artifact corpus
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev python3-dev busybox make
+          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev python3-dev busybox make gawk
       - name: Check GNU Make standard load plugins against native Linux
         run: |
           set -euo pipefail
@@ -61,6 +61,20 @@ jobs:
             MAKE_DYNAMIC_PROGRAM=/usr/bin/make MAKE_DYNAMIC_PLUGIN="$plugin" \
               MAKE_DYNAMIC_BAD_PLUGIN="$bad_plugin" NATIVE_REFERENCE=1 timeout 30 sh \
               sources/distro/distro/make-dynamic/runtime-test.sh
+      - name: Check Gawk standard C extensions against native Linux
+        run: |
+          set -euo pipefail
+          for compiler in gcc clang-18; do
+            extension="$RUNNER_TEMP/wasmext-$compiler.so"
+            bad_extension="$RUNNER_TEMP/badext-$compiler.so"
+            "$compiler" -O2 -Wall -Wextra -Werror -fPIC -shared \
+              sources/distro/distro/gawk-dynamic/extension.c -o "$extension"
+            "$compiler" -O2 -Wall -Wextra -Werror -fPIC -shared \
+              sources/distro/distro/gawk-dynamic/badextension.c -o "$bad_extension"
+            GAWK_DYNAMIC_PROGRAM=/usr/bin/gawk GAWK_DYNAMIC_EXTENSION="$extension" \
+              GAWK_DYNAMIC_BAD_EXTENSION="$bad_extension" NATIVE_REFERENCE=1 timeout 30 sh \
+              sources/distro/distro/gawk-dynamic/runtime-test.sh
+          done
       - name: Check the ELF carrier bridge against pinned LLD and Linux sources
         env:
           GH_TOKEN: ${{ github.token }}
