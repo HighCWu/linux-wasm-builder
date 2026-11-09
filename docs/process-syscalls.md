@@ -8459,3 +8459,31 @@ SDK 的既有 C 驱动检查显式使用配套 LLVM ar，将部分链接对象�
 
 该结果接受固定37840b2的 Node双位宽组合。后继 Hush、ELF、LLVM 归档组选项
 和浏览器各有独立验收边界。
+## 原版 Git 的单线程 fork 配置
+
+distro `c79c7c8` / 集成 `2fdb01c` 新增独立 git-fork 与 wasm64 产品，复用固定
+Git2.55.0 源码、可选静态 C fork SDK 与 zlib。该配置使用上游 NO_PTHREADS，
+直接编译原版 run-command.c、setup.c、transport-helper.c 和 git.c，保存构建
+前后的比较与校验和。普通子命令走原始 fork/exec，异步管道采用上游已有的
+fork 分支。构建保留 POSIX 功能，当前产品选用本地/file 传输。
+
+安装使用原版规则和符号链接布局，逐个识别实际的可执行 Wasm 模块，再完成
+continuation 转换与 ABI 检查。识别到宿主 ELF 可执行文件会使构建失败。普通
+SDK 编译的验证助手随后安装。/bin/git-fork 使用启动脚本 exec 到独立前缀内
+名为 git 的实际程序，避免 Git 将 git-fork 程序名解释成 fork 子命令。构建
+记录、源码与 SDK 关联和 Git、sha1dc、reftable、regex、zlib 及工具链许可证
+一起保留。新增集成和消费者为 MIT。
+
+四个复用 Luna 子代理实施配方、助手、消费者和双位宽接线，主会话核对原进程
+及安装调用链、审查全部差异，并修正程序名分派、Nix 字符串与材料属性等问题。
+消费者要求完整四阶段，覆盖外部 clean/smudge filter 与可执行 hook；hook 返回
+19 后 HEAD 保持不变、暂存变更保留并可成功重试；--no-local clone 实际启动
+upload-pack/pack-objects，核对内容与 fsck；前台 repack/gc 留下 pack 并再次验证
+对象。每轮须在临时目录清理后产生唯一 pass，再通过发布运行器的关闭门禁。
+
+宿主 Git2.43.0 配 GCC/Clang 助手的四阶段通过，新增助手的静态分析和 Wasm32/64
+前端通过，Nix/shell/workflow 与仓库检查通过。宿主原生 Git 的线程构建不证明
+目标 NO_PTHREADS 分支已经运行，完整 Git2.55.0 与定制 SDK 由固定源码的
+[42651278083](https://github.com/HighCWu/distro/actions/runs/42651278083)异步验收，
+选择 git-fork-check-both。daemon 后台行为另需目标验证，多线程 fork 仍按既有
+边界处理。此增量接通真实软件的原版进程路径，未计为新增内核 syscall 实现。
