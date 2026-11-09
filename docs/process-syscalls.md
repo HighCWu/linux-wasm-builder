@@ -8115,3 +8115,20 @@ startupRoot调用处的lib传参，避免删除形参后出现Nix调用错误。
 | 双位宽GNU sort四阶段及关闭 | [42554769711](https://github.com/HighCWu/distro/actions/runs/42554769711) |
 | 双位宽动态SDK驱动、底层Clang及Linux十阶段 | [42554769847](https://github.com/HighCWu/distro/actions/runs/42554769847) |
 | wasm32 Node共享目录五阶段及完整套件关闭 | [42554769831](https://github.com/HighCWu/distro/actions/runs/42554769831) |
+
+## 原版 sort 与共享目录的实际验收
+
+已读取固定 `58cb26b` 的上述 sort 和共享目录完整 Heavy 日志。sort 的 wasm32/64
+各按顺序完成真实压缩外排、压缩助手非零退出、解压助手非零退出和后续恢复四阶段，
+各有唯一最终 pass。运行器在结束前等待 closeTestResources 和 machine.closed，
+关闭错误令任务失败，两项 Heavy 及 workflow 均成功。
+
+共享目录实际完成13个子测试与外层套件，14项通过、零失败、零跳过。其中元数据
+消费者精确比较五阶段输出，并执行宿主 rename、删除旧目录内已打开空目录和
+同名替换目录操作；通过旧目录枚举、子节点身份、相对操作及 EOF 断言。两种
+只读模式及其余回归均通过。固定 fixture 使用一个 CPU，关闭并等待 machine.closed，
+控制台结束错误传播到检查。此证据接受该固定版本的 Node 共享目录范围。
+
+动态 SDK 的旧版本任务 `42554769847` 仍在运行。新 `RTLD_NEXT` 增量另见
+[调用者所属对象](elf-dynamic-linking.md#rtld_next-与真实调用者所属对象)，不使用
+上述 sort 或共享目录结果代替动态链接目标验收。
