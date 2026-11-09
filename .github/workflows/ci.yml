@@ -47,7 +47,7 @@ jobs:
       - name: Install released compiler and linker for the small artifact corpus
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev python3-dev
+          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev python3-dev busybox
       - name: Check the standard SQLite extension consumer against native Linux
         run: python3 -B scripts/probe_sqlite_load_extension.py --cc clang-18
       - name: Check ordinary CPython extension imports and callbacks against native Linux
@@ -99,6 +99,17 @@ jobs:
               Path(directory, "byte-\ufffd").write_bytes(b"utf8-replacement\n")
               subprocess.run([sys.argv[1], directory], check=True, timeout=30)
           PY
+          done
+      - name: Check the ordinary BusyBox process workload against native Linux
+        run: |
+          busybox --help 2>&1 | sed -n '1p'
+          for compiler in gcc clang-18; do
+            helper="$RUNNER_TEMP/busybox-fork-helper-$compiler"
+            "$compiler" -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/busybox-fork/helper.c -o "$helper"
+            BUSYBOX_FORK_PROGRAM=$(command -v busybox) BUSYBOX_FORK_HELPER="$helper" \
+              NATIVE_REFERENCE=1 timeout 30 sh \
+              sources/distro/distro/busybox-fork/runtime-test.sh
           done
       - name: Check PIC partial links with released Clang and real Wasm execution
         run: python3 -B scripts/probe_wasm_partial_link.py --clang clang-18
@@ -224,6 +235,8 @@ jobs:
             sources/distro/packages/kernel/test/dylink-address.test.ts \
             sources/distro/packages/kernel/test/dylink-linker.test.ts \
             sources/distro/distro/dynamic-loader/io.test.js
+      - name: Check the original BusyBox fork recipe
+        run: node --test sources/distro/distro/busybox-fork/package.test.js
       - name: Check pinned kernel module file-reference ownership
         env:
           GH_TOKEN: ${{ github.token }}
