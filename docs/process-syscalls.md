@@ -8330,3 +8330,9 @@ triple 不可用，64位前端使用 Wasm64 加 Linux 宏，完整定制工具�
 固定164df4c的聚合任务已一次派发，要求双位宽真实1.37.0产品四阶段、既有
 fork/exec语料和机器关闭。目标运行结果待实际日志核实，原生1.36.1参考与
 前端检查各自保留证据范围。[目标 CI](https://github.com/HighCWu/distro/actions/runs/42619738115)。
+
+主会话随后核对 Statix0.5.8 的 manual_inherit_from 实现，确认首版对上游
+version/src/patches 的选择赋值会被 fix 改写。`f3eb829` / 集成 `b4df2c1`
+改用 inherit 并同步配方检查，Nixfmt 与检查通过。本地依据规则源码进行静态
+核对，完整格式门禁仍交由 CI 执行。当前固定f3eb829的42620736032负责该候选
+双位宽验收。[格式修复版 CI](https://github.com/HighCWu/distro/actions/runs/42620736032)。
