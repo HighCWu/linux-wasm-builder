@@ -54,6 +54,8 @@ jobs:
         run: python3 -B scripts/probe_python_load_extension.py --python python3 --cc clang-18
       - name: Check C++ shared-library exceptions and cleanup against native Linux
         run: python3 -B scripts/probe_cxx_dynamic_linking.py --cxx clang++-18
+      - name: Check PIC partial links with released Clang and real Wasm execution
+        run: python3 -B scripts/probe_wasm_partial_link.py --clang clang-18
       - name: Run actual Wasm32 and memory64 module binding with negative controls
         run: python3 -B scripts/probe_wasm_dynamic_linking.py --clang clang-18
       - name: Check actual heap and SjLj objects with musl shared-link configuration
