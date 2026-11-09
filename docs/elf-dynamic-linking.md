@@ -948,3 +948,36 @@ distro `8f1c28f` / 集成 `e709c2e` 为可选动态配置实现 `RTLD_NEXT`。
 固定该版本的 [42558908006](https://github.com/HighCWu/distro/actions/runs/42558908006)
 异步构建双位宽 SDK、实际驱动和 Linux 动态消费者。结果待核实。
 下一增量补齐 imported function 的公共重导出及提供者规范地址，目前仍在实现。
+
+## 函数重导出的工具链与运行时实现
+
+distro `4a12230` / 集成 `469f12b` 补齐可选共享工具链的函数重导出路径。
+普通 `-Wl,--export=reexport_target` 请求保留真实函数 import，并以相同函数索引
+导出。LLD 使用独立标记区分显式重导出与 export-all、GOT 所需导出和输入标志；
+未允许导入、无类型和弱未定义函数保持原有边界。LLVM Object reader 同时为
+import-function export 填入签名，使下一层 DSO 可以读取提供者的正确类型。
+两个补丁仅进入现有可选 sharedDriverToolchain，默认 LLVM pin 沿用原版本。
+
+运行时在实例化前将函数别名归一到真实提供者，保留提供者导出名称、类型和规范
+函数指针。包括多级不同名别名、同名转发和主程序优先绑定；直接调用、GOT.func、
+单对象及依赖作用域查找共用该提供者。别名环和缺少提供者在修改 arena/table 前
+失败，host-only 命名空间和纯 JS 函数重导出仍不在此配置支持范围。
+
+实际产品新增 provider、forwarder、consumer 三份 C 源和第十二阶段。构建时读取
+原始 Wasm，精确验证 forwarder 的 import-function export、签名和两条 NEEDED 边，
+并要求普通 provider/consumer 未意外重导出该符号。这避免依赖作用域查找掩盖
+LLD 遗漏导出。C 程序另外验证直接/GOT 调用、规范地址及描述符回收。
+
+主会话已审查全部生产差异，并补齐 LLD 手动分配 symbol variant 时的新标记初始化。
+两份补丁对固定 LLVM `90352668` 零修改应用检查通过，lit 的三份 MC 输入可编译。
+Clang18/22 双位宽 C 前端及静态分析、两套 TypeScript、514项运行层检查和精确
+浏览器阶段控制器检查通过。修补后的 LLVM 尚未编译，lit 尚未执行。
+
+根探针新增显式 `--check-reexports`，要求本机链接器原生输出真实重导出。
+旧本机 LLD 无此能力时该检查失败；`--test-only-patch-reexport` 仅供本地追加
+export-section 别名验证解析与执行语义，输出明确标识。该模式双位宽通过，
+不计为修补后工具链或 Linux 目标验收，产品构建不使用该变换。
+
+固定 `4a12230` 的 [42561363780](https://github.com/HighCWu/distro/actions/runs/42561363780)
+异步构建双位宽 SDK、驱动及十二阶段消费者。尚待实际阶段、唯一 pass 和关闭
+证据。此前 `58cb26b` 与 `8f1c28f` 的两个独立动态任务仍在运行，保留原任务。
