@@ -17,10 +17,24 @@ MAIN = r"""
 #define _GNU_SOURCE
 #include <dlfcn.h>
 #include <link.h>
+__attribute__((import_module("env"), import_name("__probe_dynamic_symbol")))
+extern void *probe_dynamic_symbol(void *, const char *);
+__attribute__((import_module("env"), import_name("__probe_dynamic_error")))
+extern char *probe_dynamic_error(void);
+void *dlsym(void *handle, const char *name) {
+ return probe_dynamic_symbol(handle, name);
+}
+char *dlerror(void) { return probe_dynamic_error(); }
 int host_value = 5;
 int host_add(int x) { return host_value += x; }
 int (*main_function(void))(int) { return host_add; }
 int unaddressed_main(int n) { return n + 40; }
+static int private_main_next_lookup(int n) {
+ int (*next)(int) = dlsym(RTLD_NEXT, "next_chain");
+ return next ? next(n) : -1000;
+}
+int main_next_lookup(int n) { return private_main_next_lookup(n); }
+int (*main_private_next_pointer(void))(int) { return private_main_next_lookup; }
 int modeled_link_map(void *handle) {
  struct link_map *map=0;
  if(dlinfo(handle,RTLD_DI_LINKMAP,&map)||map!=handle)return -1;
@@ -81,8 +95,10 @@ import {read_wasm_dylink,read_wasm_dynamic_imports,read_wasm_dynamic_signatures}
 import {plan_dylink_layout} from __LAYOUT_PLANNER__;
 import {link_dylink_graph} from __MODULE_LINKER__;
 import {ProcessDylink} from __PROCESS_LOADER__;
+import {prepare_dylink_call_metadata} from __CALL_METADATA__;
 const [bits, first, second, mainFile, cycleAFile, cycleBFile,
- recursiveRootFile,recursiveLeafFile,recursiveRejectFile,mode] = process.argv.slice(2);
+ recursiveRootFile,recursiveLeafFile,recursiveRejectFile,
+ nextFrontFile,nextMiddleFile,nextLeafFile,mode] = process.argv.slice(2);
 const modules = [first, second].map(p => new WebAssembly.Module(readFileSync(p)));
 const layouts=[first,second].map(p=>read_wasm_dynamic_imports(new Uint8Array(readFileSync(p))));
 // Exercise the runtime's parser with actual LLD output, before instantiation.
@@ -138,8 +154,11 @@ assert(aRegion.base+metadata[0].memorySize<=bRegion.base);
 assert(aRegion.tableBase+metadata[0].tableSize<=bRegion.tableBase);
 const files=new Map([[names[0],new Uint8Array(readFileSync(first))],[names[1],new Uint8Array(readFileSync(second))]]);
 const mainBytes=new Uint8Array(readFileSync(mainFile));
+const mainMetadata=prepare_dylink_call_metadata(mainBytes);
 let processLoader,infoErrors=0,legacyInfo=false;
-const main=new WebAssembly.Instance(new WebAssembly.Module(mainBytes),{env:{memory,__indirect_function_table:table,
+const main=new WebAssembly.Instance(new WebAssembly.Module(mainMetadata.bytes),{env:{memory,__indirect_function_table:table,
+ __probe_dynamic_symbol:(handle,name)=>{const result=processLoader.symbol(handle,name);if(!BigInt(result))modeledDlerror=true;return result;},
+ __probe_dynamic_error:()=>{const result=modeledDlerror?modeledErrorPointer:word(memoryAddress,0);modeledDlerror=false;return result;},
  __dl_invalid_handle:handle=>legacyInfo&&BigInt(handle)===1n?0:processLoader.valid(handle)?0:1,
  __dl_seterr:()=>{infoErrors++;}}});
 const signatures=read_wasm_dynamic_signatures(mainBytes).exports;
@@ -266,6 +285,9 @@ const virtualFiles=new Map([
  ['/libraries/reentrant-leaf.so',{bytes:new Uint8Array(readFileSync(recursiveLeafFile)),inode:42n}],
  ['/libraries/reentrant-reject.so',{bytes:new Uint8Array(readFileSync(recursiveRejectFile)),inode:43n}],
  ['/libraries/start.wasm',{bytes:startModule,inode:31n}],
+ ['/libraries/libnext-front.so',{bytes:new Uint8Array(readFileSync(nextFrontFile)),inode:61n}],
+ ['/libraries/libnext-middle.so',{bytes:new Uint8Array(readFileSync(nextMiddleFile)),inode:62n}],
+ ['/libraries/libnext-leaf.so',{bytes:new Uint8Array(readFileSync(nextLeafFile)),inode:63n}],
 ]);
 // Model libc's byte-level lookup independently of the host's string codec.
 const rawFilename=Buffer.concat([Buffer.from('/libraries/raw-'),Buffer.from([0x80,0xed,0xa0,0x80]),Buffer.from('.wasm')]);
@@ -286,8 +308,6 @@ const allocate=(size,alignment)=>{size=Number(size);alignment=Math.max(8,Number(
 const deallocate=p=>{assert(live.delete(Number(p)),'exactly one owner frees each temporary allocation');};
 const bridge={exports:{...main.exports,
  dlopen:(path,flags)=>{const result=processLoader.open(path,flags);if(!BigInt(result))modeledDlerror=true;return result;},
- dlsym:(handle,name)=>{const result=processLoader.symbol(handle,name);if(!BigInt(result))modeledDlerror=true;return result;},
- dlerror:()=>{const result=modeledDlerror?modeledErrorPointer:word(memoryAddress,0);modeledDlerror=false;return result;},
  during_start:()=>{fromStart=processLoader.symbol(word(memoryAddress,0),unaddressedPointer);
   assert.notEqual(fromStart,word(memoryAddress,0),'dlsym in start resolves a new main pointer');},
  __indirect_function_table:table,
@@ -318,12 +338,13 @@ const bridge={exports:{...main.exports,
   new Uint8Array(memory.buffer,descriptor,40).fill(0);currentFd=-1;},
 }};
 processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximumPages:Number(memoryLayout.maximum),
+ functionMetadata:mainMetadata.functions,privateExports:mainMetadata.privateExports,
  tableType:{address:tableAddress,minimum:128n,maximum:512n},signatures:new Map([...signatures,['during_start','[[],[]]'],
  ['dlopen',JSON.stringify([[memoryAddress==='i64'?126:127,127],[memoryAddress==='i64'?126:127]])],
  ['dlsym',JSON.stringify([[memoryAddress==='i64'?126:127,memoryAddress==='i64'?126:127],[memoryAddress==='i64'?126:127]])],
  ['dlerror',JSON.stringify([[],[memoryAddress==='i64'?126:127]])]]),
  isControlFlow:error=>error===control,fatal:error=>{throw error;},
- pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n,51n].includes(inode));
+ pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n,51n,61n,62n,63n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
 const mainHandle=processLoader.open(word(memoryAddress,0),2);
@@ -463,6 +484,43 @@ assert.equal(table.get(word(tableAddress,fromStart))(2),42,'new main pointer rem
 assert.notEqual(BigInt(fromStart),BigInt(moduleSlot),'publication and main pointer slots are disjoint');
 assert.equal(processLoader.symbol(word(memoryAddress,0),unaddressedPointer),fromStart,'later lookup preserves canonical identity');
 console.log(`Process loader start model wasm${bits}: reentrant main dlsym preserves module elements and canonical pointers pass; not Linux bridge acceptance`);
+const nextFront = processLoader.open(storeString('libnext-front.so'), 2 | 256);
+let nextError = '';
+if (!BigInt(nextFront)) {
+ const message = allocate(512, 1);
+ processLoader.error(message, word(memoryAddress, 512));
+ nextError = readCString(message);
+ deallocate(message);
+}
+assert.notEqual(nextFront, word(memoryAddress, 0), `publish the RTLD_NEXT chain ${nextError}`);
+function nextFunction(handle, name) {
+ const pointer = processLoader.symbol(handle, storeString(name));
+ assert.notEqual(pointer, word(memoryAddress, 0), `RTLD_NEXT fixture symbol ${name}`);
+ return table.get(word(tableAddress, pointer));
+}
+const nextMiddle = processLoader.open(storeString('/libraries/libnext-middle.so'), 2 | 4);
+const nextLeaf = processLoader.open(storeString('/libraries/libnext-leaf.so'), 2 | 4);
+assert.equal(nextFunction(nextFront, 'next_chain')(5), 116);
+assert.equal(nextFunction(nextMiddle, 'next_chain')(5), 115);
+assert.equal(nextFunction(nextLeaf, 'next_chain')(5), 105);
+const frontPointer = processLoader.symbol(nextFront, storeString('next_chain'));
+assert.equal(processLoader.symbol(word(memoryAddress, 0), storeString('next_chain')), frontPointer);
+const nextHandle = word(memoryAddress, memoryAddress === 'i64' ? 0xffffffffffffffffn : 0xffffffff);
+assert.equal(processLoader.symbol(nextHandle, storeString('next_chain')), frontPointer);
+const privatePointer = nextFunction(nextFront, 'next_private_function')();
+assert.equal(table.get(word(tableAddress, privatePointer))(5), 118);
+assert.equal(nextFunction(nextFront, 'next_call_main')(5), 116);
+const mainPrivatePointer = main.exports.main_private_next_pointer();
+assert.equal(nextFunction(nextFront, 'next_call_callback')(5, mainPrivatePointer), 116);
+assert.equal(nextFunction(nextFront, 'next_missing_recovers')(5), 116);
+for (const [name, expected] of [['next_front_constructor_count', 1], ['next_front_constructor_value', 110]]) {
+ const pointer = processLoader.symbol(nextFront, storeString(name));
+ assert.equal(new DataView(memory.buffer).getInt32(Number(pointer), true), expected);
+}
+assert.equal(processLoader.symbol(nextFront, storeString('private_next')), word(memoryAddress, 0));
+const privateAlias = mainMetadata.privateExports.values().next().value;
+assert.equal(processLoader.symbol(word(memoryAddress, 0), storeString(privateAlias)), word(memoryAddress, 0));
+console.log(`Process loader NEXT model wasm${bits}: constructor and indirect/private caller scopes, canonical pointers and main callbacks pass`);
 const retained=live.size;
 assert.equal(processLoader.open(missingPointer,2),word(memoryAddress,0));
 assert.equal(processLoader.open(badPointer,2),word(memoryAddress,0));
@@ -508,6 +566,9 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
     runner = runner.replace(
         "__PROCESS_LOADER__", json.dumps((runtime / "dylink_process.ts").as_uri())
     )
+    runner = runner.replace(
+        "__CALL_METADATA__", json.dumps((runtime / "dylink_call_metadata.ts").as_uri())
+    )
     (directory / "probe.mjs").write_text(runner)
     process_source = (runtime / "dylink_process.ts").read_text()
     blocked = process_source.replace(
@@ -519,7 +580,15 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
         raise RuntimeError(
             "constructor blocking control did not replace the actual execution boundary"
         )
-    for name in ("dylink_linker", "dylink", "wasm_binary", "wasm", "linux-string"):
+    for name in (
+        "dylink_linker",
+        "dylink",
+        "dylink_call_metadata",
+        "dylink_call_wrapper",
+        "wasm_binary",
+        "wasm",
+        "linux-string",
+    ):
         blocked = blocked.replace(
             f'"./{name}.ts"', json.dumps((runtime / f"{name}.ts").as_uri())
         )
@@ -660,6 +729,37 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 check=True,
             )
             recursive_files.append(str(output))
+        next_files = []
+        next_directory = directory / f"next{bits}"
+        next_directory.mkdir()
+        for name in ("leaf", "middle", "front"):
+            output = next_directory / f"libnext-{name}.so"
+            dependency = [] if name == "leaf" else [next_files[-1]]
+            subprocess.run(
+                [
+                    args.clang,
+                    f"--target=wasm{bits}",
+                    "-nostdlib",
+                    "-O2",
+                    "-fPIC",
+                    "-shared",
+                    "-matomics",
+                    "-mbulk-memory",
+                    "-isystem",
+                    str(sources.parents[2] / "musl/include"),
+                    "-Wl,--shared-memory,--no-entry,--import-memory,--import-table",
+                    "-Wl,--unresolved-symbols=import-dynamic,--export-all,--export=__wasm_call_ctors",
+                    f"-Wl,--max-memory={4294967296 if bits == 32 else 17179869184}",
+                    f"-Wl,-soname,libnext-{name}.so",
+                    str(sources / f"next-{name}.c"),
+                    *dependency,
+                    "-o",
+                    str(output),
+                ],
+                check=True,
+            )
+            next_files.append(str(output))
+        next_files.reverse()
         subprocess.run(
             [
                 args.node,
@@ -671,6 +771,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"cycle-a{bits}.wasm"),
                 str(directory / f"cycle-b{bits}.wasm"),
                 *recursive_files,
+                *next_files,
             ],
             check=True,
         )
@@ -685,6 +786,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"cycle-a{bits}.wasm"),
                 str(directory / f"cycle-b{bits}.wasm"),
                 *recursive_files,
+                *next_files,
                 "reverse-ctors",
             ],
             capture_output=True,
@@ -709,6 +811,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"cycle-a{bits}.wasm"),
                 str(directory / f"cycle-b{bits}.wasm"),
                 *recursive_files,
+                *next_files,
             ],
             capture_output=True,
             text=True,
