@@ -3045,3 +3045,9 @@ LLVM53ed8fa4 / distro6739c56 / 集成b1e4dcd接通独立的自动fork链接配�
 实施，主会话审查并独立完成宿主参考与轻量检查。42671986041异步验收双位宽
 3.13.14的标准fork、preexec_fn、错误恢复、Process/Pipe及关闭。见
 [CPython候选](process-syscalls.md#cpython-原始-fork-路径候选)。
+
+CPython两次任务在创建构建前遇到GitHub Internal server error，尚无目标证据。
+1be2d1d / 集成c8d1f6b进一步接通独立fork+标准brk配置，让新堆增长接受实时
+AS/DATA限额检查。四个复用Luna子代理实施，主会话独立审查、原生参考和
+双位宽对象检查通过，42675815190异步验收三组真实程序及关闭。见
+[堆限额组合](process-syscalls.md#fork-与实时-brk-限额的组合候选)。

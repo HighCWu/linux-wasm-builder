@@ -8650,3 +8650,30 @@ Python3.11.15 四阶段参考、既有 Python/SDK 检查、格式、语法和静
 该任务第一次尝试在创建 Plan/Heavy 前结束，API 只返回两个 skipped 检查，
 日志归档为空，没有编译或运行证据，终止原因尚未给出。确认其为终态后，已对
 同一任务和固定源码重试一次。attempt2已进入队列，继续按原完整范围验收。
+
+后续读取该任务网页注解，已确认 GitHub 报告 Internal server error。attempt2
+也在创建构建任务前结束，API 的 jobs 为空。两次均无解释器编译或运行证据，
+CPython 候选的目标验收继续保持未完成状态。
+
+## fork 与实时 brk 限额的组合候选
+
+`1be2d1d` / 集成 `c8d1f6b` 新增 sdk-fork-brk 双位宽配置，将现有 fork
+libc 的 brk/sbrk 接入标准 syscall214，使新堆增长经过内核已有的实时
+RLIMIT_AS/DATA 检查。最终链接保留既有 brk 执行回调，沿用自动完整链接变换。
+SDK 说明另以6020c1e提交。该组合继续在直接线性内存和单调堆范围内验收。
+
+新语料让父进程降低 soft limit 后 fork，核对子进程继承、原始 brk 返回和
+errno、sbrk/malloc 拒绝、恢复限额后的真实增长，以及父子堆隔离。AS 使用0，
+DATA 使用1字节；主会话查阅官方 Linux 通用 may_expand_vm，确认 DATA=0 有
+用于 Valgrind 的 mmap 兼容特例，因此两种平台采用同一非零 DATA 条件。第三
+阶段检查 mmap/mremap 内容与清零、解除映射及后续 fork/wait 恢复。
+
+四个复用 Luna 子代理实施，主会话审查接口与源码，独立完成 GCC/Clang22
+宿主三阶段、Clang 静态分析、双位宽前端和优化后对象检查。OOM 路径必须保留
+实际 malloc，既有 brk 对象继续核对完整 TLS 和线程引用。原 brk 三阶段及
+完整 fork 语料原样用于该组合，默认 SDK 编译 exec helper。
+
+固定6020c1e的
+[42675815190](https://github.com/HighCWu/distro/actions/runs/42675815190)
+异步验收新限额、原 brk allocator 和 fork corpus 三组程序各双位宽、完整阶段、
+唯一 pass 与关闭门禁。宿主和对象结果不替代目标运行，真实结果待核实。
