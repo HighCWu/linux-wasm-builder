@@ -56,6 +56,17 @@ jobs:
         run: python3 -B scripts/probe_cxx_dynamic_linking.py --cxx clang++-18
       - name: Check PIC partial links with released Clang and real Wasm execution
         run: python3 -B scripts/probe_wasm_partial_link.py --clang clang-18
+      - name: Check original Lua C modules and nonlocal error recovery against native Linux
+        run: |
+          source_root="$RUNNER_TEMP/lua-extension-reference"
+          mkdir -p "$source_root"
+          curl -fL --retry 2 --connect-timeout 15 --max-time 120 \
+            https://www.lua.org/ftp/lua-5.4.8.tar.gz -o "$source_root/lua.tar.gz"
+          echo "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae  $source_root/lua.tar.gz" \
+            | sha256sum -c -
+          tar -xzf "$source_root/lua.tar.gz" -C "$source_root"
+          python3 -B scripts/probe_lua_load_extension.py \
+            --lua-source "$source_root/lua-5.4.8" --cc clang-18
       - name: Run actual Wasm32 and memory64 module binding with negative controls
         run: python3 -B scripts/probe_wasm_dynamic_linking.py --clang clang-18
       - name: Check actual heap and SjLj objects with musl shared-link configuration
