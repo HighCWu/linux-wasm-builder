@@ -48,6 +48,44 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev python3-dev busybox
+      - name: Check the ELF carrier bridge against pinned LLD and Linux sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          llvm_revision=$(git ls-tree HEAD sources/llvm-project | awk '{print $3}')
+          linux_revision=$(git ls-tree HEAD sources/linux | awk '{print $3}')
+          [[ "$llvm_revision" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$linux_revision" =~ ^[0-9a-f]{40}$ ]]
+          source_root="$RUNNER_TEMP/elf-container-sources"
+          mkdir -p "$source_root/lld/wasm" "$source_root/linux/arch/wasm/kernel"
+          for name in ElfContainer.h ElfContainer.cpp; do
+            curl --fail --location --retry 2 --connect-timeout 15 --max-time 120 \
+              "https://raw.githubusercontent.com/HighCWu/llvm-project/$llvm_revision/lld/wasm/$name" \
+              -o "$source_root/lld/wasm/$name"
+          done
+          for name in elf_container.h elf_container.c; do
+            python3 -B scripts/fetch_pinned_semaphore_source.py \
+              "$linux_revision" "$source_root/linux/arch/wasm/kernel/$name" \
+              "arch/wasm/kernel/$name"
+          done
+          ELF_CONTAINER_LLD_SOURCE_ROOT="$source_root/lld/wasm" \
+            ELF_CONTAINER_KERNEL_SOURCE_ROOT="$source_root/linux/arch/wasm/kernel" \
+            CC=clang-18 CXX=clang++-18 python3 -B scripts/check_elf_container.py
+      - name: Check the ELF container C consumer against native Linux
+        run: |
+          set -euo pipefail
+          for compiler in gcc clang-18; do
+            program="$RUNNER_TEMP/elf-container-program-$compiler"
+            helper="$RUNNER_TEMP/elf-container-helper-$compiler"
+            "$compiler" -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/elf-container/main.c -o "$program"
+            "$compiler" -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/elf-container/helper.c -o "$helper"
+            ELF_CONTAINER_PROGRAM="$program" ELF_CONTAINER_HELPER="$helper" \
+              NATIVE_REFERENCE=1 timeout 30 sh \
+              sources/distro/distro/elf-container/runtime-test.sh
+          done
       - name: Check the standard SQLite extension consumer against native Linux
         run: python3 -B scripts/probe_sqlite_load_extension.py --cc clang-18
       - name: Check ordinary CPython extension imports and callbacks against native Linux
