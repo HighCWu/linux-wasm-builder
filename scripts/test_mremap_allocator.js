@@ -108,7 +108,7 @@ int main(void) {
   });
 
 for (const cc of ["gcc", "clang"])
-  test(`${cc}: exact musl direct allocator resize with address/undefined sanitizers`, (t) => {
+  test(`${cc}: exact musl direct allocator resize and DONTUNMAP with sanitizers`, (t) => {
     const dir = mkdtempSync(join(tmpdir(), "wasm-mremap-allocator-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
     const source = readFileSync(
@@ -201,7 +201,7 @@ static void release(void *p) { if (p) { live_allocations--; free(p); } }
         assert.match(run.stderr, /copy\[i\] == 37/);
       } else {
         assert.equal(run.status, 0, run.stdout + run.stderr);
-        assert.match(run.stdout, /resize, relocation, zero tail, failure rollback, revalidation/);
+        assert.match(run.stdout, /DONTUNMAP copy\/zero, fixed replacement, WIPE and rollback pass/);
       }
     }
   });

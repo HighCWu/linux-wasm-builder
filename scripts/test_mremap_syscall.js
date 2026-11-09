@@ -354,6 +354,14 @@ static long response = 0x12340000;
 static long wasm_user_v2_mremap(unsigned long a, unsigned long b, unsigned long c, unsigned long d) {
   calls++; captured[0]=a; captured[1]=b; captured[2]=c; captured[3]=d; return response;
 }
+static unsigned dontunmap_calls;
+static unsigned long dontunmap_captured[5];
+static long dontunmap_response = 0x56780000;
+static long wasm_user_v2_mremap_dontunmap(unsigned long a, unsigned long b, unsigned long c, unsigned long d, unsigned long e) {
+  dontunmap_calls++; dontunmap_captured[0]=a; dontunmap_captured[1]=b;
+  dontunmap_captured[2]=c; dontunmap_captured[3]=d; dontunmap_captured[4]=e;
+  return dontunmap_response;
+}
 static unsigned fixed_calls;
 static long wasm_user_v2_mremap_fixed(unsigned long a, unsigned long b, unsigned long c, unsigned long d) {
   assert(a == 65536 && b == PAGE_SIZE && c == PAGE_SIZE && d == 131072);
@@ -372,21 +380,31 @@ int main(void) {
   assert(wasm_mremap(65536, PAGE_SIZE, PAGE_SIZE, 3, 65536) == -EINVAL);
   assert(wasm_mremap(65536, 1, 1, 3, TASK_SIZE) == -ENOMEM);
   assert(wasm_mremap(65536, 1, 1, 3, 0) == -ENOMEM);
-  assert(wasm_mremap(65536, 1, 1, 7, 131072) == -EOPNOTSUPP && fixed_calls == 1);
+  assert(wasm_mremap(65536, 1, PAGE_SIZE + 1, 7, 131072) == -EINVAL && fixed_calls == 1);
   assert(wasm_mremap(65536, 0, 1, 0, 0) == -EOPNOTSUPP);
   assert(wasm_mremap(65536, ULONG_MAX, 1, 0, 0) == -EINVAL);
   assert(wasm_mremap(65536, 1, ULONG_MAX, 0, 0) == -ENOMEM);
   assert(wasm_mremap(TASK_SIZE, 1, 1, 0, 0) == -EFAULT);
   assert(wasm_mremap(65536, 1, TASK_SIZE + PAGE_SIZE, 0, 0) == -ENOMEM);
-  assert(wasm_mremap(65536, 1, 2, 5, 0) == -EOPNOTSUPP);
   assert(wasm_mremap(65536, 1, PAGE_SIZE + 1, 5, 0) == -EINVAL);
+  assert(wasm_mremap(TASK_SIZE, PAGE_SIZE, PAGE_SIZE, 5, 0) == -EFAULT);
+  assert(wasm_mremap(65536, PAGE_SIZE + 1, PAGE_SIZE + 1, 7, 65536) == -EINVAL);
+  assert(dontunmap_calls == 0);
   assert(calls == 0);
   assert(wasm_mremap(0x100010000UL, PAGE_SIZE + 1, 2 * PAGE_SIZE + 1, 1, 77) == response);
   assert(calls == 1 && captured[0] == 0x100010000UL && captured[1] == 2 * PAGE_SIZE &&
     captured[2] == 3 * PAGE_SIZE && captured[3] == 1);
   response = -ENOMEM;
   assert(wasm_mremap(65536, 1, 1, 0, 0) == -ENOMEM && calls == 2);
-  puts("mremap admission: flags, overflow, address extent, rounding and callback result pass");
+  assert(wasm_mremap(0x100010000UL, PAGE_SIZE + 1, 2 * PAGE_SIZE - 1, 5, 77) == dontunmap_response);
+  assert(dontunmap_calls == 1 && dontunmap_captured[0] == 0x100010000UL &&
+    dontunmap_captured[1] == 2 * PAGE_SIZE && dontunmap_captured[2] == 2 * PAGE_SIZE &&
+    dontunmap_captured[3] == 5 && dontunmap_captured[4] == 77);
+  assert(wasm_mremap(65536, PAGE_SIZE + 1, 2 * PAGE_SIZE - 1, 7, 196608) == dontunmap_response);
+  assert(dontunmap_calls == 2 && dontunmap_captured[0] == 65536 &&
+    dontunmap_captured[1] == 2 * PAGE_SIZE && dontunmap_captured[2] == 2 * PAGE_SIZE &&
+    dontunmap_captured[3] == 7 && dontunmap_captured[4] == 196608);
+  puts("mremap admission: flags, bounds, rounding and direct DONTUNMAP forwarding pass");
 }
 `;
     const input = join(dir, "test.c"),
@@ -400,5 +418,5 @@ int main(void) {
     assert.equal(build.status, 0, build.stderr);
     const run = spawnSync(binary, [], { encoding: "utf8", timeout: 10000 });
     assert.equal(run.status, 0, run.stdout + run.stderr);
-    assert.match(run.stdout, /flags, overflow, address extent, rounding and callback result pass/);
+    assert.match(run.stdout, /flags, bounds, rounding and direct DONTUNMAP forwarding pass/);
   });

@@ -368,6 +368,307 @@ static void fixed_remap(void)
 	assert(live_allocations == 0 && mappings == NULL);
 }
 
+#define SNAPSHOT_MAPPING_LIMIT 32
+struct mapping_snapshot {
+	struct wasm_mapping *record;
+	struct wasm_mapping *next;
+	struct wasm_allocation *allocation;
+	void *address;
+	size_t length;
+	size_t references;
+	int initialized;
+	int wipe_on_fork;
+};
+struct allocator_snapshot {
+	struct mapping_snapshot records[SNAPSHOT_MAPPING_LIMIT];
+	size_t count;
+	int live_allocations;
+};
+
+static void take_snapshot(struct allocator_snapshot *snapshot)
+{
+	snapshot->count = 0;
+	snapshot->live_allocations = live_allocations;
+	for (struct wasm_mapping *mapping = mappings; mapping; mapping = mapping->next) {
+		assert(snapshot->count < SNAPSHOT_MAPPING_LIMIT);
+		struct mapping_snapshot *record = &snapshot->records[snapshot->count++];
+		record->record = mapping;
+		record->next = mapping->next;
+		record->allocation = mapping->allocation;
+		record->address = mapping->address;
+		record->length = mapping->length;
+		record->references = mapping->allocation->references;
+		record->initialized = mapping->initialized;
+		record->wipe_on_fork = mapping->wipe_on_fork;
+	}
+}
+
+static void assert_snapshot(const struct allocator_snapshot *snapshot)
+{
+	size_t count = 0;
+	struct wasm_mapping *mapping = mappings;
+	for (; mapping; mapping = mapping->next) {
+		assert(count < snapshot->count);
+		const struct mapping_snapshot *record = &snapshot->records[count++];
+		assert(mapping == record->record && mapping->next == record->next);
+		assert(mapping->allocation == record->allocation);
+		assert(mapping->address == record->address && mapping->length == record->length);
+		assert(mapping->allocation->references == record->references);
+		assert(mapping->initialized == record->initialized);
+		assert(mapping->wipe_on_fork == record->wipe_on_fork);
+	}
+	assert(count == snapshot->count);
+	assert(live_allocations == snapshot->live_allocations);
+}
+
+static struct wasm_mapping *mapping_containing(uintptr_t address)
+{
+	for (struct wasm_mapping *mapping = mappings; mapping; mapping = mapping->next) {
+		uintptr_t start = (uintptr_t)mapping->address;
+		if (address >= start && address - start < mapping->length)
+			return mapping;
+	}
+	assert(0 && "address is not mapped");
+	return 0;
+}
+
+static size_t mapping_count(void)
+{
+	size_t count = 0;
+	for (struct wasm_mapping *mapping = mappings; mapping; mapping = mapping->next)
+		count++;
+	return count;
+}
+
+static void assert_wipe_range(uintptr_t begin, size_t length, int wipe)
+{
+	uintptr_t cursor = begin, end = begin + length;
+	assert(end >= begin);
+	while (cursor < end) {
+		struct wasm_mapping *mapping = mapping_containing(cursor);
+		assert(mapping->wipe_on_fork == wipe);
+		uintptr_t stop = (uintptr_t)mapping->address + mapping->length;
+		assert(stop > cursor);
+		cursor = stop < end ? stop : end;
+	}
+}
+
+static void fill_page_values(uintptr_t begin, size_t pages, unsigned char first)
+{
+	for (size_t page = 0; page < pages; page++)
+		memset((void *)(begin + page * PAGESIZE), first + page, PAGESIZE);
+}
+
+static void assert_page_values(uintptr_t begin, size_t pages, unsigned char first)
+{
+	for (size_t page = 0; page < pages; page++) {
+		const unsigned char *bytes = (const void *)(begin + page * PAGESIZE);
+		for (size_t i = 0; i < PAGESIZE; i++) assert(bytes[i] == first + page);
+	}
+}
+
+static void assert_uniform_value(uintptr_t begin, size_t length, unsigned char value)
+{
+	const unsigned char *bytes = (const void *)begin;
+	for (size_t i = 0; i < length; i++) assert(bytes[i] == value);
+}
+
+static uintptr_t advised_begin;
+static size_t advised_length;
+static void advise_source_wipe(void)
+{
+	assert(__wasm_madvise_v2(advised_begin, advised_length, MADV_WIPEONFORK) == 0);
+}
+
+static void dontunmap_nonfixed(void)
+{
+	long base = __wasm_mmap(4 * PAGESIZE);
+	assert(base > 0);
+	fill_page_values(base, 4, 20);
+	uintptr_t source = base + PAGESIZE;
+	struct allocator_snapshot snapshot;
+	take_snapshot(&snapshot);
+	assert(__wasm_mremap(base, 2 * PAGESIZE, 2 * PAGESIZE,
+		MREMAP_MAYMOVE | MREMAP_DONTUNMAP) == -EOPNOTSUPP);
+	assert(__wasm_mremap_dontunmap_v1(source, 2 * PAGESIZE, 2 * PAGESIZE,
+		MREMAP_DONTUNMAP, 0) == -EINVAL);
+	assert(__wasm_mremap_dontunmap_v1(source, PAGESIZE, 2 * PAGESIZE,
+		MREMAP_MAYMOVE | MREMAP_DONTUNMAP, 0) == -EINVAL);
+	assert(__wasm_mremap_dontunmap_v1(source + 1, 2 * PAGESIZE, 2 * PAGESIZE,
+		MREMAP_MAYMOVE | MREMAP_DONTUNMAP, 0) == -EINVAL);
+	assert(__wasm_mremap_dontunmap_v1(base + 4 * PAGESIZE, PAGESIZE, PAGESIZE,
+		MREMAP_MAYMOVE | MREMAP_DONTUNMAP, 0) == -EFAULT);
+	assert_snapshot(&snapshot);
+	assert_page_values(base, 4, 20);
+
+	for (int failure = 0; failure < 2; failure++) {
+		take_snapshot(&snapshot);
+		fail_after = failure;
+		assert(__wasm_mremap_dontunmap_v1(source, 2 * PAGESIZE, 2 * PAGESIZE,
+			MREMAP_MAYMOVE | MREMAP_DONTUNMAP, 0) == -ENOMEM);
+		fail_after = -1;
+		assert_snapshot(&snapshot);
+		assert_page_values(base, 4, 20);
+	}
+
+	/* Metadata changes while the new backing is prepared. The request still
+	 * belongs to one current record, and the copy inherits that record's WIPE. */
+	advised_begin = source;
+	advised_length = 2 * PAGESIZE;
+	allocation_hook = advise_source_wipe;
+	long copy = __wasm_mremap_dontunmap_v1(source, 2 * PAGESIZE, 2 * PAGESIZE,
+		MREMAP_MAYMOVE | MREMAP_DONTUNMAP, 0);
+	assert(copy > 0 && (uintptr_t)copy != source);
+	assert(allocation_hook == NULL);
+	assert(mapping_count() == 4);
+	assert(mapping_containing(source)->address == (void *)source);
+	assert(mapping_containing(source)->length == 2 * PAGESIZE);
+	assert(mapping_containing((uintptr_t)copy)->allocation !=
+		mapping_containing(source)->allocation);
+	assert_page_values(base, 1, 20);
+	assert_page_values(base + 3 * PAGESIZE, 1, 23);
+	for (size_t i = 0; i < 2 * PAGESIZE; i++)
+		assert(((unsigned char *)source)[i] == 0);
+	assert_page_values((uintptr_t)copy, 2, 21);
+	assert_wipe_range(base, PAGESIZE, 0);
+	assert_wipe_range(source, 2 * PAGESIZE, 1);
+	assert_wipe_range(base + 3 * PAGESIZE, PAGESIZE, 0);
+	assert_wipe_range((uintptr_t)copy, 2 * PAGESIZE, 1);
+	((unsigned char *)source)[0] = 101;
+	assert(((unsigned char *)copy)[0] == 21);
+	((unsigned char *)copy)[0] = 102;
+	assert(((unsigned char *)source)[0] == 101);
+	assert(__wasm_munmap(base, 4 * PAGESIZE) == 0);
+	assert(__wasm_munmap(copy, 2 * PAGESIZE) == 0);
+	assert(live_allocations == 0 && mappings == NULL);
+}
+
+static void dontunmap_fixed_same_backing(void)
+{
+	long base = __wasm_mmap(8 * PAGESIZE);
+	assert(base > 0);
+	unsigned char *bytes = (void *)base;
+	fill_page_values(base, 8, 40);
+	assert(__wasm_madvise_v2(base, 8 * PAGESIZE, MADV_WIPEONFORK) == 0);
+	struct allocator_snapshot snapshot;
+	take_snapshot(&snapshot);
+	assert(__wasm_mremap_dontunmap_v1(base + 2 * PAGESIZE, 2 * PAGESIZE,
+		2 * PAGESIZE, MREMAP_MAYMOVE | MREMAP_FIXED | MREMAP_DONTUNMAP,
+		base + 3 * PAGESIZE) == -EINVAL);
+	assert_snapshot(&snapshot);
+	assert_page_values(base, 8, 40);
+
+	for (int failure = 0; failure < 2; failure++) {
+		take_snapshot(&snapshot);
+		fail_after = failure;
+		assert(__wasm_mremap_dontunmap_v1(base + 2 * PAGESIZE, 2 * PAGESIZE,
+			2 * PAGESIZE, MREMAP_MAYMOVE | MREMAP_FIXED | MREMAP_DONTUNMAP,
+			base + 5 * PAGESIZE) == -ENOMEM);
+		fail_after = -1;
+		assert_snapshot(&snapshot);
+		assert_page_values(base, 8, 40);
+	}
+
+	assert(__wasm_mremap_dontunmap_v1(base + 2 * PAGESIZE, 2 * PAGESIZE,
+		2 * PAGESIZE, MREMAP_MAYMOVE | MREMAP_FIXED | MREMAP_DONTUNMAP,
+		base + 5 * PAGESIZE) == base + 5 * PAGESIZE);
+	const unsigned char expected[] = {40, 41, 0, 0, 44, 42, 43, 47};
+	for (size_t page = 0; page < 8; page++) {
+		assert_uniform_value(base + page * PAGESIZE, PAGESIZE, expected[page]);
+	}
+	assert_wipe_range(base, 8 * PAGESIZE, 1);
+	bytes[2 * PAGESIZE] = 111;
+	assert(bytes[5 * PAGESIZE] == 42);
+	bytes[5 * PAGESIZE] = 112;
+	assert(bytes[2 * PAGESIZE] == 111);
+	assert(__wasm_munmap(base, 8 * PAGESIZE) == 0);
+	assert(live_allocations == 0 && mappings == NULL);
+}
+
+static void dontunmap_fixed_cross_backing(void)
+{
+	long source_base = __wasm_mmap(8 * PAGESIZE);
+	long destination_base = __wasm_mmap(8 * PAGESIZE);
+	assert(source_base > 0 && destination_base > 0);
+	assert(mapping_containing(source_base)->allocation !=
+		mapping_containing(destination_base)->allocation);
+	fill_page_values(source_base, 8, 50);
+	fill_page_values(destination_base, 8, 80);
+	assert(__wasm_madvise_v2(source_base, 8 * PAGESIZE, MADV_WIPEONFORK) == 0);
+	struct allocator_snapshot snapshot;
+	take_snapshot(&snapshot);
+	uintptr_t outside = ((uintptr_t)&snapshot + PAGESIZE - 1) & -(uintptr_t)PAGESIZE;
+	assert(outside + 2 * PAGESIZE <= (uintptr_t)source_base ||
+		outside >= (uintptr_t)source_base + 8 * PAGESIZE);
+	assert(__wasm_mremap_dontunmap_v1(source_base + 2 * PAGESIZE, 2 * PAGESIZE,
+		2 * PAGESIZE, MREMAP_MAYMOVE | MREMAP_FIXED | MREMAP_DONTUNMAP,
+		outside) == -ENOMEM);
+	assert_snapshot(&snapshot);
+	assert_page_values(source_base, 8, 50);
+	assert_page_values(destination_base, 8, 80);
+
+	assert(__wasm_mremap_dontunmap_v1(source_base + 2 * PAGESIZE, 2 * PAGESIZE,
+		2 * PAGESIZE, MREMAP_MAYMOVE | MREMAP_FIXED | MREMAP_DONTUNMAP,
+		destination_base + 3 * PAGESIZE) == destination_base + 3 * PAGESIZE);
+	const unsigned char source_expected[] = {50, 51, 0, 0, 54, 55, 56, 57};
+	const unsigned char destination_expected[] = {80, 81, 82, 52, 53, 85, 86, 87};
+	for (size_t page = 0; page < 8; page++) {
+		assert_uniform_value(source_base + page * PAGESIZE, PAGESIZE,
+			source_expected[page]);
+		assert_uniform_value(destination_base + page * PAGESIZE, PAGESIZE,
+			destination_expected[page]);
+	}
+	assert_wipe_range(source_base, 8 * PAGESIZE, 1);
+	assert_wipe_range(destination_base, 3 * PAGESIZE, 0);
+	assert_wipe_range(destination_base + 3 * PAGESIZE, 2 * PAGESIZE, 1);
+	assert_wipe_range(destination_base + 5 * PAGESIZE, 3 * PAGESIZE, 0);
+	((unsigned char *)source_base)[2 * PAGESIZE] = 121;
+	assert(((unsigned char *)destination_base)[3 * PAGESIZE] == 52);
+	((unsigned char *)destination_base)[3 * PAGESIZE] = 122;
+	assert(((unsigned char *)source_base)[2 * PAGESIZE] == 121);
+	assert(__wasm_munmap(source_base, 8 * PAGESIZE) == 0);
+	assert(__wasm_munmap(destination_base, 8 * PAGESIZE) == 0);
+	assert(live_allocations == 0 && mappings == NULL);
+}
+
+static void dontunmap_revalidation_and_initialized(void)
+{
+	long base = __wasm_mmap(2 * PAGESIZE);
+	long guard = __wasm_mmap(2 * PAGESIZE);
+	assert(base > 0 && guard > 0);
+	memset((void *)base, 61, 2 * PAGESIZE);
+	memset((void *)guard, 91, 2 * PAGESIZE);
+	invalidated = base;
+	allocation_hook = invalidate_source;
+	assert(__wasm_mremap_dontunmap_v1(base, 2 * PAGESIZE, 2 * PAGESIZE,
+		MREMAP_MAYMOVE | MREMAP_DONTUNMAP, 0) == -EFAULT);
+	assert(allocation_hook == NULL);
+	assert(mapping_count() == 1 && mapping_containing(guard)->address == (void *)guard);
+	assert(mapping_containing(guard)->allocation->references == 1);
+	assert(live_allocations == 2);
+	for (size_t i = 0; i < 2 * PAGESIZE; i++) assert(((unsigned char *)guard)[i] == 91);
+	assert(__wasm_munmap(guard, 2 * PAGESIZE) == 0);
+	assert(live_allocations == 0 && mappings == NULL);
+
+	long file = __wasm_mmap_initialized(2 * PAGESIZE, initialize, NULL);
+	long destination = __wasm_mmap(2 * PAGESIZE);
+	assert(file > 0 && destination > 0);
+	memset((void *)destination, 73, 2 * PAGESIZE);
+	struct allocator_snapshot snapshot;
+	take_snapshot(&snapshot);
+	assert(__wasm_mremap_dontunmap_v1(file, 2 * PAGESIZE, 2 * PAGESIZE,
+		MREMAP_MAYMOVE | MREMAP_DONTUNMAP, 0) == -EOPNOTSUPP);
+	assert(__wasm_mremap_dontunmap_v1(file, 2 * PAGESIZE, 2 * PAGESIZE,
+		MREMAP_MAYMOVE | MREMAP_FIXED | MREMAP_DONTUNMAP,
+		destination) == -EOPNOTSUPP);
+	assert_snapshot(&snapshot);
+	assert_uniform_value(file, 2 * PAGESIZE, 71);
+	assert_uniform_value(destination, 2 * PAGESIZE, 73);
+	assert(__wasm_munmap(file, 2 * PAGESIZE) == 0);
+	assert(__wasm_munmap(destination, 2 * PAGESIZE) == 0);
+	assert(live_allocations == 0 && mappings == NULL);
+}
+
 int main(void)
 {
 	for (int i = 0; i < 16; i++) { scenario(0); scenario(1); }
@@ -378,6 +679,10 @@ int main(void)
 	discard_pages();
 	fixed_mapping();
 	fixed_remap();
+	dontunmap_nonfixed();
+	dontunmap_fixed_same_backing();
+	dontunmap_fixed_cross_backing();
+	dontunmap_revalidation_and_initialized();
 	assert(__wasm_mmap_initialized(PAGESIZE, initialize, (void *)1) == -EIO);
 	assert(live_allocations == 0 && mappings == NULL);
 	long file = __wasm_mmap_initialized(3 * PAGESIZE, initialize, NULL);
@@ -388,6 +693,6 @@ int main(void)
 	assert(__wasm_mremap(file, PAGESIZE, PAGESIZE, 0) == file);
 	assert(__wasm_munmap(file, 3 * PAGESIZE) == 0);
 	assert(live_allocations == 0 && mappings == NULL);
-	puts("direct allocator: resize, relocation, zero tail, failure rollback, revalidation and initialized-source guard pass");
+	puts("direct allocator: resize, relocation, zero tail, failure rollback, revalidation, initialized-source guard and DONTUNMAP copy/zero, fixed replacement, WIPE and rollback pass");
 	return 0;
 }

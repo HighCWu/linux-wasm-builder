@@ -606,6 +606,18 @@ jobs:
         # This validates the consumers. The isolated heavy checks build and run
         # the fixed upstream programs with Linux/Wasm's fork execution profile.
         run: python3 -B scripts/check_standard_process_tools.py
+      - name: Check anonymous mremap DONTUNMAP consumer natively
+        # Native Linux checks the workload. Kernel, allocator and private Wasm
+        # bridge acceptance comes from the isolated double-width target check.
+        run: |
+          for compiler in gcc clang; do
+            "$compiler" -std=c11 -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/mremap-dontunmap/runtime.c \
+              -o "$RUNNER_TEMP/mremap-dontunmap-host"
+            MREMAP_DONTUNMAP_PROGRAM="$RUNNER_TEMP/mremap-dontunmap-host" \
+              NATIVE_REFERENCE=1 timeout 30 sh \
+              sources/distro/distro/mremap-dontunmap/runtime-test.sh
+          done
       - name: Check split syscall words and sparse large-file workload
         env:
           GH_TOKEN: ${{ github.token }}
