@@ -83,6 +83,7 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
         )
         original_directory.mkdir()
         (original_directory / "old-entry").write_text("original")
+        (original_directory / "host-empty").mkdir()
         child = subprocess.Popen(
             [str(program), str(target), str(original_directory)],
             stdin=subprocess.PIPE,
@@ -100,6 +101,7 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
             )
             staging.replace(target)
             original_directory.rename(moved_directory)
+            (moved_directory / "host-empty").rmdir()
             original_directory.mkdir()
             (original_directory / "new-entry").write_text("replacement")
             stdout, stderr = child.communicate("x", timeout=15)
