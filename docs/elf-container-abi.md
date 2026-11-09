@@ -66,11 +66,11 @@ unchanged Wasm layout. Shared, PIE and relocatable output modes reject the
 experimental option. Ordinary output retains the raw Wasm format.
 
 The candidate SDK supplies this option in the executable linker response file.
-Its Clang configuration also supplies `$--no-wasm-opt`, using Clang's link-only
-configuration syntax. Post-link Binaryen processing expects a raw Wasm file.
-Compile-only jobs retain their ordinary arguments, and partial links produce
-raw Wasm objects. Direct Clang callers selecting the LLD option must also select
-`--no-wasm-opt` for that final link.
+Its Clang configuration also supplies `--no-wasm-opt` as a normal config
+argument. Clang claims config-sourced flags during compile-only jobs, including
+`-c -Werror`. Post-link Binaryen processing expects a raw Wasm file. Partial
+links produce raw Wasm objects. Direct Clang callers selecting the LLD option
+must also select `--no-wasm-opt` for that final link.
 
 Linux enables parsing with default-off `CONFIG_WASM_ELF_CONTAINER`. Raw Wasm
 and the carrier use the same compile, argument setup and exec commit path.

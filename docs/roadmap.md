@@ -3015,3 +3015,8 @@ BusyBox42636405345在最终链接遇到--warn-common，LLVMfb960167 / distrobe7c
 Luna子代理实施，主会话决定协议与审查，双位宽支持对象、IR、类型检查及native
 参考通过。42657155385异步验收新四阶段、旧三阶段与关闭，见
 [libc检查点组合](process-syscalls.md#单线程-fork-与-libc-计算检查点的组合候选)。
+
+ELF42636418886暴露Clang配置尾部不能承载驱动策略的问题。1c7cd78 / 集成0e4b664
+改用普通配置参数，Clang22真实正反控制、C/C++配置与包装入口检查通过，由
+42659111460继续异步验收双位宽SDK和ELF三阶段及关闭。见
+[驱动策略修复](elf-dynamic-linking.md#elf-候选的-clang-驱动策略修复)。

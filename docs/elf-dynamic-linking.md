@@ -1356,8 +1356,9 @@ LLD 在外层分配前缀，模块 section offset 和 build-ID 哈希保持相�
 文件字段或模块验证失败时，调用者仍可继续执行原程序。
 
 独立 sdk-elf-container 及 wasm64 配置使用标准编译入口。可执行链接响应文件
-选择容器，Clang 配置通过 link-only `$--no-wasm-opt` 关闭只接受原始 Wasm 的
-链接后优化。普通 `-c -Werror` 与 `-r` 路径继续可用，元数据分别记录编译器、
+选择容器，Clang 配置通过普通配置参数 `--no-wasm-opt` 关闭只接受原始 Wasm 的
+链接后优化。配置参数由 Clang 标记为已使用，支持 `-c -Werror` 编译和 `-r`
+链接。部分链接产生原始 Wasm 对象。元数据分别记录编译器、
 链接器和仅链接驱动参数。默认 SDK 继续输出原始 Wasm。
 
 五个复用的 Luna 子代理实施生产者、内核、消费者、SDK 和格式工具，主会话
@@ -1444,3 +1445,22 @@ ext.c 与 gawkapi.h 对照原始源码，进程源码及构建配置、补丁、
 固定版本的 gawk-dynamic-check-both 已一次派发，要求双位宽四阶段、唯一 pass、
 SDK driver、既有动态加载器阶段及关闭门禁。
 [目标 CI](https://github.com/HighCWu/distro/actions/runs/42648082562)。
+
+## ELF 候选的 Clang 驱动策略修复
+
+固定86bbf93的42636418886已明确失败于 wasm64 SDK 的 C/C++ 驱动检查。
+两个 -### 输出都仍选择了 wasm-opt，ELF 消费者尚未运行。主会话读取固定
+Clang Driver.cpp，确认 `$` 配置参数只经链接输入路径处理，驱动策略
+`--no-wasm-opt` 因而没有进入工具链参数。普通配置参数由 Clang 标记为已使用，
+可以直接用于 compile-only 和最终链接。
+
+两个复用 Luna 子代理实施 SDK 配置与聚焦回归，主会话审查源码并独立验证。
+`1c7cd78` / 集成 `0e4b664` 将该策略放入普通配置区，保留已有元数据字段。
+真实 Clang22 的负向控制确认旧 `$` 写法会选择探针，普通写法通过 -###、
+`-c -Werror` 及实际 Wasm 链接，探针没有执行。C 与 C++ 驱动的完整配置检查、
+嵌套响应文件和包装入口检查通过。既有 C 探针显式指定 -x c，使 SDK 的 C++
+驱动验证按其原定 C 输入执行。
+
+此修复复用已发布 LLVMfb960167。固定版本的
+[42659111460](https://github.com/HighCWu/distro/actions/runs/42659111460)一次派发，
+继续要求双位宽实际 SDK C/C++ 驱动、ELF 三阶段消费者和关闭门禁。结果待核实。
