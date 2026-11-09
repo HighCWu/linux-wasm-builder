@@ -11,7 +11,173 @@ import tempfile
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--clang", default="clang")
 parser.add_argument("--node", default="node")
+parser.add_argument(
+    "--check-reexports",
+    action="store_true",
+    help="build and execute the native function re-export fixture (requires patched LLD)",
+)
+parser.add_argument(
+    "--test-only-patch-reexport",
+    action="store_true",
+    help="explicitly synthesize one imported-function export for local semantic probing only",
+)
 args = parser.parse_args()
+if args.test_only_patch_reexport:
+    args.check_reexports = True
+
+
+def _read_varuint(data: bytes, offset: int) -> tuple[int, int]:
+    value = 0
+    shift = 0
+    while True:
+        if offset >= len(data) or shift >= 70:
+            raise ValueError("truncated or oversized Wasm varuint")
+        byte = data[offset]
+        offset += 1
+        value |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return value, offset
+        shift += 7
+
+
+def _write_varuint(value: int) -> bytes:
+    if value < 0:
+        raise ValueError("negative Wasm varuint")
+    encoded = bytearray()
+    while value >= 0x80:
+        encoded.append((value & 0x7F) | 0x80)
+        value >>= 7
+    encoded.append(value)
+    return bytes(encoded)
+
+
+def _read_name(data: bytes, offset: int) -> tuple[str, int]:
+    length, offset = _read_varuint(data, offset)
+    end = offset + length
+    if end > len(data):
+        raise ValueError("truncated Wasm name")
+    return data[offset:end].decode("utf-8"), end
+
+
+def _skip_limits(data: bytes, offset: int) -> int:
+    flags, offset = _read_varuint(data, offset)
+    _, offset = _read_varuint(data, offset)
+    if flags & 1:
+        _, offset = _read_varuint(data, offset)
+    return offset
+
+
+def _wasm_sections(data: bytes) -> list[tuple[int, int, int, int]]:
+    if data[:8] != b"\0asm\x01\0\0\0":
+        raise ValueError("not a core Wasm 1 module")
+    sections = []
+    offset = 8
+    while offset < len(data):
+        start = offset
+        section_id = data[offset]
+        offset += 1
+        size, payload_start = _read_varuint(data, offset)
+        end = payload_start + size
+        if end > len(data):
+            raise ValueError("truncated Wasm section")
+        sections.append((section_id, start, payload_start, end))
+        offset = end
+    return sections
+
+
+def _imported_function_index(data: bytes, name: str) -> int:
+    section = next((item for item in _wasm_sections(data) if item[0] == 2), None)
+    if section is None:
+        raise ValueError("forwarder has no import section")
+    _, _, offset, end = section
+    count, offset = _read_varuint(data, offset)
+    function_index = 0
+    found = None
+    for _ in range(count):
+        module, offset = _read_name(data, offset)
+        import_name, offset = _read_name(data, offset)
+        if offset >= end:
+            raise ValueError("truncated Wasm import kind")
+        kind = data[offset]
+        offset += 1
+        if kind == 0:
+            _, offset = _read_varuint(data, offset)
+            if import_name == name:
+                if module != "env":
+                    raise ValueError(f"expected env.{name}, got {module}.{import_name}")
+                if found is not None:
+                    raise ValueError(f"ambiguous function import {name}")
+                found = function_index
+            function_index += 1
+        elif kind == 1:
+            if offset >= end:
+                raise ValueError("truncated Wasm table import")
+            offset = _skip_limits(data, offset + 1)  # reference type, limits
+        elif kind == 2:
+            offset = _skip_limits(data, offset)
+        elif kind == 3:
+            offset += 2  # global value type and mutability
+        elif kind == 4:
+            offset += 1  # tag attribute
+            _, offset = _read_varuint(data, offset)
+        else:
+            raise ValueError(f"unsupported Wasm import kind {kind}")
+        if offset > end:
+            raise ValueError("Wasm import exceeds its section")
+    if offset != end:
+        raise ValueError("trailing bytes in Wasm import section")
+    if found is None:
+        raise ValueError(f"forwarder has no imported function {name}")
+    return found
+
+
+def _export_function_index(data: bytes, name: str) -> int | None:
+    section = next((item for item in _wasm_sections(data) if item[0] == 7), None)
+    if section is None:
+        raise ValueError("forwarder has no export section")
+    _, _, offset, end = section
+    count, offset = _read_varuint(data, offset)
+    found = None
+    for _ in range(count):
+        export_name, offset = _read_name(data, offset)
+        if offset >= end:
+            raise ValueError("truncated Wasm export kind")
+        kind = data[offset]
+        offset += 1
+        index, offset = _read_varuint(data, offset)
+        if export_name == name:
+            if kind != 0:
+                raise ValueError(f"export {name} is not a function")
+            if found is not None:
+                raise ValueError(f"duplicate Wasm export {name}")
+            found = index
+    if offset != end:
+        raise ValueError("trailing bytes in Wasm export section")
+    return found
+
+
+def _add_imported_function_export(data: bytes, name: str) -> tuple[bytes, int]:
+    function_index = _imported_function_index(data, name)
+    existing = _export_function_index(data, name)
+    if existing is not None:
+        if existing != function_index:
+            raise ValueError(f"export {name} is not the imported function")
+        return data, function_index
+
+    section = next(item for item in _wasm_sections(data) if item[0] == 7)
+    _, start, payload_start, end = section
+    count, entries_start = _read_varuint(data, payload_start)
+    export_name = name.encode("utf-8")
+    entry = (
+        _write_varuint(len(export_name))
+        + export_name
+        + b"\0"
+        + _write_varuint(function_index)
+    )
+    payload = _write_varuint(count + 1) + data[entries_start:end] + entry
+    replacement = b"\x07" + _write_varuint(len(payload)) + payload
+    return data[:start] + replacement + data[end:], function_index
+
 
 MAIN = r"""
 #define _GNU_SOURCE
@@ -96,9 +262,13 @@ import {plan_dylink_layout} from __LAYOUT_PLANNER__;
 import {link_dylink_graph} from __MODULE_LINKER__;
 import {ProcessDylink} from __PROCESS_LOADER__;
 import {prepare_dylink_call_metadata} from __CALL_METADATA__;
+const runnerArgs=process.argv.slice(2);
+const mode=runnerArgs.at(-1)==='reverse-ctors'?runnerArgs.pop():undefined;
 const [bits, first, second, mainFile, cycleAFile, cycleBFile,
  recursiveRootFile,recursiveLeafFile,recursiveRejectFile,
- nextFrontFile,nextMiddleFile,nextLeafFile,mode] = process.argv.slice(2);
+ nextFrontFile,nextMiddleFile,nextLeafFile] = runnerArgs;
+const reexportFiles=runnerArgs.slice(12);
+assert(reexportFiles.length===0||reexportFiles.length===3,'re-export probe needs provider, forwarder, and consumer');
 const modules = [first, second].map(p => new WebAssembly.Module(readFileSync(p)));
 const layouts=[first,second].map(p=>read_wasm_dynamic_imports(new Uint8Array(readFileSync(p))));
 // Exercise the runtime's parser with actual LLD output, before instantiation.
@@ -288,6 +458,9 @@ const virtualFiles=new Map([
  ['/libraries/libnext-front.so',{bytes:new Uint8Array(readFileSync(nextFrontFile)),inode:61n}],
  ['/libraries/libnext-middle.so',{bytes:new Uint8Array(readFileSync(nextMiddleFile)),inode:62n}],
  ['/libraries/libnext-leaf.so',{bytes:new Uint8Array(readFileSync(nextLeafFile)),inode:63n}],
+ ...(reexportFiles.length?[['/libraries/'+basename(reexportFiles[0]),{bytes:new Uint8Array(readFileSync(reexportFiles[0])),inode:71n}],
+  ['/libraries/'+basename(reexportFiles[1]),{bytes:new Uint8Array(readFileSync(reexportFiles[1])),inode:72n}],
+  ['/libraries/'+basename(reexportFiles[2]),{bytes:new Uint8Array(readFileSync(reexportFiles[2])),inode:73n}]]:[]),
 ]);
 // Model libc's byte-level lookup independently of the host's string codec.
 const rawFilename=Buffer.concat([Buffer.from('/libraries/raw-'),Buffer.from([0x80,0xed,0xa0,0x80]),Buffer.from('.wasm')]);
@@ -344,7 +517,7 @@ processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximu
  ['dlsym',JSON.stringify([[memoryAddress==='i64'?126:127,memoryAddress==='i64'?126:127],[memoryAddress==='i64'?126:127]])],
  ['dlerror',JSON.stringify([[],[memoryAddress==='i64'?126:127]])]]),
  isControlFlow:error=>error===control,fatal:error=>{throw error;},
- pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n,51n,61n,62n,63n].includes(inode));
+ pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n,51n,61n,62n,63n,71n,72n,73n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
 const mainHandle=processLoader.open(word(memoryAddress,0),2);
@@ -462,6 +635,46 @@ for(;at&&countMaps<16;at=mapWord(at,3)){
 assert.equal(at,0n);assert.equal(countMaps,7);assert.equal(main.exports.modeled_link_count(mainHandle),7);
 assert(mapNames.has(''));assert(mapNames.has('/libraries/'+names[0]));assert(mapNames.has('/libraries/reentrant-leaf.so'));
 assert(!mapNames.has('/libraries/reentrant-reject.so'));
+if(reexportFiles.length){
+ const [providerFile,forwarderFile,consumerFile]=reexportFiles;
+ const providerBytes=new Uint8Array(readFileSync(providerFile));
+ const forwarderBytes=new Uint8Array(readFileSync(forwarderFile));
+ const consumerBytes=new Uint8Array(readFileSync(consumerFile));
+ assert.deepEqual(dylink(new WebAssembly.Module(providerBytes)).needed,[]);
+ assert.deepEqual(dylink(new WebAssembly.Module(forwarderBytes)).needed,['libreexport-provider.so']);
+ assert.deepEqual(dylink(new WebAssembly.Module(consumerBytes)).needed,['libreexport-forwarder.so']);
+ const forwarderSignatures=read_wasm_dynamic_signatures(forwarderBytes);
+ assert.deepEqual(forwarderSignatures.reexports.get('reexport_target'),
+  {module:'env',name:'reexport_target'},'the exported function must be the real imported function index');
+ assert.equal(forwarderSignatures.imports.find(x=>x.module==='env'&&x.name==='reexport_target')?.signature,
+  JSON.stringify([[0x7f],[0x7f]]));
+ const consumerSignatures=read_wasm_dynamic_signatures(consumerBytes);
+ assert(consumerSignatures.imports.some(x=>x.module==='env'&&x.name==='reexport_target'),
+  'consumer must retain a real function import through the forwarder');
+ const consumerLayouts=read_wasm_dynamic_imports(consumerBytes);
+ assert(consumerLayouts.some(x=>x.module==='GOT.func'&&x.name==='reexport_target'&&x.kind==='global'),
+  'consumer must exercise the function import through its real GOT relocation');
+ const consumerHandle=processLoader.open(storeString(basename(consumerFile)),2);
+ assert.notEqual(consumerHandle,word(memoryAddress,0),'load consumer through the ProcessDylink dependency graph');
+ const forwarderHandle=processLoader.open(storeString(basename(forwarderFile)),2|4);
+ const providerHandle=processLoader.open(storeString(basename(providerFile)),2|4);
+ const targetAddress=processLoader.symbol(providerHandle,storeString('reexport_target'));
+ assert.notEqual(targetAddress,word(memoryAddress,0));
+ assert.equal(BigInt(processLoader.symbol(forwarderHandle,storeString('reexport_target'))),BigInt(targetAddress),
+  'forwarder lookup must preserve the provider canonical function pointer');
+ const target=table.get(word(tableAddress,targetAddress));
+ assert.equal(typeof target,'function');
+ assert.equal(target(7),48,'provider function remains callable through its canonical slot');
+ const directAddress=processLoader.symbol(consumerHandle,storeString('reexport_consumer_direct'));
+ assert.equal(table.get(word(tableAddress,directAddress))(7),48,'consumer direct call follows the re-export to the provider');
+ const pointerAddress=processLoader.symbol(consumerHandle,storeString('reexport_consumer_pointer'));
+ const consumerPointer=table.get(word(tableAddress,pointerAddress))();
+ assert.equal(BigInt(consumerPointer),BigInt(targetAddress),'consumer GOT function pointer uses the provider canonical slot');
+ assert.equal(table.get(word(tableAddress,consumerPointer))(9),50,'consumer GOT pointer invokes the provider');
+ const anchorAddress=processLoader.symbol(forwarderHandle,storeString('reexport_forwarder_anchor'));
+ assert.equal(table.get(word(tableAddress,anchorAddress))(),41,'forwarder NEEDED anchor calls the provider');
+ console.log(`Process loader re-export model wasm${bits}: imported-function export identity, dependency aliases, canonical pointers, direct calls and GOT calls pass`);
+}
 assert.equal(processLoader.symbol(dependency,storeString('run')),word(memoryAddress,0),'dependency handle must not include consumer definitions');
 assert.equal(main.exports.modeled_bad_info(word(memoryAddress,3),2),1);
 assert.equal(main.exports.modeled_bad_info(mainHandle,-777),1);assert.equal(infoErrors,1);
@@ -760,6 +973,82 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
             )
             next_files.append(str(output))
         next_files.reverse()
+        reexport_files = []
+        if args.check_reexports:
+            reexport_directory = directory / f"reexport{bits}"
+            reexport_directory.mkdir()
+            reexport_outputs = {
+                "provider": reexport_directory / "libreexport-provider.so",
+                "forwarder": reexport_directory / "libreexport-forwarder.so",
+                "consumer": reexport_directory / "libreexport-consumer.so",
+            }
+            for role, dependency_role in (
+                ("provider", None),
+                ("forwarder", "provider"),
+                ("consumer", "forwarder"),
+            ):
+                output = reexport_outputs[role]
+                command = [
+                    args.clang,
+                    f"--target=wasm{bits}",
+                    "-nostdlib",
+                    "-O2",
+                    "-fPIC",
+                    "-shared",
+                    "-matomics",
+                    "-mbulk-memory",
+                    "-isystem",
+                    str(sources.parents[2] / "musl/include"),
+                    "-Wl,--shared-memory,--no-entry,--import-memory,--import-table",
+                    "-Wl,--unresolved-symbols=import-dynamic,--export-all,--export=__wasm_call_ctors",
+                    f"-Wl,--max-memory={4294967296 if bits == 32 else 17179869184}",
+                    f"-Wl,-soname,{output.name}",
+                    str(sources / f"reexport-{role}.c"),
+                ]
+                if role == "forwarder" and not args.test_only_patch_reexport:
+                    command.append("-Wl,--export=reexport_target")
+                if dependency_role:
+                    command.append(str(reexport_outputs[dependency_role]))
+                command.extend(["-o", str(output)])
+                subprocess.run(command, check=True)
+            forwarder = reexport_outputs["forwarder"]
+            forwarder_bytes = forwarder.read_bytes()
+            imported_index = _imported_function_index(
+                forwarder_bytes, "reexport_target"
+            )
+            exported_index = _export_function_index(forwarder_bytes, "reexport_target")
+            if args.test_only_patch_reexport:
+                patched, alias_index = _add_imported_function_export(
+                    forwarder_bytes, "reexport_target"
+                )
+                if patched != forwarder_bytes:
+                    forwarder.write_bytes(patched)
+                    print(
+                        "TEST-ONLY: added export-section entry reexport_target -> "
+                        f"imported function index {alias_index} to {forwarder.name}; "
+                        "this validates Wasm parser/ProcessDylink semantics only and is not a product LLD build",
+                        flush=True,
+                    )
+                else:
+                    print(
+                        "TEST-ONLY: local LLD already emitted the imported-function export; "
+                        "no section transform was needed, but this run is not a product toolchain acceptance",
+                        flush=True,
+                    )
+            elif exported_index is None:
+                raise RuntimeError(
+                    f"LLD did not export imported function reexport_target for wasm{bits}; "
+                    "use the patched LLD for --check-reexports, or explicitly pass "
+                    "--test-only-patch-reexport for local semantic probing"
+                )
+            elif exported_index != imported_index:
+                raise RuntimeError(
+                    "LLD exported reexport_target as a defined function instead of its function import"
+                )
+            reexport_files = [
+                str(reexport_outputs[role])
+                for role in ("provider", "forwarder", "consumer")
+            ]
         subprocess.run(
             [
                 args.node,
@@ -772,6 +1061,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"cycle-b{bits}.wasm"),
                 *recursive_files,
                 *next_files,
+                *reexport_files,
             ],
             check=True,
         )
@@ -787,6 +1077,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"cycle-b{bits}.wasm"),
                 *recursive_files,
                 *next_files,
+                *reexport_files,
                 "reverse-ctors",
             ],
             capture_output=True,
@@ -812,6 +1103,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 str(directory / f"cycle-b{bits}.wasm"),
                 *recursive_files,
                 *next_files,
+                *reexport_files,
             ],
             capture_output=True,
             text=True,
