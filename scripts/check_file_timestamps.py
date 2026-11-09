@@ -77,8 +77,14 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
         target.write_text("old")
         staging.write_text("replacement")
         staging.chmod(0o640)
+        original_directory, moved_directory = (
+            work / f"directory-{compiler}",
+            work / f"moved-{compiler}",
+        )
+        original_directory.mkdir()
+        (original_directory / "old-entry").write_text("original")
         child = subprocess.Popen(
-            [str(program), str(target)],
+            [str(program), str(target), str(original_directory)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -93,10 +99,15 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
                 == "external metadata: ready for host replacement\n"
             )
             staging.replace(target)
+            original_directory.rename(moved_directory)
+            original_directory.mkdir()
+            (original_directory / "new-entry").write_text("replacement")
             stdout, stderr = child.communicate("x", timeout=15)
-            assert child.returncode == 0 and stdout.count(" pass\n") == 4, (
+            assert child.returncode == 0 and stdout.count(" pass\n") == 5, (
                 stdout + stderr
             )
+            assert sorted(p.name for p in moved_directory.iterdir()) == ["old-entry"]
+            assert sorted(p.name for p in original_directory.iterdir()) == ["new-entry"]
             assert (
                 target.read_text() == "replacement"
                 and target.stat().st_mode & 0o777 == 0o640
@@ -106,7 +117,7 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
                 child.kill()
                 child.wait()
         print(
-            f"{compiler}: real host replacement, old-fd metadata and four-stage truncate recovery pass"
+            f"{compiler}: real host replacement, metadata and five-stage directory recovery pass"
         )
     (work / "bits").mkdir()
     template = (MUSL / "arch/wasm32/bits/alltypes.h.in").read_text() + (
