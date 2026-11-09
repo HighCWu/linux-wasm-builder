@@ -6,6 +6,29 @@
 实现、Wasm syscall 转发和用户态恢复组合起来验证；不是新增私有 syscall 编号或
 应用 API，也不能仅凭 Linux 上游有实现就认为当前 Wasm 配置已经支持。
 
+## Node 共享目录的追加标志切换修复候选
+
+distro `fbf7a08` / 集成 `d8545d0` 修复 NodeFS 中一个真实写入位置错误。
+Linux 已把 `F_SETFL` 后的当前 flags 传到 FUSE WRITE，但最初以 `O_APPEND`
+打开的 Node FileHandle 仍强制追加。清除此标志后，后端现在懒开并缓存一个
+位置写入描述符。Linux 主机通过原 fd 的 procfs 路径打开，并核对 dev/ino，
+使已重命名、替换或删除的文件继续写向原 inode。恢复追加后使用原描述符，
+保留主机的原子追加行为。释放时尝试关闭两个描述符并清理 inode 跟踪。
+
+主会话已审查实现，独立运行两套 TypeScript 检查、39 项 NodeFS 检查和 C 静态
+分析，并完成双位宽 Wasm 前端编译。GCC/Clang 原生握手参考核对切换后的 offset、
+原 inode 与替换文件的实际字节。目标检查
+[42681380517](https://github.com/HighCWu/distro/actions/runs/42681380517)
+固定继承该实现的 `2e38449`，异步验收默认 wasm32 Node 的三阶段、主机文件内容及机器关闭。
+本地检查尚不能证明该目标运行通过。
+
+首次派发 42681138761 的名称漏了 `package` 层级，实际日志确认在计划阶段报
+`unknown heavy check`。主会话核对导出路径后改用
+`linux-guest-package-check-tests-node-filesystem`，该失败没有执行目标程序。
+
+这项修复依赖主机重新打开原文件的权限。非 Linux 主机沿用路径打开并核验 inode，
+失败返回实际错误。当前结果不构成完整的主机 `F_SETFL` 仿真或浏览器验收。
+
 ## 第一组：pidfd 与退出生命周期
 
 程序仍通过现有可选单线程 fork profile 创建子进程；父子用 pipe 建立确定的运行

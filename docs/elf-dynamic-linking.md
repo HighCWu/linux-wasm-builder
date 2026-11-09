@@ -1463,4 +1463,13 @@ Clang Driver.cpp，确认 `$` 配置参数只经链接输入路径处理，驱�
 
 此修复复用已发布 LLVMfb960167。固定版本的
 [42659111460](https://github.com/HighCWu/distro/actions/runs/42659111460)一次派发，
-继续要求双位宽实际 SDK C/C++ 驱动、ELF 三阶段消费者和关闭门禁。结果待核实。
+该任务实际停在 wasm64 SDK 检查，普通 C/C++ 样例未使用信号接口，却无条件
+要求 `__wasm_signal_handler_v2`。该导出属于 musl 的私有 `__restore`，仅在
+相关归档成员被抽取时出现，平台配置没有强制拉入它。ELF 消费者尚未执行。
+
+distro `2e38449` / 集成 `14a081b` 修正此检查。通用 profile 只要求无条件
+执行能力，C/C++ 样例实际调用标准 `sigaction` 后分别核验信号恢复导出。
+主会话审查调用链与差异，JS 语法、格式及宿主解析检查通过，两个真实 SDK
+检查因本地没有候选 SDK 而跳过。
+[42681240190](https://github.com/HighCWu/distro/actions/runs/42681240190)
+继续异步验收双位宽实际驱动、ELF 三阶段消费者及关闭，尚未取得目标通过证据。

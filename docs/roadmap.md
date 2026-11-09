@@ -3056,3 +3056,11 @@ AS/DATA限额检查。四个复用Luna子代理实施，主会话独立审查、
 唯一pass和关闭门禁通过。新的brk任务与CPython原任务attempt3均已正常进入
 Heavy，目标运行证据继续分别跟进。见
 [Hush验收](process-syscalls.md#默认-hush-退出状态修复的双位宽验收)。
+
+fbf7a08 / 集成d8545d0修复共享目录清除O_APPEND后仍错误追加的问题，复用Luna
+实施，主会话审查并独立完成类型、原生后端、C静态分析和双位宽前端验证。
+42681380517使用正确的package检查路径，异步验收默认wasm32 Node的实际三阶段、
+文件字节与关闭。2e38449 / 集成14a081b同时修复ELF SDK信号导出检查的前提，
+42681240190复验，均不将本地检查计作目标通过。见
+[追加标志修复](process-syscalls.md#node-共享目录的追加标志切换修复候选)及
+[ELF驱动记录](elf-dynamic-linking.md#elf-候选的-clang-驱动策略修复)。
