@@ -75,6 +75,17 @@ jobs:
               GAWK_DYNAMIC_BAD_EXTENSION="$bad_extension" NATIVE_REFERENCE=1 timeout 30 sh \
               sources/distro/distro/gawk-dynamic/runtime-test.sh
           done
+      - name: Check Git original process paths against native Linux
+        run: |
+          set -euo pipefail
+          for compiler in gcc clang-18; do
+            helper="$RUNNER_TEMP/git-fork-helper-$compiler"
+            "$compiler" -std=c11 -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/git-fork/helper.c -o "$helper"
+            GIT_FORK_PROGRAM=/usr/bin/git GIT_FORK_HELPER="$helper" \
+              NATIVE_REFERENCE=1 timeout 60 sh \
+              sources/distro/distro/git-fork/runtime-test.sh
+          done
       - name: Check the ELF carrier bridge against pinned LLD and Linux sources
         env:
           GH_TOKEN: ${{ github.token }}
