@@ -3075,3 +3075,8 @@ LLVM e1c44e8f / distro e4929b4 / 集成4504a1a进一步修复GNU软件自带兼�
 审查并独立核对真实对象/归档转换及双位宽Wasm符号解析。固定源码公开哈希已核实，
 Make42685098219、Gawk42685109057异步验收原软件和动态加载阶段及关闭，见
 [GNU链接修复](elf-dynamic-linking.md#gnu-软件自带兼容实现的链接修复候选)。
+
+固定f0596ff的42661210500实际日志已核实，Git2.55.0在双位宽Node各四阶段、
+唯一pass和机器关闭门禁通过，覆盖filter/hook、失败恢复、非本地clone/pack与
+前台repack/GC。后续自动链接版继续独立验收，见
+[Git验收](process-syscalls.md#git-许可证安装路径修复与-hush-补验)。

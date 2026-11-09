@@ -8594,8 +8594,12 @@ buildMaterials 产物提供归档文件，已安装许可证由 SDK 的 licenseT
 复用 Luna 子代理实施一行修复，主会话核对材料生成器、SDK 组合及许可证输出
 路径。`f0596ff` / 集成 `27a2b72` 从实际安装位置复制该文本，fork SDK 自身
 的材料路径继续按其输出契约使用。固定版本的
-[42661210500](https://github.com/HighCWu/distro/actions/runs/42661210500)一次派发，
-仍要求原版 Git 双位宽完整四阶段、唯一 pass 和关闭门禁，结果待核实。
+[42661210500](https://github.com/HighCWu/distro/actions/runs/42661210500)已成功。
+主会话逐项核实固定 `f0596ff` 的 Git2.55.0 在 wasm32/wasm64 各四阶段及唯一 pass，
+覆盖外部 filter/提交 hook、失败 hook 后恢复、非本地 clone 的 upload-pack 与 pack
+完整性、前台 repack 和 GC。两份实际安装系统均运行原程序。该版本的运行器在
+finally 等待 machine.closed，关闭错误使检查非零退出，目标通过该门禁。
+该结果认证此前手工 finalizer 配置，后续自动链接配置继续按其固定源码单独验收。
 
 旧 Hush 任务42635983289已取消，实际日志停在 LLVM 构建并报告 operation was
 canceled，取消原因未给出，尚无目标运行结果。确认该任务终止后，同一固定
