@@ -8603,3 +8603,23 @@ sdk-fork-automatic 双位宽配置。Clang 在最终静态链接后调用固定 
 shell 语法、格式和配方回归通过。固定 b610e63 的
 [42668237596](https://github.com/HighCWu/distro/actions/runs/42668237596)一次派发，
 继续复验真实双位宽程序四阶段及关闭门禁，结果待核实。
+
+## 普通 shell 和进程工具使用自动链接
+
+自动配置的42667882655和 BusyBox 修复的42668237596都停在同一处格式门禁，
+实际差异要求 findutils 的 SDK 同名绑定使用 inherit。`63f549c` / 集成216577e
+修复这一行，固定版本的
+[42669078121](https://github.com/HighCWu/distro/actions/runs/42669078121)
+继续验收自动配置的原范围，尚无新驱动的目标运行结论。
+
+`132702e` / 集成310dcff将 Dash、Bash及其独立 SjLj 探针、Tar、Git 的可选
+fork 产品迁移到自动 SDK。普通 make 产物直接安装，Git 安装扫描验证每个 Wasm
+程序的五项 Asyncify 导出，并将实际程序清单收入材料。四个复用 Luna 子代理
+分工实施，主会话负责双位宽接线和审查。已有宿主六项回归、Nix格式、配方
+shell与内嵌JS语法检查通过。验收继续采用单线程静态C范围。
+
+固定132702e的
+[42669529696](https://github.com/HighCWu/distro/actions/runs/42669529696)
+聚合自动SDK、fork语料、Findutils和上述四个程序的双位宽阶段及关闭门禁。
+[42669541393](https://github.com/HighCWu/distro/actions/runs/42669541393)
+针对性复验已修正入口配置的 BusyBox，结果分别待核实。

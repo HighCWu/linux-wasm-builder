@@ -3033,3 +3033,9 @@ LLVM53ed8fa4 / distro6739c56 / 集成b1e4dcd接通独立的自动fork链接配�
 继续复验原四阶段。见
 [自动链接](process-syscalls.md#fork-完整链接变换的自动构建配置)和
 [BusyBox配置修复](process-syscalls.md#官方-busybox-入口配置修复)。
+
+自动链接与BusyBox两项任务停在同一处inherit格式门禁，63f549c / 集成216577e
+修复后由42669078121复验。132702e / 集成310dcff进一步把Dash、Bash/SjLj、Tar
+和Git接入普通自动链接流程，四个复用Luna子代理实施，主会话审查与集成。
+42669529696验收程序组合，42669541393复验BusyBox，各自要求实际阶段和关闭。
+见[自动链接迁移](process-syscalls.md#普通-shell-和进程工具使用自动链接)。
