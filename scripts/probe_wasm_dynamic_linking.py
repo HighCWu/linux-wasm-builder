@@ -195,6 +195,12 @@ int host_value = 5;
 int host_add(int x) { return host_value += x; }
 int (*main_function(void))(int) { return host_add; }
 int unaddressed_main(int n) { return n + 40; }
+int main_lazy_bad_count;
+static int (*volatile main_lazy_consumer)(int);
+void main_lazy_set_consumer(int (*function)(int)) { main_lazy_consumer = function; }
+int main_lazy_call(int value) {
+ return main_lazy_consumer ? main_lazy_consumer(value) : -1000;
+}
 static int private_main_next_lookup(int n) {
  int (*next)(int) = dlsym(RTLD_NEXT, "next_chain");
  return next ? next(n) : -1000;
@@ -267,8 +273,11 @@ const mode=runnerArgs.at(-1)==='reverse-ctors'?runnerArgs.pop():undefined;
 const [bits, first, second, mainFile, cycleAFile, cycleBFile,
  recursiveRootFile,recursiveLeafFile,recursiveRejectFile,
  nextFrontFile,nextMiddleFile,nextLeafFile] = runnerArgs;
-const reexportFiles=runnerArgs.slice(12);
+const extraFiles=runnerArgs.slice(12);
+const reexportFiles=extraFiles.length===7?extraFiles.slice(0,3):[];
+const lazyFiles=extraFiles.slice(reexportFiles.length);
 assert(reexportFiles.length===0||reexportFiles.length===3,'re-export probe needs provider, forwarder, and consumer');
+assert.equal(lazyFiles.length,4,'lazy probe needs consumer, local, provider, and bad DSOs');
 const modules = [first, second].map(p => new WebAssembly.Module(readFileSync(p)));
 const layouts=[first,second].map(p=>read_wasm_dynamic_imports(new Uint8Array(readFileSync(p))));
 // Exercise the runtime's parser with actual LLD output, before instantiation.
@@ -461,6 +470,8 @@ const virtualFiles=new Map([
  ...(reexportFiles.length?[['/libraries/'+basename(reexportFiles[0]),{bytes:new Uint8Array(readFileSync(reexportFiles[0])),inode:71n}],
   ['/libraries/'+basename(reexportFiles[1]),{bytes:new Uint8Array(readFileSync(reexportFiles[1])),inode:72n}],
   ['/libraries/'+basename(reexportFiles[2]),{bytes:new Uint8Array(readFileSync(reexportFiles[2])),inode:73n}]]:[]),
+ ...lazyFiles.map((file,index)=>['/libraries/'+basename(file),
+  {bytes:new Uint8Array(readFileSync(file)),inode:BigInt(81+index)}]),
 ]);
 // Model libc's byte-level lookup independently of the host's string codec.
 const rawFilename=Buffer.concat([Buffer.from('/libraries/raw-'),Buffer.from([0x80,0xed,0xa0,0x80]),Buffer.from('.wasm')]);
@@ -517,7 +528,7 @@ processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximu
  ['dlsym',JSON.stringify([[memoryAddress==='i64'?126:127,memoryAddress==='i64'?126:127],[memoryAddress==='i64'?126:127]])],
  ['dlerror',JSON.stringify([[],[memoryAddress==='i64'?126:127]])]]),
  isControlFlow:error=>error===control,fatal:error=>{throw error;},
- pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n,51n,61n,62n,63n,71n,72n,73n].includes(inode));
+ pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n,51n,61n,62n,63n,71n,72n,73n,81n,82n,83n,84n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
  unpinFile:id=>{assert(pins.has(id));deallocate(pins.get(id));pins.delete(id);return 0;}});
 const mainHandle=processLoader.open(word(memoryAddress,0),2);
@@ -674,6 +685,92 @@ if(reexportFiles.length){
  const anchorAddress=processLoader.symbol(forwarderHandle,storeString('reexport_forwarder_anchor'));
  assert.equal(table.get(word(tableAddress,anchorAddress))(),41,'forwarder NEEDED anchor calls the provider');
  console.log(`Process loader re-export model wasm${bits}: imported-function export identity, dependency aliases, canonical pointers, direct calls and GOT calls pass`);
+}
+{
+ const [consumerFile,localFile,providerFile,badFile]=lazyFiles;
+ const consumerBytes=new Uint8Array(readFileSync(consumerFile));
+ const localBytes=new Uint8Array(readFileSync(localFile));
+ const providerBytes=new Uint8Array(readFileSync(providerFile));
+ const badBytes=new Uint8Array(readFileSync(badFile));
+ for(const bytes of [consumerBytes,localBytes,providerBytes,badBytes])
+  assert.deepEqual(dylink(new WebAssembly.Module(bytes)).needed,[],
+   'lazy fixtures must not acquire an eager provider NEEDED edge');
+ const consumerSignatures=read_wasm_dynamic_signatures(consumerBytes);
+ assert.equal(consumerSignatures.imports.find(x=>x.module==='env'&&x.name==='lazy_later')?.signature,
+  JSON.stringify([[0x7f],[0x7f]]),'lazy consumer imports an i32-to-i32 direct function');
+ assert.equal(read_wasm_dynamic_signatures(badBytes).exports.get('lazy_later'),
+  JSON.stringify([[0x7e],[0x7e]]),'bad provider intentionally exports an i64-to-i64 function');
+ assert(read_wasm_dynamic_imports(consumerBytes).some(x=>x.module==='env'&&x.name==='lazy_later'&&x.kind==='function'));
+ const lazyConsumerPath=storeString(basename(consumerFile));
+ const beforeNowFailure=live.size;
+ const nowFailure=processLoader.open(lazyConsumerPath,2);
+ assert.equal(nowFailure,word(memoryAddress,0),'RTLD_NOW rejects the unresolved strong function import');
+ assert.equal(live.size,beforeNowFailure,'failed RTLD_NOW releases all file pins and buffers');
+ assert.equal(processLoader.open(lazyConsumerPath,2|4),word(memoryAddress,0),
+  'failed RTLD_NOW leaves no object for RTLD_NOLOAD');
+ assert.equal(live.size,beforeNowFailure,'RTLD_NOLOAD miss releases its temporary path');
+ const lazyHandle=processLoader.open(lazyConsumerPath,1);
+ assert.notEqual(lazyHandle,word(memoryAddress,0),'RTLD_LAZY admits the unresolved strong import');
+ assert.equal(processLoader.valid(lazyHandle),1);
+ const mainLazyBadCount=()=>new DataView(memory.buffer).getInt32(Number(main.exports.main_lazy_bad_count.value),true);
+ const readyAddress=processLoader.symbol(lazyHandle,storeString('lazy_ready'));
+ const lazyUseAddress=processLoader.symbol(lazyHandle,storeString('lazy_use'));
+ assert.notEqual(readyAddress,word(memoryAddress,0));assert.notEqual(lazyUseAddress,word(memoryAddress,0));
+ assert.equal(table.get(word(tableAddress,readyAddress))(),7,'unrelated consumer entry is usable before binding');
+ main.exports.main_lazy_set_consumer(lazyUseAddress);
+ assert.equal(mainLazyBadCount(),0);
+ const lazyLaterName=storeString('lazy_later');
+ const localHandle=processLoader.open(storeString(basename(localFile)),2);
+ assert.notEqual(localHandle,word(memoryAddress,0),'load a same-name RTLD_LOCAL candidate');
+ const localAddress=processLoader.symbol(localHandle,lazyLaterName);
+ assert.notEqual(localAddress,word(memoryAddress,0));
+ assert.equal(table.get(word(tableAddress,localAddress))(1),9001,'the local candidate remains independently callable');
+ assert.equal(processLoader.symbol(word(memoryAddress,0),lazyLaterName),
+  word(memoryAddress,0),'RTLD_LOCAL cannot enter the default symbol scope');
+ const beforeBadPromotion=live.size;
+ const badPath=storeString(basename(badFile));
+ const badHandle=processLoader.open(badPath,2|256);
+ assert.equal(badHandle,word(memoryAddress,0),'fresh GLOBAL rejects a mismatched lazy import signature');
+ assert.equal(mainLazyBadCount(),0,'signature rejection precedes bad DSO constructors');
+ assert.equal(live.size,beforeBadPromotion,'bad GLOBAL promotion leaves no allocations or pins');
+ assert.equal(processLoader.open(badPath,2|4),word(memoryAddress,0),
+  'fresh bad GLOBAL rejection leaves no resident object');
+ assert.equal(mainLazyBadCount(),0);
+ assert.equal(processLoader.symbol(word(memoryAddress,0),lazyLaterName),
+  word(memoryAddress,0),'failed promotion does not publish a default symbol');
+ const badLocalHandle=processLoader.open(badPath,2);
+ assert.notEqual(badLocalHandle,word(memoryAddress,0),'the same mismatched DSO may be resident as LOCAL');
+ assert.equal(mainLazyBadCount(),1,'LOCAL loading runs the bad DSO constructor exactly once');
+ const beforeLocalPromotion={tableLength:table.length,live:live.size,pins:pins.size};
+ assert.equal(processLoader.open(badPath,2|4|256),word(memoryAddress,0),
+  'GLOBAL promotion rejects a mismatched provider already resident as LOCAL');
+ assert.equal(mainLazyBadCount(),1,'failed promotion does not rerun resident constructors');
+ assert.equal(table.length,beforeLocalPromotion.tableLength,'failed promotion leaves the table unchanged');
+ assert.equal(live.size,beforeLocalPromotion.live,'failed promotion leaves live allocations unchanged');
+ assert.equal(pins.size,beforeLocalPromotion.pins,'failed promotion leaves file pins unchanged');
+ assert.equal(processLoader.open(badPath,2|4),badLocalHandle,
+  'the rejected promotion keeps the original LOCAL handle resident');
+ assert.equal(mainLazyBadCount(),1,'RTLD_NOLOAD does not rerun the LOCAL constructor');
+ assert.equal(processLoader.symbol(word(memoryAddress,0),lazyLaterName),
+  word(memoryAddress,0),'mismatched LOCAL provider does not bind the pending lazy import');
+ const providerHandle=processLoader.open(storeString(basename(providerFile)),2|256);
+ assert.notEqual(providerHandle,word(memoryAddress,0),'publish the matching provider as GLOBAL');
+ const providerAddress=processLoader.symbol(providerHandle,lazyLaterName);
+ assert.notEqual(providerAddress,word(memoryAddress,0));
+ assert.equal(BigInt(processLoader.symbol(word(memoryAddress,0),lazyLaterName)),BigInt(providerAddress),
+  'later default lookup recovers after the rejected provider');
+ const readInt=(pointer)=>new DataView(memory.buffer).getInt32(Number(pointer),true);
+ assert.equal(readInt(processLoader.symbol(providerHandle,storeString('lazy_provider_count'))),1);
+ assert.equal(readInt(processLoader.symbol(providerHandle,storeString('lazy_provider_observed'))),42,
+  'real provider Wasm constructor calls main C, which calls the previously saved consumer pointer');
+ assert.equal(main.exports.main_lazy_call(1),42,'main C callback enters the same lazy consumer function');
+ assert.equal(BigInt(processLoader.symbol(lazyHandle,storeString('lazy_use'))),BigInt(lazyUseAddress),
+  'consumer canonical address is stable after its import is bound');
+ assert.equal(table.get(word(tableAddress,lazyUseAddress))(1),42,'consumer direct call reaches the provider');
+ assert.equal(table.get(word(tableAddress,readyAddress))(),7);
+ assert.equal(table.get(word(tableAddress,localAddress))(1),9001,'local object keeps its own same-name function');
+ assert.equal(mainLazyBadCount(),1,'successful provider binding does not rerun the rejected LOCAL constructor');
+ console.log(`Process loader lazy model wasm${bits}: NOW rejection, LAZY admission, LOCAL isolation, typed GLOBAL binding and real constructor callback pass`);
 }
 assert.equal(processLoader.symbol(dependency,storeString('run')),word(memoryAddress,0),'dependency handle must not include consumer definitions');
 assert.equal(main.exports.modeled_bad_info(word(memoryAddress,3),2),1);
@@ -973,6 +1070,40 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
             )
             next_files.append(str(output))
         next_files.reverse()
+        lazy_directory = directory / f"lazy{bits}"
+        lazy_directory.mkdir()
+        lazy_outputs = {
+            "consumer": lazy_directory / "liblazy-consumer.so",
+            "local": lazy_directory / "liblazy-local.so",
+            "provider": lazy_directory / "liblazy-provider.so",
+            "bad": lazy_directory / "liblazy-bad.so",
+        }
+        for role, output in lazy_outputs.items():
+            subprocess.run(
+                [
+                    args.clang,
+                    f"--target=wasm{bits}",
+                    "-nostdlib",
+                    "-O2",
+                    "-fPIC",
+                    "-shared",
+                    "-matomics",
+                    "-mbulk-memory",
+                    "-isystem",
+                    str(sources.parents[2] / "musl/include"),
+                    "-Wl,--shared-memory,--no-entry,--import-memory,--import-table",
+                    "-Wl,--unresolved-symbols=import-dynamic,--export-all,--export=__wasm_call_ctors",
+                    f"-Wl,--max-memory={4294967296 if bits == 32 else 17179869184}",
+                    f"-Wl,-soname,{output.name}",
+                    str(sources / f"lazy-{role}.c"),
+                    "-o",
+                    str(output),
+                ],
+                check=True,
+            )
+        lazy_files = [
+            str(lazy_outputs[role]) for role in ("consumer", "local", "provider", "bad")
+        ]
         reexport_files = []
         if args.check_reexports:
             reexport_directory = directory / f"reexport{bits}"
@@ -1062,6 +1193,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 *recursive_files,
                 *next_files,
                 *reexport_files,
+                *lazy_files,
             ],
             check=True,
         )
@@ -1078,6 +1210,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 *recursive_files,
                 *next_files,
                 *reexport_files,
+                *lazy_files,
                 "reverse-ctors",
             ],
             capture_output=True,
@@ -1104,6 +1237,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
                 *recursive_files,
                 *next_files,
                 *reexport_files,
+                *lazy_files,
             ],
             capture_output=True,
             text=True,
