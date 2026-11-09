@@ -38,8 +38,9 @@ Linux 的 clone、进程身份、描述符继承、信号、退出及 wait 仍�
 | `asyncify_get_state` | `() -> i32`，0=正常、1=unwind、2=rewind |
 | `asyncify_start_unwind`、`asyncify_start_rewind` | `(uintptr_t descriptor) -> void` |
 | `asyncify_stop_unwind`、`asyncify_stop_rewind` | `() -> void` |
-| `__wasm_fork_syscall_abi` | syscall 扩展标识，`() -> i32`；1 为旧 clone 扩展，2 才启用 clone3 |
+| `__wasm_fork_syscall_abi` | syscall 扩展标识，`() -> i32`；1 为旧 clone 扩展，2 增加 clone3，3 增加 C++ 异常状态准入 |
 | `__wasm_fork_descriptor` | syscall 扩展，`() -> uintptr_t`，初始化并返回保存区 descriptor |
+| `__wasm_fork_cxx_quiescent_v1` | 仅 ABI 3 必需，`() -> i32`；1 允许新请求，0 返回 EOPNOTSUPP |
 
 `pid_t` 和 checkpoint 返回值在双位宽下均为 i32；wasm64 的地址及 raw clone 的 long
 返回值跨 JS 边界使用 BigInt，不可通过无符号位运算截断。
@@ -49,9 +50,21 @@ Wasm32 的原始指针寄存器跨 JS 边界可以表示为负 Number；loader �
 保留原寄存器表示，恢复 Wasm global/rewind 时不改变位模式。这个规则不适用于
 PID、长度或普通 JS 元数据，也不取消当前线性内存边界检查。
 
-最后两个导出是成对启用的 syscall 扩展，不要求旧 checkpoint 模块提供。
+syscall 标识与 descriptor 导出成对启用，不要求旧 checkpoint 模块提供。
 新完整链接变换须将 `linux.syscall` 与 `linux.syscall_v2` 纳入 Asyncify imports；仅变换旧 checkpoint import
 不足以支持直接 syscall 调用。loader 不能替未变换的程序凭空复制引擎调用栈。
+
+ABI 3 属于独立的静态 C++ 候选配置。loader 在初始化时检查 guard 签名，
+不在 `_start` 初始化 TLS 之前调用它。每个新请求在重置 descriptor、解析 clone
+能力和创建子进程之前，检查匹配 libc++abi 的 caughtExceptions 链与未捕获异常计数。
+已有活动异常返回 EOPNOTSUPP，完成 parent/child rewind 时不重复准入。
+该导出为执行层契约，程序仍调用标准 fork/clone 接口。
+
+固定 Binaryen 129 的双位宽微型实验表明，在活动 catch 内开始 Asyncify unwind
+会触发 unreachable，而 try 内尚未抛出异常的调用可完成 unwind/rewind 并继续捕获。
+据此保留普通执行流的 C++ fork 成功路径。该实验不代替完整 Linux/Wasm、匹配
+C++ 运行库、堆与动态 TLS 隔离的目标验收。外语异常展开、SjLj、动态链接及
+多线程 fork 组合仍需后续实现和验证。
 
 ## Linux/Wasm 的 syscall 参数约定
 
@@ -398,8 +411,9 @@ ptrace关系或模拟SIGSTOP。该低位标志适用于原有单线程独立内�
   正常返回和异常退出均必须恢复深度。
 - 多线程进程仍由已有内核 clone 的 mm_users 检查拒绝，返回 `EOPNOTSUPP`；
   不能在缺少一致性快照的情况下放行多线程 fork。
-- 当前协议仅覆盖本平台静态 C 配置。任意 mutable Wasm global、可变函数表、动态库、
-  C++ EH、SjLj 仍需专项验证；浏览器只认证路线文档记录的引擎和配置，不能由 Node
+- 已认证范围以本平台各静态 C 配置的固定版本记录为准。新增静态 C++ ABI 3 候选
+  的完整目标验收仍待完成。任意 mutable Wasm global、可变函数表、动态库、SjLj
+  及更多异常组合仍需专项验证；浏览器只认证路线文档记录的引擎和配置，不能由 Node
   单个程序的结果推导支持。
 - 不提供 COW、不引入 softmmu，不改变 direct memory 的可用地址范围。
 - `vfork()` 尚未实现共享地址空间和父进程挂起至子 exec/exit 的语义，不作支持声明。

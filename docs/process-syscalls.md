@@ -6,6 +6,31 @@
 实现、Wasm syscall 转发和用户态恢复组合起来验证；不是新增私有 syscall 编号或
 应用 API，也不能仅凭 Linux 上游有实现就认为当前 Wasm 配置已经支持。
 
+## 独立静态 C++ fork 候选
+
+distro `2878067` 新增 `sdk-fork-cxx` 与 `sdk-fork-cxx-wasm64`，沿用标准
+fork 和普通 C++ 编译链接命令。匹配的 libc++、libc++abi、libunwind 与独立
+MIT 状态对象组成候选配置。默认 SDK 和原有 C 配置保持各自发布边界。
+
+ABI 3 在开始保存调用栈之前检查 C++ 异常状态。固定 Binaryen 129 的真实
+双位宽机制实验发现，活动 catch 内开始 Asyncify unwind 会 trap，try 内尚无
+活动异常时可以完成 unwind/rewind 并继续捕获。因此活动异常暂返回 EOPNOTSUPP，
+不产生子进程或重置 descriptor。匹配 libc++abi 的 caughtExceptions 链检查同时
+识别 catch(...) 中的外来异常，未捕获异常计数覆盖 C++ 展开期间的析构调用。
+外语运行时的展开组合仍未解决。初始化仅校验函数签名，避免提前访问未初始化 TLS。
+
+普通成功路径语料在 fork 前初始化并修改动态 thread_local std::string，随后核对
+父子堆、TLS、RAII 私有状态，分别抛出并捕获两种 C++ 异常，再验证活动 catch
+拒绝后的异常重抛和后续 fork/wait 恢复。GCC/Clang 原生语料、双位宽前端、
+550 项运行层检查和两套类型检查通过。原生平台的活动 catch 分支采用原生 fork，
+不能据此证明 Wasm 拒绝分支。Clang 静态分析在两个抛出位置报告 RAII 对象的
+dead-store 警告，主会话核对析构计数的实际使用及原生结果，未将分析描述为零警告。
+前端检查使用系统 libc++ 头文件，不代替固定候选 SDK 的完整构建和运行。
+
+候选仍限定静态单模块、单线程和无活动 C++ 异常的 fork。其 C 编译入口为配置
+探测显式链接 C++ 运行库，这些 profile 输入在 -nostdlib/-nodefaultlibs 下仍存在。
+完整 Linux/Wasm 三阶段、唯一 pass 与机器关闭须由独立目标 CI 验收。
+
 ## Node 共享目录的追加标志切换修复候选
 
 distro `fbf7a08` / 集成 `d8545d0` 修复 NodeFS 中一个真实写入位置错误。
@@ -19,8 +44,10 @@ Linux 已把 `F_SETFL` 后的当前 flags 传到 FUSE WRITE，但最初以 `O_AP
 分析，并完成双位宽 Wasm 前端编译。GCC/Clang 原生握手参考核对切换后的 offset、
 原 inode 与替换文件的实际字节。目标检查
 [42681380517](https://github.com/HighCWu/distro/actions/runs/42681380517)
-固定继承该实现的 `2e38449`，异步验收默认 wasm32 Node 的三阶段、主机文件内容及机器关闭。
-本地检查尚不能证明该目标运行通过。
+固定继承该实现的 `2e38449`。主会话现已核实实际目标日志，默认 wasm32 Node
+的该子测试通过。它逐项比对三阶段输出和主机四个文件的实际字节，包含替换及
+删除重建后的 inode 隔离。完整 Node 共享目录检查 16 项通过、零跳过，fixture
+的 finally 完成 machine.closed 和控制台收尾后才结束。此证据不覆盖 wasm64 或浏览器。
 
 首次派发 42681138761 的名称漏了 `package` 层级，实际日志确认在计划阶段报
 `unknown heavy check`。主会话核对导出路径后改用
