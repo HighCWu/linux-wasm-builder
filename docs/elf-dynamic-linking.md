@@ -1335,6 +1335,11 @@ DSO 数据按其实际静态分配范围归属，主程序使用 LLD 的 `__glob
 已一次派发，要求双位宽独立 SDK 驱动、新消费者四阶段、
 原有加载器十三阶段及机器关闭，目标结果待实际日志核实。
 
+42611728431现已明确失败。主会话读取实际 Heavy 日志，首错为普通 SDK 材料
+导出的 files 白名单不一致，dladdr 程序尚未运行。该问题已由此前 `82aa6db`
+修复，现以包含该修复的固定 `ec69ee4` 派发一次聚合复验，阶段及关闭结果待
+实际日志核实。[复验 CI](https://github.com/HighCWu/distro/actions/runs/42630896189)。
+
 ## 静态 ELF 容器的实验性文件入口
 
 Linux `e34fb21f6` 增加默认关闭的 `CONFIG_WASM_ELF_CONTAINER`，LLD
@@ -1372,3 +1377,8 @@ PID/PPID 和继承 fd offset，fexecve 后同 PID、BSS/TLS 重置和 CLOEXEC �
 输入与主仓库 gitlink 一致。固定版本的聚合任务已派发一次，要求双位宽完整
 SDK C/C++ 驱动、三阶段消费者、唯一 pass 及发布 runner 的关闭门禁，实际结果
 待日志核实。[目标 CI](https://github.com/HighCWu/distro/actions/runs/42630206187)。
+
+42630206187已明确失败于 treefmt，尚未构建候选。`"$${flag}"` 产生转义文本，
+检查器发现 lambda 参数未被使用；`8bb4720` 改为 `"$" + flag` 显式构造仅链接
+参数。固定 `6dbc8d5` 包含该修复，已一次派发
+[复验 CI](https://github.com/HighCWu/distro/actions/runs/42634205111)。

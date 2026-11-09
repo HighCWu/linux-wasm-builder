@@ -8363,3 +8363,58 @@ version/src/patches 的选择赋值会被 fix 改写。`f3eb829` / 集成 `b4df2
 [vfork](https://github.com/HighCWu/distro/actions/runs/42628083775)、
 [GNU 工具](https://github.com/HighCWu/distro/actions/runs/42628094264)、
 [BusyBox](https://github.com/HighCWu/distro/actions/runs/42628105424)。
+
+## 默认 Hush 的条件分支退出状态修复
+
+真实 tar 运行已暴露默认 `tombl/busybox@4ad91c87` 的 Hush 语义错误。内核的
+子进程退出37能被 tar 正确接收并报告，但 Hush 在跳过 then 分支时为无 else
+情况暂置状态0，进入 else 或 elif 时却没有恢复失败条件的状态。
+
+distro `86c613a` / 集成 `87ab23f` 在首次进入替代分支时恢复保存的 cond_code。
+同一 else 中后续命令继续使用各自状态，无 else 的失败 if 整体仍返回0，成功
+then 分支保持原路径。普通脚本可直接在 else 中读取 `$?`，无需改写错误处理。
+这是默认 shell 的生产兼容性修复，Linux syscall、musl 和 fork 范围均未改变。
+
+四个复用 Luna 子代理实施补丁、消费者、配方与材料接线，主会话确定数据流契约，
+接管补丁序列化并完成 review。固定源码零 fuzz 应用通过。主会话提取实际条件
+控制块进行原生正反控制，旧块丢失状态，修复块保留首次和后续状态、elif 状态
+及无 else 返回值。此控制块检查只证明局部数据流，不代表完整 Hush 执行通过。
+
+Dash 与 BusyBox Ash 原生参考通过三阶段，覆盖直接外部失败及 else 后续命令、
+elif/成功 then/无 else，以及函数、子 shell、管道错误与后续恢复。目标脚本
+明确启动当前默认 Hush，临时文件清理后才发送唯一 pass。Nix/shell 格式、语法、
+ShellCheck 和工作流检查通过。
+
+配套材料保留固定原始源码及有校验和的本地补丁，提供构建前的应用命令。未知
+补丁仍被 source bundle 拒绝，清空 patches 的覆盖保留旧五参数导出路径。
+材料宿主检查验证归档、补丁应用与防篡改，真实材料检查还会核对发布二进制及
+双位宽归档里的补丁。上游许可证保留，自有材料和检查代码使用 MIT。
+
+完整 Hush 三阶段、既有进程回归和关闭门禁仍需固定源码的双位宽目标验收。
+固定 `86c613a` 的聚合已派发一次，同时包含双位宽 source bundle 检查。
+[目标 CI](https://github.com/HighCWu/distro/actions/runs/42632541709)。
+
+该首次派发在 Plan checks 即失败，聚合被定义为软件包而未进入 checks 收集器。
+`6dbc8d5` / 集成 `1b33768` 改为普通 BusyBox 的 `checks.shell-status-both`，
+沿现有 extraChecks 模式接入，wasm64 覆盖不重复继承聚合。实际重型检查名为
+busybox-check-shell-status-both。固定修复版的
+[42634218310](https://github.com/HighCWu/distro/actions/runs/42634218310)已派发，
+原 Plan 失败不算执行过 Hush 目标语料。
+
+## DONTUNMAP 与 vfork 的固定版本 Node 验收
+
+主会话已读取固定 distro `37840b2` 的完整实际 Heavy 日志，并对照该版本源码
+逐项核实。42628068112 中，wasm32/64 的 DONTUNMAP 四阶段及原 mremap 六阶段
+均按运行顺序出现，各机器只有一个 pass。42628083775 中，两位宽 vfork 消费者
+三阶段、Dash 四阶段及正常 fork 契约的全部13个标记均出现，各机器唯一 pass。
+[DONTUNMAP 验收](https://github.com/HighCWu/distro/actions/runs/42628068112)、
+[vfork 验收](https://github.com/HighCWu/distro/actions/runs/42628083775)。
+
+同时核对固定 runner 的源码与执行退出结果，成功必须经过 machine.close、
+等待 machine.closed 和磁盘收尾，清理错误会令任务失败。该 runner 与当前版本
+一致，不能只凭工作流绿色跳过关闭检查。此验收范围为固定37840b2的双位宽
+Node组合。vfork沿既定独立快照回退语义，浏览器和后续ELF/Hush组合仍需各自验证。
+
+官方 BusyBox 的42628105424已进一步到最终链接，实际报 Wasm LLD 不识别
+--start-group/--end-group。原版 BusyBox 运行语料尚未执行，归档组参数的
+工具链兼容实现继续推进，保留原软件构建脚本。
