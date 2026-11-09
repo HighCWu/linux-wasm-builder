@@ -47,9 +47,11 @@ jobs:
       - name: Install released compiler and linker for the small artifact corpus
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev
+          sudo apt-get install -y --no-install-recommends clang-18 lld-18 wabt sqlite3 libsqlite3-dev python3-dev
       - name: Check the standard SQLite extension consumer against native Linux
         run: python3 -B scripts/probe_sqlite_load_extension.py --cc clang-18
+      - name: Check ordinary CPython extension imports and callbacks against native Linux
+        run: python3 -B scripts/probe_python_load_extension.py --python python3 --cc clang-18
       - name: Run actual Wasm32 and memory64 module binding with negative controls
         run: python3 -B scripts/probe_wasm_dynamic_linking.py --clang clang-18
       - name: Check actual heap and SjLj objects with musl shared-link configuration
