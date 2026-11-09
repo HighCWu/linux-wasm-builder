@@ -61,6 +61,7 @@ jobs:
             MAKE_DYNAMIC_PROGRAM=/usr/bin/make MAKE_DYNAMIC_PLUGIN="$plugin" \
               MAKE_DYNAMIC_BAD_PLUGIN="$bad_plugin" NATIVE_REFERENCE=1 timeout 30 sh \
               sources/distro/distro/make-dynamic/runtime-test.sh
+          done
       - name: Check Gawk standard C extensions against native Linux
         run: |
           set -euo pipefail

@@ -13,23 +13,23 @@ DISTRO = ROOT / "sources/distro/distro"
 workload = DISTRO / "fork-continuation/terminal-process.c"
 patch = DISTRO / "musl/fork-continuation.patch"
 files = ["include/unistd.h", "include/pty.h", "src/legacy/daemon.c", "src/misc/forkpty.c",
-         "src/process/fork.c", "src/process/_Fork.c", "arch/wasm32/syscall_arch.h", "src/thread/wasm32/clone.c"]
+         "src/process/fork.c", "src/process/_Fork.c", "src/process/vfork.c", "arch/wasm32/syscall_arch.h", "src/thread/wasm32/clone.c"]
 compilers = os.environ.get("WASM_TERMINAL_COMPILERS", "clang clang-22").split()
 assert compilers
 
 
 def profile_recipe(recipe):
-    # The independent dynamic/poll profiles share patch dispatch, but must not
-    # enable fork declarations or bodies in the default or other profiles.
+    # The base CRT patch applies to every profile; execution patches and fork
+    # declarations remain opt-in and must not leak into other profiles.
     text = " ".join(recipe.split())
     return all(fragment in text for fragment in (
         "enableForkContinuation ? false",
         "assert !(enableForkContinuation && enableDynamicLoader);",
         "enableCooperativePoll ? false",
         "assert !(enableCooperativePoll && (enableForkContinuation || enableDynamicLoader));",
-        "// lib.optionalAttrs (enableForkContinuation || enableDynamicLoader || enableCooperativePoll) {",
         'lib.optionalString enableForkContinuation " -DWASM_FORK_CONTINUATION=1"',
-        "patches = lib.optional enableForkContinuation ./fork-continuation.patch "
+        "patches = [ ./wasm-crt1.patch ] "
+        "++ lib.optional enableForkContinuation ./fork-continuation.patch "
         "++ lib.optional enableDynamicLoader ./dynamic-loader.patch "
         "++ lib.optional enableCooperativePoll ./cooperative-poll.patch;",
     ))
