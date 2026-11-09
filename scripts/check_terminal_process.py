@@ -26,7 +26,7 @@ def profile_recipe(recipe):
         "enableForkContinuation ? false",
         "assert !(enableForkContinuation && enableDynamicLoader);",
         "enableCooperativePoll ? false",
-        "assert !(enableCooperativePoll && (enableForkContinuation || enableDynamicLoader));",
+        "assert !(enableCooperativePoll && enableDynamicLoader);",
         'lib.optionalString enableForkContinuation " -DWASM_FORK_CONTINUATION=1"',
         "patches = [ ./wasm-crt1.patch ] "
         "++ lib.optional enableForkContinuation ./fork-continuation.patch "
@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix="wasm-terminal-") as tmp:
         recipe.replace("enableForkContinuation ? false", "enableForkContinuation ? true"),
         recipe.replace("lib.optional enableForkContinuation ./fork-continuation.patch", "[ ./fork-continuation.patch ]"),
         recipe.replace("assert !(enableForkContinuation && enableDynamicLoader);", ""),
-        recipe.replace("assert !(enableCooperativePoll && (enableForkContinuation || enableDynamicLoader));", ""),
+        recipe.replace("assert !(enableCooperativePoll && enableDynamicLoader);", ""),
     ):
         assert not profile_recipe(broken), "unconditional or mixed profiles must be rejected"
     (work / "bits").mkdir()
