@@ -8132,6 +8132,7 @@ startupRoot调用处的lib传参，避免删除形参后出现Nix调用错误。
 只读模式及其余回归均通过。固定 fixture 使用一个 CPU，关闭并等待 machine.closed，
 控制台结束错误传播到检查。此证据接受该固定版本的 Node 共享目录范围。
 
-动态 SDK 的旧版本任务 `42554769847` 仍在运行。新 `RTLD_NEXT` 增量另见
+动态 SDK 的旧版本任务 `42554769847` 随后失败于检查脚本的省略启动文件用例。
+修复和复验状态另见[SDK 复验](elf-dynamic-linking.md#动态-sdk-省略启动文件的复验)。新 `RTLD_NEXT` 增量另见
 [调用者所属对象](elf-dynamic-linking.md#rtld_next-与真实调用者所属对象)，不使用
 上述 sort 或共享目录结果代替动态链接目标验收。

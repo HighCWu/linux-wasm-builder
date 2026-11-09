@@ -1053,3 +1053,43 @@ ae75015 仅改 SDK.md，重型检查固定最新 `01ea741`。
 安装 Nix 的 action 中报 zstd unsupported format，未求值项目、Heavy 跳过。
 同一任务仅重跑失败部分，第二次 Plan 已成功，Heavy 正在构建双位宽 SDK 驱动
 及 GNU 消费者。实际四阶段、唯一 pass 与机器关闭尚待核实。
+
+## 动态 SDK 省略启动文件的复验
+
+固定 `58cb26b` 的 `42554769847` 已明确失败。实际日志定位于 SDK 检查脚本的
+`-nostartfiles` 用例，普通 main 和共享库链接在此之前已完成。该用例仍链接静态
+libc，却对整个链接添加 import-dynamic，使弱引用的 `_DYNAMIC` 和 init/fini
+数组边界变成动态导入，wasm64 绝对地址重定位因此被拒。
+
+`a3a20d9` / 集成 `be3e6de` 将两种省略行为分别验证。`-nostdlib` 使用未解析函数
+动态导入，`-nostartfiles` 保留 libc、提供真实定义并使用严格解析。两者继续要求
+执行启动适配导出缺席。Clang22 的小型 wasm32/64 对象独立复现了弱绝对地址在
+严格链接成功、import-dynamic 下被拒的边界，未为此修改生产 libc 或链接器。
+
+[42569931015](https://github.com/HighCWu/distro/actions/runs/42569931015) 两次尝试
+都失败于 Nix 安装归档的 zstd unsupported format，Heavy 未执行。没有继续重复
+重跑。此结果无法验收 SDK 修复，后续 SQLite 双位宽检查也依赖修复后的 SDK 检查。
+
+## 原版 SQLite 的标准扩展加载
+
+`cb42db0` / 集成 `c1c55c6` 新增可选 sqlite3-dynamic 和 sqlite3-extension-runtime
+双位宽产品。CLI 复用现有固定 SQLite 3.51.0 源码，使用动态 SDK 的普通 CC，
+通过上游 configure/make 构建批处理 shell。显式 `--enable-load-extension`
+要求真实 dlopen 编译链接探测成功，配置后核对实际生成文件。WAL 和 mmap 的
+现有关闭策略保留，未修改 SQLite、musl 或 Linux 源码。
+
+扩展使用标准 sqlite3ext.h、sqlite3_extension_init 和 API 函数指针表。四阶段
+核对 `.load` 后 SQL 返回42、反复回调及模块数据、数据库关闭重开后的持久化，
+以及同一 CLI 进程加载缺失模块报错后继续加载有效模块。脚本清理临时数据库后
+才输出唯一 pass。固定3.51 shell 的错误累积路径要求恢复批处理最终状态1。
+宿主参考使用系统3.45.1，其同类批处理可返回0，单独标记为参考模式。
+
+主会话完成静态审查，修正许可证路径、实际生成文件及位宽依赖。固定3.51的
+原生 configure 生成结果与 recipe 断言一致。GCC/Clang22 的原生四阶段、
+Clang18/22 的双位宽前端和 analyzer、Nixfmt、ShellCheck/shfmt、Ruff 及
+工作流语法检查通过。新代码采用 MIT，SQLite 原版 blessing、musl 及 compiler-rt
+通知随产品保留。根仓库轻量 CI 使用同一消费者做原生参考。
+
+[42570603052](https://github.com/HighCWu/distro/actions/runs/42570603052) 固定
+`cb42db0`，请求 sqlite3-extension-runtime-check-both。Linux/Wasm 的四阶段、
+唯一 pass 和机器关闭尚待实际日志验收，原生结果不扩大为目标环境通过。

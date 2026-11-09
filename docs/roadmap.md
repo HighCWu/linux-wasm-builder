@@ -2828,3 +2828,13 @@ ae75015 / 集成9aefc5d继续接通原版GNU libltdl 2.5.4。新增可选库、�
 的42567886543首轮因Nix安装归档格式失败，仅重跑原任务的失败部分；第二次
 Plan已成功，双位宽库构建与四阶段目标正在执行。宿主参考和前端/analyzer
 证据独立记录，详见[GNU libltdl](elf-dynamic-linking.md#原版-gnu-libltdl-与-autoconf-动态配置)。
+
+随后42554769847明确失败于SDK检查的-nostartfiles人工动态导入组合。
+a3a20d9 / 集成be3e6de分开省略启动文件与省略标准库用例，保留生产链接策略。
+复验42569931015两次均停在Nix安装归档格式错误，未执行目标检查，未再重复重跑。
+cb42db0 / 集成c1c55c6继续接通原版SQLite3.51标准.load、API表回调和数据库
+持久化恢复。四个Luna子代理实现包、消费者、集成和轻量探针，主会话独立审查
+并修正许可证与配置材料路径。原生四阶段、双位宽前端/analyzer和配置检查通过；
+42570603052异步验收双位宽Linux/Wasm四阶段与关闭。此增量提升已有动态加载
+能力的真实程序可用性，未新增syscall或libc公共API。详见
+[SQLite扩展](elf-dynamic-linking.md#原版-sqlite-的标准扩展加载)。
