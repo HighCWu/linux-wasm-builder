@@ -1153,3 +1153,45 @@ Clang22 对两个 C 文件的原生静态分析、Nixfmt、ShellCheck/shfmt、Ru
 新 pin 的根仓库 CI 将执行该回归。此前 CPython 任务固定 `7ae8bc1`，不含本修复；
 其构建与运行结果仍按该固定版本记录。本增量的轻量引擎证据不扩大为全部
 Linux/Wasm 或浏览器消费者验收。
+
+## C++ 动态模块的共享异常运行时
+
+`2ed9aae` / 集成 `ecba22e` 增加可选 wasm-linux-dlopen-c++。普通 C++17 主程序
+与共享库使用同一套 libc++、libc++abi 和 libunwind。主程序提供规范异常 tag，
+加载器按原始模块的 tag 签名绑定同一实例，并在修改资源前检查不兼容导入。
+函数与数据的 dlsym 命名空间保持各自规则。
+
+PIC typed catch 通过 libunwind accessor 获取主线程 landing-pad context，避免
+共享库引用未定义的外部 TLS。补丁同时应用于可选编译器和运行库，普通非 PIC
+路径保留原有 TLS lowering。主程序强制导出 C++ 运行库，共享库导入这些定义；
+独立 C++ 配置以 link-only 形式选择 unwinder，编译对象时可使用 -Werror。
+
+消费者源码使用标准 dlopen/dlsym、std::string、typed catch 和 RAII，检查跨库
+抛出、回调重抛、两侧析构及异常后的正常调用。四阶段的最后一项只在程序成功
+退出后输出。resident dlclose 策略保留，尚未提供通用 imported TLS、跨 Worker
+发布或动态 SDK 与 fork 的组合。
+
+主会话复验521项运行层检查、源码与测试 TypeScript 项目、GCC/Clang22 原生
+四阶段、静态分析、固定源码补丁 dry-run 及 LLVM IR verifier。未修改 LLVM 的
+非 PIC FileCheck 通过；新增 PIC lowering 仍需构建后的目标编译器验收。
+自有消费者及新增 IR 用例采用 MIT，修改的 LLVM/libunwind 文件保留原许可证。
+
+## 默认运行库与启动对象的归属修复
+
+固定 `7ae8bc1` 的 CPython 检查实际失败于 SDK 的 -nostartfiles 链接。
+__wasm_dynamic_symbol、__wasm_dynamic_invalid 和 __wasm_dynamic_open 缺失，
+原因是这些默认运行库适配曾放在 CRT archive 中。此前 `a3a20d9` 只修复检查里
+不适用的 import-dynamic 弱重定位，未解决这项生产实现错误。
+[实际失败任务](https://github.com/HighCWu/distro/actions/runs/42572763311)。
+
+`6d84e2d` / 集成 `5e7b7c8` 将 execution object 放入默认 libc export archive。
+CRT archive 只保留原启动对象，-nostartfiles 现在保留运行库辅助定义并省略
+_start，-nostdlib 与 -nodefaultlibs 继续控制默认库。SDK 检查同步要求这一行为。
+后续 `0f1daca` 仅调整 SDK 说明与注释。
+
+固定旧 SDK 的 C++ 任务42580397472已请求停止，因为它依赖同一个已确认失败
+用例；请求停止时尚无新 C++ 目标验收结果。修复后的聚合检查固定 `0f1daca`，
+包含双位宽 SDK 驱动、C++ 四阶段、动态加载十三阶段、GNU libltdl、SQLite 和
+CPython 扩展消费者，复用同一次编译器构建。各消费者的实际阶段、唯一 pass 与
+关闭仍待日志核实，宿主参考和工作流状态不作为替代。
+[修复后聚合检查](https://github.com/HighCWu/distro/actions/runs/42582967182)。

@@ -58,6 +58,13 @@ symlink边界、既有fd、关闭后规则生存、exec继承和父进程隔离�
 
 ## 当前工作重心：能力优先，暂停专项性能实验
 
+可选动态 SDK 新增 C++17 跨库 typed exception、回调重抛与 RAII 路径，源码
+`2ed9aae` / 集成 `ecba22e`。随后根据真实 CI 修复默认运行库辅助定义误放 CRT
+的错误，源码 `6d84e2d` / 集成 `5e7b7c8`。双位宽聚合检查42582967182异步构建
+C++、十三阶段加载器及三种原版软件消费者；运行阶段和关闭仍待核实。当前本地
+证据包括521项运行层检查、两套类型检查及原生 C++ 参考，见
+[实现与证据边界](elf-dynamic-linking.md#c-动态模块的共享异常运行时)。
+
 当前已核实 [Dash](dash-processes.md) 的 wasm32/wasm64 Node 完整非交互语料与
 运行器关闭门禁，以及 wasm64 Chromium/Firefox 各两轮完整阶段、机器及浏览器关闭。
 仍使用显式的应用局部 vfork→fork 参数与可选执行 ABI，不做 callback 重写，不
