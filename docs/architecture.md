@@ -164,6 +164,11 @@ Memory，再向内核发布 ready。exec 通过 context_mm 核对切换边界，
 文件入口、现有 musl 装载缺口、元数据权威来源和分阶段验收的具体约束见
 [ELF 与 Wasm 动态加载实施边界](elf-dynamic-linking.md)。该设计尚未冻结文件 ABI。
 
+静态文件入口已有默认关闭的实验候选，LLD 生成带版本标识的 OS 扩展段，Linux
+先校验并取出 Wasm 载荷，再沿用现有编译和 exec 提交路径。轻量验证通过，
+真实 Linux/Wasm 执行待验收。具体字段见
+[实验容器契约](elf-container-abi.md)，完整 ELF 目标文件及动态节继续按原路线推进。
+
 用户态 ELF 支持纳入后续实现路线，不包括把现成 x86/ARM ELF 当作 Wasm
 直接执行，也不等于支持 ELF 内核模块。ELF 是容器和链接元数据；Wasm 仍是
 交给引擎验证、实例化的代码。需要分别实现文件/段校验、符号和版本解析、

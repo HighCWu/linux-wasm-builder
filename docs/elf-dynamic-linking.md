@@ -5,8 +5,9 @@
 最新验收边界：6b1777e 的合并 Node 任务41572697826现已核实双位宽动态加载
 十阶段、跨库符号版本三阶段、各唯一pass及发布runner关闭门禁，覆盖新默认
 编译器/内核和Linux文件名字节/BOM增量。浏览器仍接受1894258的四路各两轮
-九阶段及机器/浏览器关闭，不能沿用来证明新十阶段或新组合。ELF文件入口仍未
-实现。详见[合并实际结果](process-syscalls.md#启动修复后的合并-syscall-回归结果)。
+九阶段及机器/浏览器关闭，不能沿用来证明新十阶段或新组合。ELF文件入口新增
+默认关闭的静态容器候选，完整目标运行待验收，见本文末节。
+详见[合并实际结果](process-syscalls.md#启动修复后的合并-syscall-回归结果)。
 
 当前构建接线另有变化：591d8bf / 集成9c41615已将通过独立SDK验收的
 LLVM9035266接入默认工具链。下文的“默认LLVM不变”属于相应历史版本的边界；
@@ -1333,3 +1334,41 @@ DSO 数据按其实际静态分配范围归属，主程序使用 LLD 的 `__glob
 进程验收。[聚合 CI](https://github.com/HighCWu/distro/actions/runs/42611728431)
 已一次派发，要求双位宽独立 SDK 驱动、新消费者四阶段、
 原有加载器十三阶段及机器关闭，目标结果待实际日志核实。
+
+## 静态 ELF 容器的实验性文件入口
+
+Linux `e34fb21f6` 增加默认关闭的 `CONFIG_WASM_ELF_CONTAINER`，LLD
+`b4a039ea` 增加 `--experimental-elf-container`。后续 Clang `722d8bc3`
+调整优化器选项的认领顺序，使 Linux 部分链接识别 `--no-wasm-opt` 并跳过后处理。
+容器使用 ELF32/64 小端头、`EM_NONE` 和本配置局部使用的 OS 扩展段类型，
+由精确魔数与版本识别。这是尚未注册 psABI 的实验格式，完整 ELF 目标文件、
+PT_INTERP、动态节及共享 ELF 对象仍需后续实现。字段见
+[容器契约](elf-container-abi.md)。
+
+LLD 在外层分配前缀，模块 section offset 和 build-ID 哈希保持相对 Wasm
+载荷。Linux 在创建编译流前检查头部、位宽与完整长度，按模块相对偏移送入
+原有编译路径，完整引擎准入成功后才提交 exec。原始 Wasm 沿用同一后续路径。
+文件字段或模块验证失败时，调用者仍可继续执行原程序。
+
+独立 sdk-elf-container 及 wasm64 配置使用标准编译入口。可执行链接响应文件
+选择容器，Clang 配置通过 link-only `$--no-wasm-opt` 关闭只接受原始 Wasm 的
+链接后优化。普通 `-c -Werror` 与 `-r` 路径继续可用，元数据分别记录编译器、
+链接器和仅链接驱动参数。默认 SDK 继续输出原始 Wasm。
+
+五个复用的 Luna 子代理实施生产者、内核、消费者、SDK 和格式工具，主会话
+确定契约并审查所有差异。主会话修正同名 wrapper 的 PATH 歧义、仅链接选项、
+候选 SDK 的执行内核绑定，以及消费者 BSS/TLS 检查的易被优化问题。自有新增
+组件采用 MIT，既有内核和 LLVM 文件保留各自许可证，musl 无新增接口。
+
+实际 LLD helper、实际内核 parser 和 inspector 的原生桥接通过双位宽检查。
+GCC/Clang22 消费者三阶段、双位宽 Wasm C 前端、Clang 静态分析、既有 exec
+提交检查、SDK 配置和材料检查通过。消费者要求 posix_spawn 的参数、环境、
+PID/PPID 和继承 fd offset，fexecve 后同 PID、BSS/TLS 重置和 CLOEXEC 关闭，
+三种坏镜像 ENOEXEC 后继续 ELF 与原始 Wasm exec、回收全部子进程。
+完整候选 SDK 驱动及 Linux/Wasm 三阶段与关闭门禁仍需真实目标 CI 验收。
+
+集成固定 distro `ec69ee4`、主仓库 `506fb93`。Linux 源码哈希由公开任务
+42627745467核实，最终 LLVM `722d8bc3` 的哈希由42629726223核实；Nix 源码
+输入与主仓库 gitlink 一致。固定版本的聚合任务已派发一次，要求双位宽完整
+SDK C/C++ 驱动、三阶段消费者、唯一 pass 及发布 runner 的关闭门禁，实际结果
+待日志核实。[目标 CI](https://github.com/HighCWu/distro/actions/runs/42630206187)。
