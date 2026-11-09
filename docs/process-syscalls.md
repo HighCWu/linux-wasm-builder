@@ -8278,3 +8278,18 @@ U+FFFD名字，避免错误访问替换字符文件。六个既有Luna子代理�
 审查并验证真实源代码。内核和 musl 不变，新增消费者使用普通 SDK。
 原生三阶段及轻量检查通过，Linux/Wasm共享目录完整套件待真实CI验收。见
 [字节路径实现与边界](host-storage.md#linux-文件名与链接目标的字节保真)。
+
+## GNU 进程工具构建的材料清单修复
+
+固定 `5aabc63` 的42602956896已明确失败。主会话读取完整 Heavy 日志，首个
+builder 错误发生于 sdk-build-materials-wasm32，严格校验报 files 集合不一致。
+Nix 材料定义已包含 executable-linker.rsp 和 cxx-linker.rsp，Python 白名单
+遗漏这两项。find/tar 消费者尚未构建与运行，此次失败不能作为其功能结论。
+[失败任务](https://github.com/HighCWu/distro/actions/runs/42602956896)。
+
+distro `82aa6db` / 集成 `7d12763` 补齐这两个既有产物，并保留缺失和额外输入
+的严格拒绝。原 fixture 从同一白名单生成，无法发现 Nix/Python 漂移，因此
+回归现在直接比较真实 Nix files 键与 Python 集合。子代理执行明确修复，主会话
+审查清单、实际 sysroot 来源及打包调用路径，14项本地检查通过。固定82aa6db的
+42616826592已一次派发双位宽 GNU 进程工具聚合复验，完整阶段及关闭待核实。
+[修复版复验](https://github.com/HighCWu/distro/actions/runs/42616826592)。
