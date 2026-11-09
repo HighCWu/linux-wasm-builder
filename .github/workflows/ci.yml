@@ -600,6 +600,10 @@ jobs:
       - name: Check IPv6 native workload and existing Wasm libc ABI
         # The preceding host fixture step installs the reference BusyBox.
         run: python3 -B scripts/test_ipv6.py
+      - name: Check original GNU process tools with native helpers
+        # This validates the consumers. The isolated heavy checks build and run
+        # the fixed upstream programs with Linux/Wasm's fork execution profile.
+        run: python3 -B scripts/check_standard_process_tools.py
       - name: Check split syscall words and sparse large-file workload
         env:
           GH_TOKEN: ${{ github.token }}
