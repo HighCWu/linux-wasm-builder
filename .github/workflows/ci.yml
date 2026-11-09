@@ -72,6 +72,12 @@ jobs:
           ELF_CONTAINER_LLD_SOURCE_ROOT="$source_root/lld/wasm" \
             ELF_CONTAINER_KERNEL_SOURCE_ROOT="$source_root/linux/arch/wasm/kernel" \
             CC=clang-18 CXX=clang++-18 python3 -B scripts/check_elf_container.py
+      - name: Check standard shell conditional status consumers against native Linux
+        run: |
+          NATIVE_REFERENCE=1 timeout 30 sh \
+            sources/distro/distro/busybox/shell-status-test.sh /bin/dash
+          NATIVE_REFERENCE=1 timeout 30 sh \
+            sources/distro/distro/busybox/shell-status-test.sh /bin/busybox ash
       - name: Check the ELF container C consumer against native Linux
         run: |
           set -euo pipefail
