@@ -8136,3 +8136,40 @@ startupRoot调用处的lib传参，避免删除形参后出现Nix调用错误。
 修复和复验状态另见[SDK 复验](elf-dynamic-linking.md#动态-sdk-省略启动文件的复验)。新 `RTLD_NEXT` 增量另见
 [调用者所属对象](elf-dynamic-linking.md#rtld_next-与真实调用者所属对象)，不使用
 上述 sort 或共享目录结果代替动态链接目标验收。
+
+## 标准 WIPEONFORK 与 KEEPONFORK
+
+Linux `006bd8489` 放行 madvise 的 MADV_WIPEONFORK/MADV_KEEPONFORK。musl
+`2579fbcd` 增加 Wasm 私有映射标记，`69141218` 补齐锁外分配前的布尔需求保存。
+distro `4786175` 接通执行适配和双位宽产品，最终 pin 为 `1165894` / 集成
+`d0e9b09`。现阶段可用范围是登记的私有匿名 mmap，页大小为64KiB。
+
+父进程只更新标记。部分区间先完整核验覆盖及来源，再在锁外准备最多两条记录，
+重新核验后拆分边界。KEEP 无变化时保持原记录，恢复相同标记后合并同 backing
+的连续匿名记录，保留完整范围的 mremap 能力。munmap 拆分和 mremap 的缩小、
+增长、移动及固定移动保留相应标记，普通固定新映射使用初始标记。文件初始化
+副本的 WIPE 返回 EINVAL，失败保留已有字节和标记。
+
+新 __wasm_madvise_v2 仅在宿主识别版本化数据描述表时使用，旧回调对18/19
+返回 EOPNOTSUPP。描述表由 Global 导出，包含版本、记录大小、链头变量地址及
+各字段偏移。子 Worker 在复制和实例准备后、发布完成状态前，纯 JS 核验整条
+链并清零指定范围。此阶段避免调用用户 C 代码，保护复制的活动 C 栈；清零也
+先于内核后续 child_tid 初始化。标记保留到子进程，后续 fork 再次清零，
+CLONE_VM 使用原共享内存路径。
+
+主会话完成实现审查，修复 KEEP 分裂记录影响 mremap 的回归，并调整边界指针
+和锁外分配的衔接。现有及新增实际 allocator 的7项检查通过，覆盖 ASan/UBSan
+和 Clang 静态分析。529项运行层检查及两套 TypeScript 通过。Clang22 双位宽
+实际 allocator 数据导出与 JS 选择性清零 ABI 已联通；该微型引擎检查使用宿主
+分配和锁 shim，证据限定于 ABI。GCC/Clang18 的普通 Linux 四阶段参考通过，
+消费者使用标准 mmap、madvise、fork、waitpid、mremap 和 munmap。
+
+Linux 输入的公开预取42589915363已核实原基线和候选 NAR 哈希；musl 新输入
+计算前复验已发布基线，构建仍由固定输出哈希校验。自有适配和消费者采用 MIT，
+Linux 修改沿用 GPL，产品保留 musl 和 compiler-rt 通知。
+[内核输入预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42589915363)。
+
+固定 `1165894` 的聚合任务要求双位宽新四阶段、已有 fork continuation 完整语料
+和 madvise 回归，各自唯一 pass 及机器关闭。真实 Linux/Wasm 与浏览器验收
+仍待相应执行日志，未使用上述宿主或微型引擎结果替代。
+[双位宽目标检查](https://github.com/HighCWu/distro/actions/runs/42594481341)。

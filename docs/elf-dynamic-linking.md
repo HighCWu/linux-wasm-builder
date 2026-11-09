@@ -1253,3 +1253,15 @@ helper 和 tag 引用。Nixfmt、Ruff、ShellCheck/shfmt、工作流与仓库检
 Lua 四阶段及各自关闭。真实 Linux/Wasm 和浏览器结果仍待验收，原生和前端
 结果限定于上述范围。
 [Lua 双位宽聚合检查](https://github.com/HighCWu/distro/actions/runs/42587510265)。
+
+## 动态 SDK 材料中的只读配置复制
+
+固定 `0f1daca` 的42582967182实际日志已读取。首个 builder 错误发生在
+dynamic-sdk-materials-wasm32，第二次复制 compiler-cxx.cfg 时报告 Permission
+denied。Nix 源配置为只读文件，第一次复制保留了其权限。后续 SQLite、Python、
+加载器和 C++ 产品显示的是依赖失败，目标消费者的阶段继续等待对应版本验收。
+[实际失败任务](https://github.com/HighCWu/distro/actions/runs/42582967182)。
+
+`ce94a9c` 已在部分链接增量中删除这条重复复制。主会话逐项比较 `0f1daca`、
+`ce94a9c` 和当前 `1165894`，确认后两者各保留一次复制。现有42584789604与
+42587510265均包含该修复，按既有任务继续核实阶段和关闭。

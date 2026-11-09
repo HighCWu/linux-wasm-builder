@@ -77,6 +77,12 @@ GCC/Clang18 四阶段、双位宽 Wasm 前端和静态分析通过。双位宽�
 42587510265已派发，实际目标阶段及关闭待核实，见
 [Lua 标准 C 模块](elf-dynamic-linking.md#原版-lua-的标准-c-模块与跨库-sjlj)。
 
+标准 madvise 新增登记私有匿名 mmap 的 WIPEONFORK/KEEPONFORK 路径，Linux
+`006bd8489`、musl `69141218`、distro `1165894` / 集成 `d0e9b09`。子快照发布前
+完成清零，标记支持部分区间、重映射和后代继承。已通过宿主、实际 allocator、
+双位宽微型 Wasm ABI 和运行层检查；42594481341负责完整 Linux/Wasm 目标验收，
+见[标准 fork 内存建议](process-syscalls.md#标准-wipeonfork-与-keeponfork)。
+
 当前已核实 [Dash](dash-processes.md) 的 wasm32/wasm64 Node 完整非交互语料与
 运行器关闭门禁，以及 wasm64 Chromium/Firefox 各两轮完整阶段、机器及浏览器关闭。
 仍使用显式的应用局部 vfork→fork 参数与可选执行 ABI，不做 callback 重写，不
