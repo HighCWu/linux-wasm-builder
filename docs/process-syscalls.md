@@ -8173,3 +8173,9 @@ Linux 修改沿用 GPL，产品保留 musl 和 compiler-rt 通知。
 和 madvise 回归，各自唯一 pass 及机器关闭。真实 Linux/Wasm 与浏览器验收
 仍待相应执行日志，未使用上述宿主或微型引擎结果替代。
 [双位宽目标检查](https://github.com/HighCWu/distro/actions/runs/42594481341)。
+
+该任务随后失败于 wasm32 启动脚本，BusyBox hush 报 `set: -eu: invalid option`，
+尚未执行新消费者。同期已有 fork continuation 语料在双位宽均输出完整阶段和
+唯一 pass，不能据此接受新内存建议能力。distro `2af5ef1` / 集成 `40cd085`
+改用显式退出状态检查，失败输出 fail 并阻止成功标记。原生 BusyBox 成功、失败
+和目标等待路径及 ShellCheck 通过，已请求同一聚合目标复验，真实阶段仍待核实。
