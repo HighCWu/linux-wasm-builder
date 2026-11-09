@@ -2893,3 +2893,13 @@ LLVM ea19eeb、distro3b8def1 / 集成0e01e92将标准-r接入普通SDK。最终�
 期间42584789604明确失败于C++主程序链接，caf6762 / 集成012dcaf修复Wasm CRT
 保留通用_start_c造成的undefined main。真实CRT轻量反向控制和双位宽启动
 检查通过，目标程序待新的固定版本验收。见[CRT修复](elf-dynamic-linking.md#wasm-crt-的无效通用启动引用)。
+
+Linux8856f4a0d、musl98017031、distro5aa0f7c / 集成ef538b6实现匿名直接映射
+的MREMAP_DONTUNMAP成功路径，覆盖固定目标和原区间保留。六个既有Luna子代理
+实施分配器、内核、桥接与消费者，主会话审查并修正重验证和失败清理，轻量
+检查通过。42607124232异步验收双位宽四阶段与既有mremap回归。见
+[DONTUNMAP实现](process-syscalls.md#匿名-mremap_dontunmap-的直接内存实现)。
+
+已核实2af5ef1的42600310846，双位宽WIPEONFORK/KEEPONFORK四阶段、fork/exec、
+madvise和关闭门禁通过，浏览器仍未接受。旧Lua42587510265失败于同一CRT引用，
+已一次派发修复版caf6762的42606405684，目标阶段继续等待日志核实。

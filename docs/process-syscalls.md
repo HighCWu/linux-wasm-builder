@@ -8202,3 +8202,41 @@ ShellCheck/shfmt 通过。原生参考为 findutils4.9.0 与 tar1.35，不能替
 4.10.0 的目标执行。新增代码采用 MIT，GNU 产品保留 GPL 和运行时通知。
 一次聚合检查要求双位宽各四阶段、唯一 pass 和机器关闭，真实结果待日志核实。
 [GNU 工具聚合检查](https://github.com/HighCWu/distro/actions/runs/42602956896)。
+
+## 匿名 MREMAP_DONTUNMAP 的直接内存实现
+
+Linux `8856f4a0d`、musl `98017031`、distro `5aa0f7c` / 集成 `ef538b6`
+接通普通 mremap 的 MAYMOVE|DONTUNMAP 路径。源区间须完整落在一条登记的匿名
+私有映射记录内，页取整后新旧长度相等。返回新地址前复制字节并清零原区间，
+原地址仍登记且可独立读写。实现使用实际复制和立即清零，不提供缺页或 COW。
+
+FIXED 组合复用已有原子替换逻辑，目标须在分配器已拥有的预留范围内，且与源
+不重叠。同 backing 子区间和跨 backing 替换均保留原映射与邻居，替换后的
+目标继承源的 WIPEONFORK 标记。文件初始化副本返回 EOPNOTSUPP。
+
+非固定路径在锁外准备新 backing，再重新查找当前完整覆盖记录后提交。合法的
+元数据变更不会仅因旧记录被拆分而误报 EFAULT；源已消失或变成文件副本时
+则拒绝并释放准备资源。固定路径同样在修改字节前完成验证和元数据准备。
+私有 user_v2 执行入口只调用 __wasm_mremap_dontunmap_v1，缺少该导出时返回
+EOPNOTSUPP，旧 allocator 不会收到新请求。公共 musl 函数和头文件 API 未增加。
+
+主会话完成实现与差异审查，修复重验证及二次加锁失败的资源清理。真实 allocator
+的 GCC/Clang ASan/UBSan 与 Clang analyzer、531项运行层及两套 TypeScript
+检查通过。双位宽前端编译和现有 FREE、fork-advice 回归通过。本机 Linux
+消费者四阶段覆盖复制/清零、固定拓扑、拒绝后恢复和清理，目标验收独立记录。
+
+公开预取已核实 Linux 的已知父版本与候选 NAR 哈希，以及 musl 候选哈希。
+首次 Linux 预取在实验脚本的变更路径白名单返回64，3879190补入已审查的两个
+文件组合后核实成功。目标聚合要求双位宽新四阶段与已有 mremap 六阶段、各自
+唯一 pass 和机器关闭，仍待实际执行结果。内核修改沿用 GPL，其余新增适配为 MIT。
+[Linux 哈希预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42606614843)、
+[musl 哈希预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42606762959)、
+[DONTUNMAP 双位宽目标](https://github.com/HighCWu/distro/actions/runs/42607124232)。
+
+## fork 内存建议的双位宽目标验收
+
+固定 `2af5ef1` 的42600310846已核实实际日志。wasm32、wasm64各包含新内存建议
+完整四阶段和唯一 pass，已有 fork/exec 及 madvise 语料也逐项通过。固定运行器
+等待 machine.closed，关闭或迟到错误会使检查非零退出，该任务与 Heavy 均成功。
+这接受登记匿名映射的 WIPEONFORK/KEEPONFORK 范围，浏览器仍待独立验收。
+[实际目标日志](https://github.com/HighCWu/distro/actions/runs/42600310846)。
