@@ -2846,3 +2846,10 @@ GCC/Clang22的本机3.11.15参考四阶段、原生analyzer与轻量检查通过
 42572763311异步构建3.13.14并验收两位宽扩展、已有十三阶段loader及关闭。
 musl公共API与fork范围不扩展，默认Python产品保持独立。见
 [CPython扩展](elf-dynamic-linking.md#cpython-的标准-c-扩展导入)。
+
+e6ed049 / 集成a9fdd14修复同名函数导入忽略typeIndex导致的迟发实例化错误。
+主会话确定契约并复验，原有Luna linker代理实施；未解析forwarder的冲突限定
+在同一DSO，保留跨DSO弱导入和JS多类型host调用。旧版反向控制复现fatal错误，
+修复后在资源修改前拒绝，完整运行层和两套类型检查通过。新pin由根CI继续
+验证，7ae8bc1的CPython任务仍独立跟踪。见
+[逐项类型预检](elf-dynamic-linking.md#同名函数导入的逐项类型预检)。

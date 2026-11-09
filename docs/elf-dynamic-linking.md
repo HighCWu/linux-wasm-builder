@@ -1134,3 +1134,22 @@ Clang22 对两个 C 文件的原生静态分析、Nixfmt、ShellCheck/shfmt、Ru
 [42570599904](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42570599904)
 已成功，范围包括实际 Clang 小型 Wasm 语料和原生 SQLite 参考，不扩大为上述
 完整 Linux/Wasm 产品验收。
+
+## 同名函数导入的逐项类型预检
+
+`e6ed049` / 集成 `a9fdd14` 修复主会话静态审查发现的运行时错误。合法 Wasm
+模块可用相同 module/name 导入不同函数类型。原实现只查找该名称的第一个签名，
+可能遗漏后续导入的不兼容，直到实例化时才抛错，此时已进入资源初始化阶段。
+
+两处签名查询现在同时匹配 typeIndex。对需要 typed forwarder 的未解析函数，
+同一 DSO 内的签名冲突在 table 准备和数据清零前报告；不同 DSO 的独立弱导入
+保持可共存。JS host 的 Number/BigInt 适配也保留，不统一禁止同名多类型导入。
+
+主会话复验完整518项运行层检查、两套 TypeScript 项目和固定格式检查通过。
+回归直接使用有效 Wasm 模块，核对失败前后内存、table 及函数指针映射，并实际
+调用 JS 多类型导入。使用 `7ae8bc1` 旧生产代码执行同一新增回归时，复现不可恢复
+的 DylinkInitializationError；修复后在资源修改前报告预期签名错误。
+
+新 pin 的根仓库 CI 将执行该回归。此前 CPython 任务固定 `7ae8bc1`，不含本修复；
+其构建与运行结果仍按该固定版本记录。本增量的轻量引擎证据不扩大为全部
+Linux/Wasm 或浏览器消费者验收。
