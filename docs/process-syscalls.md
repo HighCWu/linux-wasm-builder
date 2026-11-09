@@ -8447,3 +8447,15 @@ SDK 的既有 C 驱动检查显式使用配套 LLVM ar，将部分链接对象�
 驱动、exec 三阶段及关闭门禁。
 [BusyBox 复验](https://github.com/HighCWu/distro/actions/runs/42636405345)、
 [ELF/SDK 复验](https://github.com/HighCWu/distro/actions/runs/42636418886)。
+
+## 原版 find/xargs 与 tar 的双位宽验收
+
+固定 distro `37840b2` 的42628094264已通过，主会话读取实际完整 Heavy 日志并
+对照该版本脚本。wasm32/64 的 find/xargs 各四阶段依次完成，包含 -exec、
+-execdir、NUL 输入、并行 slot 与实际重叠、缺失/非零命令和恢复。tar 各四阶段
+依次完成，包含常规/管道过滤器、成员命令、非零过滤器及后续恢复。每台机器
+唯一 pass，固定 runner 的退出成功还要求等待 machine.closed 与磁盘收尾。
+[实际验收](https://github.com/HighCWu/distro/actions/runs/42628094264)。
+
+该结果接受固定37840b2的 Node双位宽组合。后继 Hush、ELF、LLVM 归档组选项
+和浏览器各有独立验收边界。

@@ -1387,3 +1387,35 @@ SDK C/C++ 驱动、三阶段消费者、唯一 pass 及发布 runner 的关闭�
 的候选 SDK 检查同步覆盖 LLVM ar 与带组最终链接。新组合由
 [42636418886](https://github.com/HighCWu/distro/actions/runs/42636418886)验收，
 不沿用旧编译器组合的结果证明新组合通过。
+
+## GNU Make 的标准 load 插件
+
+仓库原有 GNU Make4.4.1 使用 posix_spawn，已覆盖普通 recipe 和 -j2。本增量
+接通其原来在静态 SDK 配置中关闭的 load 指令。新增 make-dynamic 及 wasm64
+产品复用原 make 的固定 src/version，使用动态 SDK、--enable-load 和现有
+posix_spawn 路径。configure 真实探测 dlopen/dlsym/dlerror，要求对应声明宏、
+MAKE_LOAD 与 USE_POSIX_SPAWN，保留原有同步 spawn 的已知实现事实。
+
+GNU Make 的进程、加载与函数注册源码未加应用补丁，配方对 job.c、load.c、
+loadapi.c、function.c 直接比较原始输入并记录构建前后校验和。产物以
+/bin/make-dynamic 独立入口启动，附 GNU gnumake.h 和标准示例插件。
+插件通过 gmk_eval、gmk_add_function、gmk_expand、gmk_alloc/gmk_free 与主程序
+交互，沿用 GNU 的参数语法和内存所有权规则。主会话核对上游 load.c 的初始化
+签名与重复加载行为，审查跨模块回调、分配边界、配方和双位宽接线。
+
+四个复用 Luna 子代理实施插件、消费脚本、产品配方和集成。主会话核实已有
+普通 Make 后撤去未发布的重复 fork 草稿，将实现集中到实际缺失的插件能力。
+宿主 GNU Make4.3 配 GCC/Clang 插件的四阶段、静态分析、GNU4.4.1头文件下的
+Wasm32/64 插件 C 前端、Nix/shell 格式及工作流检查通过。前端检查使用发布版
+Clang 的通用 Wasm target 验证字宽与语法，完整定制 SDK 和 GNU4.4.1 构建由 CI
+承担。
+
+运行语料核对初始化和主变量展开、插件到主程序再回到插件的嵌套调用、重复
+load 的一次初始化、正常 recipe 与第二次 no-op。坏插件须实际进入 setup 后
+返回失败，GNU Make 停止执行 recipe，随后由新的 Make 进程加载正常插件恢复。
+临时目录清理后才发送唯一 pass。GNU 源许可证和 SDK 依赖许可证一并保留，
+自有配方、插件和消费代码为 MIT。
+
+固定 distro `3404432` / 集成 `59deda3` 已一次派发聚合，要求双位宽动态 SDK
+driver、新 Make 消费者四阶段、原动态加载器十三阶段与关闭门禁。实际目标
+结果待日志核实。[目标 CI](https://github.com/HighCWu/distro/actions/runs/42645087631)。
