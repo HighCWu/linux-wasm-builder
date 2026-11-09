@@ -39,6 +39,8 @@ typedef unsigned long uintptr_t;
 #define MADV_NORMAL 0
 #define MADV_DONTNEED 4
 #define MADV_FREE 8
+#define MADV_WIPEONFORK 18
+#define MADV_KEEPONFORK 19
 #define check_add_overflow(a,b,to) __builtin_add_overflow(a,b,to)
 #define SYSCALL_DEFINE3(name,t1,a1,t2,a2,t3,a3) long kernel_advice(t1 a1,t2 a2,t3 a3)
 struct wasm_mapping {

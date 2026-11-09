@@ -234,6 +234,10 @@ jobs:
             "$revision" "$source_root/arch/wasm/kernel/syscall.c" arch/wasm/kernel/syscall.c
           WASM_MADVISE_KERNEL_SOURCE_ROOT="$source_root" WASM_MADVISE_COMPILERS=clang-18 \
             python3 -B scripts/check_madv_free.py
+      - name: Check fork memory advice against native Linux and the actual allocator
+        run: |
+          python3 -B scripts/probe_fork_memory_advice.py --cc clang
+          node --test scripts/test_fork_memory_advice_allocator.js
       - name: Check bootstrap FDT allocation preserves preloaded initrd bytes
         env:
           GH_TOKEN: ${{ github.token }}
