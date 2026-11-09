@@ -6,6 +6,23 @@
 实现、Wasm syscall 转发和用户态恢复组合起来验证；不是新增私有 syscall 编号或
 应用 API，也不能仅凭 Linux 上游有实现就认为当前 Wasm 配置已经支持。
 
+## 动态软件失败的两项独立修复
+
+distro `ee1684a` / 集成 `07a58f2` 修复真实 dladdr 消费者的空符号名错误，
+以已解析符号的 canonical table slot 关联动态调用包装与原始导出。主会话独立
+复现旧源码失败、修后成功，并通过 551 项运行层检查和两套类型检查。
+
+`8e755cc` / 集成 `701720e` 修复此前 libc 整体弱化引入的 allocator 选择错误。
+仅动态构建设置默认可见性，再按完整归档的可见性生成公开 fallback 名单，保留
+内部 strong/weak 关系。精确 musl 双位宽前端与真实成员名单检查通过，完整按名
+归档变换受本地 harness 链接路径限制，仍须目标 SDK 验证。musl 没有新增公共
+函数、头文件 API 或源码 pin 变化。
+
+[dladdr 42721961733](https://github.com/HighCWu/distro/actions/runs/42721961733) 与
+[Gawk 42721969856](https://github.com/HighCWu/distro/actions/runs/42721969856)
+固定上述新源码异步验收，完整阶段和关闭仍待核实。实现与证据边界见
+[动态加载记录](elf-dynamic-linking.md#gnu-软件自带兼容实现的链接修复候选)。
+
 ## 独立静态 C++ fork 候选
 
 distro `2878067` 新增 `sdk-fork-cxx` 与 `sdk-fork-cxx-wasm64`，沿用标准

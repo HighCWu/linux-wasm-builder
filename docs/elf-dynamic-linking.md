@@ -1340,6 +1340,18 @@ DSO 数据按其实际静态分配范围归属，主程序使用 LLD 的 `__glob
 修复，现以包含该修复的固定 `ec69ee4` 派发一次聚合复验，阶段及关闭结果待
 实际日志核实。[复验 CI](https://github.com/HighCWu/distro/actions/runs/42630896189)。
 
+后续 42682754978 固定 `6ab0360` 已运行到 wasm32 消费者，插件函数返回的对象
+归属正确，但符号名为空。distro `ee1684a` / 集成 `07a58f2` 修复这一生产路径。
+动态调用包装后的 callable 与原始导出函数可能是不同对象，dlsym 分配的 table
+指针登记在已解析符号上，原始导出对象未必有相同的指针登记。现在按链接器提供的
+canonical slot 选择名字，仍核对符号 owner 和当前 table 项，不按同一 owner
+随意选择其他函数。
+
+主会话独立运行实际 PIC 插件的 ProcessDylink 回归，旧源码稳定返回空名字和
+地址，修复后插件函数、同 owner getter、隐藏函数归属、数据及 main 查询通过。
+该回归使用 wasm32 模块及执行层 I/O 夹具，551 项运行层检查、两套类型检查通过。
+完整双位宽 Linux 文件装载、消费者四阶段、原加载器阶段与机器关闭仍须目标验收。
+
 ## 静态 ELF 容器的实验性文件入口
 
 Linux `e34fb21f6` 增加默认关闭的 `CONFIG_WASM_ELF_CONTAINER`，LLD
@@ -1512,3 +1524,28 @@ distro `e4929b4` / 集成 `4504a1a` 使用该工具链弱化 libc 导出副本�
 [Make 42685098219](https://github.com/HighCWu/distro/actions/runs/42685098219) 和
 [Gawk 42685109057](https://github.com/HighCWu/distro/actions/runs/42685109057)
 异步验收双位宽实际构建、运行阶段、SDK 及动态加载回归和关闭，结果尚待核实。
+
+Gawk 42685109057 已明确失败。实际 GNU 软件链接完成，基础动态加载器尚未发出
+首阶段，就在 closedir → free → __libc_free → get_meta 中 trap。上一批对归档
+整体弱化也改掉 mallocng 内部强定义，可能使 lite allocator 分配的指针进入
+mallocng 释放。该版本不能据链接成功视为运行可用。
+
+distro `8e755cc` / 集成 `701720e` 改为按公开可见性生成弱化名单。仅动态 musl
+配置设置 -fvisibility=default，显式 hidden 声明保留。脚本合并同名 nonlocal
+符号的可见性，任何 hidden 定义、弱别名或引用均使该名字留在原有内部绑定关系。
+因此一个 TU 未包含内部头文件时，也可由其他成员的 hidden 声明保住其强定义。
+局部符号和 section 不参与名单，私有执行对象在转换后以强定义加入。修改后重建
+归档索引，构建期检查完整 allocator 与 fallback 的 T/W 关系。
+
+主会话独立以 Clang22 编译精确 musl getopt/malloc 源码的双位宽 IR，核对公开
+getopt 可见而 __libc_malloc_impl 保持 hidden。真实成员精简归档的名单保留
+getopt/malloc/free，排除内部 allocator 和 __malloc_atfork。实际补丁单对象按名
+转换得到 weak getopt。现成本地归档 harness 调用了系统 libLLVM 的内部路径，
+没有进入新 WasmObjcopy 实现，不能据此证明按名单转换完整归档；完整候选 SDK
+链接和运行由新固定版本 CI 验收。musl 源码 pin、公共函数和头文件均未增加。
+
+固定 `8e755cc` 的
+[dladdr 42721961733](https://github.com/HighCWu/distro/actions/runs/42721961733) 和
+[Gawk 42721969856](https://github.com/HighCWu/distro/actions/runs/42721969856)
+已各派发一次，分别覆盖双位宽消费者、SDK 驱动和原动态加载回归。实际阶段、
+唯一 pass 与关闭待核实。旧 Make 42685098219 仍运行时保留该任务，未重复派发。

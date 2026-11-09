@@ -75,6 +75,15 @@ NodeFS O_APPEND 修复的固定版本 `2e38449` 已核实默认 wasm32 Node 实�
 tag 断言的问题，先核对真实 EH 是否保留及导出要求，再修复对应实现或夹具。
 这些失败未记为能力验收通过。
 
+后续 `7f5db96` 修正静态 C++ tag 的检查契约，`ee1684a` 修复 dladdr 对未登记
+原始导出对象的错误筛选，`8e755cc` 保留动态 libc 的内部强弱绑定，同时让程序
+继续覆盖公开 fallback。主仓库最新代码 pin 为 `701720e`。主会话核对旧源码
+失败、修后成功的实际 PIC 回归及精确 musl 双位宽 IR。按名单转换完整 libc
+归档的本地验证仍有工具链接路径限制，须以目标 SDK 门禁和运行日志验收。
+BusyBox 已保留失败输出，尚待新 CI 定位。详见
+[dladdr 修复](elf-dynamic-linking.md#已有-dladdr-接口的动态模块支持)和
+[动态 libc 绑定修复](elf-dynamic-linking.md#gnu-软件自带兼容实现的链接修复候选)。
+
 可选动态 SDK 新增 C++17 跨库 typed exception、回调重抛与 RAII 路径，源码
 `2ed9aae` / 集成 `ecba22e`。随后根据真实 CI 修复默认运行库辅助定义误放 CRT
 的错误，源码 `6d84e2d` / 集成 `5e7b7c8`。双位宽聚合检查42582967182异步构建
