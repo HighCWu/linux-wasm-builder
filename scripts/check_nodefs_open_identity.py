@@ -8,7 +8,7 @@ import sys
 import tempfile
 
 source = Path(sys.argv[1]).read_text()
-needle = "const file = await node_call(open(target, checked_flags));"
+needle = "const file = await node_call(open(host_path(target), checked_flags));"
 assert source.count(needle) == 1, (
     "place the race only at ordinary OPEN, after its preflight"
 )
@@ -23,7 +23,8 @@ with tempfile.TemporaryDirectory(prefix="nodefs-open-identity-") as directory:
         # errno alone must not hide destruction of the replacement file.
         current = (
             injected.replace(
-                needle, "const file = await node_call(open(target, host_flags));"
+                needle,
+                "const file = await node_call(open(host_path(target), host_flags));",
             )
             if negative
             else injected

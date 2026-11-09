@@ -19,7 +19,7 @@ try {
     const before = readdirSync("/proc/self/fd").length;
     let raced = false;
     globalThis.nodefsOpenRace = async (actual) => {
-      assert.equal(actual, target);
+      assert.deepEqual(Buffer.from(actual), Buffer.from(target));
       globalThis.nodefsOpenRace = undefined;
       await rename(target, moved);
       await mkdir(target);
@@ -56,7 +56,7 @@ try {
       const before = readdirSync("/proc/self/fd").length;
       let raced = false;
       globalThis.nodefsOpenRace = async (actual) => {
-        assert.equal(actual, target);
+        assert.deepEqual(Buffer.from(actual), Buffer.from(target));
         globalThis.nodefsOpenRace = undefined;
         await rename(staging, target);
         raced = true;

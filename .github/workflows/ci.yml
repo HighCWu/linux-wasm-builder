@@ -81,6 +81,25 @@ jobs:
               NATIVE_REFERENCE=1 timeout 30 sh \
               sources/distro/distro/vfork-runtime/runtime-test.sh
           done
+      - name: Check ordinary raw filename operations against native Linux
+        run: |
+          for compiler in gcc clang-18; do
+            program="$RUNNER_TEMP/file-byte-names-$compiler"
+            "$compiler" -O2 -Wall -Wextra -Werror \
+              sources/distro/distro/guest-tests/file-byte-names.c -o "$program"
+            python3 - "$program" <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+          with tempfile.TemporaryDirectory(prefix="file-byte-names-") as directory:
+              root = os.fsencode(directory)
+              Path(os.fsdecode(root + b"/byte-\x80")).write_bytes(b"raw-byte-80\n")
+              Path(directory, "byte-\ufffd").write_bytes(b"utf8-replacement\n")
+              subprocess.run([sys.argv[1], directory], check=True, timeout=30)
+          PY
+          done
       - name: Check PIC partial links with released Clang and real Wasm execution
         run: python3 -B scripts/probe_wasm_partial_link.py --clang clang-18
       - name: Check original Lua C modules and nonlocal error recovery against native Linux
@@ -998,6 +1017,12 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/browser-fs-directory.test.mjs"
           node --test "$RUNNER_TEMP/browser-fs-directory.test.mjs"
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/browser-fs-byte-names.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/scripts/tests/nodefs-kernel.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/browser-fs-byte-names.test.mjs"
+          node --test "$RUNNER_TEMP/browser-fs-byte-names.test.mjs"
       - name: Check binary path strings preserve leading characters
         run: |
           node --test sources/distro/packages/bytes/test/reader.test.js
@@ -1006,30 +1031,41 @@ jobs:
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/path-strings.test.mjs"
           node --test "$RUNNER_TEMP/path-strings.test.mjs"
+          npx --yes esbuild@0.25.12 sources/distro/packages/kernel/test/fs-byte-names.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/fs-byte-names.test.mjs"
+          node --test "$RUNNER_TEMP/fs-byte-names.test.mjs"
       - name: Check Node directory sharing without installed workspace packages
         run: |
           node --test sources/distro/packages/linux-guest/tests/ready-output.test.ts
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/virtio-fs-node.test.ts \
             --bundle --platform=node --format=esm \
-            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/scripts/tests/nodefs-kernel.ts" \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/node-fs.test.mjs"
           node --test "$RUNNER_TEMP/node-fs.test.mjs"
+          npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/tests/virtio-fs-node-byte-names.test.ts \
+            --bundle --platform=node --format=esm \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/scripts/tests/nodefs-kernel.ts" \
+            --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
+            --outfile="$RUNNER_TEMP/node-fs-byte-names.test.mjs"
+          node --test "$RUNNER_TEMP/node-fs-byte-names.test.mjs"
           npx --yes esbuild@0.25.12 scripts/tests/nodefs-fd-limit.ts \
             --bundle --platform=node --format=esm \
-            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/scripts/tests/nodefs-kernel.ts" \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/node-fs-fd-limit.mjs"
           python3 -B scripts/check_nodefs_fd_limit.py "$RUNNER_TEMP/node-fs-fd-limit.mjs"
           npx --yes esbuild@0.25.12 sources/distro/packages/linux-guest/src/node.ts \
             --bundle --platform=node --format=esm \
-            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/scripts/tests/nodefs-kernel.ts" \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/node-fs-open-identity.mjs"
           python3 -B scripts/check_nodefs_open_identity.py "$RUNNER_TEMP/node-fs-open-identity.mjs"
           npx --yes esbuild@0.25.12 scripts/tests/nodefs-device-lifecycle.test.ts \
             --bundle --platform=node --format=esm \
-            --alias:@lowland/kernel="$GITHUB_WORKSPACE/sources/distro/packages/kernel/src/virtio/fs.ts" \
+            --alias:@lowland/kernel="$GITHUB_WORKSPACE/scripts/tests/nodefs-kernel.ts" \
             --alias:@lowland/bytes="$GITHUB_WORKSPACE/sources/distro/packages/bytes/src/index.ts" \
             --outfile="$RUNNER_TEMP/node-fs-device.test.mjs"
           node --test "$RUNNER_TEMP/node-fs-device.test.mjs"
