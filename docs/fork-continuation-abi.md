@@ -14,6 +14,13 @@ Linux 的 clone、进程身份、描述符继承、信号、退出及 wait 仍�
 在完整静态链接后执行 Asyncify 变换。不得只变换包含 fork 的那个源文件。
 只有该可选 musl profile 恢复头文件中的 fork/_Fork 声明，默认安装的头文件保持原样。
 
+独立的 `sdk-fork-automatic` 与 wasm64 配置把相同的完整链接变换接入 Clang
+最终链接任务，应用可以使用普通编译和链接命令。`--wasm-fork-asyncify` 在无优化
+参数、`-O0` 或 `--no-wasm-opt` 时也执行必需变换，编译和 `-r` 部分链接保留
+普通对象。缺少固定 Binaryen 或尝试最终 shared/PIE 链接会报错。新配置沿用
+同一执行 ABI，仍限单线程静态 C。具体实现和目标验收状态见
+[自动链接配置](process-syscalls.md#fork-完整链接变换的自动构建配置)。
+
 旧 checkpoint 路径只接受 `linux_fork_v1.checkpoint` 这一函数 import。
 当前 syscall 路径不需要这一私有 import，而用导出 `__wasm_fork_abi` 显式识别。
 含该 namespace 或 ABI 导出的模块必须导出以下基础函数及两个 global；

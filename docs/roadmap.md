@@ -3025,3 +3025,11 @@ Git42651278083在许可证安装失败，f0596ff / 集成27a2b72改从已安装S
 42661210500复验真实四阶段。旧Hush任务已取消且停在LLVM编译，42661221204
 按相同固定源码补验，见
 [Git安装修复与Hush补验](process-syscalls.md#git-许可证安装路径修复与-hush-补验)。
+
+LLVM53ed8fa4 / distro6739c56 / 集成b1e4dcd接通独立的自动fork链接配置，
+普通Make流程无需手工finalizer，原版find/xargs配方已迁移。五个复用Luna子代理
+实施，主会话审查并核实源码哈希和轻量检查，42667882655异步验收双位宽真实
+构建、运行阶段与关闭。另b610e63修复BusyBox实际失败暴露的入口配置遗漏，
+继续复验原四阶段。见
+[自动链接](process-syscalls.md#fork-完整链接变换的自动构建配置)和
+[BusyBox配置修复](process-syscalls.md#官方-busybox-入口配置修复)。

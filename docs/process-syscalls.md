@@ -8568,3 +8568,38 @@ buildMaterials 产物提供归档文件，已安装许可证由 SDK 的 licenseT
 canceled，取消原因未给出，尚无目标运行结果。确认该任务终止后，同一固定
 f0596ff由[42661221204](https://github.com/HighCWu/distro/actions/runs/42661221204)
 补验 busybox-check-shell-status-both，继续要求两位宽完整 shell 状态阶段和关闭。
+
+## fork 完整链接变换的自动构建配置
+
+LLVM `53ed8fa4`、distro `6739c56` / 集成 `b1e4dcd` 新增独立的
+sdk-fork-automatic 双位宽配置。Clang 在最终静态链接后调用固定 Binaryen，
+应用沿用普通 Make 编译、部分链接和最终链接规则。原版 find/xargs 的独立 fork
+配方也已撤去手工 finalizer 调用。实现由五个复用 Luna 子代理分工完成，主会话
+决定接口、审查完整差异并指导修复执行权限和夹具参数顺序问题。
+
+必需变换不依赖优化级别。编译和 -r 不触发转换，最终 shared/PIE 链接及缺少
+工具会失败。链接器先输出临时文件，Binaryen 输出最终产物并继承链接器权限，
+标准输出和设备文件跳过权限修改。执行支持对象、libc 及单线程静态 C 准入沿用
+既有协议。SDK 说明单独提交于 `19caf7a`。
+
+公开预取42667296337已核实精确 LLVM 输入的 NAR。主会话完成 TableGen、SDK
+检查和双位宽执行对象链接检查，并用 Clang22 编译原运行语料、验证部分链接对象
+保留 linking 段且没有提前出现 Asyncify 导出。这些检查尚未执行新 Clang 驱动。
+固定 `19caf7a` 的
+[42667882655](https://github.com/HighCWu/distro/actions/runs/42667882655)
+异步验收 fork-automatic-check-both，要求真实 Make 产物、原 fork 全部阶段、
+原版 find/xargs 四阶段各双位宽及关闭门禁，目标结果待核实。
+
+## 官方 BusyBox 入口配置修复
+
+固定 be7c9b0 的42653315018已通过原版 BusyBox 编译、转换和安装。wasm64 运行
+在首项身份检查报告 expected a BusyBox binary，尚未进入程序四阶段。实际配置
+日志和官方 Config.in、appletlib.c 表明 allnoconfig 关闭了默认启用的 BUSYBOX
+入口，直接无参数执行因此无法输出预期 banner。
+
+`b610e63` / 集成 `a779be6` 显式恢复 BUSYBOX 和 SHOW_USAGE。原始 applet 源码及运行检查要求
+保留，现有配置仍使用普通 fork 路径。复用 Luna 子代理修复，主会话审查实际
+失败日志，并独立执行配置和 oldconfig 核实两项为 y、shell 内联执行选项关闭。
+shell 语法、格式和配方回归通过。固定 b610e63 的
+[42668237596](https://github.com/HighCWu/distro/actions/runs/42668237596)一次派发，
+继续复验真实双位宽程序四阶段及关闭门禁，结果待核实。
