@@ -29,6 +29,16 @@ Linux 已把 `F_SETFL` 后的当前 flags 传到 FUSE WRITE，但最初以 `O_AP
 这项修复依赖主机重新打开原文件的权限。非 Linux 主机沿用路径打开并核验 inode，
 失败返回实际错误。当前结果不构成完整的主机 `F_SETFL` 仿真或浏览器验收。
 
+## fork SDK 隔离检查的源文件补全
+
+BusyBox 候选检查 42669541393 固定 `132702e`，实际失败于
+`fork-sdk-wrapper-contract`。其检查会编译 cooperative-poll 的执行对象，但 Nix
+沙箱未复制该源文件，尚未执行 BusyBox 运行阶段。distro `55b3964` / 集成
+`75c7f80` 补全检查输入。主会话审查两行配方变更，并按实际 Nix 复制清单建立
+隔离目录，独立跑通包装及双位宽真实对象链接检查。
+[42683518444](https://github.com/HighCWu/distro/actions/runs/42683518444)
+异步复验原 BusyBox 能力与关闭，尚待目标结果。
+
 ## 第一组：pidfd 与退出生命周期
 
 程序仍通过现有可选单线程 fork profile 创建子进程；父子用 pipe 建立确定的运行
