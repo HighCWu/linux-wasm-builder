@@ -8010,3 +8010,108 @@ openat/unlinkat等通过原目录FD继续访问旧目录，以及readdir的稳�
 固定d9f3ea8一次派发[41650336204](https://github.com/HighCWu/distro/actions/runs/41650336204)
 共享目录目标套件，尚待实际阶段和关闭结果。既有8d4d9a3与4480642任务保持
 运行，不因新版本而取消，也不代验本版本。
+
+## 已完成的共享目录与描述符验收
+
+既有四项任务已核对固定源码、实际Heavy日志及关闭门禁。
+
+| 固定源码与任务 | 已核实范围 |
+| --- | --- |
+| 8d4d9a3 / [41648941984](https://github.com/HighCWu/distro/actions/runs/41648941984) | wasm32 Node共享目录13个子用例及外层套件，共14 pass，0 fail/skip |
+| 4480642 / [41649317994](https://github.com/HighCWu/distro/actions/runs/41649317994) | 同一共享目录完整套件与关闭 |
+| d9f3ea8 / [41650336204](https://github.com/HighCWu/distro/actions/runs/41650336204) | 同一共享目录完整套件与关闭 |
+| 8d4d9a3 / [41648987859](https://github.com/HighCWu/distro/actions/runs/41648987859) | wasm32/64各有序通过pidfd三阶段、Unix辅助数据两阶段及唯一pass |
+
+三份共享目录日志分别为11,128,056、11,128,651和11,193,326字节。成功的固定
+控制器严格比较四阶段元数据输出、两种只读模式各三阶段，以及宿主文件内容
+和权限。外层套件在finally等待machine.closed及console管道后才成功。
+描述符日志为14,237,929字节，两个位宽逐项比较五阶段及唯一pass，固定运行器
+等待closeTestResources并将关闭错误转成失败。四项Heavy及workflow均success。
+这些结果限相应固定版本，后续目录恢复及SDK变更各自验收。
+
+## 活目录句柄恢复与失效硬链接回退
+
+distro bc99a87 / 集成92433d7补齐2a33cc2的共享根内目录恢复。Linux Node宿主
+通过活目录FD的procfs定位核对新路径dev/ino，恢复目录绑定与缓存子节点。
+父子关联采用弱引用，内部rename/link/unlink同步维护别名，祖先改名后的首次
+子文件属性请求也可恢复。三种查找顺序都要求保留原子文件身份，包含先观察
+替换目录的情况。35项实际源码后端回归、类型检查及标准C五阶段原生参考通过。
+
+标准C消费者在宿主握手改名后，通过旧目录FD枚举原条目，再使用openat、
+renameat和unlinkat操作原目录。替换目录内容独立保留。固定bc99a87的
+[42551885607](https://github.com/HighCWu/distro/actions/runs/42551885607)已派发，
+真实Linux/Wasm五阶段及关闭尚待验收。共享根外移动和宿主并发重构仍有路径
+定位边界。
+
+distro10abe93 / 集成639f4d4另外修复选中硬链接别名被宿主删除后的错误ENOENT。
+父目录恢复未改变路径时，只针对ENOENT/ENOTDIR移除失效别名，重试同inode
+的其它已知名字。权限与资源错误继续传播。实际源码36项回归、移除回退的
+反向控制和类型检查通过，覆盖存活别名读写、父目录变为普通文件、旧名重建
+及所有旧inode别名消失。
+
+## 原版 GNU sort 的外排压缩配置
+
+distro031b890 / 集成0ac09bf新增coreutils-sort-fork及wasm64配置。固定GNU9.7
+源码保持原样，复用可选静态C fork配置，普通configure与上游生成规则构建
+src/sort，并保留源码比较、材料及许可证。目标使用标准--parallel=1和小内存
+缓冲，实际调用gzip助手压缩和解压外排文件，检查两种助手失败及随后恢复。
+宿主GNU9.4的四阶段及去掉压缩参数的反向控制通过，目标GNU9.7仍需独立验收。
+
+[42552275208](https://github.com/HighCWu/distro/actions/runs/42552275208)固定031b890
+明确失败于构建前ShellCheck SC2209，环境赋值SORT_FAIL=compress需要引用字符串。
+distroe0b6cd7 / 集成c324ccd修复四处赋值并保留全部运行断言。该失败未执行
+Wasm sort，不能描述为压缩、fork或错误回收的目标结果。
+
+## 动态 SDK 的普通共享库编译入口
+
+distro288d022 / 集成a34715a将可选动态SDK接到已有Linux Clang共享链接分支。
+同一个wasm-linux-dlopen-cc接受普通对象、主程序及-shared，响应文件由Clang
+解析，现有真实动态加载产品也通过该入口构建所有DSO。
+
+派生sysroot的crt1.o使用保留原对象的archive装配CRT与私有执行支持。主程序
+默认库另按驱动规则强制libc导出归档，共享库跳过这些输入，三个标准启动/
+默认库开关分别控制选择。部分链接试验发现-r会丢失export_name重命名，
+因此没有用-r组合启动对象。LLD18/22双位宽微型引擎检查核实重命名入口、TLS、
+宿主导入和归档选择。新SDK真实编译检查包含现有信号入口导出及嵌套响应文件，
+需要构建后的编译器执行，本地跳过结果不计通过。SDK的-r链接仍受共享内存和
+growable-table默认配置限制。
+
+底层Clang补丁另外核对-nostdlib/-nostartfiles/-nodefaultlibs与共享链接的输入
+选择，避免当前目录同名libc-exports.a被自动注入。补丁在固定LLVM90352668上
+零fuzz应用检查通过，Nix、Python和JS静态语法检查通过。
+[42553259515](https://github.com/HighCWu/distro/actions/runs/42553259515)固定288d022
+同样被上述sort脚本的SC2209全局门禁阻断，尚未构建新编译器或运行动态程序。
+后续以修复版本的单项聚合检查同时构建双位宽SDK驱动、底层Clang检查及双位宽
+Linux动态加载十阶段，复用同一工具链构建。
+
+## 宿主删除空目录后的真实 EOF
+
+distroe1f4f91 / 集成c6376af使Linux Node后端在活目录FD的nlink为0时，通过该FD
+真实枚举procfs路径并保留错误。FUSE READDIR按句柄属性省略已删除目录的合成
+点条目，仍调用后端枚举。普通目录的偏移、分页及typed条目属性调用计数保留。
+
+C消费者在首次握手前持有host-empty目录流，由宿主在握手期间删除，再要求
+fstat零链接、首次readdir严格EOF且errno为0和成功关闭。另保留程序自己删除
+空目录的场景。宿主删除场景用于避免Linux S_DEAD检查及musl对ENOENT的EOF
+转换绕过新后端路径，总输出仍为五阶段。
+
+492项内核运行层回归、36项实际源码NodeFS回归、三套类型检查、GCC/Clang原生
+五阶段及Clang18/22双位宽C前端和静态分析通过。修复版本e0b6cd7包含本增量，
+真实Linux/Wasm共享目录验收等待该固定版本的新任务结果。
+
+随后固定e0b6cd7的三项复验均明确失败于全局statix格式门禁。
+[sort 42553873045](https://github.com/HighCWu/distro/actions/runs/42553873045)、
+[共享目录42553873152](https://github.com/HighCWu/distro/actions/runs/42553873152)及
+[动态SDK 42553873284](https://github.com/HighCWu/distro/actions/runs/42553873284)
+实际日志都指出sdk.nix的冗余列表括号和startup.nix的未使用lib参数导致自动
+修改，尚未进入对应目标。58cb26b / 集成106df07按实际差异修复，并同步移除
+startupRoot调用处的lib传参，避免删除形参后出现Nix调用错误。该版本重新
+请求三项独立检查，旧失败保留，新版本仍须完整目标阶段和关闭证据。
+
+已核对新任务均固定58cb26b，计划生成的Heavy检查名正确，当前仍在运行。
+
+| 检查 | 任务 |
+| --- | --- |
+| 双位宽GNU sort四阶段及关闭 | [42554769711](https://github.com/HighCWu/distro/actions/runs/42554769711) |
+| 双位宽动态SDK驱动、底层Clang及Linux十阶段 | [42554769847](https://github.com/HighCWu/distro/actions/runs/42554769847) |
+| wasm32 Node共享目录五阶段及完整套件关闭 | [42554769831](https://github.com/HighCWu/distro/actions/runs/42554769831) |
