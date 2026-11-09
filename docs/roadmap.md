@@ -2878,3 +2878,9 @@ e6ed049 / 集成a9fdd14修复同名函数导入忽略typeIndex导致的迟发实
 修复后在资源修改前拒绝，完整运行层和两套类型检查通过。新pin由根CI继续
 验证，7ae8bc1的CPython任务仍独立跟踪。见
 [逐项类型预检](elf-dynamic-linking.md#同名函数导入的逐项类型预检)。
+
+LLVM ea19eeb、distro3b8def1 / 集成0e01e92将标准-r接入普通SDK。最终链接
+参数移入sysroot内部response file，部分链接跳过CRT和隐式运行时，fork/poll
+及可选动态配置同步适配。主会话统一审查，六个既有Luna默认子代理复用上下文
+实施。轻量检查通过，公开LLVM输入哈希已核实，目标构建及运行阶段待CI验收。
+见[普通SDK部分链接](elf-dynamic-linking.md#普通-sdk-的标准部分链接)。
