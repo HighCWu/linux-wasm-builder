@@ -2884,3 +2884,12 @@ LLVM ea19eeb、distro3b8def1 / 集成0e01e92将标准-r接入普通SDK。最终�
 及可选动态配置同步适配。主会话统一审查，六个既有Luna默认子代理复用上下文
 实施。轻量检查通过，公开LLVM输入哈希已核实，目标构建及运行阶段待CI验收。
 见[普通SDK部分链接](elf-dynamic-linking.md#普通-sdk-的标准部分链接)。
+
+5aabc63 / 集成86e1476接通原版find/xargs与tar的独立fork构建，撤去这些可选
+产品对应用进程创建源码补丁的依赖。五个既有Luna子代理分工实现，主会话审查
+并修正执行配置、恢复记录和环境隔离断言，原生及轻量检查通过，42602956896
+异步验收双位宽四阶段与关闭。见[GNU进程工具](process-syscalls.md#原版-gnu-findxargs-与-tar-的普通进程路径)。
+
+期间42584789604明确失败于C++主程序链接，caf6762 / 集成012dcaf修复Wasm CRT
+保留通用_start_c造成的undefined main。真实CRT轻量反向控制和双位宽启动
+检查通过，目标程序待新的固定版本验收。见[CRT修复](elf-dynamic-linking.md#wasm-crt-的无效通用启动引用)。

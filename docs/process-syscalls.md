@@ -8179,3 +8179,26 @@ Linux 修改沿用 GPL，产品保留 musl 和 compiler-rt 通知。
 唯一 pass，不能据此接受新内存建议能力。distro `2af5ef1` / 集成 `40cd085`
 改用显式退出状态检查，失败输出 fail 并阻止成功标记。原生 BusyBox 成功、失败
 和目标等待路径及 ShellCheck 通过，已请求同一聚合目标复验，真实阶段仍待核实。
+
+## 原版 GNU find、xargs 与 tar 的普通进程路径
+
+distro `5aabc63` / 集成 `86e1476` 新增独立 findutils-fork 与 tar-fork 产品。
+复用原版 findutils4.10.0、tar1.35 固定输入，使用已有静态 C fork SDK 构建。
+构建前后逐项比较旧补丁涉及的原文件，保存源码哈希、配置、SDK 材料和许可证。
+最终程序才执行 continuation finalizer，外部观察助手使用默认 SDK 编译。
+该增量接通普通程序的原始调用路径，没有新增 libc 公共接口或 syscall 编号。
+
+find/xargs 四阶段覆盖普通 -exec 的子进程身份、cwd 和参数，带空格路径的
+-execdir 批量执行，以及 xargs -0/-P2 的真实 /dev/null、独立 slot 和双向重叠
+握手。缺失和非零命令核对上游状态与后续恢复，find 的记录精确对应失败文件。
+
+tar 四阶段覆盖外部过滤助手的普通文件与不可 seek 管道往返、成员字节及
+TAR_* 环境、成员助手结束后的 checkpoint 隔离，以及失败助手和缺失命令的
+错误传播与后续恢复。管道两端状态分别核对，成功前清理临时目录。
+
+主会话完成差异审查，修正未 finalize 助手的 SDK 选择、find 谓词分组及 tar
+checkpoint 顺序。GCC/Clang 严格构建、Clang22 静态分析、双位宽 Wasm 前端和
+ShellCheck/shfmt 通过。原生参考为 findutils4.9.0 与 tar1.35，不能替代固定
+4.10.0 的目标执行。新增代码采用 MIT，GNU 产品保留 GPL 和运行时通知。
+一次聚合检查要求双位宽各四阶段、唯一 pass 和机器关闭，真实结果待日志核实。
+[GNU 工具聚合检查](https://github.com/HighCWu/distro/actions/runs/42602956896)。

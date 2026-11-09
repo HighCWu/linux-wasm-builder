@@ -1285,3 +1285,19 @@ C++ 参数。普通 SDK 提供 executable/C++ 配置，可选动态 SDK 另外�
 聚合目标要求双位宽普通 C/C++ 真实部分链接、消费合并产物的最终链接、动态
 Clang PIC 链路，以及已有普通 SDK C++ 运行阶段和机器关闭。真实目标结果待
 对应日志验收，本地缺少 built SDK 的检查明确跳过。
+
+## Wasm CRT 的无效通用启动引用
+
+固定 `ce94a9c` 的42584789604已明确失败。首个 builder 错误为 C++ 动态主程序
+链接 crt1.o 时找不到 main，尚未执行新消费者。Wasm 的架构 _start 已通过
+__main_void 启动，但通用 _start_c 仍编译进同一对象；whole-archive/export-all
+保留了该函数对 main 的无效引用。两参 C++ main 实际使用 __main_argc_argv。
+[实际失败任务](https://github.com/HighCWu/distro/actions/runs/42584789604)。
+
+distro `caf6762` / 集成 `012dcaf` 仅在 __wasm__ 下排除通用启动体，沿用已有
+架构启动链。该补丁接入所有 musl 构建配置，没有添加公共函数或头文件 API。
+主会话直接编译固定源码的真实 CRT 与两个已有 main 适配器，原对象在双位宽
+均复现相同 undefined main；修补对象通过无参/两参 C、两参 C++ 的链接及 Wasm
+启动检查，参数和退出值符合预期。此微型执行使用初始化与 syscall stub，
+证据限定于启动 ABI。固定工具链下的真实 C++ 动态程序、既有扩展消费者与机器
+关闭仍需新的聚合任务验收。
