@@ -1487,3 +1487,28 @@ distro `6ab0360` / 集成 `878b4c3` 补齐两机器字参数、i32 返回值的�
 545 项内核运行库检查及源码/测试 TypeScript 检查。未降低未知导入的准入要求。
 [42682754978](https://github.com/HighCWu/distro/actions/runs/42682754978)
 异步复验原双位宽动态加载与 dladdr 的实际阶段及关闭，尚待目标结果。
+
+## GNU 软件自带兼容实现的链接修复候选
+
+Make 的 42645087631 与 Gawk 的 42648082562 实际在最终链接失败。两者自带的
+getopt、glob、正则等兼容实现与 SDK 强制导出的 libc 强定义冲突，程序尚未运行。
+主会话选择只把动态 SDK 的 libc 导出副本作为后备定义，普通应用的强定义优先。
+
+LLVM `e1c44e8f` 实现标准 `llvm-objcopy --weaken` 和按名转换的 Wasm 支持。
+转换仅修改 linking 符号表中已定义 global 符号的 binding，保留其他 flags、
+undefined/local、符号索引、重定位及 section 顺序。源码改动保留 LLVM 许可证，
+独立回归使用 MIT。公开预取
+[42684271651](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42684271651)
+已核实固定提交及下载哈希。
+
+distro `e4929b4` / 集成 `4504a1a` 使用该工具链弱化 libc 导出副本，再加入强定义
+的私有执行适配。原始 libc.a 与 libc++ 归档保持原有处理。新增实际 SDK 链接正控
+允许程序自带 getopt/optind，负控要求两份用户强定义仍报 duplicate symbol。
+
+主会话审查并独立执行修改后 ObjCopy 的对象、按名和真实归档处理路径。实际
+双位宽 Wasm 小程序验证了应用函数、数据定义优先，以及原强定义冲突继续报错。
+四个 ObjCopy 源文件轻量编译通过。本地完整 SDK 链接用例因缺少候选 SDK 跳过，
+未运行完整 LLVM 构建或 lit。两项原软件由
+[Make 42685098219](https://github.com/HighCWu/distro/actions/runs/42685098219) 和
+[Gawk 42685109057](https://github.com/HighCWu/distro/actions/runs/42685109057)
+异步验收双位宽实际构建、运行阶段、SDK 及动态加载回归和关闭，结果尚待核实。
