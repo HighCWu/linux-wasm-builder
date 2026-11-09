@@ -1016,3 +1016,40 @@ Clang18/22 双位宽通过，Clang22 wasm64 使用 table64。另核实已驻留�
 固定该源码的 [42564317353](https://github.com/HighCWu/distro/actions/runs/42564317353)
 已排队，异步验收双位宽 SDK、驱动和十三阶段 Linux 消费者。尚待真实目标阶段、
 唯一 pass 及关闭证据；先前动态任务继续独立跟进。
+
+## 原版 GNU libltdl 与 Autoconf 动态配置
+
+distro `ae75015` / 集成 `9aefc5d` 新增可选 GNU libltdl 2.5.4 静态库、原版头文件
+和实际消费者。源码固定为 GNU 发布归档，原始 SHA256 如下。
+
+`f81f5860666b0bc7d84baddefa60d1cb9fa6fceb2398cc3baca6afaa60266675`
+
+标准 configure/make 使用动态 SDK 的同一 CC 及显式 wasm-ld、llvm-ar、llvm-ranlib
+和 llvm-nm。配置后核验真实 dlopen 后端及目标搜索路径，构建后核验 archive 的
+loader 符号和关键 C 源码哈希。材料保留原始归档、配置、构建参数与 SDK。
+GNU 库保留 LGPL-2.0-or-later 及上游通知，自有 recipe 和消费者采用 MIT。
+
+动态 SDK 新增安装的 config.site 及 configSite 属性。它保留 fork/vfork 和完整
+固定文件映射探测的负面答案，省略默认 SDK 的三个 dlopen 禁用答案，让实际
+compile/link 探测发现已启用接口。两个标准 libtool 搜索路径缓存明确为目标的
+`/lib /usr/lib`，避免 GNU 配置读取构建宿主 ld.so.conf 后嵌入错误目录。
+dlopen self 的运行探测保留普通 cross unknown，未预填函数探测成功。
+
+普通消费者使用 lt_dlopenext 解析真实 .la 文件，查找插件 LTX 函数及可写数据，
+验证重复打开的引用计数，再经 lt_dlopenadvise GLOBAL 装载独立提供者，满足插件
+先前未解析的强直接调用。这条成功路径实际依赖前述 RTLD_LAZY 实现。四阶段
+还核对单次错误读取、恢复和关闭；脚本清理临时文件后才输出唯一最终 pass。
+runtime 包和镜像保留通知文件，插件与提供者分别链接，未设为彼此 NEEDED。
+
+主会话静态审查并修正了 backend archive 路径、checks 聚合位置、安装目录、
+未使用参数及验收收尾。GCC/Clang 的宿主参考使用系统 GNU libltdl 2.4.7 和
+2.5.4 头文件，四阶段及清理后 pass 通过。Clang18/22 双位宽 C 前端和 analyzer、
+ShellCheck/shfmt、Nixfmt 解析、配置文件空环境检查及仓库检查通过。
+本地没有执行 Nix 求值、GNU 库完整构建或 Linux/Wasm 目标运行。
+
+SDK 使用文档独立提交于 `01ea741`，主仓库 `150072a` 单独同步 pin。该版本较
+ae75015 仅改 SDK.md，重型检查固定最新 `01ea741`。
+[42567886543](https://github.com/HighCWu/distro/actions/runs/42567886543) 首轮在
+安装 Nix 的 action 中报 zstd unsupported format，未求值项目、Heavy 跳过。
+同一任务仅重跑失败部分，第二次 Plan 已成功，Heavy 正在构建双位宽 SDK 驱动
+及 GNU 消费者。实际四阶段、唯一 pass 与机器关闭尚待核实。

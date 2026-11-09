@@ -2820,3 +2820,11 @@ export及LLVM签名读取两项生产实现。主会话审查和集成完成后�
 Clang18/22双位宽轻量执行、前端/analyzer及运行层检查通过，真实Linux十三阶段
 42564317353已排队。CI异步，未取消或重复派发先前慢任务。详见
 [直接函数延迟绑定](elf-dynamic-linking.md#rtld_lazy-的直接函数延迟绑定)。
+
+ae75015 / 集成9aefc5d继续接通原版GNU libltdl 2.5.4。新增可选库、标准头文件、
+真实.la/LTX模块消费者及独立GLOBAL提供者。动态SDK新增专用Autoconf config.site，
+通过真实探测启用dlopen，并固定目标搜索目录。主会话审查，四个既有Luna子代理
+复用上下文实施。01ea741的独立SDK文档与150072a的pin更新完成后，固定该版本
+的42567886543首轮因Nix安装归档格式失败，仅重跑原任务的失败部分；第二次
+Plan已成功，双位宽库构建与四阶段目标正在执行。宿主参考和前端/analyzer
+证据独立记录，详见[GNU libltdl](elf-dynamic-linking.md#原版-gnu-libltdl-与-autoconf-动态配置)。
