@@ -558,6 +558,8 @@ jobs:
           node --experimental-vm-modules --test sources/distro/distro/fork-continuation/worker-bundle.test.js
           patch --dry-run -p1 -d sources/musl \
             < sources/distro/distro/musl/fork-continuation.patch
+          patch --dry-run -p1 -d sources/musl \
+            < sources/distro/distro/musl/wasm-crt1.patch
           for compiler in gcc clang; do
             "$compiler" -O2 -Wall -Wextra -Werror \
               sources/distro/distro/fork-continuation/exec-child.c \
