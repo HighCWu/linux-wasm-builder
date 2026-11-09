@@ -8677,3 +8677,21 @@ DATA 使用1字节；主会话查阅官方 Linux 通用 may_expand_vm，确认 D
 [42675815190](https://github.com/HighCWu/distro/actions/runs/42675815190)
 异步验收新限额、原 brk allocator 和 fork corpus 三组程序各双位宽、完整阶段、
 唯一 pass 与关闭门禁。宿主和对象结果不替代目标运行，真实结果待核实。
+
+新 brk 任务已通过 Plan 并创建 Heavy，调度状态出现可操作变化。随后在相同
+固定源码上恢复 CPython 原任务的 attempt3，其 Plan 也已通过并进入 Heavy。
+两项继续等待实际构建和运行证据。
+
+## 默认 Hush 退出状态修复的双位宽验收
+
+固定 f0596ff 的
+[42661221204](https://github.com/HighCWu/distro/actions/runs/42661221204)
+已核实实际日志。两个 shell-status 运行各依次输出失败 if/else、elif/无 else、
+函数/子 shell/管道错误与恢复三个阶段，每个运行各有一个 pass。两次进程基础
+检查也各有唯一 pass。按该固定版本的双位宽聚合接线，接受此 Node 范围内的
+默认 Hush 退出状态修复。
+
+该版本的 run-test.js、shutdown.js、Nix runner 与本次审计视图无差异，结果
+必须经 closeTestResources 等待 machine.closed，关闭错误或非零退出都会失败。
+两个实际运行完成后聚合产物成功，关闭门禁成立。官方 BusyBox 独立 fork 产品
+以及新 Python、brk 组合继续按各自固定源码验收。

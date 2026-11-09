@@ -3051,3 +3051,8 @@ CPython两次任务在创建构建前遇到GitHub Internal server error，尚无
 AS/DATA限额检查。四个复用Luna子代理实施，主会话独立审查、原生参考和
 双位宽对象检查通过，42675815190异步验收三组真实程序及关闭。见
 [堆限额组合](process-syscalls.md#fork-与实时-brk-限额的组合候选)。
+
+42661221204的实际日志现已核实，固定f0596ff的默认Hush双位宽各三阶段、
+唯一pass和关闭门禁通过。新的brk任务与CPython原任务attempt3均已正常进入
+Heavy，目标运行证据继续分别跟进。见
+[Hush验收](process-syscalls.md#默认-hush-退出状态修复的双位宽验收)。
