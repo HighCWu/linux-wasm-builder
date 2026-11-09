@@ -2918,3 +2918,10 @@ Dash已去掉-Dvfork=fork，直接按原函数名构建。五个既有Luna子代
 原生三阶段、双位宽实际C ABI微型执行、前端和静态分析通过；42613237502异步
 验收双位宽新消费者、Dash、fork回归及关闭。9485b3e只补充SDK说明。见
 [vfork回退](process-syscalls.md#既有-vfork-的通用回退与原版-dash-构建)。
+
+b8c7e2a / 集成8a9ddb4使普通文件syscall通过共享目录保留原始路径字节，修正
+Node把字节转义名字误访问到U+FFFD文件的问题。FUSE协议与POSIX Node路径同步
+接通，OPFS/Windows对无法表示的名字明确EINVAL。六个既有Luna子代理实施，
+主会话完成契约、代码审查及轻量验证。原生三阶段通过，真实Linux/Wasm共享
+目录套件已一次派发，完整阶段及关闭结果待核实。见
+[文件名字节保真](host-storage.md#linux-文件名与链接目标的字节保真)。

@@ -662,7 +662,40 @@ BrowserFS 目录共享适配器也已在 Chromium/Firefox 的
 
 distro9d6b563修复协议C字符串、getdents64目录项及链接目标解码：开头U+FEFF
 必须作为Linux文件名/目标的一部分保留，不能按文本文件的UTF-8 BOM规则吞掉。
-否则普通名字和带此前缀的另一个名字会被混同。非法UTF-8仍严格拒绝；文本内容
-的readTextFile处理不变，也没有扩大为任意非UTF-8宿主名字节支持。协议正反
+否则普通名字和带此前缀的另一个名字会被混同。该版本仍严格拒绝非法UTF-8；
+文本内容的readTextFile处理保留原语义。随后字节路径支持见下一节。协议正反
 控制、目录解析和类型检查通过，真实Linux查找/符号链接/列举/rename/unlink及
 关闭仍待41628363222。详见[路径身份记录](process-syscalls.md#保留路径开头的-ufeff)。
+
+## Linux 文件名与链接目标的字节保真
+
+distro `b8c7e2a` / 集成 `8a9ddb4` 支持 FUSE 的任意 Linux 路径字节，包含
+非 UTF-8 文件名及 symlink target。普通程序继续使用 openat、readdir、mkdirat、
+renameat、readlinkat 和 unlinkat，libc 与 Linux 内核源码未改。
+
+主会话对旧版真实 NodeFS 复现了错误对象访问。直接以内部字节转义表示请求
+原始0x80名字时，Node将其替换成U+FFFD，读到了另一个文件。仅修复 FUSE 的
+严格 UTF-8 拒绝会暴露这一层错误，因此本增量同时接通协议与宿主路径。
+
+协议复用已有 Linux 字符串 codec，未能按 UTF-8 解码的字节在宿主字符串中用
+U+DC80..DCFF 保留，返回 Linux 前还原。Reader 的原有严格 cstring 行为保留，
+FUSE 显式读取原字节。名字长度按编码后的字节检查，255字节上限保持有效。
+POSIX NodeFS 所有 pathname 操作使用 Buffer，realpath、readlink、readdir 从
+原始字节解码，既有目录恢复与 inode 身份逻辑继续使用无损字符串分段。
+
+Node 的 Windows 路径和 BrowserFS 的 OPFS 路径仅接受 well-formed Unicode。
+无法表示的字节转义返回 EINVAL，避免变成 U+FFFD 名字。有效 emoji、U+FEFF
+和真实 U+FFFD 保留。自定义后端的目录项必须满足无损往返的字符串契约。
+共享目录对宿主并发 namespace 修改的既有竞态边界继续适用。
+
+六个既有默认 Luna 子代理实施，主会话确定契约并审查所有差异。主会话执行
+539项运行层检查、36项既有 NodeFS 回归、新字节路径回归、BrowserFS 既有与
+新增检查、描述符耗尽和确定性 open/rename 竞态正反控制。bytes、kernel、
+Node/Browser 源码及完整测试目录类型检查通过。GCC/Clang22 原生消费者三阶段、
+双位宽 Wasm C 前端、Clang 静态分析和格式/工作流检查通过。
+
+真实 Linux/Wasm 共享目录套件新增独立消费者，逐字节区分原始0x80与有效
+U+FFFD名字，检查列举、目录相对变更、链接目标、清理和原文件身份。控制器
+精确比较三个阶段及唯一 pass，并检查宿主文件内容与 inode。目标 CI 已派发，
+套件完整阶段、机器关闭和控制台收尾结果仍待实际日志核实。
+[目标 CI](https://github.com/HighCWu/distro/actions/runs/42615506593)。

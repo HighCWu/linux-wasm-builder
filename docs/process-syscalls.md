@@ -8269,3 +8269,12 @@ unix.Vfork 检查，仅排除消费者刻意调用 vfork 所触发的 insecureAP
 固定代码版本 `0a36554` 的聚合任务要求双位宽新消费者三阶段、既有 Dash 完整
 进程语料、fork/exec 回归与机器关闭。后续 `9485b3e` 仅更新 SDK 说明。
 实际目标结果待日志核实。[目标 CI](https://github.com/HighCWu/distro/actions/runs/42613237502)。
+
+## 共享目录的非 UTF-8 文件名操作
+
+distro `b8c7e2a` / 集成 `8a9ddb4` 接通 FUSE 与 POSIX NodeFS 的原始路径字节。
+普通 openat/readdir/renameat/readlinkat/unlinkat 可区分非 UTF-8 名字与真实
+U+FFFD名字，避免错误访问替换字符文件。六个既有Luna子代理实施，主会话
+审查并验证真实源代码。内核和 musl 不变，新增消费者使用普通 SDK。
+原生三阶段及轻量检查通过，Linux/Wasm共享目录完整套件待真实CI验收。见
+[字节路径实现与边界](host-storage.md#linux-文件名与链接目标的字节保真)。
