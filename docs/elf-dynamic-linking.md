@@ -1624,3 +1624,20 @@ distro `6fca50c` 为既有 SDK closure 导出增加默认关闭的 runtime 选�
 源码和许可证材料。manifest 记录两个输出 root，导出脚本核对它们均进入 closure。
 主会话已完成 derivation 求值、脚本及工作流静态检查，实际资产构建和归档待 CI
 完成。该输出用于本地复现公开 Linux/Wasm64 执行环境。
+
+## 匿名文件创建与实验 ABI 构建修复
+
+实际日志确认 `81d6c8b` 双位宽动态加载任务及 `753c754` 的 wasm32 任务在
+`memfd_create` 返回 ENOSYS 时停止。NOMMU 配置未通过 TMPFS 选中 MEMFD_CREATE。
+distro `f6515da` 显式启用官方 memfd 实现，始终执行 olddefconfig，并校验最终
+`CONFIG_MEMFD_CREATE=y` 与 MMU 关闭。该增量的内核包求值通过，实际 NOMMU
+匿名文件行为及加载阶段等待目标复验，完整 sealing 语义仍需另行验证。
+
+`df94fe8` 的 Linux64 ABI 任务 `42769619602` 则在构建 musl 时停止，错误为
+unknown target ABI linux64。实际命令中，架构配方后追加的 `--target=wasm64`
+覆盖了所需的 Linux triple。distro `c722239` 仅在实验 ABI 配置中将最终 target
+恢复为 `wasm64-unknown-linux-musl`。固定 musl 源码上的 make dry-run 已确认参数
+顺序，SDK derivation 求值通过，默认配置参数保持原样。
+
+固定 `c722239` 已派发动态加载双位宽复验、Linux64 ABI 运行复验和包含运行资产的
+实验 SDK 导出。实际构建、完整运行阶段和关闭结果仍待核实。
