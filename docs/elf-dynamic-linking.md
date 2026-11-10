@@ -1577,3 +1577,21 @@ ENOEXEC 回滚和 raw/ELF exec 恢复三个完整阶段，各有唯一 pass。�
 消费者运行后的聚合成功，关闭门禁成立。接受范围为默认关闭的静态 ELF
 容器实验，使用 EM_NONE 承载 Wasm 模块。C++ 项只有构建契约证据，尚未因此
 验收 C++ fork 运行。该结果也不覆盖浏览器、原生机器码 ELF 或 ELF 共享库。
+
+## 匿名文件描述符的动态加载候选
+
+distro `81d6c8b`，主仓库 pin `f5d5f57`，修复已打开匿名文件通过
+`/proc/self/fd/N` 加载时的两个问题。文件已经通过类型、大小和执行权限检查，
+但其匿名目标会令 `realpath()` 返回 ENOENT。此时加载器保留合法的描述符路径
+作为 origin，继续按打开文件的 device/inode 标识对象。`/dev/fd/N` 使用相同规则。
+描述符路径每次都重新打开并核对 inode，避免 close 后复用同一 fd 号时返回旧模块。
+
+主会话分别运行 GCC、Clang 的实际匿名文件 I/O 检查，并在隔离的原始 kernel
+源码加本增量上运行 ProcessDylink 回归，覆盖同 inode 重开及同路径的新 inode。
+运行消费者新增两份匿名模块加载、构造器次数、关闭源 fd 后继续调用、fd 号复用
+及描述符清理。模块关闭继续遵循现有 musl resident-close 语义。
+
+[42760428290](https://github.com/HighCWu/distro/actions/runs/42760428290) 和
+[42760435146](https://github.com/HighCWu/distro/actions/runs/42760435146)
+已派发双位宽 Node 验收，实际新增阶段与机器关闭结果待核实。上述本地检查
+覆盖 I/O 与加载器逻辑，目标 SDK 构建和 Linux/Wasm 执行仍需独立证据。
