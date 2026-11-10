@@ -9035,8 +9035,8 @@ distro `1fac7a98ea6cd4140432834d2dbeca109a852c7b` 与集成 `4567590` 已发布�
 固定源码预取
 [42871220001](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42871220001)
 已核实修订号和源码哈希。主会话已核实 TypeScript 双项目检查、kernel 宿主测试和
-实际 wasm64 SDK 编译链接。真实 Node 双位宽检查正在异步验收，须继续核对实际
-目标阶段、唯一 pass 和关闭结果。
+实际 wasm64 SDK 编译链接。真实 Node 双位宽日志已核实三个目标阶段及各自唯一
+pass，执行器的成功路径强制等待机器关闭，关闭异常会使任务失败。
 [wasm32 42873308207](https://github.com/HighCWu/distro/actions/runs/42873308207)、
 [wasm64 42873320348](https://github.com/HighCWu/distro/actions/runs/42873320348)。
 
@@ -9044,4 +9044,8 @@ distro `1fac7a98ea6cd4140432834d2dbeca109a852c7b` 与集成 `4567590` 已发布�
 让内部截止时间通过失败标记和退出生效。wasm64 SDK 编译链接已复核，当前固定
 版本的双位宽聚合检查
 [42874114800](https://github.com/HighCWu/distro/actions/runs/42874114800)
-待目标验收。早先两项运行继续覆盖 `1fac7a9`，各项证据按其实际源码版本记录。
+已完成。主会话核实 Heavy job `130032957877` 的实际日志，wasm32 和 wasm64
+分别通过取消重启与自定义 errno、拒绝伪造重启状态、嵌套快照隔离与正常重启三个
+阶段，各有唯一 pass，无失败标记。固定版本执行器在返回成功前等待 `machine.closed`，
+任务成功结束。这些证据覆盖 Node 双位宽，浏览器仍待验收。早先两项运行继续覆盖
+`1fac7a9`，各项证据按其实际源码版本记录。

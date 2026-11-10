@@ -3142,7 +3142,8 @@ Linux d9ada8fac / distro 1af485d / 集成 5749c29 修复 NOMMU ramfs 零长度
 
 Linux c34b66c45 / distro 1fac7a9 / 集成 4567590 新增同步信号回调的 syscall
 返回与重启状态执行桥。消费者覆盖阻塞 read 的取消重启、自定义 errno、嵌套隔离与
-正常重启，轻量检查及 wasm64 编译链接通过，双位宽 Node 目标验收待完成，见
+正常重启，轻量检查及 wasm64 编译链接通过。后续 distro cf94244 的双位宽 Node
+聚合检查已核实三个实际阶段、各自唯一 pass 和强制机器关闭门禁，浏览器待验收，见
 [信号状态候选](process-syscalls.md#信号回调中的-syscall-返回与重启状态候选)。
 
 固定f0596ff的42661210500实际日志已核实，Git2.55.0在双位宽Node各四阶段、
