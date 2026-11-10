@@ -1655,3 +1655,19 @@ LLVM `2b52cbc3` 将 Linux 信号值所需的固定 table base 限于非 PIE 可�
 [42788117236](https://github.com/HighCWu/distro/actions/runs/42788117236)、
 [42788126903](https://github.com/HighCWu/distro/actions/runs/42788126903)
 仍在执行，尚未确认目标运行阶段或关闭结果。
+
+## Linux64 工具链与闭包导出的后续结果
+
+固定 LLVM `2b52cbc3` 的候选 job `129731710274` 已核实实际日志。
+三种 Linux driver 配置的共享库链接及 Node 模块校验通过，默认 ABI 与
+Linux64 ABI 各自的普通链接、LTO 变参消费者均在 Node memory64 执行通过。
+该证据覆盖编译器和链接器检查。它没有覆盖完整 Linux 运行或浏览器。
+
+固定 distro `2189490` 的 SDK 导出任务 `42788126903` 已产出包含匹配运行
+资产的闭包归档。独立运行任务 `42788117236` 仍待完整阶段与关闭结果核实。
+
+同一主仓库任务的 metadata job 则在 Clang 18 的 imported mutable global
+检查失败。该旧链接器损坏的名称偶尔仍是合法 UTF-8，原跳过条件遗漏了这一
+表现。distro `63b23b8` 将已知旧版本的限制显式标为跳过，主仓库 `1db630b`
+更新 pin。主会话使用 Clang 22 重跑双位宽检查，四项全部通过且无跳过。
+这一修复没有将 Clang 18 的该项检查标记为已验收。
