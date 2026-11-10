@@ -51,10 +51,20 @@ jobs:
             -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF \
             -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF \
             -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_TERMINFO=OFF
-          cmake --build "$RUNNER_TEMP/llvm-symbol-build" --target clang llvm-mc lld -j2
+          cmake --build "$RUNNER_TEMP/llvm-symbol-build" --target clang llvm-mc llc FileCheck lld -j2
           if [ ! -x "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld" ]; then
             ln -s lld "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld"
           fi
+      - name: Verify cache-clear lowering for both Wasm address widths
+        run: |
+          set -euo pipefail
+          test_file="$RUNNER_TEMP/llvm-symbol-source/llvm/test/CodeGen/WebAssembly/clear-cache.ll"
+          for bits in 32 64; do
+            "$RUNNER_TEMP/llvm-symbol-build/bin/llc" \
+              -mtriple="wasm$bits-unknown-unknown" -asm-verbose=false < "$test_file" | \
+              "$RUNNER_TEMP/llvm-symbol-build/bin/FileCheck" "$test_file" \
+                --check-prefixes="CHECK,CHK$bits"
+          done
       - name: Verify old/default versions using real generated Wasm objects
         run: |
           set -euo pipefail

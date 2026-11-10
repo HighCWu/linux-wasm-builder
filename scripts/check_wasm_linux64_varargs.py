@@ -65,6 +65,7 @@ static __attribute__((noinline)) int check_int_as_word(unsigned long expected, .
 __attribute__((visibility("default"))) int run(unsigned int seed)
 {
     int marker = 0;
+    __builtin___clear_cache((char *)&marker, (char *)(&marker + 1));
     int int_value = (int)((seed ^ 0x13579bdfU) & 0x7fffffffU);
     unsigned long long_value = ((unsigned long)seed << 32) | 0x89abcdefUL;
     double double_value = (double)((seed & 255U) + 1U) + 0.25;
