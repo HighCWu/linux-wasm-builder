@@ -1716,4 +1716,11 @@ distro `237aad9` 将独立 Linux64 动态 SDK 接入已有 `sharedDriverToolchai
 候选 CI 同时构建 llc、FileCheck、Clang 和 lld，检查 wasm32/wasm64 的前后 volatile
 写入，并通过普通及 LTO 链接运行已有变参消费者。候选
 [42838146097](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42838146097)
-仍在运行。普通 SDK 的 LLVM 源码 pin 继续为 `2b52cbc3`，候选尚未成为默认工具链。
+已完成候选工具编译，随后 cache-clear 的 FileCheck 误匹配函数外 target_features
+中的 `call-indirect-overlong` 字符串，后续检查尚未执行。LLVM `14889e23` 将 no-call
+匹配限定为函数体内的调用指令，并以 `end_function` 收尾。主会话独立确认双位宽
+合法样例可通过，在首个 store 前、两 store 之间及第二 store 后插入调用的负向
+样例均被拒绝。该轻量检查只验证匹配器，候选实际 codegen 继续由
+[42853108743](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42853108743)
+复验。集成 pin 为 `6eeb9e5`。普通 SDK 的 LLVM 源码 pin 继续为 `2b52cbc3`，
+候选尚未成为默认工具链。
