@@ -8864,3 +8864,31 @@ TLS/重复 fork-wait、信号回调拒绝后的恢复、libc memchr 与线程结
 [OpenSSL 42732995628](https://github.com/HighCWu/distro/actions/runs/42732995628)、
 [rsync 42733002944](https://github.com/HighCWu/distro/actions/runs/42733002944) 和
 [XZ 42733011561](https://github.com/HighCWu/distro/actions/runs/42733011561)。
+
+## 保留 GNU Awk 原始 fork 与补齐事件库、线程压缩
+
+后续三个独立源码增量由复用 Luna 子代理实施，主会话审查并分别提交和集成。
+
+- `6d2cbc5` / 集成 `d0adf13` 新增 gawk-fork。该静态配置撤去原有
+  posix_spawn 与 callback-clone 补丁，构建前后核对原始 builtin.c/io.c。
+  主会话独立宿主 GNU Awk 5.2.1 通过 system 的状态与实际内容、输出管道
+  fflush/close、命令 getline 的 EOF/关闭/重开、双向 coprocess、失败恢复
+  及标准输入输出六阶段。双向响应逐行 fflush，避免把缓冲等待误当成 fork
+  错误。目标固定 5.3.1 尚待构建与运行。
+- `15d524f` / 集成 `987e12c` 新增普通 SDK 的 libevent-runtime，保留原库
+  pthread 支持。消费者要求 epoll 后端、真实 TCP loopback 二进制回显与连接
+  关闭、SIGUSR1 事件、短定时器及应用事件清理。主会话使用解包到临时目录的
+  预构建 libevent 2.1.12 库和头文件，独立运行五阶段与 Clang 静态分析通过，
+  没有本地构建 libevent。目标依赖仍由锁定 nixpkgs 提供。
+- `eb6575f` / 集成 `b7cd298` 新增 zstd-threads，保留已有文件 mmap 兼容补丁，
+  使用原版 HAVE_PTHREAD=1 构建入口。消费者 -T2/-B256K 实际观测工作线程，
+  验证往返字节、截断流正常退出码 1 和后续恢复。主会话独立以宿主 1.5.7
+  观测峰值五个 task，静态分析及双位宽前端通过。审查时撤去了构建主机直接
+  执行 Wasm CLI 的错误做法，目标版本和能力继续在目标环境验证。
+
+固定 `eb6575f` 的
+[Gawk 42734791157](https://github.com/HighCWu/distro/actions/runs/42734791157)、
+[libevent 42734799123](https://github.com/HighCWu/distro/actions/runs/42734799123) 和
+[Zstandard 42734806519](https://github.com/HighCWu/distro/actions/runs/42734806519)
+已各派发一次，双位宽目标阶段与关闭待核实。没有改变默认产品、musl 公共 API
+或单线程 fork 的支持边界。
