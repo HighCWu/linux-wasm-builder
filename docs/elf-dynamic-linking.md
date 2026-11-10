@@ -1641,3 +1641,17 @@ unknown target ABI linux64。实际命令中，架构配方后追加的 `--targe
 
 固定 `c722239` 已派发动态加载双位宽复验、Linux64 ABI 运行复验和包含运行资产的
 实验 SDK 导出。实际构建、完整运行阶段和关闭结果仍待核实。
+
+这两项实验 ABI 任务的实际日志随后确认，最终 Linux triple 已生效，构建在
+`libc.so` 链接时被 `--table-base may not be used with -shared/-pie` 阻挡。
+LLVM `2b52cbc3` 将 Linux 信号值所需的固定 table base 限于非 PIE 可执行文件，
+共享库与 PIE 交由加载器分配表项，并增加对应 driver 回归。主仓库的候选检查
+另行覆盖 wasm32、wasm64 及 Linux64 ABI 的真实共享库链接和 Node 模块校验。
+
+公开预取任务已核实该源码的 unpacked hash，distro `2189490` 更新实际工具链
+来源，实验 SDK derivation 求值通过。候选 LLVM 构建
+[42787321396](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42787321396)
+以及固定该版本的实验 ABI 运行与 SDK 导出任务
+[42788117236](https://github.com/HighCWu/distro/actions/runs/42788117236)、
+[42788126903](https://github.com/HighCWu/distro/actions/runs/42788126903)
+仍在执行，尚未确认目标运行阶段或关闭结果。
