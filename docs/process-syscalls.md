@@ -6,6 +6,51 @@
 实现、Wasm syscall 转发和用户态恢复组合起来验证；不是新增私有 syscall 编号或
 应用 API，也不能仅凭 Linux 上游有实现就认为当前 Wasm 配置已经支持。
 
+## Hush nounset、M4 和 SQLite 开发库增量
+
+distro `07e235f` / 集成 `e0a8ff6` 在固定 tombl Hush 上实现 `-u`、`+u`、
+`set -o nounset`、默认参数扩展及 NOMMU 重执行状态传递。主会话审查实现，
+核对精确源码的组合补丁应用、材料归档和 ShellCheck。没有匹配源码的本地 Hush
+构建结果，Dash 参照也不作为 Hush 已通过的证据。第一次调度因检查键顺序写错
+停在 Plan，已改用正确的 `busybox-check-shell-status-both`，由
+[42750215589](https://github.com/HighCWu/distro/actions/runs/42750215589)
+异步验收双位宽。
+
+distro `7ad394e` / 集成 `a791b43` 构建原版 GNU M4，使用已有自动 fork 与
+libc polling 配置，保留 `syscmd` 和 `esyscmd`。主会话独立运行宿主宏展开、
+嵌套 include、diversion、子进程文件写入、状态 23、管道和命令失败恢复阶段。
+[42750034699](https://github.com/HighCWu/distro/actions/runs/42750034699)
+验收双位宽目标程序与关闭，目标结果待核实。
+
+distro `2da7f14` / 集成 `c921b68` 为已有 SQLite 动态扩展配置补齐
+`libsqlite3.a` 和上游生成的 `sqlite3.pc`，普通 C 消费者可以通过 pkg-config
+链接该开发库。已有 CLI 扩展加载能力继续保留。主会话修正 wasm64 SDK 依赖，
+独立完成消费者静态分析和宿主 CLI、扩展回调、64-bit 绑定及数据库关闭阶段。
+[42750480465](https://github.com/HighCWu/distro/actions/runs/42750480465)
+异步验收固定目标源码。
+
+PCRE2 与 OpenSSL 的初次任务在运行前被配方未使用参数检查拦住，`fd20046` /
+集成 `fe8edeb` 移除了该参数。后续复验分别为
+[42749728623](https://github.com/HighCWu/distro/actions/runs/42749728623) 和
+[42749736159](https://github.com/HighCWu/distro/actions/runs/42749736159)。
+这些构建前失败没有产生 Wasm 运行结果。
+
+## 官方 BusyBox fork 配置的双位宽验收与 C++ 剩余错误
+
+主会话已读取
+[42730401807](https://github.com/HighCWu/distro/actions/runs/42730401807)
+固定 `cbabf5f` 的 Heavy 实际日志，wasm32、wasm64 Node 各四个完整阶段及
+唯一 pass 通过，包含 ash 管道、命令替换、后台等待、find/xargs 参数与批次、
+awk 子进程及错误恢复。测试与关闭代码相较于该源码未变，成功退出路径等待
+`machine.closed`，Heavy 成功收尾。范围为独立官方 BusyBox fork 配置，不包含
+上节新增的默认 Hush nounset，也不代表浏览器验收。
+
+同源码的
+[42730394241](https://github.com/HighCWu/distro/actions/runs/42730394241)
+在 wasm32 的 C++ 第三阶段触发 `RuntimeError: unreachable`。堆、TLS、RAII
+和普通 parent/child 异常两阶段先通过，活动异常 catch 内的 fork 拒绝、重新
+抛出与后续恢复尚未通过，已交子代理修复。保持完整目标，不删除失败阶段。
+
 ## PCRE2、OpenSSL provider 与 ext4 ACL 候选
 
 2026-11-10，主会话维持六个独立实现任务，分别补齐 Hush nounset、ACL、
