@@ -30,8 +30,12 @@ SDK 取源 pin 仍为此前版本，完整依赖图的专用 SDK 尚未发布。
 
 另两项已确认的独立失败继续修复。libuv
 [42732986921](https://github.com/HighCWu/distro/actions/runs/42732986921)
-在 wasm64 发生间接调用签名不匹配，生产实现修复保持 spawn 与后续异步工作
-目标。rsync
+在 wasm64 发生间接调用签名不匹配。主会话核对上游 pthread 启动代码后，
+`4585a3d` / 集成 `09d5127` 加入 Wasm 专用、签名正确的 pthread trampoline，
+保持原有 `void` 回调接口并分别处理创建失败与线程启动后的上下文释放。原生路径
+继续使用上游实现，spawn 和后续异步工作阶段保持完整。
+[42751753880](https://github.com/HighCWu/distro/actions/runs/42751753880)
+复验真实双位宽目标，结果待核实。`7c45d1a` 为独立补丁补充 MIT 标识。rsync
 [42733002944](https://github.com/HighCWu/distro/actions/runs/42733002944)
 在安装前被许可证 store 链接检查拦住，和该包的 ACL/xattr 成功路径一起补齐。
 
