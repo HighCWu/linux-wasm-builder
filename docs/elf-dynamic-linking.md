@@ -1548,4 +1548,19 @@ getopt/malloc/free，排除内部 allocator 和 __malloc_atfork。实际补丁�
 [dladdr 42721961733](https://github.com/HighCWu/distro/actions/runs/42721961733) 和
 [Gawk 42721969856](https://github.com/HighCWu/distro/actions/runs/42721969856)
 已各派发一次，分别覆盖双位宽消费者、SDK 驱动和原动态加载回归。实际阶段、
-唯一 pass 与关闭待核实。旧 Make 42685098219 仍运行时保留该任务，未重复派发。
+唯一 pass 与关闭待核实。旧 Make 42685098219 后续也已失败，实际日志同样在
+closedir/free/get_meta 中 trap，属于 `8e755cc` 修复前的版本，不能计为可用。
+
+## 静态 ELF 容器的双位宽 Node 验收
+
+固定 distro `7f5db96` 的
+[42719246681](https://github.com/HighCWu/distro/actions/runs/42719246681)
+实际 Heavy 日志已核实。wasm32 和 wasm64 各依次完成 posix_spawn 的参数、
+环境、身份与继承 fd，fexecve 的 PID 保持、BSS/TLS 重置与 CLOEXEC，以及
+ENOEXEC 回滚和 raw/ELF exec 恢复三个完整阶段，各有唯一 pass。两套 SDK
+链接驱动检查也各三项通过，包括 C++ 异常 tag 在最终模块中的内部解析。
+
+该固定源码的 runner 等待 machine.closed，关闭异常会令构建失败；两次真实
+消费者运行后的聚合成功，关闭门禁成立。接受范围为默认关闭的静态 ELF
+容器实验，使用 EM_NONE 承载 Wasm 模块。C++ 项只有构建契约证据，尚未因此
+验收 C++ fork 运行。该结果也不覆盖浏览器、原生机器码 ELF 或 ELF 共享库。

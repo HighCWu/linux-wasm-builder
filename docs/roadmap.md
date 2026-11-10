@@ -80,9 +80,22 @@ tag 断言的问题，先核对真实 EH 是否保留及导出要求，再修复
 继续覆盖公开 fallback。主仓库最新代码 pin 为 `701720e`。主会话核对旧源码
 失败、修后成功的实际 PIC 回归及精确 musl 双位宽 IR。按名单转换完整 libc
 归档的本地验证仍有工具链接路径限制，须以目标 SDK 门禁和运行日志验收。
-BusyBox 已保留失败输出，尚待新 CI 定位。详见
+BusyBox 后续已从实际失败日志定位到 FEATURE_ALLOW_EXEC 配置遗漏，`28c5125`
+启用后继续验收。C++ 材料只读重复复制由 `8631fff` 修复，运行仍待验收。详见
 [dladdr 修复](elf-dynamic-linking.md#已有-dladdr-接口的动态模块支持)和
 [动态 libc 绑定修复](elf-dynamic-linking.md#gnu-软件自带兼容实现的链接修复候选)。
+
+`0f448f3` 接通自动 fork 与 libc 检查点组合。固定 `f23eddb` 的42725571067
+实际双位宽 Node 日志已核实，自动配置与旧手工配置各四阶段、唯一 pass 和
+关闭门禁通过。后续独立候选包括 libuv 的进程/异步文件/管道事件、OpenSSL
+双子进程定时工作、rsync 原始 sender/receiver 与增量同步、XZ POSIX 线程。
+主会话独立原生参考通过，真实 Wasm 阶段继续异步验收。XZ 首轮配置求值失败
+已由 `d31c632` 修复，当前对应集成 pin 为 `f068164`。见
+[组合验收与消费者候选](process-syscalls.md#自动-fork-与-libc-检查点组合的双位宽验收)。
+
+静态 ELF 容器固定 `7f5db96` 的42719246681双位宽 Node 三阶段、SDK 驱动及
+关闭门禁已核实。默认关闭的实验容器范围保留，浏览器和 C++ 运行分别验收。
+见[ELF 容器验收](elf-dynamic-linking.md#静态-elf-容器的双位宽-node-验收)。
 
 可选动态 SDK 新增 C++17 跨库 typed exception、回调重抛与 RAII 路径，源码
 `2ed9aae` / 集成 `ecba22e`。随后根据真实 CI 修复默认运行库辅助定义误放 CRT

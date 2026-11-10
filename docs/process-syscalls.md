@@ -8794,3 +8794,67 @@ DATA 使用1字节；主会话查阅官方 Linux 通用 may_expand_vm，确认 D
 必须经 closeTestResources 等待 machine.closed，关闭错误或非零退出都会失败。
 两个实际运行完成后聚合产物成功，关闭门禁成立。官方 BusyBox 独立 fork 产品
 以及新 Python、brk 组合继续按各自固定源码验收。
+
+## 自动 fork 与 libc 检查点组合的双位宽验收
+
+distro `0f448f3` 接通独立 sdk-fork-automatic-poll-libc 和对应 wasm64 配置，
+说明另以 `f23eddb` 提交，集成 pin 为 `02ae23f`。普通 CC 最终链接自动完成
+既有 Asyncify 变换，应用和 libc 使用已有计算检查点。没有重复调用手工
+finalizer，也没有增加执行 ABI、内核接口或 musl 公共函数。
+
+固定 `f23eddb` 的
+[42725571067](https://github.com/HighCWu/distro/actions/runs/42725571067)
+实际日志已核实。自动配置双位宽各依次完成计算循环定时器、父子孙计算及
+TLS/重复 fork-wait、信号回调拒绝后的恢复、libc memchr 与线程结束后 TLS
+四阶段，各有唯一 pass。旧手工配置双位宽同四阶段也通过。该版本 runner 的
+关闭路径等待 machine.closed，关闭错误会令检查失败，聚合构建成功。
+接受该固定版本的 Node、静态单线程 C 范围，浏览器及新应用另行验收。
+
+## C++ 材料与 BusyBox 执行配置修复
+
+[C++ 42719238077](https://github.com/HighCWu/distro/actions/runs/42719238077)
+在材料构建中重复覆盖只读 cxx-state.cc 失败，尚未执行消费者。`8631fff` /
+集成 `4efac7f` 撤去重复复制，完整配方目录仍交付该源码。主会话独立验证
+只读文件复制布局和 SDK 检查。固定 `cbabf5f` 的
+[42730394241](https://github.com/HighCWu/distro/actions/runs/42730394241)
+继续验收双位宽 C++ 真实运行与关闭。
+
+[BusyBox 42719254899](https://github.com/HighCWu/distro/actions/runs/42719254899)
+通过 shell、find/xargs 两阶段，但 awk system 没有执行命令。主会话核对
+官方 1.37.0 源码，确认 allnoconfig 未启用 FEATURE_ALLOW_EXEC，令已有 system
+分支直接返回成功。`28c5125` / 集成 `ac7bead` 启用该配置并核对 oldconfig
+结果，保留原有实际输出断言。固定 `cbabf5f` 的
+[42730401807](https://github.com/HighCWu/distro/actions/runs/42730401807)
+继续复验。两项修复均未据轻量检查计作目标运行通过。
+
+## 原版 libuv、OpenSSL、rsync 与线程压缩候选
+
+四个复用默认 Luna Max 子代理实施，主会话确定契约、审查与独立验证，并按
+独立源码提交、主仓库 pin 顺序发布。候选使用正常上游构建入口，默认产品
+配置保持既有发布边界。
+
+- `aea404d` / 集成 `5e70b43` 新增 libuv-runtime。原版 libuv 静态库使用自动
+  fork 配置，uv_spawn 在启动文件系统线程池之前执行。消费者随后运行异步
+  文件读写/fsync/stat/关闭/删除、Unix 管道二进制回显和定时器，核对事件循环
+  可以清空关闭。主会话独立宿主参考及 Clang 静态分析通过，目标运行待验收。
+- `b32c5c2` / 集成 `a505e18` 新增 openssl-fork，使用自动 fork 与 libc 检查点
+  组合，撤去该配置原有 HAVE_FORK=0 构建参数。原版 speed -multi 2 的两个
+  单线程子进程必须各运行一秒定时工作并回传结果，父进程完成汇总，后续摘要
+  和熵请求成功。该语料验证进程与信号功能，没有性能门槛。主会话独立宿主
+  OpenSSL 3.6.2 参考通过，目标固定 3.5.7 另行构建验收。
+- `1725852` / 集成 `1dcb6b6` 新增 rsync-fork，未改上游同步和进程源码。
+  验证本地 sender/receiver、使用本地辅助程序的标准 remote-shell 通道、
+  增量块复用、文件/符号链接/硬链接、明确 code 11 的接收端文件错误及恢复。
+  通道不经过 SSH 或网络。辅助进程使用 subreaper 回收后代，限时清理返回
+  125，不能被错误恢复阶段误判为预期错误。主会话独立宿主 3.2.7 完整语料、
+  静态分析与使用 fork 配置头文件的双位宽前端通过，目标版本为锁定的 3.4.4。
+- `cbabf5f` / 集成 `3a35bf0` 新增 xz-threads，启用原版 POSIX 工作线程并移除
+  该配置的单线程信号补丁。4 MiB 输入要求实际观测到至少两个工作线程，验证
+  压缩/解压字节、截断流错误和后续恢复。主会话独立宿主观测峰值三线程，
+  静态分析及双位宽前端通过。首次
+  [42730409449](https://github.com/HighCWu/distro/actions/runs/42730409449)
+  在 Plan 暴露不存在的 zeroBSD 属性，尚未构建。`d31c632` / 集成 `f068164`
+  修正为锁定 nixpkgs 的 bsd0，SPDX 仍为 0BSD，通知保留。
+
+上述候选真实 Wasm 双位宽阶段及关闭仍须按各自固定源码 CI 核实。原生参考、
+前端产物和源码合同不替代目标运行。没有扩大多线程 fork 支持或增加 libc API。
