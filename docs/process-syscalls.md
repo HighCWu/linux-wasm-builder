@@ -9087,3 +9087,17 @@ SDK 导出 `42887065679` 在配置的 120 分钟期限后被取消，未生成�
 新导出固定该版本，包含 Linux64 ABI 动态 SDK 与匹配运行资产，尚待完成后核实
 制品与目标证据。两项仍在运行的动态消费者检查继续保留，按各自固定版本验收。
 [新导出 42908460772](https://github.com/HighCWu/distro/actions/runs/42908460772)。
+
+### 独立 Clang 与 SDK 响应文件检查
+
+固定 `79c75da` 的双位宽 SDK 检查在独立 Clang 驱动检查处失败。实际 job
+`130078190060` 要求没有 SDK sysroot 的调用携带 `wasm-linux-executable.rsp`，
+该断言与驱动仅加载实际存在的 sysroot 响应文件的行为不符。
+[失败任务 42887044126](https://github.com/HighCWu/distro/actions/runs/42887044126)。
+
+distro `10c80f6` / 集成 `1f5bf76` 修正此断言，分别检查独立编译器的默认链接
+与显式 sysroot 的配置选择。原有 CRT、默认库、共享链接及可重定位链接检查继续
+执行。主会话使用已导出的真实 Clang 通过 wasm32/64 驱动检查，并在 Node 中通过
+两位宽共享模块的函数调用、主模块数据和函数指针检查。Linux 进程目标仍待新版
+任务验收，SDK 导出继续跟进原有任务。
+[复验任务 42914793861](https://github.com/HighCWu/distro/actions/runs/42914793861)。
