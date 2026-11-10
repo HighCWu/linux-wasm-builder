@@ -54,8 +54,22 @@ class CacheContract(unittest.TestCase):
         check_keys(self.workflow)
 
     def test_mismatched_keys_rejected(self):
+        heavy = re.split(r"^  heavy-check:\n", self.workflow, maxsplit=1, flags=re.MULTILINE)[1]
+        heavy = re.split(r"^  deploy-site:\n", heavy, maxsplit=1, flags=re.MULTILINE)[0]
+        keys = re.findall(r"^          primary-key: (.*)$", heavy, re.MULTILINE)
+        self.assertEqual(len(keys), 2)
+        restore_key, save_key = keys
+        self.assertEqual(restore_key, save_key)
+
+        restore_line = f"          primary-key: {restore_key}"
+        mismatched_restore_line = restore_line + "-restore-mismatch"
+        broken = self.workflow.replace(restore_line, mismatched_restore_line, 1)
+        broken_heavy = re.split(r"^  heavy-check:\n", broken, maxsplit=1, flags=re.MULTILINE)[1]
+        broken_heavy = re.split(r"^  deploy-site:\n", broken_heavy, maxsplit=1, flags=re.MULTILINE)[0]
+        broken_keys = re.findall(r"^          primary-key: (.*)$", broken_heavy, re.MULTILINE)
+        self.assertEqual(broken_keys, [restore_key + "-restore-mismatch", save_key])
         with self.assertRaises(ValueError):
-            check_keys(self.workflow.replace("nix-targeted-v1-", "nix-targeted-v2-", 1))
+            check_keys(broken)
 
     def test_kernel_pin_and_fetch_recipe_must_invalidate_the_primary_key(self):
         for name in ("distro/linux/package.nix", "distro/linux/fetch-source.nix"):
