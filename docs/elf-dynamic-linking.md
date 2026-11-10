@@ -1733,11 +1733,18 @@ distro `237aad9` 将独立 Linux64 动态 SDK 接入已有 `sharedDriverToolchai
 及 lld 构建通过，双位宽 cache-clear 检查通过，默认和 Linux64 ABI 的普通及 LTO
 消费者共四组 Node memory64 执行通过。同一候选的双位宽 PIC/加载模型检查也通过，
 这些模型没有运行 Linux 进程。整个工作流仍因当时的 metadata 检查失败而标红，
-候选 job 本身成功。集成 pin 为 `6eeb9e5`。普通 SDK 的 LLVM 源码 pin 继续为
-`2b52cbc3`，候选尚未成为默认工具链。
+候选 job 本身成功。集成 pin 为 `6eeb9e5`，该阶段普通 SDK 的 LLVM 源码 pin
+保持 `2b52cbc3`。
 
 候选测试期间，主仓库 gitlink 曾提前指向候选 LLVM，导致固定 SDK 的版本一致性
 检查失败。集成 `df29d28` 将 gitlink 恢复为 SDK 实际使用的 `2b52cbc3`，保留严格
 一致性检查。候选 `14889e23` 继续通过独立工作流参数验证。另 `2c3a2f9` 为连续
 连接超时的 Lua 官方源码下载增加有界镜像回退，主会话独立下载确认镜像与既有
 Lua 5.4.8 SHA256 完全一致，两个来源均须校验成功后才解压。
+
+distro `5209345` 与集成 `7c1e3d7` 将 SDK 编译器固定到已验证的 `14889e23`，
+主仓库 LLVM gitlink 同步更新。主会话复核两版差异仅包含上述 lowering 和对应
+回归检查，并核实固定源码预取结果为
+`sha256-kn26AaBI+Wlgd+8EsHPdgtC27uHsf5Kp/lsHkPrUuOg=`。
+这次 pin 更新开始使用候选实现，后续 SDK 重建和完整 Linux 消费者仍需单独验收。
+[源码预取 42883799993](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42883799993)。
