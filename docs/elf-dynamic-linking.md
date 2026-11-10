@@ -1724,3 +1724,9 @@ distro `237aad9` 将独立 Linux64 动态 SDK 接入已有 `sharedDriverToolchai
 [42853108743](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42853108743)
 复验。集成 pin 为 `6eeb9e5`。普通 SDK 的 LLVM 源码 pin 继续为 `2b52cbc3`，
 候选尚未成为默认工具链。
+
+候选测试期间，主仓库 gitlink 曾提前指向候选 LLVM，导致固定 SDK 的版本一致性
+检查失败。集成 `df29d28` 将 gitlink 恢复为 SDK 实际使用的 `2b52cbc3`，保留严格
+一致性检查。候选 `14889e23` 继续通过独立工作流参数验证。另 `2c3a2f9` 为连续
+连接超时的 Lua 官方源码下载增加有界镜像回退，主会话独立下载确认镜像与既有
+Lua 5.4.8 SHA256 完全一致，两个来源均须校验成功后才解压。
