@@ -5,6 +5,7 @@
 from pathlib import Path
 import argparse
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -17,6 +18,7 @@ PHASE_MARKERS = (
     "sqlite extension: repeated API callbacks preserve module data state pass",
     "sqlite extension: database survives close and reopen pass",
     "sqlite extension: failed load reports an error and later load recovers pass",
+    "sqlite extension: linked static-library C client passed",
     "::vm-test::pass",
 )
 
@@ -51,9 +53,14 @@ def run_checked(
 sqlite3 = resolve_program(args.sqlite3, "SQLite")
 cc = resolve_program(args.cc, "C compiler")
 source = RUNTIME / "extension.c"
+client_source = RUNTIME / "linked-client.c"
 runtime_test = RUNTIME / "runtime-test.sh"
 if not source.is_file():
     raise SystemExit(f"error: SQLite extension source is missing: {source}")
+if not client_source.is_file():
+    raise SystemExit(
+        f"error: SQLite linked-client source is missing: {client_source}"
+    )
 if not runtime_test.is_file():
     raise SystemExit(f"error: SQLite runtime test is missing: {runtime_test}")
 
@@ -62,8 +69,44 @@ version = run_checked(
 )
 sqlite_version = (version.stdout or version.stderr).strip()
 
+pkg_config = shutil.which("pkg-config") or shutil.which("pkgconf")
+if pkg_config is not None:
+    try:
+        pkg_cflags = subprocess.run(
+            [pkg_config, "--cflags", "sqlite3"],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=10,
+        )
+        pkg_libs = subprocess.run(
+            [pkg_config, "--libs", "sqlite3"],
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=10,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemExit("error: host SQLite pkg-config query timed out") from error
+else:
+    pkg_cflags = pkg_libs = None
+
+if (
+    pkg_cflags is not None
+    and pkg_libs is not None
+    and pkg_cflags.returncode == 0
+    and pkg_libs.returncode == 0
+):
+    sqlite_cflags = shlex.split(pkg_cflags.stdout)
+    sqlite_libs = shlex.split(pkg_libs.stdout)
+else:
+    # The header check below confirms that host headers are visible; use the
+    # conventional host library name when pkg-config metadata is unavailable.
+    sqlite_cflags = []
+    sqlite_libs = ["-lsqlite3"]
+
 headers = subprocess.run(
-    [cc, "-std=c11", "-x", "c", "-fsyntax-only", "-"],
+    [cc, *sqlite_cflags, "-std=c11", "-x", "c", "-fsyntax-only", "-"],
     input="#include <sqlite3.h>\n#include <sqlite3ext.h>\n",
     text=True,
     capture_output=True,
@@ -79,9 +122,11 @@ if headers.returncode != 0:
 with tempfile.TemporaryDirectory(prefix="sqlite-load-extension-probe-") as temporary:
     temporary_path = Path(temporary)
     extension = temporary_path / "sample.so"
+    client = temporary_path / "sqlite3-extension-runtime-client"
     run_checked(
         [
             cc,
+            *sqlite_cflags,
             "-O2",
             "-Wall",
             "-Wextra",
@@ -99,10 +144,36 @@ with tempfile.TemporaryDirectory(prefix="sqlite-load-extension-probe-") as tempo
     if not extension.is_file() or extension.stat().st_size == 0:
         raise SystemExit("error: native compiler did not produce the SQLite extension")
 
+    run_checked(
+        [
+            cc,
+            *sqlite_cflags,
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            str(client_source),
+            *sqlite_libs,
+            "-o",
+            str(client),
+        ],
+        label="native linked SQLite C client build",
+        timeout=30,
+    )
+    if (
+        not client.is_file()
+        or client.stat().st_size == 0
+        or not os.access(client, os.X_OK)
+    ):
+        raise SystemExit(
+            "error: native compiler did not produce an executable SQLite C client"
+        )
+
     environment = os.environ.copy()
     environment.update(
         {
             "SQLITE3": sqlite3,
+            "SQLITE_EXTENSION_CLIENT": str(client.resolve()),
             "SQLITE_EXTENSION_PATH": str(extension),
             "SQLITE_NATIVE_REFERENCE": "1",
         }
@@ -117,7 +188,7 @@ with tempfile.TemporaryDirectory(prefix="sqlite-load-extension-probe-") as tempo
     output_lines = run.stdout.splitlines()
     if output_lines != list(PHASE_MARKERS):
         raise SystemExit(
-            "error: SQLite runtime test output did not exactly match the expected four phases and pass marker\n"
+            "error: SQLite runtime test output did not match the expected phase markers\n"
             f"expected: {list(PHASE_MARKERS)!r}\n"
             f"actual:   {output_lines!r}\n" + "\n" + run.stderr.strip()
         )
