@@ -3122,10 +3122,17 @@ Make42685098219、Gawk42685109057异步验收原软件和动态加载阶段及�
 
 新增独立的跨模块间接尾调用配置，以及统一重建 musl、运行库和依赖的 Linux64
 变参 ABI SDK。静态与动态 scope 完整求值通过，公开 LLVM 候选已有四组实际
-memory64 链接执行证据，完整 SDK 和动态消费者仍待异步目标验收。公开 SDK
+memory64 链接执行证据。静态 ABI 目标阶段与关闭门禁已通过；动态消费者的链接
+缺失已定位到共享工具链接线，修复版本正在异步重验。公开 SDK
 closure 也可选择携带同版本内核及 Node runner，便于在本地复现。见
 [尾调用与 ABI 候选](elf-dynamic-linking.md#跨模块尾调用与-linux64-abi-候选)和
 [运行资产导出](elf-dynamic-linking.md#可选的公开运行资产导出)。
+
+Linux64 动态 SDK 现复用已有共享链接和 PIC 异常工具链，保留独立 ABI 的完整
+依赖图。另有 Wasm cache-clear intrinsic 编译兼容候选，真实 llc、普通及 LTO
+链接检查正在运行。两项都按固定源码分别验收，见
+[工具链接线](elf-dynamic-linking.md#linux64-动态-sdk-的共享工具链接线修复)和
+[cache-clear 候选](elf-dynamic-linking.md#wasm-cache-clear-intrinsic-的编译兼容候选)。
 
 固定f0596ff的42661210500实际日志已核实，Git2.55.0在双位宽Node各四阶段、
 唯一pass和机器关闭门禁通过，覆盖filter/hook、失败恢复、非本地clone/pack与

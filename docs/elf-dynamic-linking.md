@@ -1679,11 +1679,41 @@ distro `0e9271f` 保留原有 ABI 检查，在成功后输出阶段摘要和唯�
 输出，并等待机器关闭。失败会报告具体检查及错误码。
 主仓库 `7b69b5c` 更新 pin，复验
 [42807564440](https://github.com/HighCWu/distro/actions/runs/42807564440)
-仍在执行，关闭门禁尚待核实。
+已通过。实际目标日志包含格式化、变参、syscall、prctl 和 Landlock 阶段摘要及唯一
+pass。该固定版本的 runner 在成功退出前等待机器关闭，任务成功结束。
 
 动态变参消费者存在同样的 init 生命周期遗漏。distro `a59b135` 为其增加结果
 报告与等待关闭，并保留 DSO 变参、回调、格式化及 dlclose 检查。主会话使用
 GCC、Clang 核实原生成功与缺库失败路径，并完成 Clang 静态分析。
 主仓库 `db246b3` 更新 pin，首次动态目标验收
 [42808913688](https://github.com/HighCWu/distro/actions/runs/42808913688)
-仍在执行。原生检查和此前的 SDK 导出均未替代该运行验收。
+在链接阶段失败，缺少 `__wasm_dynamic_open`、`__wasm_dynamic_symbol` 和
+`__wasm_dynamic_invalid`，尚未执行动态 ABI 检查。
+
+## Linux64 动态 SDK 的共享工具链接线修复
+
+distro `237aad9` 将独立 Linux64 动态 SDK 接入已有 `sharedDriverToolchain`。
+此前该配置传入 `sharedCompiler = null`，因此缺少共享链接、函数重导出及 PIC
+异常上下文补丁。Linux64 的 musl、libc++、unwind 及依赖继续使用独立 ABI 配置。
+同时刷新 shared-link 补丁的上下文，保留固定可执行文件、PIE 与共享库的函数表
+布局规则。主会话核实补丁适用性，并用旧 SDK 的显式归档链接确认缺失符号的来源。
+这些诊断链接没有替代新 SDK 的运行验收。
+
+首次派发 `42839146544` 使用了不存在的检查名，在计划阶段停止，未启动重型构建。
+已按既有目标名称修正派发。固定 distro `d4e6c58` 的
+[42840412553](https://github.com/HighCWu/distro/actions/runs/42840412553)
+正在重验动态模块、跨模块变参、回调、格式化、关闭及机器退出门禁。
+`d4e6c58` 还修正了宿主 Python 工作流测试的过期断言，使其精确包含 SDK 导出模式
+的隔离条件。生产工作流条件保持原配置，十四项轻量检查通过。
+
+## Wasm cache-clear intrinsic 的编译兼容候选
+
+公开 LLVM 候选 `0ca346ed` 修复 `llvm.clear_cache` 在 Wasm 后端触发 fatal error
+的问题。Wasm 指令与线性内存分离，由引擎管理模块编译和指令缓存。lowering 保留
+输入 chain，不生成目标缓存刷新指令。该行为不赋予线性内存执行能力。
+
+主会话用旧 SDK 的独立 LLVM IR 复现编译失败，并审查候选实现和既有回归测试。
+候选 CI 同时构建 llc、FileCheck、Clang 和 lld，检查 wasm32/wasm64 的前后 volatile
+写入，并通过普通及 LTO 链接运行已有变参消费者。候选
+[42838146097](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42838146097)
+仍在运行。普通 SDK 的 LLVM 源码 pin 继续为 `2b52cbc3`，候选尚未成为默认工具链。
