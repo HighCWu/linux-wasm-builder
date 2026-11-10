@@ -9101,3 +9101,28 @@ distro `10c80f6` / 集成 `1f5bf76` 修正此断言，分别检查独立编译�
 两位宽共享模块的函数调用、主模块数据和函数指针检查。Linux 进程目标仍待新版
 任务验收，SDK 导出继续跟进原有任务。
 [复验任务 42914793861](https://github.com/HighCWu/distro/actions/runs/42914793861)。
+
+## 动态主程序的 callback-vfork 与 posix_spawn
+
+distro `020a61d` / 集成 `0efe8ad` 为尚未构造动态加载器的主程序接通标准
+`posix_spawn` 所用的 callback clone 路径。准入要求 `CLONE_VM | CLONE_VFORK |
+SIGCHLD`、空的 tid/TLS 参数和正常用户入口。严格 seccomp 的请求继续先进入真实
+内核。子 Worker 继承主模块元数据与共享内存，使用现有 libc callback 设置栈和 TLS。
+执行器只在发给子 Worker 的上下文副本标记 vfork 状态，父端 pending 状态通过
+`finally` 恢复；成功 exec 构造新上下文。
+
+vfork 阶段的动态加载操作在读取输入、分配及重定位前返回失败，`dlerror` 可取回
+错误信息。已使用加载器的进程、动态线程创建及完整模块发布协议继续保留为后续
+能力缺口。该增量保持现有内核 syscall 和 musl 接口。
+
+主会话独立核实生产与测试两个 TypeScript 项目及 kernel 宿主测试，并使用已导出
+的 Linux64 ABI wasm64 动态 SDK、当前源码执行器 JS 和既有内核实际运行消费者。
+两轮自 exec、wait、子进程 fd close action、父进程 mutable data/TLS/errno、重复
+回收及 ENOENT 后再次 spawn 均通过。消费者输出唯一 pass，runner 返回 0，关闭
+路径等待 `machine.closed`。首次执行暴露消费者在主动设置 ECHILD 后仍期待 EDOM
+的断言错误，修正后按公开消费者原源码重新编译和复验通过。
+
+本地证据使用既有 SDK 与内核，完整当前版本组合由公开 CI 异步验收。wasm32、
+wasm64 的 `spawn-runtime` 检查已派发，目标结果尚待核实。
+[检查 42926959649](https://github.com/HighCWu/distro/actions/runs/42926959649)、
+[检查 42926966930](https://github.com/HighCWu/distro/actions/runs/42926966930)。

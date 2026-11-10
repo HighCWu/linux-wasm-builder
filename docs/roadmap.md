@@ -3155,3 +3155,8 @@ distro 79c75da / 集成 4dd8176 补齐动态主程序与显式协作轮询的执
 操作期间的重入边界，并增加构造器及真实信号消费者。宿主检查和实际 wasm64 SDK
 链接准入已核实，双位宽动态消费者、Linux64 ABI 消费者与新版 SDK 导出异步验收中。
 见[动态主程序轮询](process-syscalls.md#动态主程序的显式协作轮询)。
+
+distro `020a61d` / 集成 `0efe8ad` 接通尚未使用加载器的动态主程序 callback-vfork
+和标准 posix_spawn。实际 wasm64 Linux 执行已核实 exec/wait、fd 操作、父端状态、
+失败恢复及关闭。当前版本的双位宽目标 CI 异步验收中，模块图的 Worker 发布与
+动态线程支持仍待实现。见[动态进程创建](process-syscalls.md#动态主程序的-callback-vfork-与-posix_spawn)。
