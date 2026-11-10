@@ -9066,11 +9066,13 @@ distro `79c75da` 与集成 `4dd8176` 允许满足既有 ABI、TLS、栈及动态
 双位宽动态消费者、新 Linux64 ABI 消费者及匹配运行资产的 SDK 导出已分别派发，
 目标阶段与机器关闭仍待核实。这些任务也将使用新固定的 LLVM `14889e23`。
 [双位宽检查 42887044126](https://github.com/HighCWu/distro/actions/runs/42887044126)、
-[Linux64 ABI 检查 42887055423](https://github.com/HighCWu/distro/actions/runs/42887055423)、
+[Linux64 ABI 检查 42889789382](https://github.com/HighCWu/distro/actions/runs/42889789382)、
 [SDK 导出 42887065679](https://github.com/HighCWu/distro/actions/runs/42887065679)。
 
 后续 distro `2620a55` / 集成 `37969b3` 修正共享构造器 fixture 的使用范围。
 轮询回调由完整动态消费者显式启用，通用合成主程序模型保持原有导入契约。
 主会话核实宏的两种 wasm64 SDK 编译模式和真实 Clang 双位宽动态模型，
-后者覆盖绑定、构造器顺序及负向控制，仍属于宿主模型。上述运行中的目标任务
-固定为 `79c75da`，完整消费者在该版本同样启用了回调，各版本证据分别记录。
+后者覆盖绑定、构造器顺序及负向控制，仍属于宿主模型。双位宽动态消费者和 SDK
+导出固定为 `79c75da`，完整消费者在该版本同样启用了回调。Linux64 ABI 最初的
+派发因检查名缺少 `package` 在计划阶段失败，未运行重型检查。上列更正后的任务
+固定为 `2620a55`，各版本证据分别记录。
