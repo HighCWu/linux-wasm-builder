@@ -3129,8 +3129,8 @@ closure 也可选择携带同版本内核及 Node runner，便于在本地复现
 [运行资产导出](elf-dynamic-linking.md#可选的公开运行资产导出)。
 
 Linux64 动态 SDK 现复用已有共享链接和 PIC 异常工具链，保留独立 ABI 的完整
-依赖图。另有 Wasm cache-clear intrinsic 编译兼容候选，真实 llc、普通及 LTO
-链接检查正在运行。Linux64 动态 ABI 的 Node 目标阶段、唯一 pass 与强制机器关闭
+依赖图。Wasm cache-clear intrinsic 候选已核实真实 llc 检查及普通、LTO 消费者的
+Node memory64 执行，默认 SDK 编译器 pin 仍为原版本。Linux64 动态 ABI 的 Node 目标阶段、唯一 pass 与强制机器关闭
 门禁已核实通过，更新内核后的 SDK 闭包正在单独导出。各项按固定源码分别验收，见
 [工具链接线](elf-dynamic-linking.md#linux64-动态-sdk-的共享工具链接线修复)和
 [cache-clear 候选](elf-dynamic-linking.md#wasm-cache-clear-intrinsic-的编译兼容候选)。

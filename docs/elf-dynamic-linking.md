@@ -1729,8 +1729,12 @@ distro `237aad9` 将独立 Linux64 动态 SDK 接入已有 `sharedDriverToolchai
 合法样例可通过，在首个 store 前、两 store 之间及第二 store 后插入调用的负向
 样例均被拒绝。该轻量检查只验证匹配器，候选实际 codegen 继续由
 [42853108743](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42853108743)
-复验。集成 pin 为 `6eeb9e5`。普通 SDK 的 LLVM 源码 pin 继续为 `2b52cbc3`，
-候选尚未成为默认工具链。
+的候选 job `129958839257` 已完成并核实实际日志。候选 Clang、MC、llc、FileCheck
+及 lld 构建通过，双位宽 cache-clear 检查通过，默认和 Linux64 ABI 的普通及 LTO
+消费者共四组 Node memory64 执行通过。同一候选的双位宽 PIC/加载模型检查也通过，
+这些模型没有运行 Linux 进程。整个工作流仍因当时的 metadata 检查失败而标红，
+候选 job 本身成功。集成 pin 为 `6eeb9e5`。普通 SDK 的 LLVM 源码 pin 继续为
+`2b52cbc3`，候选尚未成为默认工具链。
 
 候选测试期间，主仓库 gitlink 曾提前指向候选 LLVM，导致固定 SDK 的版本一致性
 检查失败。集成 `df29d28` 将 gitlink 恢复为 SDK 实际使用的 `2b52cbc3`，保留严格
