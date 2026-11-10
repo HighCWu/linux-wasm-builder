@@ -198,10 +198,15 @@ jobs:
         run: python3 -B scripts/probe_wasm_partial_link.py --clang clang-18
       - name: Check original Lua C modules and nonlocal error recovery against native Linux
         run: |
+          set -euo pipefail
           source_root="$RUNNER_TEMP/lua-extension-reference"
           mkdir -p "$source_root"
-          curl -fL --retry 2 --connect-timeout 15 --max-time 120 \
-            https://www.lua.org/ftp/lua-5.4.8.tar.gz -o "$source_root/lua.tar.gz"
+          if ! curl -fL --retry 2 --connect-timeout 15 --max-time 120 \
+            https://www.lua.org/ftp/lua-5.4.8.tar.gz -o "$source_root/lua.tar.gz"; then
+            echo "Official Lua download failed; trying the verified MacPorts source mirror."
+            curl -fL --retry 2 --connect-timeout 15 --max-time 120 \
+              https://distfiles.macports.org/lua/lua-5.4.8.tar.gz -o "$source_root/lua.tar.gz"
+          fi
           echo "4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae  $source_root/lua.tar.gz" \
             | sha256sum -c -
           tar -xzf "$source_root/lua.tar.gz" -C "$source_root"
