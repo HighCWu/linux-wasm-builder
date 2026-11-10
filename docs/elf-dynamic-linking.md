@@ -1551,6 +1551,13 @@ getopt/malloc/free，排除内部 allocator 和 __malloc_atfork。实际补丁�
 唯一 pass 与关闭待核实。旧 Make 42685098219 后续也已失败，实际日志同样在
 closedir/free/get_meta 中 trap，属于 `8e755cc` 修复前的版本，不能计为可用。
 
+后续 Gawk 42721969856 已明确失败，实际日志显示 dynamic-libc 构建期的
+llvm-objcopy 按名弱化被拒绝，尚未再次执行加载器。主会话核对固定 LLVM 源码，
+发现 getWasmConfig 仍拒绝 SymbolsToWeaken，尽管 WasmObjcopy 的实现已支持
+它。先前直接调用格式实现的本地 harness 绕过了公共配置入口，不能证明完整
+CLI 可用。该失败不能据此认定 allocator 修复后的运行结果，最小入口修复与
+实际 CLI 复验继续单独推进。
+
 ## 静态 ELF 容器的双位宽 Node 验收
 
 固定 distro `7f5db96` 的
