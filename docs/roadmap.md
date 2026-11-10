@@ -3130,13 +3130,14 @@ closure 也可选择携带同版本内核及 Node runner，便于在本地复现
 
 Linux64 动态 SDK 现复用已有共享链接和 PIC 异常工具链，保留独立 ABI 的完整
 依赖图。另有 Wasm cache-clear intrinsic 编译兼容候选，真实 llc、普通及 LTO
-链接检查正在运行。两项都按固定源码分别验收，见
+链接检查正在运行。Linux64 动态 ABI 的 Node 目标阶段、唯一 pass 与强制机器关闭
+门禁已核实通过，更新内核后的 SDK 闭包正在单独导出。各项按固定源码分别验收，见
 [工具链接线](elf-dynamic-linking.md#linux64-动态-sdk-的共享工具链接线修复)和
 [cache-clear 候选](elf-dynamic-linking.md#wasm-cache-clear-intrinsic-的编译兼容候选)。
 
 Linux d9ada8fac / distro 1af485d / 集成 5749c29 修复 NOMMU ramfs 零长度
 分配导致空 memfd 返回 EFBIG 的实际内核缺口。标准 syscall 消费者的原生参考已
-通过，双位宽 Node 正在异步验证创建、文件内容、截断及关闭，见
+通过，双位宽 Node 已核实创建、文件内容、截断、唯一 pass 及机器关闭门禁，见
 [空 memfd 修复](process-syscalls.md#nommu-空-memfd-创建修复候选)。
 
 固定f0596ff的42661210500实际日志已核实，Git2.55.0在双位宽Node各四阶段、

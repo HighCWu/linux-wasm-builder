@@ -1702,9 +1702,16 @@ distro `237aad9` 将独立 Linux64 动态 SDK 接入已有 `sharedDriverToolchai
 首次派发 `42839146544` 使用了不存在的检查名，在计划阶段停止，未启动重型构建。
 已按既有目标名称修正派发。固定 distro `d4e6c58` 的
 [42840412553](https://github.com/HighCWu/distro/actions/runs/42840412553)
-正在重验动态模块、跨模块变参、回调、格式化、关闭及机器退出门禁。
+已核实实际目标输出 `linux64-abi dynamic varargs: 17/4000000001/0x7ffffc/4.5`，
+随后报告 DSO 变参、回调、格式化及 dlclose 检查通过，并输出唯一
+`::vm-test::pass`。该版本执行器成功路径等待 `machine.closed`，关闭失败会使任务
+失败，实际任务成功结束。此为 Node wasm64 验收。
 `d4e6c58` 还修正了宿主 Python 工作流测试的过期断言，使其精确包含 SDK 导出模式
 的隔离条件。生产工作流条件保持原配置，十四项轻量检查通过。
+
+更新内核后的 distro `1af485d` 已单独派发包含运行资产的 Linux64 动态 SDK 导出
+[42864812818](https://github.com/HighCWu/distro/actions/runs/42864812818)。
+导出仍在运行，已有本地 SDK 的源码与运行资产版本尚未因此改变。
 
 ## Wasm cache-clear intrinsic 的编译兼容候选
 

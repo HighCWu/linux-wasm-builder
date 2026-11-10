@@ -9012,4 +9012,7 @@ distro `1af485df626599ce02b2ac17c268ccc6580d2440` 与集成 `5749c29` 已更新
 原生参考已通过。真实 Node
 [wasm32 42846140840](https://github.com/HighCWu/distro/actions/runs/42846140840) 与
 [wasm64 42846163076](https://github.com/HighCWu/distro/actions/runs/42846163076)
-已进入 Heavy，目标阶段、唯一 pass 和机器关闭结果尚待核实。
+已核实实际目标日志均输出 `memfd: creation flags, file I/O, truncate and close verified`，
+各有唯一 `::vm-test::pass`，任务成功结束。固定版本的执行器成功路径强制等待
+`machine.closed`，关闭异常会使执行失败。这覆盖上述消费者的 Node 双位宽执行，
+浏览器尚未据此验收。
