@@ -2,6 +2,11 @@
 
 # Linux/Wasm 平台路线图
 
+2026-11-10 持续安排六个独立实现任务，主会话统一审查和发布。已发布 ext4
+POSIX ACL 配置、PCRE2-enabled GNU grep、OpenSSL 动态 provider 候选，各项
+目标 CI 异步验收，宿主参考通过范围及剩余缺口见
+[本轮实现记录](process-syscalls.md#pcre2openssl-provider-与-ext4-acl-候选)。
+
 路线图以持续完善 Linux 在 WebAssembly 上的可用性为核心。内核、工具链、用户态、
 宿主和发行可以并行推进。用户地址保持direct linear-memory模型；各阶段编号用于组织
 依赖和验收，除明确依赖外，所有工作流都应持续推进。

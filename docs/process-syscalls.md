@@ -6,6 +6,30 @@
 实现、Wasm syscall 转发和用户态恢复组合起来验证；不是新增私有 syscall 编号或
 应用 API，也不能仅凭 Linux 上游有实现就认为当前 Wasm 配置已经支持。
 
+## PCRE2、OpenSSL provider 与 ext4 ACL 候选
+
+2026-11-10，主会话维持六个独立实现任务，分别补齐 Hush nounset、ACL、
+libgit2、tmux、可变参数 ABI 的 LTO 保留，以及 libssh SFTP。子代理负责实现和
+开发验证，主会话负责全部静态分析、review、集成和目标证据核实。
+
+Linux `031d284f4` 启用官方通用 `CONFIG_EXT4_FS_POSIX_ACL`，distro `53fa7af`
+固定其公开源码哈希，集成 `3375665` 更新两个 gitlink。这个配置项在官方 ext4
+Kconfig 中没有默认启用，属于新增支持。`CONFIG_MMU=n` 保持既定边界，ACL
+权限切换消费者尚待目标验收。
+
+distro `0221651` / 集成 `5a5bd6c` 接入静态 PCRE2 8-bit Unicode 库与 GNU
+grep 3.11 的 `-P` 路径。主会话修正源码解包及交叉构建入口，独立运行宿主
+lookbehind、backreference、UTF 多行匹配、错误状态及恢复阶段。
+[42749049471](https://github.com/HighCWu/distro/actions/runs/42749049471)
+异步验收双位宽 Wasm，尚无目标运行通过结论。
+
+distro `226943f` / 集成 `efd9280` 接入独立 OpenSSL 动态 provider 配置，构建
+原版 legacy 模块并调用已有 `OSSL_PROVIDER_load`。主会话独立完成 C 静态分析，
+宿主 OpenSSL 3.0.13 的缺失 provider、错误队列恢复、MD4、SHA-256 和卸载阶段
+通过。目标为固定 OpenSSL 3.5.7，
+[42749131929](https://github.com/HighCWu/distro/actions/runs/42749131929)
+异步验收双位宽加载与关闭，尚无目标通过结论。以上增量没有新增 musl 公共 API。
+
 ## 动态软件失败的两项独立修复
 
 distro `ee1684a` / 集成 `07a58f2` 修复真实 dladdr 消费者的空符号名错误，
