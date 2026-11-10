@@ -1586,7 +1586,7 @@ distro `81d6c8b`，主仓库 pin `f5d5f57`，修复已打开匿名文件通过
 作为 origin，继续按打开文件的 device/inode 标识对象。`/dev/fd/N` 使用相同规则。
 描述符路径每次都重新打开并核对 inode，避免 close 后复用同一 fd 号时返回旧模块。
 
-主会话分别运行 GCC、Clang 的实际匿名文件 I/O 检查，并在隔离的原始 kernel
+主会话分别运行 GCC、Clang 的实际匿名文件 I/O 检查，并在隔离的 HEAD 执行适配
 源码加本增量上运行 ProcessDylink 回归，覆盖同 inode 重开及同路径的新 inode。
 运行消费者新增两份匿名模块加载、构造器次数、关闭源 fd 后继续调用、fd 号复用
 及描述符清理。模块关闭继续遵循现有 musl resident-close 语义。
@@ -1595,3 +1595,32 @@ distro `81d6c8b`，主仓库 pin `f5d5f57`，修复已打开匿名文件通过
 [42760435146](https://github.com/HighCWu/distro/actions/runs/42760435146)
 已派发双位宽 Node 验收，实际新增阶段与机器关闭结果待核实。上述本地检查
 覆盖 I/O 与加载器逻辑，目标 SDK 构建和 Linux/Wasm 执行仍需独立证据。
+
+## 跨模块尾调用与 Linux64 ABI 候选
+
+distro `753c754` 接通默认关闭的 `linux.dylink.tail.v1` 模块标记。加载器为带标记
+的模块维护同索引的尾调用表，保留普通调用表的调用方状态恢复。新增消费者执行
+两份共享库间的实际间接尾调用。主会话核对类型检查及针对性回归，双位宽目标任务
+[42762420846](https://github.com/HighCWu/distro/actions/runs/42762420846) 和
+[42762427610](https://github.com/HighCWu/distro/actions/runs/42762427610)
+仍待实际运行阶段及关闭结果验收。
+
+公开 LLVM 候选 `c07823c5` 已通过重建后的默认 ABI、Linux64 ABI 各自普通链接和
+LTO 的 memory64 执行检查，以及符号版本和 PIC 表预留检查。distro `b61d734`
+将实际编译器 pin 与该候选对齐。其两个 SDK C++ 任务在运行前被导出脚本格式检查
+阻挡，`6fca50c` 已按固定 shfmt 格式修复，并重新派发对应检查。
+
+distro `bb2975d` 增加独立的 `linux64-abi-wasm64` scope，使 musl、编译器运行库、
+sysroot、zlib、SQLite 及所需库统一使用 `-mabi=linux64`。`df94fe8` 增加匹配的
+`linux64-abi-dynamic-wasm64` 配方，覆盖普通变参的 main/DSO/libc 调用及变参回调。
+这两个 scope 均已完成完整 derivation 求值。构建材料检查及 GCC、Clang 原生消费者
+通过，目标 SDK 的构建、执行与关闭继续异步验收。混用两种 ABI 的对象尚无自动
+检测机制，交换变参的调用方及库需要采用相同配置重新构建。
+
+## 可选的公开运行资产导出
+
+distro `6fca50c` 为既有 SDK closure 导出增加默认关闭的 runtime 选项。固定的
+`runtime-assets-wasm64` 包含内核 npm 输出、Node runner、Node、cpio 及 Linux
+源码和许可证材料。manifest 记录两个输出 root，导出脚本核对它们均进入 closure。
+主会话已完成 derivation 求值、脚本及工作流静态检查，实际资产构建和归档待 CI
+完成。该输出用于本地复现公开 Linux/Wasm64 执行环境。

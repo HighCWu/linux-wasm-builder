@@ -3120,6 +3120,13 @@ LLVM e1c44e8f / distro e4929b4 / 集成4504a1a进一步修复GNU软件自带兼�
 Make42685098219、Gawk42685109057异步验收原软件和动态加载阶段及关闭，见
 [GNU链接修复](elf-dynamic-linking.md#gnu-软件自带兼容实现的链接修复候选)。
 
+新增独立的跨模块间接尾调用配置，以及统一重建 musl、运行库和依赖的 Linux64
+变参 ABI SDK。静态与动态 scope 完整求值通过，公开 LLVM 候选已有四组实际
+memory64 链接执行证据，完整 SDK 和动态消费者仍待异步目标验收。公开 SDK
+closure 也可选择携带同版本内核及 Node runner，便于在本地复现。见
+[尾调用与 ABI 候选](elf-dynamic-linking.md#跨模块尾调用与-linux64-abi-候选)和
+[运行资产导出](elf-dynamic-linking.md#可选的公开运行资产导出)。
+
 固定f0596ff的42661210500实际日志已核实，Git2.55.0在双位宽Node各四阶段、
 唯一pass和机器关闭门禁通过，覆盖filter/hook、失败恢复、非本地clone/pack与
 前台repack/GC。后续自动链接版继续独立验收，见
