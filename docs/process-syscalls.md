@@ -9016,3 +9016,26 @@ distro `1af485df626599ce02b2ac17c268ccc6580d2440` 与集成 `5749c29` 已更新
 各有唯一 `::vm-test::pass`，任务成功结束。固定版本的执行器成功路径强制等待
 `machine.closed`，关闭异常会使执行失败。这覆盖上述消费者的 Node 双位宽执行，
 浏览器尚未据此验收。
+
+## 信号回调中的 syscall 返回与重启状态候选
+
+Linux `c34b66c45b6fa03d6bffe490bd75f9382c47bbef` 为同步信号回调补充版本化执行
+状态。`linux_signal_syscall_v1` 提供 capability、frame 和 finish 操作，状态对象为
+两个机器字 `long result` 与 `unsigned long flags`。每层 handler 保存独立的原始
+快照，重启中的 syscall 对回调显示 `-EINTR` 与有效、重启两个标志。
+执行适配可以保留已有重启，或取消重启并指定返回值。所有输入在发布覆盖前验证，
+拒绝新建或重新启用重启，以及将内核内部 `ERESTART*` 码写回退出循环。
+
+普通消费者复用已有 musl 信号、pthread 和 read 入口，在阻塞 read 内读取状态，
+验证取消重启的自定义 errno、普通 EINTR、嵌套 handler 隔离及正常 SA_RESTART。
+发送线程有界重试，直到 handler 确认命中被中断的 read，避免用固定延迟假设
+syscall 已进入阻塞状态。错误和截止路径会唤醒读端，成功路径使用现有机器关闭门禁。
+
+distro `1fac7a98ea6cd4140432834d2dbeca109a852c7b` 与集成 `4567590` 已发布。
+固定源码预取
+[42871220001](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42871220001)
+已核实修订号和源码哈希。主会话已核实 TypeScript 双项目检查、kernel 宿主测试和
+实际 wasm64 SDK 编译链接。真实 Node 双位宽检查正在异步验收，须继续核对实际
+目标阶段、唯一 pass 和关闭结果。
+[wasm32 42873308207](https://github.com/HighCWu/distro/actions/runs/42873308207)、
+[wasm64 42873320348](https://github.com/HighCWu/distro/actions/runs/42873320348)。
