@@ -3150,3 +3150,8 @@ Linux c34b66c45 / distro 1fac7a9 / 集成 4567590 新增同步信号回调的 sy
 唯一pass和机器关闭门禁通过，覆盖filter/hook、失败恢复、非本地clone/pack与
 前台repack/GC。后续自动链接版继续独立验收，见
 [Git验收](process-syscalls.md#git-许可证安装路径修复与-hush-补验)。
+
+distro 79c75da / 集成 4dd8176 补齐动态主程序与显式协作轮询的执行适配，保留加载
+操作期间的重入边界，并增加构造器及真实信号消费者。宿主检查和实际 wasm64 SDK
+链接准入已核实，双位宽动态消费者、Linux64 ABI 消费者与新版 SDK 导出异步验收中。
+见[动态主程序轮询](process-syscalls.md#动态主程序的显式协作轮询)。
