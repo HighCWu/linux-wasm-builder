@@ -173,6 +173,41 @@ with tempfile.TemporaryDirectory(prefix="wasm-linux64-varargs-") as temporary:
     if args.default_only:
         print("[wasm-linux64-varargs] skipping Linux64 flag acceptance checks")
     else:
+        shared_source = directory / "shared.c"
+        shared_source.write_text("int exported(void) { return 7; }\n")
+        for shared_target, shared_abi in (
+            ("wasm32-unknown-linux-musl", []),
+            (TRIPLE, []),
+            (TRIPLE, ["-mabi=linux64"]),
+        ):
+            tag = shared_target + ("-linux64" if shared_abi else "-default")
+            shared_module = directory / f"{tag}-shared.wasm"
+            run_stage(
+                f"link {tag} shared object through the Linux driver",
+                [
+                    clang,
+                    f"--target={shared_target}",
+                    *shared_abi,
+                    f"--ld-path={linker}",
+                    "-nostdlib",
+                    "-fPIC",
+                    "-shared",
+                    "-Wl,--no-entry,--export=exported",
+                    str(shared_source),
+                    "-o",
+                    str(shared_module),
+                ],
+            )
+            run_stage(
+                f"validate {tag} shared object in Node",
+                [
+                    node,
+                    "-e",
+                    "WebAssembly.compile(require('node:fs').readFileSync(process.argv[1]))"
+                    ".catch(error => { console.error(error); process.exitCode = 1; });",
+                    str(shared_module),
+                ],
+            )
         for rejected_target in (
             "wasm32-unknown-linux-musl",
             "wasm64-unknown-unknown",
