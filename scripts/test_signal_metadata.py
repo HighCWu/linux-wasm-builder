@@ -12,6 +12,7 @@ root = Path(__file__).resolve().parents[1]
 source = Path(os.environ.get("WASM_SIGNAL_METADATA_SOURCE",
                             root / "sources/linux/arch/wasm/kernel/signal.c")).read_text()
 frame = re.search(r"struct wasm_signal_frame \{.*?\n\};", source, re.S).group()
+syscall_frames = "\n".join(re.findall(r"struct wasm_signal_syscall_v1 \{.*?\n\};", source, re.S))
 assert "frame.previous = previous_frame;" in source
 assert "frame.previous_info = previous_info;" in source
 
@@ -28,6 +29,7 @@ prefix = """
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <string.h>
 typedef siginfo_t kernel_siginfo_t;
 #define __user
@@ -83,7 +85,7 @@ for cc in ("gcc", "clang"):
         for label, body in (("normal", clear), ("old-clear-all", old)):
             subprocess.run([cc, "-xc", "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror",
                             "-fsanitize=address,undefined", "-o", str(binary), "-"],
-                           input=prefix + frame + body + copy + finish + checks, text=True, check=True)
+                           input=prefix + syscall_frames + frame + body + copy + finish + checks, text=True, check=True)
             result = subprocess.run([str(binary)], capture_output=True, text=True, timeout=10,
                                     preexec_fn=no_core,
                                     env={**os.environ, "UBSAN_OPTIONS": "halt_on_error=1",
