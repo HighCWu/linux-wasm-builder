@@ -8858,3 +8858,9 @@ TLS/重复 fork-wait、信号回调拒绝后的恢复、libc memchr 与线程结
 
 上述候选真实 Wasm 双位宽阶段及关闭仍须按各自固定源码 CI 核实。原生参考、
 前端产物和源码合同不替代目标运行。没有扩大多线程 fork 支持或增加 libc API。
+
+固定 `d31c632` 的四项已各派发一次并进入 Heavy，分别为
+[libuv 42732986921](https://github.com/HighCWu/distro/actions/runs/42732986921)、
+[OpenSSL 42732995628](https://github.com/HighCWu/distro/actions/runs/42732995628)、
+[rsync 42733002944](https://github.com/HighCWu/distro/actions/runs/42733002944) 和
+[XZ 42733011561](https://github.com/HighCWu/distro/actions/runs/42733011561)。
