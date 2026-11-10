@@ -8,6 +8,33 @@
 
 ## Hush nounset、M4 和 SQLite 开发库增量
 
+后续主会话集成审查纠正了两类发布问题。`fdd133d` / 集成 `b6732a6` 将本轮
+新配方复制的许可证改为解引用实际文本，避免用户产物中的许可证链接指向构建机。
+Linux `3535ad2ad` 补齐真正使用的 wasm32、wasm64 defconfig，distro `4f27a68` /
+集成 `f93af29` 固定公开源码哈希，并检查解析后的 `CONFIG_EXT4_FS_POSIX_ACL`
+与 `CONFIG_FS_POSIX_ACL`。此前 `031d284f4` 只改通用 defconfig，不能证明
+宽度专用构建已经启用 ACL，相关目标证据仍须重新验收。
+
+`7a86227` / 集成 `238a899` 为 C++ 异常状态 accessor 补回非抛出声明，避免
+守卫生成额外 Wasm catch/terminate 帧。它是针对下节实际 trap 的修复候选，
+合同检查与宿主 C++ 运行通过，活动异常阶段是否修复仍由目标 CI 确认。
+`52fde1a` / 集成 `edd6009` 同时修正 OpenSSL fork 的编译器名称元信息，运行
+产物记录可搜索的编译器名，精确构建路径留在 buildMaterials，保留发布路径检查。
+
+LLVM `c07823c5` / 集成 `da38088` 发布默认关闭的 `-mabi=linux64` 源码候选，
+让 wasm64 Linux 的可变参数使用八字节槽，并用函数属性保留 LTO 约定。默认
+SDK 取源 pin 仍为此前版本，完整依赖图的专用 SDK 尚未发布。普通系统 Clang 的
+默认 ABI non-LTO/LTO memory64 微程序已实际运行，自定义 ABI 仍待公开构建及
+[42751294260](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42751294260)
+中的真实 driver、linker 与 Node 阶段证明。不同可变参数 ABI 的对象不能混用。
+
+另两项已确认的独立失败继续修复。libuv
+[42732986921](https://github.com/HighCWu/distro/actions/runs/42732986921)
+在 wasm64 发生间接调用签名不匹配，生产实现修复保持 spawn 与后续异步工作
+目标。rsync
+[42733002944](https://github.com/HighCWu/distro/actions/runs/42733002944)
+在安装前被许可证 store 链接检查拦住，和该包的 ACL/xattr 成功路径一起补齐。
+
 distro `07e235f` / 集成 `e0a8ff6` 在固定 tombl Hush 上实现 `-u`、`+u`、
 `set -o nounset`、默认参数扩展及 NOMMU 重执行状态传递。主会话审查实现，
 核对精确源码的组合补丁应用、材料归档和 ShellCheck。没有匹配源码的本地 Hush
