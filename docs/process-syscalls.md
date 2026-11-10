@@ -9039,3 +9039,9 @@ distro `1fac7a98ea6cd4140432834d2dbeca109a852c7b` 与集成 `4567590` 已发布�
 目标阶段、唯一 pass 和关闭结果。
 [wasm32 42873308207](https://github.com/HighCWu/distro/actions/runs/42873308207)、
 [wasm64 42873320348](https://github.com/HighCWu/distro/actions/runs/42873320348)。
+
+后续 distro `cf94244` 与集成 `48619d3` 为 PID 1 消费者显式安装 SIGALRM handler，
+让内部截止时间通过失败标记和退出生效。wasm64 SDK 编译链接已复核，当前固定
+版本的双位宽聚合检查
+[42874114800](https://github.com/HighCWu/distro/actions/runs/42874114800)
+待目标验收。早先两项运行继续覆盖 `1fac7a9`，各项证据按其实际源码版本记录。
