@@ -1671,3 +1671,19 @@ Linux64 ABI 各自的普通链接、LTO 变参消费者均在 Node memory64 执�
 表现。distro `63b23b8` 将已知旧版本的限制显式标为跳过，主仓库 `1db630b`
 更新 pin。主会话使用 Clang 22 重跑双位宽检查，四项全部通过且无跳过。
 这一修复没有将 Clang 18 的该项检查标记为已验收。
+
+固定 `2189490` 的实验 ABI 运行任务随后失败。实际日志显示普通格式化结果
+`17/1234567890123/4.5/<pointer>` 正确，PID 1 以状态 0 退出后触发内核 panic。
+该消费者直接作为 init，遗漏了 raw-initramfs runner 要求的结果标记和保持存活。
+distro `0e9271f` 保留原有 ABI 检查，在成功后输出阶段摘要和唯一 pass、刷新
+输出，并等待机器关闭。失败会报告具体检查及错误码。
+主仓库 `7b69b5c` 更新 pin，复验
+[42807564440](https://github.com/HighCWu/distro/actions/runs/42807564440)
+仍在执行，关闭门禁尚待核实。
+
+动态变参消费者存在同样的 init 生命周期遗漏。distro `a59b135` 为其增加结果
+报告与等待关闭，并保留 DSO 变参、回调、格式化及 dlclose 检查。主会话使用
+GCC、Clang 核实原生成功与缺库失败路径，并完成 Clang 静态分析。
+主仓库 `db246b3` 更新 pin，首次动态目标验收
+[42808913688](https://github.com/HighCWu/distro/actions/runs/42808913688)
+仍在执行。原生检查和此前的 SDK 导出均未替代该运行验收。
