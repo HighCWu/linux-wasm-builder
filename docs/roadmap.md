@@ -3134,6 +3134,11 @@ Linux64 动态 SDK 现复用已有共享链接和 PIC 异常工具链，保留�
 [工具链接线](elf-dynamic-linking.md#linux64-动态-sdk-的共享工具链接线修复)和
 [cache-clear 候选](elf-dynamic-linking.md#wasm-cache-clear-intrinsic-的编译兼容候选)。
 
+Linux d9ada8fac / distro 1af485d / 集成 5749c29 修复 NOMMU ramfs 零长度
+分配导致空 memfd 返回 EFBIG 的实际内核缺口。标准 syscall 消费者的原生参考已
+通过，双位宽 Node 正在异步验证创建、文件内容、截断及关闭，见
+[空 memfd 修复](process-syscalls.md#nommu-空-memfd-创建修复候选)。
+
 固定f0596ff的42661210500实际日志已核实，Git2.55.0在双位宽Node各四阶段、
 唯一pass和机器关闭门禁通过，覆盖filter/hook、失败恢复、非本地clone/pack与
 前台repack/GC。后续自动链接版继续独立验收，见

@@ -8992,3 +8992,24 @@ TLS/重复 fork-wait、信号回调拒绝后的恢复、libc memchr 与线程结
 [Zstandard 42734806519](https://github.com/HighCWu/distro/actions/runs/42734806519)
 已各派发一次，双位宽目标阶段与关闭待核实。没有改变默认产品、musl 公共 API
 或单线程 fork 的支持边界。
+
+## NOMMU 空 memfd 创建修复候选
+
+真实 wasm64 C++ 消费者发现 `memfd_create` 返回 `EFBIG`。同环境中，已有
+libc 接口和使用完整机器字参数的原始 syscall 都复现，flags 为 0 或
+`MFD_CLOEXEC` 均失败。调用路径进入 NOMMU ramfs 的零长度扩展，原实现直接
+调用 `get_order(0)`，随后将无效分配阶数判定为文件过大。
+
+Linux `d9ada8fac954e585c2b29d2021ae1e22ab3ae82c` 在零长度路径执行
+`inode_newsize_ok` 并设置文件大小，非零分配路径保持原有实现。修改保留内核
+GPL 许可证。公开源码预取任务
+[42844625838](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42844625838)
+已核对固定版本及源码哈希。
+
+distro `1af485df626599ce02b2ac17c268ccc6580d2440` 与集成 `5749c29` 已更新
+内核 pin，并加入独立消费者，覆盖空文件大小、CLOEXEC、读写、截断回零、关闭及
+无效 flags。消费者直接使用标准 syscall，未增加 musl 公共接口。GCC、Clang
+原生参考已通过。真实 Node
+[wasm32 42846140840](https://github.com/HighCWu/distro/actions/runs/42846140840) 与
+[wasm64 42846163076](https://github.com/HighCWu/distro/actions/runs/42846163076)
+已进入 Heavy，目标阶段、唯一 pass 和机器关闭结果尚待核实。
