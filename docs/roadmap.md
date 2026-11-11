@@ -3216,3 +3216,15 @@ distro `3df64ad` / 集成 `b223b29` 新增可选的 `llvm-toolchain-development`
 供构建机程序通过同一版本的 Clang 库解析 Linux/Wasm 目标。`clang-tooling-check`
 使用真实 SDK 头文件检查 wasm32 ILP32 和 wasm64 Linux64 类型布局，并要求错误的
 指针宽度断言被拒绝。Nix 语法检查通过，公开目标检查 `43047279744` 正在验收。
+
+distro `3dc5516` / 集成 `79d38e6` 为 SDK 导出增加默认关闭的 native tooling
+closure 选项，记录同源 Clang 库、CMake 配置、运行依赖和源码 revision。
+隔离的脚本验证已核实默认 manifest v1 与可选 manifest v2、归档摘要及缺库失败路径。
+实际工具库构建与导出继续等待目标证据。
+
+公开 LLVM `745ad0b5` 已通过独立编译和真实 Wasm 严格链接检查。源码预取任务
+`43052981687` 的 source-hash job 核实旧 pin 的摘要完全一致，并取得候选的固定
+解包摘要。distro `8ff10de` / 集成 `d296adb` 将编译器与源码 gitlink 对齐到该版本。
+完整 SDK 的 Linux64 ABI 运行检查单独进行，已有本地 SDK 的版本沿用其原始 manifest。
+该次 source-hash 所在工作流的两个普通宿主检查因 Ubuntu 软件源 DNS 解析失败，
+已按固定版本重试失败 jobs；源码摘要 job 的结果单独保留。
