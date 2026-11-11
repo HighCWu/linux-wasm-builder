@@ -3192,3 +3192,8 @@ PRI/SCN 整数类型模型，使 `uint64_t` 与 `uintptr_t` 具备常规 LP64 �
 格式化、dlclose、唯一 pass 和关闭门禁也已核实。SDK 导出已生成制品，
 下载摘要、闭包导入与下游完整重建继续验收。
 详见[LP64 整数类型](elf-dynamic-linking.md#显式-linux64-abi-的-lp64-整数类型)。
+
+distro `33bfc04` / 集成 `3a2bf8a` 增加 `CONFIG_CHECKPOINT_RESTORE` 独立候选及
+标准 `PR_SET_MM_MAP` 消费者。原生参考和轻量检查通过，双位宽目标异步验收。
+候选继续使用 NOMMU，默认配置发布范围沿用既有版本。进程地址元数据与官方校验的
+实际兼容性仍待目标证据，见[进程地址边界候选](process-syscalls.md#进程地址边界更新的候选内核配置)。
