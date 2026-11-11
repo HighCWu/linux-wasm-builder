@@ -9,6 +9,10 @@ on:
         description: Optional exact experimental LLVM symbol-version source commit
         type: string
         default: ''
+      llvm-prefetch-source-only:
+        description: Verify LLVM source hashes without rebuilding the candidate compiler
+        type: boolean
+        default: false
       file-copy-benchmark:
         description: Run three fresh file-copy benchmark boots for both pointer widths
         type: boolean
@@ -29,6 +33,7 @@ jobs:
     uses: ./.github/workflows/llvm-symbol-versions.yml
     with:
       revision: ${{ inputs.llvm-symbol-revision }}
+      prefetch-source-only: ${{ inputs.llvm-prefetch-source-only }}
   file-copy-benchmark:
     if: github.event_name == 'workflow_dispatch' && inputs.file-copy-benchmark
     uses: ./.github/workflows/file-copy-benchmark.yml
