@@ -3207,3 +3207,12 @@ distro `58e759b` 已将材料拆为独立输出并重新派发，实际接口阶
 
 动态消费者检查 `43017033054` 已验收 distro `64a6201`，wasm32/64 的十六阶段、
 真实 alarm 轮询交付、唯一 pass 和既有机器关闭门禁均通过。
+
+C++ 聚合检查 `43021622318` 已核实 distro `39e55b9` 的真实运行日志。
+wasm32/64 均通过 libc++ 目录创建、跨 DSO 异常和 RAII、libltdl、SQLite 扩展及
+Python 扩展阶段，各消费者均具有唯一 pass，并完成既有 runner 的关闭门禁。
+
+distro `3df64ad` / 集成 `b223b29` 新增可选的 `llvm-toolchain-development`，
+供构建机程序通过同一版本的 Clang 库解析 Linux/Wasm 目标。`clang-tooling-check`
+使用真实 SDK 头文件检查 wasm32 ILP32 和 wasm64 Linux64 类型布局，并要求错误的
+指针宽度断言被拒绝。Nix 语法检查通过，公开目标检查 `43047279744` 正在验收。
