@@ -1765,7 +1765,10 @@ libc、C++ 运行库、依赖库和应用，旧版实验 SDK 的对象不能与�
 固定 `d0800f79` 的静态 wasm64 消费者已核实真实 Node 阶段，包含 varargs、
 格式往返、整数类型模型、syscall、prctl 与 Landlock ABI，且只有一个 pass。
 固定版本运行器在成功返回前等待机器关闭，Heavy job `130324647858` 已成功结束。
-动态消费者及完整 SDK 导出继续分别验收。
+同一源码的动态 wasm64 消费者也已核实 DSO varargs、callback、格式化和
+`dlclose` 阶段及唯一 pass。Heavy job `130324677175` 成功返回，固定运行器
+在成功返回前经过机器关闭门禁。SDK 导出任务已成功生成完整制品，下载后的
+摘要、闭包导入和下游完整重建仍需分别验证。
 
 固定源码的静态消费者、动态消费者及完整 SDK 导出分别由以下公开任务跟进。
 [静态消费者 42960164864](https://github.com/HighCWu/distro/actions/runs/42960164864)、

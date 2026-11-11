@@ -3188,5 +3188,7 @@ distro `c81039e` / 集成 `c82bddf` 修复标准 libc++ 目录创建在末尾分
 distro `d0800f7` / 集成 `a396bd9` 统一显式 Linux64 ABI 的编译器、musl 和
 PRI/SCN 整数类型模型，使 `uint64_t` 与 `uintptr_t` 具备常规 LP64 类型身份。
 完整 SDK 及依赖需要统一重建。固定源码静态 wasm64 消费者的真实 ABI 阶段、
-唯一 pass 和机器关闭门禁已核实，动态消费者与 SDK 导出继续异步验收。
+唯一 pass 和机器关闭门禁已核实。动态消费者的 DSO varargs、callback、
+格式化、dlclose、唯一 pass 和关闭门禁也已核实。SDK 导出已生成制品，
+下载摘要、闭包导入与下游完整重建继续验收。
 详见[LP64 整数类型](elf-dynamic-linking.md#显式-linux64-abi-的-lp64-整数类型)。
