@@ -9122,8 +9122,10 @@ vfork 阶段的动态加载操作在读取输入、分配及重定位前返回�
 路径等待 `machine.closed`。首次执行暴露消费者在主动设置 ECHILD 后仍期待 EDOM
 的断言错误，修正后按公开消费者原源码重新编译和复验通过。
 
-本地证据使用既有 SDK 与内核，完整当前版本组合由公开 CI 异步验收。wasm32、
-wasm64 的 `spawn-runtime` 检查已派发，目标结果尚待核实。
+本地证据使用既有 SDK 与内核。固定 `020a61d` 的公开 wasm32 检查
+`42926959649` 已完成，主会话读取实际 job `130215911465` 日志，核实
+callback-vfork、exec、wait、fd actions、ENOENT 恢复阶段和唯一 pass。
+固定 runner 在机器关闭完成后判定成功。wasm64 检查继续异步验收。
 [检查 42926959649](https://github.com/HighCWu/distro/actions/runs/42926959649)、
 [检查 42926966930](https://github.com/HighCWu/distro/actions/runs/42926966930)。
 
@@ -9147,8 +9149,10 @@ Linux syscall 接口。
 主会话完成差异审查、生产与测试 TypeScript 检查及 581 项宿主测试。公开消费者
 由既有 Linux64 ABI wasm64 SDK 编译，使用当前执行器 JS 和既有真实内核，在
 侧模块纯计算循环中交付 SIGALRM，并检查构造器、errno、TLS、栈与共享线程指针。
-实际输出唯一 pass，runner 返回 0 且等待机器关闭。完整当前源码组合的 wasm32/64
-检查已派发，目标 CI 结果待核实。
+实际输出唯一 pass，runner 返回 0 且等待机器关闭。固定 `e643b3f` 的公开
+wasm64 检查 `42934400322` 已完成，主会话读取实际 job `130240916591` 日志，
+核实 constructor deferral、signal delivery、owner TLS/stack 阶段和唯一 pass。
+固定 runner 在机器关闭完成后判定成功。wasm32 检查继续异步验收。
 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/42934393140)、
 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/42934400322)。
 
