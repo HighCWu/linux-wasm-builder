@@ -479,6 +479,7 @@ const rawFile={bytes:files.get(names[0]),inode:51n};
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleAFile))).needed,[basename(cycleBFile)]);
 assert.deepEqual(dylink(new WebAssembly.Module(readFileSync(cycleBFile))).needed,[basename(cycleAFile)]);
 let probeReentry=true,nextPin=1,currentFd=-1;
+globalThis.__probeDynamicLoaderBlocked=false;
 const attempted=[];
 const pins=new Map();
 const allocate=(size,alignment)=>{size=Number(size);alignment=Math.max(8,Number(alignment));
@@ -529,6 +530,7 @@ processLoader=new ProcessDylink({main:bridge,memory,address:memoryAddress,maximu
  ['dlopen',JSON.stringify([[memoryAddress==='i64'?126:127,127],[memoryAddress==='i64'?126:127]])],
  ['dlsym',JSON.stringify([[memoryAddress==='i64'?126:127,memoryAddress==='i64'?126:127],[memoryAddress==='i64'?126:127]])],
  ['dlerror',JSON.stringify([[],[memoryAddress==='i64'?126:127]])]]),
+ blocked:()=>globalThis.__probeDynamicLoaderBlocked,
  isControlFlow:error=>error===control,fatal:error=>{throw error;},
  pinFile:(fd,device,inode)=>{assert.equal(fd,0);assert.equal(device,1n);assert([11n,12n,21n,22n,31n,41n,42n,43n,51n,61n,62n,63n,71n,72n,73n,81n,82n,83n,84n].includes(inode));
   const id=nextPin++;pins.set(id,allocate(1,8));return id;},
@@ -935,8 +937,10 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
     process_source = (runtime / "dylink_process.ts").read_text()
     blocked = process_source.replace(
         "\n      group.ensureInitialized();",
-        "\n      this.#busy = true;\n      try { group.ensureInitialized(); }\n"
-        "      finally { this.#busy = false; }",
+        "\n      const previousBlocked = globalThis.__probeDynamicLoaderBlocked;\n"
+        "      globalThis.__probeDynamicLoaderBlocked = true;\n"
+        "      try { group.ensureInitialized(); }\n"
+        "      finally { globalThis.__probeDynamicLoaderBlocked = previousBlocked; }",
     )
     if blocked == process_source:
         raise RuntimeError(
