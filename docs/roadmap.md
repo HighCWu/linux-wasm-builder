@@ -3159,13 +3159,13 @@ distro 79c75da / 集成 4dd8176 补齐动态主程序与显式协作轮询的执
 distro `020a61d` / 集成 `0efe8ad` 接通尚未使用加载器的动态主程序 callback-vfork
 和标准 posix_spawn。实际 wasm64 Linux 执行已核实 exec/wait、fd 操作、父端状态、
 失败恢复及关闭。固定版本公开 wasm32 CI 的实际阶段和关闭门禁已核实，wasm64
-继续异步验收。模块图的 Worker 发布与
-动态线程支持仍待实现。见[动态进程创建](process-syscalls.md#动态主程序的-callback-vfork-与-posix_spawn)。
+继续异步验收。加载 DSO 后的线程创建与跨 Worker 模块图发布仍待实现。
+见[动态进程创建](process-syscalls.md#动态主程序的-callback-vfork-与-posix_spawn)。
 
 distro `e643b3f` / 集成 `26975d6` 接通动态侧模块显式协作检查点与所属主程序的
 线程指针。实际 Node wasm64 消费者已验证侧模块计算期间的信号交付、构造器边界
-及 errno/TLS/栈。固定版本公开 wasm64 CI 的实际阶段和关闭门禁已核实，wasm32
-继续异步验收。既有 `10c80f6` 动态 SDK
+及 errno/TLS/栈。固定版本公开 wasm32/64 CI 的实际阶段和关闭门禁均已核实。
+既有 `10c80f6` 动态 SDK
 双位宽各十六阶段及关闭门禁另已核实，见
 [侧模块轮询](process-syscalls.md#动态侧模块的显式协作轮询)。
 
@@ -3177,7 +3177,8 @@ distro `4bcd474` / 集成 `f9d92ae` 接通尚未使用加载器的动态主程�
 
 distro `d6948d6` / 集成 `476e911` 进一步修复普通 callback 线程中的嵌套 pthread
 创建，实际 Node wasm64 已验证两轮嵌套 create/join 及各层线程状态。完整固定源码
-双位宽 CI 待验，动态模块图发布的后续范围沿用上述记录。
+固定版本 wasm32 CI 的嵌套阶段与关闭门禁已核实，wasm64 继续验收。动态模块图
+发布的后续范围沿用上述记录，前一版本普通 pthread 的 wasm64 CI 另已验收。
 
 distro `c81039e` / 集成 `c82bddf` 修复标准 libc++ 目录创建在末尾分隔符下的
 返回值，使实际创建成功能够正确报告。必要回归已接入既有 C++ 动态消费者，

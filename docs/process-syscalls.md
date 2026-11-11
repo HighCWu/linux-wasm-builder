@@ -9152,7 +9152,8 @@ Linux syscall 接口。
 实际输出唯一 pass，runner 返回 0 且等待机器关闭。固定 `e643b3f` 的公开
 wasm64 检查 `42934400322` 已完成，主会话读取实际 job `130240916591` 日志，
 核实 constructor deferral、signal delivery、owner TLS/stack 阶段和唯一 pass。
-固定 runner 在机器关闭完成后判定成功。wasm32 检查继续异步验收。
+固定 runner 在机器关闭完成后判定成功。wasm32 检查 `42934393140` 也已完成，
+主会话读取 job `130240899846` 的实际阶段及唯一 pass，并核实相同关闭门禁。
 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/42934393140)、
 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/42934400322)。
 
@@ -9194,6 +9195,12 @@ wasm32/64 检查已另行派发，目标结果待核实。
 前一版本的两轮主线程创建结果继续对应其原有范围。
 [嵌套 wasm32 检查](https://github.com/HighCWu/distro/actions/runs/42943310338)、
 [嵌套 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/42943318052)。
+
+固定 `4bcd474` 的 wasm64 检查 `42941500619` 已完成，实际 job `130264254500`
+日志包含两轮 callback clone/join、共享全局值、TLS/errno、加载器边界与唯一 pass。
+固定 `d6948d6` 的嵌套 wasm32 检查 `42943310338` 也已完成，实际 job
+`130270152770` 日志包含 nested callback clone/join 和全部状态阶段及唯一 pass。
+两个任务均通过固定 runner 的机器关闭门禁，其余位宽继续独立验收。
 
 ### C++ 文件系统的末尾目录分隔符
 
