@@ -9125,7 +9125,8 @@ vfork 阶段的动态加载操作在读取输入、分配及重定位前返回�
 本地证据使用既有 SDK 与内核。固定 `020a61d` 的公开 wasm32 检查
 `42926959649` 已完成，主会话读取实际 job `130215911465` 日志，核实
 callback-vfork、exec、wait、fd actions、ENOENT 恢复阶段和唯一 pass。
-固定 runner 在机器关闭完成后判定成功。wasm64 检查继续异步验收。
+wasm64 检查 `42926966930` 的实际 job `130215938136` 也已核实同组完整阶段
+和唯一 pass，两路固定 runner 均在机器关闭完成后判定成功。
 [检查 42926959649](https://github.com/HighCWu/distro/actions/runs/42926959649)、
 [检查 42926966930](https://github.com/HighCWu/distro/actions/runs/42926966930)。
 
@@ -9200,7 +9201,9 @@ wasm32/64 检查已另行派发，目标结果待核实。
 日志包含两轮 callback clone/join、共享全局值、TLS/errno、加载器边界与唯一 pass。
 固定 `d6948d6` 的嵌套 wasm32 检查 `42943310338` 也已完成，实际 job
 `130270152770` 日志包含 nested callback clone/join 和全部状态阶段及唯一 pass。
-两个任务均通过固定 runner 的机器关闭门禁，其余位宽继续独立验收。
+固定 `d6948d6` 的嵌套 wasm64 检查 `42943318052` 已完成，实际 job
+`130270180622` 核实 initial state、nested callback clone/join、共享数据和
+TLS/errno、加载器边界及唯一 pass。以上任务均通过固定 runner 的机器关闭门禁。
 
 ### C++ 文件系统的末尾目录分隔符
 

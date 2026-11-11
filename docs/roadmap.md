@@ -3177,7 +3177,7 @@ distro `4bcd474` / 集成 `f9d92ae` 接通尚未使用加载器的动态主程�
 
 distro `d6948d6` / 集成 `476e911` 进一步修复普通 callback 线程中的嵌套 pthread
 创建，实际 Node wasm64 已验证两轮嵌套 create/join 及各层线程状态。完整固定源码
-固定版本 wasm32 CI 的嵌套阶段与关闭门禁已核实，wasm64 继续验收。动态模块图
+固定版本 wasm32/64 CI 的嵌套阶段与关闭门禁均已核实。动态模块图
 发布的后续范围沿用上述记录，前一版本普通 pthread 的 wasm64 CI 另已验收。
 
 distro `c81039e` / 集成 `c82bddf` 修复标准 libc++ 目录创建在末尾分隔符下的
