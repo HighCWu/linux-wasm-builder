@@ -9126,3 +9126,12 @@ vfork 阶段的动态加载操作在读取输入、分配及重定位前返回�
 wasm64 的 `spawn-runtime` 检查已派发，目标结果尚待核实。
 [检查 42926959649](https://github.com/HighCWu/distro/actions/runs/42926959649)、
 [检查 42926966930](https://github.com/HighCWu/distro/actions/runs/42926966930)。
+
+### Linux64 ABI 动态消费者的目标结果
+
+固定 distro `2620a55` 的任务 `42889789382` 已完成。主会话读取 Heavy job
+`130087773130` 的实际日志，核实 DSO 变参调用、反向变参回调、libc 格式化和
+dlclose 的成功汇总、唯一 pass 及零失败标记。固定版本 runner 在关闭机器及磁盘
+后判定退出码，关闭函数等待 `machine.closed`；任务成功结束。该证据覆盖单 CPU
+Node wasm64 的 Linux64 ABI 动态消费者，新 SDK 制品导出仍在运行。
+[实际目标任务](https://github.com/HighCWu/distro/actions/runs/42889789382)。
