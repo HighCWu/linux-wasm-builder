@@ -1300,10 +1300,11 @@ Linux `9e49334d3` 在三套 Wasm 配置启用 CONFIG_SYSVIPC，接通上游消�
 此增量不是新写 libc 包装：musl `a0c027a4` 仅修正 Wasm 架构元数据定义，复用
 已有 time64 控制函数；distro `3aaf7df` / 集成 `6791165` 固定双方源码与哈希。
 
-共享内存家族 shmget/shmctl/shmat/shmdt 仍明确返回 ENOSYS：通用 NOMMU shmat
-返回的内核线性地址不是独立用户 WebAssembly.Memory 中的真实共享映射，不能
-因启用 SYSVIPC 而暴露。入口使用匹配 pt_regs 的 syscall 包装，避免 Wasm
-间接调用签名不匹配。CONFIG_MMU=n、直接内存边界与多线程 fork 限制不变。
+当时共享内存家族 shmget/shmctl/shmat/shmdt 均返回 ENOSYS。后续 Linux
+`cf135c3dd` 恢复 shmget/shmctl 的通用元数据实现，distro `392baad`、集成
+`3284312` 已固定源码与预取摘要，双位宽执行检查待验收。shmat/shmdt 继续返回
+ENOSYS，通用 NOMMU shmat 返回的内核线性地址尚无对应的用户
+WebAssembly.Memory 共享映射。CONFIG_MMU=n 和直接内存边界继续适用。
 
 wasm32 原 generic IPC 结构存在错位，现使用 musl 已有 riscv32 风格 wire-prefix
 和追加时间字段，原样 msgctl/semctl/shmctl 完成转换；wasm64 保持 generic。
@@ -9318,3 +9319,15 @@ callback 失败。主仓库 `72f0e28` 更新探针契约，并保留构造器阻
 在 wasm32/64 的严格未定义符号拒绝、选项顺序及显式允许导入后 Node 执行阶段，
 以及双位宽动态链接探针和负向构造器控制。该证据覆盖链接器候选，默认工具链
 pin 和完整 SDK 的下游验收继续分别记录。
+
+### SysV 共享内存元数据的独立恢复
+
+Linux `cf135c3dd` 移除 shmget/shmctl 的 Wasm ENOSYS 重定向，继续使用官方
+通用 SysV 对象管理与 uaccess。源码预取 `43106476347` 核实父版本摘要并取得
+候选摘要。distro `392baad`、集成 `3284312` 已发布，现有 IPC 检查增加创建、
+IPC_STAT/IPC_SET、IPC_INFO/SHM_INFO、BusyBox ipcs 对象身份、错误顺序及删除。
+保留消息队列、信号量和阻塞移除检查。wasm64 SDK 严格语法检查通过，wasm32/64
+目标检查 `43110222014`、`43110231769` 已派发，真实执行与关闭结果待核实。
+
+shmat/shmdt 仍需可供用户 Wasm.Memory 访问的真实共享 backing，当前入口继续
+返回 ENOSYS。元数据对象生命周期和共享映射的完成状态分别记录。
