@@ -14,6 +14,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "sources/distro/distro/cxx-dynamic-runtime"
 PHASE_MARKERS = (
+    "cxx dynamic: std::filesystem create_directories trailing separators and error paths pass",
     "cxx dynamic: std::string allocation and DSO constructor pass",
     "cxx dynamic: std::runtime_error typed catch and DSO RAII unwind pass",
     "cxx dynamic: callback exception typed catch and rethrow across DSOs pass",
@@ -137,7 +138,7 @@ with tempfile.TemporaryDirectory(prefix="cxx-dynamic-linking-probe-") as tempora
     output_lines = run.stdout.splitlines()
     if output_lines != list(PHASE_MARKERS):
         raise SystemExit(
-            "error: C++ runtime test output did not exactly match the expected four phases and pass marker\n"
+            "error: C++ runtime test output did not exactly match the expected five phases and pass marker\n"
             f"expected: {list(PHASE_MARKERS)!r}\n"
             f"actual:   {output_lines!r}\n" + run.stderr.strip()
         )
