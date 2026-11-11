@@ -1302,7 +1302,7 @@ Linux `9e49334d3` 在三套 Wasm 配置启用 CONFIG_SYSVIPC，接通上游消�
 
 当时共享内存家族 shmget/shmctl/shmat/shmdt 均返回 ENOSYS。后续 Linux
 `cf135c3dd` 恢复 shmget/shmctl 的通用元数据实现，distro `392baad`、集成
-`3284312` 已固定源码与预取摘要，双位宽执行检查待验收。shmat/shmdt 继续返回
+`3284312` 已固定源码与预取摘要，双位宽 Node 执行与关闭检查已通过。shmat/shmdt 继续返回
 ENOSYS，通用 NOMMU shmat 返回的内核线性地址尚无对应的用户
 WebAssembly.Memory 共享映射。CONFIG_MMU=n 和直接内存边界继续适用。
 
@@ -9327,7 +9327,8 @@ Linux `cf135c3dd` 移除 shmget/shmctl 的 Wasm ENOSYS 重定向，继续使用�
 候选摘要。distro `392baad`、集成 `3284312` 已发布，现有 IPC 检查增加创建、
 IPC_STAT/IPC_SET、IPC_INFO/SHM_INFO、BusyBox ipcs 对象身份、错误顺序及删除。
 保留消息队列、信号量和阻塞移除检查。wasm64 SDK 严格语法检查通过，wasm32/64
-目标检查 `43110222014`、`43110231769` 已派发，真实执行与关闭结果待核实。
+目标检查 `43110222014`、`43110231769` 已通过。实际日志核实上述全部阶段和
+各自唯一 pass；成功作业通过等待 machine.closed 的关闭门禁。
 
 shmat/shmdt 仍需可供用户 Wasm.Memory 访问的真实共享 backing，当前入口继续
 返回 ENOSYS。元数据对象生命周期和共享映射的完成状态分别记录。
