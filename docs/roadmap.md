@@ -3160,3 +3160,9 @@ distro `020a61d` / 集成 `0efe8ad` 接通尚未使用加载器的动态主程�
 和标准 posix_spawn。实际 wasm64 Linux 执行已核实 exec/wait、fd 操作、父端状态、
 失败恢复及关闭。当前版本的双位宽目标 CI 异步验收中，模块图的 Worker 发布与
 动态线程支持仍待实现。见[动态进程创建](process-syscalls.md#动态主程序的-callback-vfork-与-posix_spawn)。
+
+distro `e643b3f` / 集成 `26975d6` 接通动态侧模块显式协作检查点与所属主程序的
+线程指针。实际 Node wasm64 消费者已验证侧模块计算期间的信号交付、构造器边界
+及 errno/TLS/栈，完整源码组合的双位宽 CI 异步验收。既有 `10c80f6` 动态 SDK
+双位宽各十六阶段及关闭门禁另已核实，见
+[侧模块轮询](process-syscalls.md#动态侧模块的显式协作轮询)。

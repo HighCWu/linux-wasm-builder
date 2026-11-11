@@ -9135,3 +9135,25 @@ dlclose 的成功汇总、唯一 pass 及零失败标记。固定版本 runner �
 后判定退出码，关闭函数等待 `machine.closed`；任务成功结束。该证据覆盖单 CPU
 Node wasm64 的 Linux64 ABI 动态消费者，新 SDK 制品导出仍在运行。
 [实际目标任务](https://github.com/HighCWu/distro/actions/runs/42889789382)。
+
+### 动态侧模块的显式协作轮询
+
+distro `e643b3f` / 集成 `26975d6` 将动态侧模块的显式 checkpoint 接到所属主程序。
+主程序须使用已有 v2 轮询执行 ABI，侧模块复用它的 checkpoint 和可变 thread-pointer
+Global。加载器在修改内存与函数表前验证轮询函数签名及 Global 位宽、可变性，
+构造器中的检查点继续遵守动态加载期间的信号交付边界。此增量保留已有 libc 和
+Linux syscall 接口。
+
+主会话完成差异审查、生产与测试 TypeScript 检查及 581 项宿主测试。公开消费者
+由既有 Linux64 ABI wasm64 SDK 编译，使用当前执行器 JS 和既有真实内核，在
+侧模块纯计算循环中交付 SIGALRM，并检查构造器、errno、TLS、栈与共享线程指针。
+实际输出唯一 pass，runner 返回 0 且等待机器关闭。完整当前源码组合的 wasm32/64
+检查已派发，目标 CI 结果待核实。
+[wasm32 检查](https://github.com/HighCWu/distro/actions/runs/42934393140)、
+[wasm64 检查](https://github.com/HighCWu/distro/actions/runs/42934400322)。
+
+既有动态 SDK 双位宽检查 `42914793861` 的实际日志已核实，固定 distro `10c80f6`
+在 Node wasm32/64 分别完成十六个动态加载阶段、唯一 pass 和零失败。固定 runner
+在机器关闭与磁盘清理完成后判定退出码，任务成功结束。该记录覆盖该固定版本的
+动态消费者，新侧模块轮询增量继续独立验收。
+[双位宽动态 SDK 检查](https://github.com/HighCWu/distro/actions/runs/42914793861)。
