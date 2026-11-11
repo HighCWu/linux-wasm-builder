@@ -7,18 +7,146 @@ on:
       revision:
         required: true
         type: string
+      prefetch-source-only:
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       revision:
         description: Exact experimental HighCWu/llvm-project source commit
         required: true
         type: string
+      prefetch-source-only:
+        description: Verify and print the unpacked source hash without building LLVM
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
+  source-hash:
+    name: Verify and prefetch LLVM source hash
+    if: ${{ inputs['prefetch-source-only'] }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      revision: ${{ steps.prefetch.outputs.revision }}
+      hash: ${{ steps.prefetch.outputs.hash }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: false
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: nixbuild/nix-quick-install-action@v35
+      - name: Verify the pinned source and prefetch candidate hash
+        id: prefetch
+        env:
+          CANDIDATE_REVISION: ${{ inputs.revision }}
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          distro_revision="$(git rev-parse HEAD:sources/distro)"
+          [[ "$distro_revision" =~ ^[0-9a-f]{40}$ ]]
+          fixed_nix="$RUNNER_TEMP/llvm-toolchain-unwrapped.nix"
+          curl --fail --show-error --silent --location --retry 3 --retry-all-errors \
+            --connect-timeout 15 --max-time 90 \
+            "https://raw.githubusercontent.com/HighCWu/distro/$distro_revision/distro/llvm-toolchain/unwrapped.nix" \
+            --output "$fixed_nix"
+          python3 - "$fixed_nix" "$RUNNER_TEMP/llvm-source-fields.txt" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          source = Path(sys.argv[1]).read_text()
+          marker = "src ? pkgs.fetchFromGitHub {"
+          starts = [match.start() for match in re.finditer(re.escape(marker), source)]
+          if len(starts) != 1:
+              raise SystemExit("expected one fixed llvm-toolchain fetchFromGitHub source block")
+          start = starts[0]
+          end = source.find("\n  },", start)
+          if end < 0:
+              raise SystemExit("could not find the end of the fixed llvm-toolchain source block")
+          block = source[start:end]
+
+          def one(name):
+              values = re.findall(
+                  r"^\s*" + re.escape(name) + r'\s*=\s*"([^"\n]+)";\s*$',
+                  block,
+                  re.MULTILINE,
+              )
+              if len(values) != 1:
+                  raise SystemExit(f"expected one {name} in the fixed llvm-toolchain source block")
+              return values[0]
+
+          owner, repository, revision, source_hash = (
+              one("owner"),
+              one("repo"),
+              one("rev"),
+              one("hash"),
+          )
+          if (owner, repository) != ("HighCWu", "llvm-project"):
+              raise SystemExit("the pinned source is not HighCWu/llvm-project")
+          if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+              raise SystemExit("the pinned source revision must be a full commit hash")
+          if re.fullmatch(r"sha256-[A-Za-z0-9+/]{43}=", source_hash) is None:
+              raise SystemExit("the pinned source hash must be a SHA-256 SRI")
+          Path(sys.argv[2]).write_text("\n".join((owner, repository, revision, source_hash)) + "\n")
+          PY
+          mapfile -t fixed_source < "$RUNNER_TEMP/llvm-source-fields.txt"
+          [[ ${#fixed_source[@]} -eq 4 ]]
+          [[ "${fixed_source[0]}" == HighCWu && "${fixed_source[1]}" == llvm-project ]]
+          pinned_revision="${fixed_source[2]}"
+          pinned_hash="${fixed_source[3]}"
+
+          prefetch_unpacked_hash() {
+            local revision="$1"
+            local json_path="$2"
+            local source_url source_hash
+            for source_url in \
+              "https://codeload.github.com/HighCWu/llvm-project/tar.gz/$revision" \
+              "https://github.com/HighCWu/llvm-project/archive/$revision.tar.gz"; do
+              if nix store prefetch-file --unpack --json --option download-attempts 2 \
+                "$source_url" > "$json_path"; then
+                if ! source_hash="$(jq --exit-status --raw-output \
+                  '.hash | select(type == "string" and test("^sha256-[A-Za-z0-9+/]{43}=$"))' \
+                  "$json_path")"; then
+                  return 1
+                fi
+                [[ -n "$source_hash" ]]
+                printf '%s\n' "$source_hash"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          baseline_hash="$(prefetch_unpacked_hash "$pinned_revision" "$RUNNER_TEMP/llvm-baseline-prefetch.json")"
+          [[ "$baseline_hash" =~ ^sha256-[A-Za-z0-9+/]{43}=$ ]]
+          if [[ "$baseline_hash" != "$pinned_hash" ]]; then
+            printf 'pinned LLVM source hash mismatch: expected %s, got %s\n' \
+              "$pinned_hash" "$baseline_hash" >&2
+            exit 1
+          fi
+
+          candidate_hash="$(prefetch_unpacked_hash "$CANDIDATE_REVISION" "$RUNNER_TEMP/llvm-candidate-prefetch.json")"
+          [[ "$candidate_hash" =~ ^sha256-[A-Za-z0-9+/]{43}=$ ]]
+          {
+            echo "revision=$CANDIDATE_REVISION"
+            echo "hash=$candidate_hash"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "Verified pinned source: HighCWu/llvm-project $pinned_revision ($pinned_hash)"
+            echo "Candidate source: HighCWu/llvm-project $CANDIDATE_REVISION ($candidate_hash)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          printf 'Verified pinned source: HighCWu/llvm-project %s (%s)\n' "$pinned_revision" "$pinned_hash"
+          printf 'Candidate source: HighCWu/llvm-project %s (%s)\n' "$CANDIDATE_REVISION" "$candidate_hash"
+
   candidate:
+    if: ${{ !inputs['prefetch-source-only'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
