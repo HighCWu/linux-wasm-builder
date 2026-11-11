@@ -1748,3 +1748,21 @@ distro `5209345` 与集成 `7c1e3d7` 将 SDK 编译器固定到已验证的 `148
 `sha256-kn26AaBI+Wlgd+8EsHPdgtC27uHsf5Kp/lsHkPrUuOg=`。
 这次 pin 更新开始使用候选实现，后续 SDK 重建和完整 Linux 消费者仍需单独验收。
 [源码预取 42883799993](https://github.com/HighCWu/linux-wasm-builder/actions/runs/42883799993)。
+
+### 显式 Linux64 ABI 的 LP64 整数类型
+
+LLVM `7f640bd6`、musl `d485dfd9` 与 distro `d0800f7` 为显式
+`-mabi=linux64` 统一 64 位整数类型。编译器的 `int64_t`、`intmax_t`
+对应内建类型采用 `long`，musl 的对应 typedef 和 PRI/SCN 格式宏同步匹配。
+该配置使用 `__wasm_linux64__` 选择架构头文件，允许普通 LP64 C++ 程序直接在
+`uint64_t` 与 `uintptr_t` 容器之间传递同类型对象。集成 pin 为 `a396bd9`。
+
+这会改变该实验配置的 C++ 类型身份及相关符号修饰。使用此版本须完整重建
+libc、C++ 运行库、依赖库和应用，旧版实验 SDK 的对象不能与新版混用。
+源码内容哈希已独立预取核对。原生消费者通过整数格式往返及 C++ 容器检查，
+旧版 Wasm SDK 被新消费者的类型断言拒绝。更新后的 SDK 目标执行仍待验收。
+
+固定源码的静态消费者、动态消费者及完整 SDK 导出分别由以下公开任务跟进。
+[静态消费者 42960164864](https://github.com/HighCWu/distro/actions/runs/42960164864)、
+[动态消费者 42960172525](https://github.com/HighCWu/distro/actions/runs/42960172525)、
+[SDK 导出 42960179450](https://github.com/HighCWu/distro/actions/runs/42960179450)。

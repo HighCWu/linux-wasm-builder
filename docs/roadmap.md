@@ -3184,3 +3184,8 @@ distro `c81039e` / 集成 `c82bddf` 修复标准 libc++ 目录创建在末尾分
 返回值，使实际创建成功能够正确报告。必要回归已接入既有 C++ 动态消费者，
 原生复验通过，更新后的 Wasm 运行库及双位宽消费者由公开 CI 异步验收。
 见[C++ 文件系统目录创建](process-syscalls.md#c-文件系统的末尾目录分隔符)。
+
+distro `d0800f7` / 集成 `a396bd9` 统一显式 Linux64 ABI 的编译器、musl 和
+PRI/SCN 整数类型模型，使 `uint64_t` 与 `uintptr_t` 具备常规 LP64 类型身份。
+完整 SDK 及依赖需要统一重建，静态与动态目标消费者正在异步验收。
+详见[LP64 整数类型](elf-dynamic-linking.md#显式-linux64-abi-的-lp64-整数类型)。
