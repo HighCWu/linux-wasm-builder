@@ -3228,3 +3228,8 @@ closure 选项，记录同源 Clang 库、CMake 配置、运行依赖和源码 r
 完整 SDK 的 Linux64 ABI 运行检查单独进行，已有本地 SDK 的版本沿用其原始 manifest。
 该次 source-hash 所在工作流的两个普通宿主检查因 Ubuntu 软件源 DNS 解析失败，
 已按固定版本重试失败 jobs；源码摘要 job 的结果单独保留。
+
+`clang-tooling-check` 的 `43047279744` 已完成工具库构建，在消费者链接时因直接使用的
+LLVM 符号缺少显式链接依赖而失败。distro `f9f02e6` / 集成 `4dbf98b` 将消费者同时
+链接同一开发工具链导出的 `clang-cpp` 和 `LLVM` CMake target，并在导出缺失时明确
+报错。修复后的固定版本检查 `43067366237` 正在运行，目标 ABI 解析阶段仍待验收。
