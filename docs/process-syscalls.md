@@ -9217,3 +9217,8 @@ distro `c81039e` / 集成 `c82bddf` 修复 libc++ 的标准目录创建返回值
 dry-run、Nix 格式检查及原生消费者复验。更新后的真实 Wasm 运行库尚待目标
 CI 验收，双位宽聚合检查已派发。
 [检查 42952563808](https://github.com/HighCWu/distro/actions/runs/42952563808)。
+
+该检查的实际 job `130300168456` 在构建 libltdl 时停止，GNU configure 报告
+构建机缺少满足要求的 M4。distro `abee0ce` / 集成 `7a5b05b` 在 nativeBuildInputs
+补齐 `pkgs.m4`，格式与仓库一致性检查通过。目录运行阶段仍需在修复后的聚合
+目标中核实。[修复后检查 42961803603](https://github.com/HighCWu/distro/actions/runs/42961803603)。
