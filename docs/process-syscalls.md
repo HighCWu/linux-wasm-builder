@@ -9157,3 +9157,27 @@ Linux syscall 接口。
 在机器关闭与磁盘清理完成后判定退出码，任务成功结束。该记录覆盖该固定版本的
 动态消费者，新侧模块轮询增量继续独立验收。
 [双位宽动态 SDK 检查](https://github.com/HighCWu/distro/actions/runs/42914793861)。
+
+### 尚未加载 DSO 的动态主程序支持 pthread
+
+distro `4bcd474` / 集成 `f9d92ae` 为尚未启用加载器的动态主程序接通原有 callback
+clone 的共享线程路径，普通 C 程序通过既有 `pthread_create`、`pthread_join` 使用。
+内核继续校验 clone 的其他标志和指针，musl 及公共接口沿用原版本。严格 seccomp
+调用继续先经过真实内核。
+
+共享原子状态协调加载器与并发 clone。每次失败只释放自己的在途计数，成功创建
+线程后保留进程已使用线程的标记；后续 DSO 操作在文件读取、分配与重定位前失败，
+`dlopen` 的错误仍通过 `dlerror` 返回。该阶段的范围是尚未加载 DSO 的动态主程序。
+跨 Worker 模块图、动态 TLS 发布及加载库后的线程创建仍需继续实现；多线程宿主
+fork 的支持边界保持原版本。
+
+主会话核实共享内存 SDK 产物的 passive data segments 与原子一次性初始化，
+完成差异审查、两个 TypeScript 项目和 589 项宿主测试。实际 Node wasm64 Linux
+执行通过两轮 create/join、共享全局数据、每线程 TLS 与 errno，以及线程创建后
+的加载边界和 `dladdr` 返回类型。消费者输出三个阶段与唯一 pass，runner 返回 0
+并等待机器关闭。已有侧模块轮询和 posix_spawn 消费者也用新执行器复验通过。
+
+上述本地执行使用已导出的 SDK、当前执行器 JS 和既有内核。完整固定源码组合的
+wasm32/64 检查已另行派发，目标结果待核实。
+[wasm32 检查](https://github.com/HighCWu/distro/actions/runs/42941492711)、
+[wasm64 检查](https://github.com/HighCWu/distro/actions/runs/42941500619)。
