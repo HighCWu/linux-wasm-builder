@@ -3172,3 +3172,7 @@ distro `4bcd474` / 集成 `f9d92ae` 接通尚未使用加载器的动态主程�
 侧模块轮询和 posix_spawn。加载库后的线程创建及跨 Worker 模块发布仍待实现，
 双位宽固定源码 CI 异步验收，见
 [动态 pthread 范围](process-syscalls.md#尚未加载-dso-的动态主程序支持-pthread)。
+
+distro `d6948d6` / 集成 `476e911` 进一步修复普通 callback 线程中的嵌套 pthread
+创建，实际 Node wasm64 已验证两轮嵌套 create/join 及各层线程状态。完整固定源码
+双位宽 CI 待验，动态模块图发布的后续范围沿用上述记录。

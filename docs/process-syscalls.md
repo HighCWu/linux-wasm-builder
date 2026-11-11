@@ -9181,3 +9181,12 @@ fork 的支持边界保持原版本。
 wasm32/64 检查已另行派发，目标结果待核实。
 [wasm32 检查](https://github.com/HighCWu/distro/actions/runs/42941492711)、
 [wasm64 检查](https://github.com/HighCWu/distro/actions/runs/42941500619)。
+
+后续 distro `d6948d6` / 集成 `476e911` 修复 callback 线程入口的准入判定。
+普通线程入口与主程序 `_start` 分别登记，线程可以继续创建并 join 子线程；vfork
+及 fork continuation 的原有入口限制保持原样。主会话以实际 Node wasm64 Linux
+运行两轮嵌套 create/join，核实各层 TLS/errno、共享全局数据、唯一 pass 与关闭。
+两个 TypeScript 项目和 589 项宿主检查通过。固定新源码的双位宽 CI 单独验收，
+前一版本的两轮主线程创建结果继续对应其原有范围。
+[嵌套 wasm32 检查](https://github.com/HighCWu/distro/actions/runs/42943310338)、
+[嵌套 wasm64 检查](https://github.com/HighCWu/distro/actions/runs/42943318052)。
