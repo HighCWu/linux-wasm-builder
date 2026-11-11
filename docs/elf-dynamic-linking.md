@@ -1774,3 +1774,18 @@ libc、C++ 运行库、依赖库和应用，旧版实验 SDK 的对象不能与�
 [静态消费者 42960164864](https://github.com/HighCWu/distro/actions/runs/42960164864)、
 [动态消费者 42960172525](https://github.com/HighCWu/distro/actions/runs/42960172525)、
 [SDK 导出 42960179450](https://github.com/HighCWu/distro/actions/runs/42960179450)。
+
+### 常驻动态库的数量限制
+
+Linux `dcb796168` 与 distro `96c859e` 移除了每个进程最多保活 1024 个动态库
+文件的固定上限。内核继续使用单调递增的正整数句柄，耗尽时返回 `ENOSPC`，
+实际分配失败仍返回相应资源错误。加载器保留单个文件和单次加载新增文件内容的
+64 MiB 限制，以及加载失败后的文件引用回滚。
+
+通用容量消费者将一个小型 DSO 复制为 1025 个不同 inode，逐一加载、调用导出函数
+并关闭引用。原生参考已通过，相关动态加载宿主检查共 89 项通过。双位宽 Wasm
+检查已经派发，实际目标阶段和关闭结果尚待核实，当前不据此宣称支持无限数量的库。
+源码内容哈希已通过已知父版本独立校验。
+[源码哈希检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/43098750239)、
+[wasm32 容量检查](https://github.com/HighCWu/distro/actions/runs/43101989587)、
+[wasm64 容量检查](https://github.com/HighCWu/distro/actions/runs/43101997912)。
