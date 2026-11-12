@@ -16,25 +16,13 @@ git -C "$source_work/git" remote add origin https://github.com/HighCWu/linux.git
 git -C "$source_work/git" -c http.version=HTTP/1.1 fetch --quiet --depth=2 origin "$SOURCE_REVISION"
 [[ $(git -C "$source_work/git" rev-parse FETCH_HEAD) == "$SOURCE_REVISION" ]]
 [[ $(git -C "$source_work/git" show -s --format=%P "$SOURCE_REVISION") == "$BASELINE_REVISION" ]]
-changed_paths=$(git -C "$source_work/git" diff --name-status "$BASELINE_REVISION" "$SOURCE_REVISION")
-case "$changed_paths" in
-$'M\tarch/wasm/Kconfig') ;;
-$'M\tkernel/futex/core.c') ;;
-$'M\tarch/wasm/kernel/remote_vm.c') ;;
-$'M\tarch/wasm/kernel/syscall.c') ;;
-$'M\tarch/wasm/kernel/setup.c') ;;
-$'M\tarch/wasm/kernel/sections.c\nM\tarch/wasm/scripts/sections.pl\nM\tsecurity/lsm_init.c') ;;
-$'M\tarch/wasm/include/asm/uaccess.h') ;;
-$'M\tarch/wasm/include/asm/processor.h') ;;
-$'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/syscall.c') ;;
-$'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/include/uapi/asm/unistd.h\nM\tarch/wasm/kernel/syscall.c') ;;
-$'M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/process.c') ;;
-$'M\tarch/wasm/include/asm/mmu.h\nM\tarch/wasm/include/asm/remote_vm.h\nM\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/remote_vm.c\nM\tarch/wasm/mm/init.c') ;;
-$'M\tarch/wasm/include/asm/mmu.h\nM\tarch/wasm/include/asm/remote_vm.h\nM\tarch/wasm/kernel/remote_vm.c\nM\tarch/wasm/mm/init.c') ;;
-$'M\tarch/wasm/Kconfig\nM\tarch/wasm/include/asm/mmap_file.h\nM\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/mmap_file.c\nM\tarch/wasm/tests/mmap-file-host.c\nM\tarch/wasm/tests/mmap-file-host.h\nM\tarch/wasm/tests/run-mmap-file-host.py') ;;
-$'M\tarch/wasm/configs/defconfig\nM\tarch/wasm/configs/wasm32_defconfig\nM\tarch/wasm/configs/wasm64_defconfig') ;;
-*) exit 64 ;;
-esac
+# Matching the independently fetched baseline proves this extraction method.
+# Permit ordinary content-only edits without maintaining a per-patch path list.
+# Paths, modes and archive attributes must stay unchanged between the trees.
+[[ -n $(git -C "$source_work/git" diff --name-only "$BASELINE_REVISION" "$SOURCE_REVISION") ]]
+[[ -z $(git -C "$source_work/git" diff --name-only --diff-filter=ACDRTUXB "$BASELINE_REVISION" "$SOURCE_REVISION") ]]
+[[ -z $(git -C "$source_work/git" diff --name-only "$BASELINE_REVISION" "$SOURCE_REVISION" -- \
+  .gitattributes ':(glob)**/.gitattributes') ]]
 [[ -z $(git -C "$source_work/git" diff --summary "$BASELINE_REVISION" "$SOURCE_REVISION") ]]
 attribute_status=0
 git -C "$source_work/git" grep --quiet 'export-subst' "$SOURCE_REVISION" -- \
