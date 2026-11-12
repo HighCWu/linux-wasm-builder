@@ -179,7 +179,7 @@ jobs:
             -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF \
             -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF \
             -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_TERMINFO=OFF
-          cmake --build "$RUNNER_TEMP/llvm-symbol-build" --target clang llvm-mc llc FileCheck lld -j2
+          cmake --build "$RUNNER_TEMP/llvm-symbol-build" --target clang llvm-mc llvm-as obj2yaml split-file llc FileCheck lld -j2
           if [ ! -x "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld" ]; then
             ln -s lld "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld"
           fi
@@ -190,6 +190,17 @@ jobs:
             --clang "$RUNNER_TEMP/llvm-symbol-build/bin/clang" \
             --ld "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld" \
             --node "$(command -v node)"
+      - name: Verify ordinary dynamic-linking driver options with candidate tools
+        run: |
+          set -euo pipefail
+          if [ -f "$RUNNER_TEMP/llvm-symbol-source/clang/test/Driver/wasm-export-dynamic.c" ] || \
+             [ -f "$RUNNER_TEMP/llvm-symbol-source/lld/test/wasm/as-needed.s" ]; then
+            python3 -B scripts/check_wasm_driver_linker_compat.py \
+              --source-root "$RUNNER_TEMP/llvm-symbol-source" \
+              --tools-dir "$RUNNER_TEMP/llvm-symbol-build/bin"
+          else
+            echo 'This source revision predates the dynamic-linking option regressions.'
+          fi
       - name: Verify cache-clear lowering for both Wasm address widths
         run: |
           set -euo pipefail
