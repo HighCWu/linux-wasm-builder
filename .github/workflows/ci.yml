@@ -24,7 +24,7 @@ permissions:
 concurrency:
   # Keep explicit benchmark dispatches separate from routine push validation;
   # GitHub replaces a pending run even when cancel-in-progress is false.
-  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.llvm-symbol-revision || 'default' }}-${{ inputs.llvm-prefetch-source-only && 'prefetch' || 'check' }}
   cancel-in-progress: false
 
 jobs:
@@ -38,6 +38,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.file-copy-benchmark
     uses: ./.github/workflows/file-copy-benchmark.yml
   dynamic-linking:
+    if: github.event_name != 'workflow_dispatch' || inputs.llvm-symbol-revision == ''
     name: Dynamic module linker with real Clang artifacts
     runs-on: ubuntu-24.04
     steps:
