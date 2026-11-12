@@ -328,6 +328,8 @@ jobs:
             sources/distro/packages/kernel/test/dylink-address.test.ts \
             sources/distro/packages/kernel/test/dylink-linker.test.ts \
             sources/distro/distro/dynamic-loader/io.test.js
+      - name: Check task exit bypasses Wasm application exception handlers
+        run: node --test sources/distro/packages/kernel/test/kernel-halt.test.ts
       - name: Check the original BusyBox fork recipe
         run: node --test sources/distro/distro/busybox-fork/package.test.js
       - name: Check pinned kernel module file-reference ownership
