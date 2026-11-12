@@ -19,11 +19,15 @@ git -C "$source_work/git" -c http.version=HTTP/1.1 fetch --quiet --depth=2 origi
 # Matching the independently fetched baseline proves this extraction method.
 # Permit ordinary content-only edits without maintaining a per-patch path list.
 # Paths, modes and archive attributes must stay unchanged between the trees.
-[[ -n $(git -C "$source_work/git" diff --name-only "$BASELINE_REVISION" "$SOURCE_REVISION") ]]
-[[ -z $(git -C "$source_work/git" diff --name-only --diff-filter=ACDRTUXB "$BASELINE_REVISION" "$SOURCE_REVISION") ]]
-[[ -z $(git -C "$source_work/git" diff --name-only "$BASELINE_REVISION" "$SOURCE_REVISION" -- \
-  .gitattributes ':(glob)**/.gitattributes') ]]
-[[ -z $(git -C "$source_work/git" diff --summary "$BASELINE_REVISION" "$SOURCE_REVISION") ]]
+changed_paths=$(git -C "$source_work/git" diff --name-only "$BASELINE_REVISION" "$SOURCE_REVISION")
+[[ -n $changed_paths ]]
+structural_paths=$(git -C "$source_work/git" diff --name-only --diff-filter=ACDRTUXB "$BASELINE_REVISION" "$SOURCE_REVISION")
+[[ -z $structural_paths ]]
+attribute_paths=$(git -C "$source_work/git" diff --name-only "$BASELINE_REVISION" "$SOURCE_REVISION" -- \
+  .gitattributes ':(glob)**/.gitattributes')
+[[ -z $attribute_paths ]]
+summary_changes=$(git -C "$source_work/git" diff --summary "$BASELINE_REVISION" "$SOURCE_REVISION")
+[[ -z $summary_changes ]]
 attribute_status=0
 git -C "$source_work/git" grep --quiet 'export-subst' "$SOURCE_REVISION" -- \
   .gitattributes ':(glob)**/.gitattributes' || attribute_status=$?

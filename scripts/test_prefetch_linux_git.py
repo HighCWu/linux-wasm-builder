@@ -28,15 +28,25 @@ if tool == "git":
     if args[0] == "rev-parse": print(os.environ["SOURCE_REVISION"])
     elif args[0] == "show": print(os.environ.get("MODEL_PARENT",os.environ["BASELINE_REVISION"]))
     elif args[0] == "diff":
+        diff_failure = os.environ.get("MODEL_DIFF_FAIL")
         if "--summary" in args:
             if os.environ.get("MODEL_MODE"): print("mode change 100644 => 100755 kernel/futex/core.c")
+            if diff_failure == "summary":
+                sys.exit(7)
         elif "--diff-filter=ACDRTUXB" in args:
             if os.environ.get("MODEL_STRUCTURAL_KIND", "M") in tuple("ACDRTUXB"):
                 print(os.environ.get("MODEL_STRUCTURAL_PATH", "kernel/futex/core.c"))
+            if diff_failure == "filter":
+                sys.exit(7)
         elif "--" in args:
             if os.environ.get("MODEL_ATTRIBUTE_CHANGE"): print(".gitattributes")
+            if diff_failure == "attribute":
+                sys.exit(7)
         elif "--name-only" in args:
             print(os.environ.get("MODEL_PATH", "kernel/futex/core.c"))
+            if diff_failure == "paths":
+                print("kernel/partial-path.c")
+                sys.exit(7)
         else: sys.exit(99)
     elif args[0] == "archive":
         if os.environ.get("MODEL_ARCHIVE_FAIL"): sys.exit(7)
@@ -133,6 +143,18 @@ class GitHashPrefetch(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertFalse(any(call[0] == "nix" for call in calls))
                 self.assertEqual(summary, "")
+
+    def test_git_diff_failures_stop_before_baseline_hashing(self):
+        expected_diff_calls = {"paths": 1, "filter": 2, "attribute": 3, "summary": 4}
+        for failure, expected_calls in expected_diff_calls.items():
+            with self.subTest(failure=failure):
+                result, calls, summary = self.run_model({"MODEL_DIFF_FAIL": failure})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("Candidate hash:", result.stdout)
+                self.assertEqual(summary, "")
+                self.assertFalse(any(call[0] == "nix" for call in calls))
+                diff_calls = [args for tool, args in calls if tool == "git" and "diff" in args]
+                self.assertEqual(len(diff_calls), expected_calls)
 
 
 if __name__ == "__main__":
