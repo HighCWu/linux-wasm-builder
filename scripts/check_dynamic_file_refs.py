@@ -119,10 +119,15 @@ int main(void) {
  assert(wasm_dynamic_file_pin_v1(0, 7, 12) == -ESRCH && second.refs == 1);
  mm.context.remote.accepting = true;
  mm.context.dynamic_file_count = 1024;
+ int large_count_id = wasm_dynamic_file_pin_v1(0, 7, 12);
+ assert(large_count_id == 3 && second.refs == 2 && allocated == 1);
+ assert(mm.context.dynamic_file_count == 1025);
+ assert(!wasm_dynamic_file_unpin_v1(large_count_id));
+ assert(second.refs == 1 && allocated == 0 && mm.context.dynamic_file_count == 1024);
+ assert(!mm.context.dynamic_files);
+ mm.context.dynamic_file_next = INT_MAX;
  assert(wasm_dynamic_file_pin_v1(0, 7, 12) == -ENOSPC && second.refs == 1);
- mm.context.dynamic_file_count = 0; mm.context.dynamic_file_next = INT_MAX;
- assert(wasm_dynamic_file_pin_v1(0, 7, 12) == -ENOSPC && second.refs == 1);
- assert(!allocated && !mm.context.remote.mutex.held);
+ assert(!allocated && !mm.context.remote.mutex.held && mm.context.dynamic_file_count == 1024);
  return 0;
 }
 """
