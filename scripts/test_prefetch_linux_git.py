@@ -28,8 +28,16 @@ if tool == "git":
     if args[0] == "rev-parse": print(os.environ["SOURCE_REVISION"])
     elif args[0] == "show": print(os.environ.get("MODEL_PARENT",os.environ["BASELINE_REVISION"]))
     elif args[0] == "diff":
-        if args[1] == "--name-status": print(os.environ.get("MODEL_PATH","M\tkernel/futex/core.c"))
-        elif os.environ.get("MODEL_MODE"): print("mode change 100644 => 100755 kernel/futex/core.c")
+        if "--summary" in args:
+            if os.environ.get("MODEL_MODE"): print("mode change 100644 => 100755 kernel/futex/core.c")
+        elif "--diff-filter=ACDRTUXB" in args:
+            if os.environ.get("MODEL_STRUCTURAL_KIND", "M") in tuple("ACDRTUXB"):
+                print(os.environ.get("MODEL_STRUCTURAL_PATH", "kernel/futex/core.c"))
+        elif "--" in args:
+            if os.environ.get("MODEL_ATTRIBUTE_CHANGE"): print(".gitattributes")
+        elif "--name-only" in args:
+            print(os.environ.get("MODEL_PATH", "kernel/futex/core.c"))
+        else: sys.exit(99)
     elif args[0] == "archive":
         if os.environ.get("MODEL_ARCHIVE_FAIL"): sys.exit(7)
         with tarfile.open(fileobj=sys.stdout.buffer,mode="w|") as archive:
@@ -65,7 +73,7 @@ class GitHashPrefetch(unittest.TestCase):
             env = {**os.environ, "PATH": str(tools) + os.pathsep + os.environ["PATH"],
                    "TMPDIR": tmp, "SOURCE_REVISION": "ab" * 20, "BASELINE_REVISION": "cd" * 20,
                    "BASELINE_HASH": "sha256-" + "A" * 43 + "=", "PREFETCH_MODEL_LOG": str(log),
-                   "GITHUB_STEP_SUMMARY": str(summary), **additions}
+                   "GITHUB_STEP_SUMMARY": str(summary), "MODEL_STRUCTURAL_KIND": "M", **additions}
             result = subprocess.run(["bash", str(ROOT / "scripts/prefetch_linux_git.sh")],
                                     env=env, capture_output=True, text=True, timeout=10)
             calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
@@ -79,10 +87,9 @@ class GitHashPrefetch(unittest.TestCase):
         self.assertIn("Verified baseline hash:", summary)
         self.assertIn("Candidate hash:", summary)
 
-    def test_wrong_identity_path_mode_or_baseline_cannot_publish_candidate(self):
+    def test_wrong_identity_or_baseline_cannot_publish_candidate(self):
         for inputs in ({"SOURCE_REVISION": "main"}, {"BASELINE_HASH": "invalid"},
-                       {"MODEL_PARENT": "ef" * 20}, {"MODEL_PATH": "M\tother.c"},
-                       {"MODEL_MODE": "1"}, {"MODEL_HASH_MISMATCH": "1"},
+                       {"MODEL_PARENT": "ef" * 20}, {"MODEL_HASH_MISMATCH": "1"},
                        {"MODEL_SUBST": "1"}, {"MODEL_ATTR_FAIL": "1"},
                        {"MODEL_ARCHIVE_FAIL": "1"}, {"MODEL_NIX_FAIL": "1"},
                        {"MODEL_BAD_SRI": "1"}, {"MODEL_SAME_HASH": "1"}):
@@ -94,112 +101,37 @@ class GitHashPrefetch(unittest.TestCase):
                 if "MODEL_BAD_SRI" not in inputs and "MODEL_SAME_HASH" not in inputs:
                     self.assertFalse(any(call[0] == "nix" and Path(call[1][-1]).name == "candidate" for call in calls))
 
-    def test_exact_named_defconfig_update_preserves_baseline_hash_verification(self):
-        paths = "\n".join("M\tarch/wasm/configs/" + name for name in
-                          ("defconfig", "wasm32_defconfig", "wasm64_defconfig"))
-        result, calls, summary = self.run_model({"MODEL_PATH": paths})
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
-                         ["baseline", "candidate"])
-        self.assertIn("Candidate hash:", summary)
-        for broken in (paths.splitlines()[0], paths + "\nM\tnet/core/filter.c",
-                       paths.replace("M\t", "A\t", 1),
-                       paths.replace("wasm64_defconfig", "wasm64_defconfig.old")):
-            with self.subTest(paths=broken):
-                result, calls, summary = self.run_model({"MODEL_PATH": broken})
-                self.assertNotEqual(result.returncode, 0)
-                self.assertFalse(any(c[0] == "nix" for c in calls))
-                self.assertEqual(summary, "")
-
-    def test_clone3_architecture_paths_still_require_verified_baseline(self):
-        paths = "M\tarch/wasm/include/asm/wasm_imports.h\nM\tarch/wasm/kernel/process.c"
-        result, calls, summary = self.run_model({"MODEL_PATH": paths})
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
-                         ["baseline", "candidate"])
-        self.assertIn("Candidate hash:", summary)
-        for broken in (paths.splitlines()[0], paths + "\nM\tkernel/fork.c",
-                       paths.replace("M\t", "A\t", 1)):
-            result, calls, summary = self.run_model({"MODEL_PATH": broken})
-            self.assertNotEqual(result.returncode, 0)
-            self.assertFalse(any(c[0] == "nix" for c in calls))
-            self.assertEqual(summary, "")
-
-    def test_remote_mm_paths_still_require_verified_baseline(self):
-        paths = "\n".join("M\tarch/wasm/" + path for path in (
-            "include/asm/mmu.h", "include/asm/remote_vm.h", "include/asm/wasm_imports.h",
-            "kernel/remote_vm.c", "mm/init.c"))
-        result, calls, summary = self.run_model({"MODEL_PATH": paths})
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
-                         ["baseline", "candidate"])
-        self.assertIn("Candidate hash:", summary)
-        for broken in (paths.splitlines()[0], paths + "\nM\tmm/nommu.c",
-                       paths.replace("M\t", "A\t", 1)):
-            result, calls, summary = self.run_model({"MODEL_PATH": broken})
-            self.assertNotEqual(result.returncode, 0)
-            self.assertFalse(any(c[0] == "nix" for c in calls))
-            self.assertEqual(summary, "")
-
-    def test_stream_mapping_paths_still_require_verified_baseline(self):
-        paths = "\n".join("M\tarch/wasm/" + path for path in (
-            "Kconfig", "include/asm/mmap_file.h", "include/asm/wasm_imports.h",
-            "kernel/mmap_file.c", "tests/mmap-file-host.c", "tests/mmap-file-host.h",
-            "tests/run-mmap-file-host.py"))
-        result, calls, summary = self.run_model({"MODEL_PATH": paths})
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
-                         ["baseline", "candidate"])
-        self.assertIn("Candidate hash:", summary)
-        for broken in (paths.splitlines()[1], paths + "\nM\tfs/read_write.c",
-                       paths.replace("M\t", "A\t", 1)):
-            result, calls, summary = self.run_model({"MODEL_PATH": broken})
-            self.assertNotEqual(result.returncode, 0)
-            self.assertFalse(any(c[0] == "nix" for c in calls))
-            self.assertEqual(summary, "")
-
-    def test_dynamic_file_reference_paths_are_exact(self):
-        result, calls, summary = self.run_model({"MODEL_PATH": "M\tarch/wasm/kernel/remote_vm.c"})
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Candidate hash:", summary)
-        paths = "\n".join("M\tarch/wasm/" + path for path in (
-            "include/asm/mmu.h", "include/asm/remote_vm.h", "kernel/remote_vm.c", "mm/init.c"))
-        result, calls, summary = self.run_model({"MODEL_PATH": paths})
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Candidate hash:", summary)
-        for broken in (paths.splitlines()[0], paths + "\nM\tfs/file.c", paths.replace("M\t", "A\t", 1)):
-            result, calls, summary = self.run_model({"MODEL_PATH": broken})
-            self.assertNotEqual(result.returncode, 0)
-            self.assertFalse(any(call[0] == "nix" for call in calls))
-            self.assertEqual(summary, "")
-
-    def test_kconfig_only_change_still_verifies_baseline(self):
-        path = "M\tarch/wasm/Kconfig"
+    def test_arbitrary_content_change_uses_production_diff_checks(self):
+        path = "unrelated/subsystem/ordinary-content.c"
         result, calls, summary = self.run_model({"MODEL_PATH": path})
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
                          ["baseline", "candidate"])
         self.assertIn("Candidate hash:", summary)
-        for inputs in ({"MODEL_HASH_MISMATCH": "1"}, {"MODEL_ATTR_FAIL": "1"},
-                       {"MODEL_PATH": path + "\nM\tfs/read_write.c"}):
-            result, _, summary = self.run_model({"MODEL_PATH": path, **inputs})
-            self.assertNotEqual(result.returncode, 0)
-            self.assertEqual(summary, "")
+        diff_args = [args for tool, args in calls if tool == "git" and "diff" in args]
+        self.assertTrue(any("--name-only" in args and "--diff-filter=ACDRTUXB" not in args for args in diff_args))
+        self.assertTrue(any("--diff-filter=ACDRTUXB" in args for args in diff_args))
+        self.assertTrue(any(".gitattributes" in args for args in diff_args))
+        self.assertTrue(any("--summary" in args for args in diff_args))
+        baseline_index = next(i for i, (tool, args) in enumerate(calls)
+                              if tool == "nix" and Path(args[-1]).name == "baseline")
+        self.assertTrue(all(i < baseline_index for i, (tool, args) in enumerate(calls)
+                            if tool == "git" and "diff" in args))
 
-    def test_arch_header_change_requires_exact_path_and_parent_hash(self):
-        for name in ("uaccess.h", "processor.h"):
-            path = "M\tarch/wasm/include/asm/" + name
-            result, calls, summary = self.run_model({"MODEL_PATH": path})
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual([Path(c[1][-1]).name for c in calls if c[0] == "nix"],
-                             ["baseline", "candidate"])
-            self.assertIn("Candidate hash:", summary)
-            for inputs in ({"MODEL_HASH_MISMATCH": "1"}, {"MODEL_ATTR_FAIL": "1"},
-                           {"MODEL_PATH": path + "\nM\tmm/maccess.c"},
-                           {"MODEL_PATH": path.replace("M\t", "A\t")},
-                           {"MODEL_PATH": path + ".old"}):
-                result, _, summary = self.run_model({"MODEL_PATH": path, **inputs})
+    def test_add_delete_rename_and_type_changes_are_rejected(self):
+        for change_kind in ("A", "D", "R", "T", "C", "U", "X", "B"):
+            with self.subTest(change_kind=change_kind):
+                result, calls, summary = self.run_model({"MODEL_STRUCTURAL_KIND": change_kind})
                 self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(any(call[0] == "nix" for call in calls))
+                self.assertEqual(summary, "")
+
+    def test_mode_and_gitattributes_changes_are_rejected(self):
+        for inputs in ({"MODEL_MODE": "1"}, {"MODEL_ATTRIBUTE_CHANGE": "1"}):
+            with self.subTest(inputs=inputs):
+                result, calls, summary = self.run_model(inputs)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(any(call[0] == "nix" for call in calls))
                 self.assertEqual(summary, "")
 
 
