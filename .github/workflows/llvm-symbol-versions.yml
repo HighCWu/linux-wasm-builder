@@ -179,7 +179,7 @@ jobs:
             -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF \
             -DLLVM_INCLUDE_DOCS=OFF -DLLVM_ENABLE_ZLIB=OFF -DLLVM_ENABLE_ZSTD=OFF \
             -DLLVM_ENABLE_LIBXML2=OFF -DLLVM_ENABLE_TERMINFO=OFF
-          cmake --build "$RUNNER_TEMP/llvm-symbol-build" --target clang llvm-mc llvm-as obj2yaml split-file llc FileCheck lld -j2
+          cmake --build "$RUNNER_TEMP/llvm-symbol-build" --target clang llvm-mc llvm-as obj2yaml split-file llc FileCheck not lld -j2
           if [ ! -x "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld" ]; then
             ln -s lld "$RUNNER_TEMP/llvm-symbol-build/bin/wasm-ld"
           fi

@@ -26,7 +26,7 @@ def main():
     for path in [lit, *tests]:
         if not path.is_file():
             parser.error(f"required candidate source file is missing: {path}")
-    for name in ["clang", "wasm-ld", "llvm-mc", "llvm-as", "obj2yaml", "split-file", "FileCheck"]:
+    for name in ["clang", "wasm-ld", "llvm-mc", "llvm-as", "obj2yaml", "split-file", "FileCheck", "not"]:
         if not (tools / name).is_file():
             parser.error(f"required candidate tool is missing: {tools / name}")
 
