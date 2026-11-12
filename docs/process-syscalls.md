@@ -9383,4 +9383,4 @@ distro `fc39cc1` 将旧用户实例的终止控制值改为独立的引擎 Wasm 
 try 与析构作用域中执行 execve。新程序检查两个继承描述符后返回 7，父进程
 waitpid 确认正常退出及退出码，再发出唯一 pass。候选通过并完成机器关闭，
 旧 Symbol 实现触发旧析构并失败。引擎控制值回归及两份 TypeScript 项目通过。
-当前直接证据来自 Node，浏览器 exec 验收继续跟进。
+Node 与 Chromium 的直接执行均通过，Chromium 覆盖同页两轮并逐轮完成机器关闭。
