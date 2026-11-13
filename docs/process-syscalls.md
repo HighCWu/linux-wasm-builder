@@ -9598,9 +9598,26 @@ Linux `f54c71d2`、distro `8c10f92` 把架构分配器已经发布的 mmap 区�
 同一 Linux 版本启用标准 `CONFIG_KEY_DH_OPERATIONS`，复用官方内核的
 保留密钥 Diffie-Hellman 与 KDF 实现。distro `9217d67` 增加真实 FFDHE2048
 消费者，`cf9cbf3` 继续校验带 otherinfo 的 SHA-256 派生结果，均使用已有
-标准 syscall，保持 musl 公共接口。双位宽目标验收正在进行。
+标准 syscall，保持 musl 公共接口。双位宽真实运行均已核实 DH、SHA-256
+KDF 两阶段及唯一 pass，固定运行器完成关闭并正常退出。
+[wasm32 验收](https://github.com/HighCWu/distro/actions/runs/43468278004)、
+[wasm64 验收](https://github.com/HighCWu/distro/actions/runs/43468289109)。
 
 libarchive `6829622` 修正静态归档探测收到可执行链接目录选项的问题后，
 配置继续推进，但在 crypto 探测中把缺失的 `LIBMD_LIBRARY` 传给了
-`TRY_COMPILE`。正在恢复需要符号链接的正常探测，尚未完成程序验收。
+`TRY_COMPILE`。`a861e04` 恢复正常可执行链接探测，独立真实 SDK 探针确认
+缺失实现会被拒绝、已有 regcomp 正常链接，完整程序验收待完成。
 [实际失败](https://github.com/HighCWu/distro/actions/runs/43458341722)。
+
+### 聚合、变参与非对称密钥
+
+libffi `4084d95` 支持自然布局结构体的标量强制转换、按值参数副本及
+隐藏结果指针。`6e8045b` 继续支持默认提升后的标量、指针变参尾区与
+空尾区，区分固定参数数量和签名缓存。固定 SDK 编译、真实 Clang
+va_list 函数经生成模块调用和宿主消费者通过，完整双位宽平台验收待完成。
+变参聚合、闭包及完整 long double/complex ABI 仍未支持。
+
+Linux `6f8a38dc` 启用官方 asymmetric key、X.509 parser 和 RSA 实现，
+distro `ebea791` 通过标准 add_key 与 KEYCTL_PKEY_QUERY 校验公开证书的
+密钥尺寸、操作能力和 reserved 字段。原生参考与 Wasm64 前端编译通过，
+双位宽真实平台验收已派发，尚未确认结果。musl 公共接口保持现有范围。
