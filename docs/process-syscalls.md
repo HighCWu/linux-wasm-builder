@@ -9694,3 +9694,16 @@ ACL `f11c07a` 对测试磁盘卸载的确切瞬时 EBUSY 增加最多五次普�
 卸载尝试。其它错误立即失败，持续忙态耗尽后仍失败；只有卸载成功
 才进入最终 pass。shell 语法和三类定向收尾流程检查通过，真实两位宽
 运行重新验收中。该变更调整测试收尾，资源释放时序继续追踪。
+
+ACL `f11c07a` 的两位宽重新验收均已完成条目与 mode mask 读回、
+uid/gid 1001 的读允许与写拒绝、移除 named-user 条目后的读拒绝和
+子进程回收。两路日志均包含普通卸载成功与唯一 pass，固定运行器
+完成等待关闭后正常退出。
+[wasm32 验收](https://github.com/HighCWu/distro/actions/runs/43513761961)、
+[wasm64 验收](https://github.com/HighCWu/distro/actions/runs/43513770140)。
+
+`7da04be` 在动态进程构造边界校验并复制 replay 输入，再恢复 live graph
+和保存发布基线。原先共享同一 snapshot 的状态继续共享这份内部副本，
+原先不匹配的状态仍由身份检查拒绝。调用方修改 structured-clone 字节
+后，已恢复模块与后续读取的基线保持隔离。主会话审查、源码与测试
+TypeScript 检查及 682 项内核宿主测试通过，真实执行环境验收待完成。
