@@ -9583,3 +9583,24 @@ attr 声明修复后的 libarchive wasm32 检查推进到自身 CMake 配置。�
 探测收到可执行链接用的 `-L` 选项，头文件检查失败，最终报告找不到 libgcc。
 轻量独立 CMake 探针已复现并定位配置问题，修复正在进行。
 [实际失败](https://github.com/HighCWu/distro/actions/runs/43451253800)。
+
+### 分配器映射查询与密钥派生配置
+
+Linux `f54c71d2`、distro `8c10f92` 把架构分配器已经发布的 mmap 区间
+接入标准 `mincore`。内部跨度查询在原映射锁下读取逻辑区间，标准入口
+负责参数检查、驻留向量和部分前缀复制。wasm32、wasm64 的真实消费者均
+通过已映射区间、空洞错误与部分前缀阶段，随后运行器完成关闭并退出。
+当前查询范围为分配器记录的 mmap 区间，堆、栈和静态数据的完整驻留查询
+仍待完善。
+[wasm32 验收](https://github.com/HighCWu/distro/actions/runs/43462950502)、
+[wasm64 验收](https://github.com/HighCWu/distro/actions/runs/43462967094)。
+
+同一 Linux 版本启用标准 `CONFIG_KEY_DH_OPERATIONS`，复用官方内核的
+保留密钥 Diffie-Hellman 与 KDF 实现。distro `9217d67` 增加真实 FFDHE2048
+消费者，`cf9cbf3` 继续校验带 otherinfo 的 SHA-256 派生结果，均使用已有
+标准 syscall，保持 musl 公共接口。双位宽目标验收正在进行。
+
+libarchive `6829622` 修正静态归档探测收到可执行链接目录选项的问题后，
+配置继续推进，但在 crypto 探测中把缺失的 `LIBMD_LIBRARY` 传给了
+`TRY_COMPILE`。正在恢复需要符号链接的正常探测，尚未完成程序验收。
+[实际失败](https://github.com/HighCWu/distro/actions/runs/43458341722)。
