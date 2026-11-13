@@ -9653,4 +9653,24 @@ bsdtar 运行仍待验收。libffi 聚合检查实际停在新增源文件的构
 Linux `9fff839c9` 启用官方 `PKCS8_PRIVATE_KEY_PARSER`，distro
 `d823e49` 增加测试专用 RSA 私钥的标准加解密往返消费者。测试密钥
 在构建时生成，仅随测试包使用。Wasm64 前端编译通过，宿主在导入
-PKCS8 时返回 EBADMSG，真实 Wasm 内核的解析与往返成功路径待验收。
+PKCS8 时返回 EBADMSG。两位宽真实 Wasm 内核均已完成
+`KEY_PKEY_QUERY_OK` 和 `KEY_PKEY_PKCS8_ROUNDTRIP_OK`，各有唯一 pass，
+固定运行器等待关闭后正常退出。
+[wasm32 验收](https://github.com/HighCWu/distro/actions/runs/43488203830)、
+[wasm64 验收](https://github.com/HighCWu/distro/actions/runs/43488215522)。
+
+### 归档程序可写磁盘与发布等待路径
+
+libarchive 的完整程序构建通过后，真实运行在创建临时目录时收到
+只读文件系统错误。`8113071` 使该检查使用已有运行器的私有可写磁盘
+副本。两位宽均完成归档内容、字节、元数据、链接、PAX xattr、命名用户
+ACL 与 mask，以及外部过滤器成功、失败回收和后续恢复阶段，唯一 pass
+后完成关闭。`7882bfa` 对需要修改文件 ACL 的独立检查采用相同配置，
+其目标运行另行验收。
+[libarchive wasm32](https://github.com/HighCWu/distro/actions/runs/43496309094)、
+[libarchive wasm64](https://github.com/HighCWu/distro/actions/runs/43496318734)。
+
+`9021da5` 修复动态 Worker 发布等待时反复复制整个模块图的路径。
+通道忙碌时继续服务其他参与方，在 Idle 且需要刷新时才读取新的基线，
+保留首次基线错误、generation 校验、预留回滚和原截止时间。
+源码与测试类型检查、680 项内核宿主测试通过，真实发布目标待验收。
