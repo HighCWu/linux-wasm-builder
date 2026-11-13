@@ -3364,10 +3364,15 @@ Linux `24ea67d34` 与 distro `323ebd3` 将持有加载屏障时的计时器维�
 [内核构建](https://github.com/HighCWu/linux/actions/runs/43413116460)。
 
 distro `b86725c` 补齐标准与动态 SDK 最终 ThinLTO 链接的 SjLj 降级，
-用于恢复正常跨翻译单元 `setjmp`/`longjmp`。四种 SDK 组合的真实运行
-验收继续异步进行。上游 PNG/JPEG 的通用构建接入也分别验收，构建计划、
-编译成功和目标消费者成功按实际证据记录。
+用于恢复正常跨翻译单元 `setjmp`/`longjmp`。标准 SDK 双位宽的真实阶段、
+唯一 pass 与关闭已核实，动态 SDK 双位宽已成功但仍待完整日志核对。
+PNG 双位宽的固定源码消费者成功和关闭也已核实。JPEG 分别保留证据状态。
 
 Expat 固定上游静态库及普通 `xmlwf` CLI 已接入，消费者覆盖分块 UTF-8
 解析、属性、命名空间和格式错误诊断。本地轻量参照通过，双位宽 Wasm
 构建和真实运行继续独立验收。
+
+Expat `xmlwf` 初次目标检查在生成阶段因 RPATH 安装重写失败，`82a1002`
+已关闭静态构建的 RPATH 并校准缓存变量类型，重新验收中。`6fdd523` 增加
+上游 libarchive/bsdtar 构建，保留 ACL/xattr 与外部过滤器成功路径，轻量
+配置与辅助代码检查通过，目标运行待验收。

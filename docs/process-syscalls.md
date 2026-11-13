@@ -9490,15 +9490,32 @@ Linux `24ea67d34` 增加内部维护模式选择，发布者持有加载屏障�
 distro `b86725c` 为标准和动态 SDK 的最终链接增加 SjLj 后端降级选项。
 已有前端选项没有覆盖 ThinLTO 链接阶段，可能把跨翻译单元的 `longjmp`
 保留为 trap 实现。新增 C/C++ 两翻译单元消费者验证栈和返回值恢复，
-标准与动态 SDK 的双位宽目标运行尚待验收。
+标准 SDK 双位宽实际日志已核实 `SJLJ_LTO_STACK_AND_RETURN_VALUES_OK`、
+唯一 pass 与运行器正常关闭。动态 SDK 双位宽工作流已成功，完整阶段日志
+仍在下载，验收单独记录。
+[标准 wasm32](https://github.com/HighCWu/distro/actions/runs/43416736077)，
+[标准 wasm64](https://github.com/HighCWu/distro/actions/runs/43416746352)。
 
 通用图像库接入采用上游 libpng 和 libjpeg 源码。初始 JPEG 包的 Nix
 元数据缺少 `lib` 参数，导致构建计划失败，已由 `3bbda18` 修正。
 libpng 后续检查在 CMake 配置完成后因缓存变量类型断言失败。`99b4ca0`
-校准编译器缓存类型，并显式指定 zlib 库路径类型。PNG 编译和目标运行
-继续异步验收。
+校准编译器缓存类型，并显式指定 zlib 库路径类型。PNG 双位宽固定源码
+实际日志已核实轮转消费者的唯一 pass 与运行器关闭，消费者内部检查
+`LIBPNG_ROUNDTRIP_OK`。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/43416700652)，
+[wasm64](https://github.com/HighCWu/distro/actions/runs/43416708877)。
 
 Expat `5e0a82e` 接入固定上游静态库与分块 UTF-8、命名空间、属性和
 错误诊断消费者；`d3eeb18` 同时构建上游 `xmlwf`，通过普通 XML 文件
 验证 CLI 的正常退出和格式错误诊断。本地固定源轻量参照通过，双位宽
 Wasm 目标验收待完成。
+
+`d3eeb18` 的目标检查在 CMake 生成阶段失败，实际日志确认 `xmlwf` 安装
+要求重写 RPATH。`82a1002` 在静态构建中关闭 RPATH，并明确编译器缓存
+变量类型。修复已发布，双位宽目标重新验收中。
+[失败版本 wasm64](https://github.com/HighCWu/distro/actions/runs/43419270386)。
+
+`6fdd523` 接入固定上游 libarchive 静态库和 `bsdtar`，保留 ACL 与 xattr
+支持，使用已有自动 fork SDK 支持外部过滤器。独立目标检查覆盖归档内容、
+链接、权限、时间、ACL/xattr、正常和失败过滤器及后续恢复。Nix 语法、格式、
+shell 语法与辅助 C 编译检查通过，Wasm 目标执行待验收。
