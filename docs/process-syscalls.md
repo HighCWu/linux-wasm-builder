@@ -9436,3 +9436,16 @@ distro `9be5373`、集成 `a83a83a` 使 Worker 发布协调器自身的超时、
 固定版本的双位宽目标检查已派发，目前仍待实际阶段和关闭证据。
 [wasm32 CI](https://github.com/HighCWu/distro/actions/runs/43373466374)，
 [wasm64 CI](https://github.com/HighCWu/distro/actions/runs/43373472238)。
+
+### 加载关键区的内核维护
+
+Linux `3546a7152`、distro `acdd886`、集成 `802bb6d` 增加内部维护入口。
+加载器关键区中的编译器检查点和 JavaScript 短等待可推进 RCU、计时器及
+协作调度，用户信号交付继续等待原有安全边界。旧内核维持原有延迟路径。
+同 CPU 构造函数纯计算等待计时线程、线程定向信号及加载后回收进入独立
+检查。类型、静态检查通过，内核编译及实际目标阶段仍待验收。
+[wasm32 维护检查](https://github.com/HighCWu/distro/actions/runs/43376902881)，
+[wasm64 维护检查](https://github.com/HighCWu/distro/actions/runs/43376908975)。
+既有 Worker 发布路径同时复验。
+[wasm32 回归](https://github.com/HighCWu/distro/actions/runs/43376915036)，
+[wasm64 回归](https://github.com/HighCWu/distro/actions/runs/43376921276)。

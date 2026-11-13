@@ -3337,3 +3337,9 @@ distro `9be5373`、集成 `a83a83a` 补齐 Worker 发布失败的 `dlerror` 信�
 固定源码目标验收仍在进行。
 [wasm32 CI](https://github.com/HighCWu/distro/actions/runs/43373466374)，
 [wasm64 CI](https://github.com/HighCWu/distro/actions/runs/43373472238)。
+
+Linux `3546a7152`、distro `acdd886`、集成 `802bb6d` 已接入加载关键区的
+内部内核维护，推进计时器、RCU 与协作调度，维持原有用户信号安全边界。
+双位宽单 CPU 维护检查及既有 Worker 发布回归已派发，目标结果仍待核实。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/43376902881)，
+[wasm64](https://github.com/HighCWu/distro/actions/runs/43376908975)。
