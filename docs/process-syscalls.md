@@ -9619,5 +9619,31 @@ va_list 函数经生成模块调用和宿主消费者通过，完整双位宽平
 
 Linux `6f8a38dc` 启用官方 asymmetric key、X.509 parser 和 RSA 实现，
 distro `ebea791` 通过标准 add_key 与 KEYCTL_PKEY_QUERY 校验公开证书的
-密钥尺寸、操作能力和 reserved 字段。原生参考与 Wasm64 前端编译通过，
-双位宽真实平台验收已派发，尚未确认结果。musl 公共接口保持现有范围。
+密钥尺寸、操作能力和 reserved 字段。双位宽实际日志均已核实
+`KEY_PKEY_QUERY_OK`、唯一 pass 和固定运行器的关闭后正常退出。
+musl 公共接口保持现有范围。
+[wasm32 验收](https://github.com/HighCWu/distro/actions/runs/43473187154)、
+[wasm64 验收](https://github.com/HighCWu/distro/actions/runs/43473198569)。
+
+### 静态驻留区间、通知与后续构建修复
+
+`e0a28be` 扩展初始主模块 data/BSS 的驻留查询，Linux `2778fa37b`
+启用官方 watch queue 与 key notifications，distro `0923e5a` 增加标准
+通知消费者。首轮检查在 `runtime-test.sh` 的格式检查阶段失败，
+`9b922dc` 已修复，两位宽重新验收中。这批运行尚未证明新增目标阶段。
+
+libarchive `a861e04` 的可执行探针使构建继续推进，随后在静态 Wasm
+安装的 RPATH 重链接配置失败。`9e46393` 对该静态构建设置
+`CMAKE_SKIP_RPATH=ON`，独立 SDK 配置、构建与安装复现通过，完整
+bsdtar 运行仍待验收。libffi 聚合检查实际停在新增源文件的构建路径，
+正在修复取源名称，聚合与变参的目标运行仍待确认。
+
+`c8c3c54` 将 Wasm u32 字段解析改为 Number 运算，保留溢出、截断与
+非最短编码规则。`95614fc` 对模块重建分析增加有界缓存，每次命中
+比较完整字节与地址 ABI，失败和超预算输入继续走原有校验。
+源与测试类型检查、内核宿主测试通过，真实 Worker 发布路径另行验收。
+
+Linux `9fff839c9` 启用官方 `PKCS8_PRIVATE_KEY_PARSER`，distro
+`d823e49` 增加测试专用 RSA 私钥的标准加解密往返消费者。测试密钥
+在构建时生成，仅随测试包使用。Wasm64 前端编译通过，宿主在导入
+PKCS8 时返回 EBADMSG，真实 Wasm 内核的解析与往返成功路径待验收。
