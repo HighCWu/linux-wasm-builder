@@ -9433,7 +9433,8 @@ distro `9be5373`、集成 `a83a83a` 使 Worker 发布协调器自身的超时、
 初始化致命错误及既有回滚和清理次序。轻量验证覆盖真实 i32/i64 loader 的
 错误缓冲及失败后重新加载，类型和格式检查通过。
 
-固定版本的双位宽目标检查已派发，目前仍待实际阶段和关闭证据。
+固定版本 wasm32 Heavy 日志已核实首次加载前线程阻塞、构造函数回收线程及
+唯一 pass，runner 成功返回前等待机器与存储关闭。wasm64 仍待阶段证据。
 [wasm32 CI](https://github.com/HighCWu/distro/actions/runs/43373466374)，
 [wasm64 CI](https://github.com/HighCWu/distro/actions/runs/43373472238)。
 
@@ -9443,9 +9444,20 @@ Linux `3546a7152`、distro `acdd886`、集成 `802bb6d` 增加内部维护入口
 加载器关键区中的编译器检查点和 JavaScript 短等待可推进 RCU、计时器及
 协作调度，用户信号交付继续等待原有安全边界。旧内核维持原有延迟路径。
 同 CPU 构造函数纯计算等待计时线程、线程定向信号及加载后回收进入独立
-检查。类型、静态检查通过，内核编译及实际目标阶段仍待验收。
+检查。类型与静态检查通过，双位宽内核构建已成功。两路维护运行检查均失败，
+其中 wasm32 实际日志确认启动 init 后触发300秒 watchdog，成功阶段未出现。
+当前维护能力仍未验收，正在定位进展丢失的原因。
 [wasm32 维护检查](https://github.com/HighCWu/distro/actions/runs/43376902881)，
 [wasm64 维护检查](https://github.com/HighCWu/distro/actions/runs/43376908975)。
 既有 Worker 发布路径同时复验。
 [wasm32 回归](https://github.com/HighCWu/distro/actions/runs/43376915036)，
 [wasm64 回归](https://github.com/HighCWu/distro/actions/runs/43376921276)。
+
+### 可恢复发布错误的原始原因
+
+distro `854dc7e`、集成 `6e16716` 使已经成功回滚的发布失败保留原始
+`Error.message`，通过现有 `dlerror` 返回。异常 message getter、代理对象和
+非 Error 值使用原有回滚消息，原始 cause 保留。生产回滚次序、致命错误和
+发布期限维持既有契约。主会话检查了真实 writer 到 loader 错误缓冲的路径，
+21项相关轻量检查、源码及测试 TypeScript 检查、固定版本格式检查通过。
+该诊断修复尚无固定源码目标运行验收，也未解决上述维护运行失败。

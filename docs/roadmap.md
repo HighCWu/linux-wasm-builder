@@ -3340,6 +3340,13 @@ distro `9be5373`、集成 `a83a83a` 补齐 Worker 发布失败的 `dlerror` 信�
 
 Linux `3546a7152`、distro `acdd886`、集成 `802bb6d` 已接入加载关键区的
 内部内核维护，推进计时器、RCU 与协作调度，维持原有用户信号安全边界。
-双位宽单 CPU 维护检查及既有 Worker 发布回归已派发，目标结果仍待核实。
+双位宽内核构建成功，单 CPU 维护运行检查均失败。wasm32 原始日志确认
+启动 init 后300秒 watchdog 到期，成功阶段未出现，维护能力继续定位中。
+既有 Worker 发布回归的实际阶段与关闭证据仍需分别核实。
 [wasm32](https://github.com/HighCWu/distro/actions/runs/43376902881)，
 [wasm64](https://github.com/HighCWu/distro/actions/runs/43376908975)。
+
+distro `854dc7e`、集成 `6e16716` 已保留可恢复 Worker 发布错误的原始
+message 和 cause，使既有 `dlerror` 可携带具体原因。真实 writer 到 loader
+错误缓冲及回滚后重试的轻量检查、双 TypeScript 项目与格式检查通过。
+固定源码目标运行尚待验收，维护运行失败仍未解决。
