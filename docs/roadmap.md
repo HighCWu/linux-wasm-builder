@@ -3376,3 +3376,12 @@ Expat `xmlwf` 初次目标检查在生成阶段因 RPATH 安装重写失败，`8
 已关闭静态构建的 RPATH 并校准缓存变量类型，重新验收中。`6fdd523` 增加
 上游 libarchive/bsdtar 构建，保留 ACL/xattr 与外部过滤器成功路径，轻量
 配置与辅助代码检查通过，目标运行待验收。
+
+后续已核实动态 SDK 双位宽 SjLj 及独立 maintenance 双位宽的完整成功阶段、
+唯一 pass 和运行器关闭。libarchive 首次检查在 attr 依赖的 `basename`
+声明处编译失败，正在修复。Expat 修复版双位宽工作流成功，完整目标证据
+继续分别核实。
+
+Linux `00532f45`、distro `72a5d55`、集成 `80ad798` 增加 NOMMU
+`mincore` 和普通消费者，支持按进程 VMA 覆盖返回驻留状态及空洞错误。
+原生消费者与配置轻验通过，双位宽内核和目标运行尚待验收。

@@ -9491,10 +9491,19 @@ distro `b86725c` 为标准和动态 SDK 的最终链接增加 SjLj 后端降级�
 已有前端选项没有覆盖 ThinLTO 链接阶段，可能把跨翻译单元的 `longjmp`
 保留为 trap 实现。新增 C/C++ 两翻译单元消费者验证栈和返回值恢复，
 标准 SDK 双位宽实际日志已核实 `SJLJ_LTO_STACK_AND_RETURN_VALUES_OK`、
-唯一 pass 与运行器正常关闭。动态 SDK 双位宽工作流已成功，完整阶段日志
-仍在下载，验收单独记录。
+唯一 pass 与运行器正常关闭。动态 SDK 双位宽完整日志也已核实相同成功阶段、
+唯一 pass 和运行器正常关闭。
 [标准 wasm32](https://github.com/HighCWu/distro/actions/runs/43416736077)，
 [标准 wasm64](https://github.com/HighCWu/distro/actions/runs/43416746352)。
+
+动态配置的固定源码验收分别记录于两项运行。
+[动态 wasm32](https://github.com/HighCWu/distro/actions/runs/43416753893)，
+[动态 wasm64](https://github.com/HighCWu/distro/actions/runs/43416763756)。
+
+独立 maintenance 检查双位宽已核实 `DYNAMIC_LOADER_MAINTENANCE_OK`、
+唯一 pass 与运行器正常关闭，覆盖持有加载屏障时的计时器进展和随后安全点。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/43417251731)，
+[wasm64](https://github.com/HighCWu/distro/actions/runs/43417259647)。
 
 通用图像库接入采用上游 libpng 和 libjpeg 源码。初始 JPEG 包的 Nix
 元数据缺少 `lib` 参数，导致构建计划失败，已由 `3bbda18` 修正。
@@ -9519,3 +9528,22 @@ Wasm 目标验收待完成。
 支持，使用已有自动 fork SDK 支持外部过滤器。独立目标检查覆盖归档内容、
 链接、权限、时间、ACL/xattr、正常和失败过滤器及后续恢复。Nix 语法、格式、
 shell 语法与辅助 C 编译检查通过，Wasm 目标执行待验收。
+
+libarchive 首次双位宽检查失败。wasm64 实际日志确认依赖 attr 的工具编译
+调用 `basename` 时缺少声明，失败发生于目标程序运行之前，正在修复其
+标准头文件兼容性。
+[失败版本](https://github.com/HighCWu/distro/actions/runs/43431646180)。
+
+### NOMMU mincore
+
+Linux `00532f45` 为 NOMMU 增加标准 `mincore` 系统调用。直接内存映射
+以当前进程 VMA 覆盖范围报告驻留状态，未映射空洞返回 `ENOMEM`，保留已复制
+向量前缀；沿用通用接口的对齐、长度及用户复制错误处理。实现随 NOMMU
+构建选择，维持 `CONFIG_MMU=n`。
+
+distro `72a5d55` 增加普通 libc 消费者，覆盖匿名映射驻留、局部解除映射、
+错误后的向量前缀及零长度请求。主仓库 pin `80ad798` 已发布。原生消费者、
+Nix 语法与格式检查通过，双位宽内核和 Wasm 真实运行继续异步验收。
+[内核构建](https://github.com/HighCWu/linux/actions/runs/43443232462)，
+[运行检查一](https://github.com/HighCWu/distro/actions/runs/43447829149)，
+[运行检查二](https://github.com/HighCWu/distro/actions/runs/43447841136)。
