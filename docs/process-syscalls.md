@@ -9569,3 +9569,17 @@ distro `0854338`、集成 `5353e38` 为固定上游 libffi 增加 Linux-Wasm
 本增量尚不支持聚合、变参和闭包。固定 SDK 前端编译、生成模块的真实
 Wasm32/Wasm64 引擎执行、补丁及 Nix 检查通过。完整包构建与 Linux-Wasm
 消费者已安排双位宽独立验收，目标运行结果尚未确认。
+
+### 后续目标失败定位
+
+`3b367ab` 的 wasm32 mincore 消费者已完成编译，首次查询合法匿名映射
+返回 `ENOMEM`。架构 mmap 入口把分配交给进程分配器，通用 NOMMU VMA
+树未记录这些区间，故通用 mincore 实现尚不能查询该平台映射。正在接入
+内部映射跨度查询，继续保持标准 syscall 的参数校验与结果复制。当前
+mincore 的普通程序成功路径仍未验收。
+[实际失败](https://github.com/HighCWu/distro/actions/runs/43453830892)。
+
+attr 声明修复后的 libarchive wasm32 检查推进到自身 CMake 配置。静态
+探测收到可执行链接用的 `-L` 选项，头文件检查失败，最终报告找不到 libgcc。
+轻量独立 CMake 探针已复现并定位配置问题，修复正在进行。
+[实际失败](https://github.com/HighCWu/distro/actions/runs/43451253800)。
