@@ -9630,13 +9630,20 @@ musl 公共接口保持现有范围。
 `e0a28be` 扩展初始主模块 data/BSS 的驻留查询，Linux `2778fa37b`
 启用官方 watch queue 与 key notifications，distro `0923e5a` 增加标准
 通知消费者。首轮检查在 `runtime-test.sh` 的格式检查阶段失败，
-`9b922dc` 已修复，两位宽重新验收中。这批运行尚未证明新增目标阶段。
+`9b922dc` 已修复。两位宽实际日志均已核实初始 data/BSS、映射与空洞
+查询阶段，以及通知的 type/subtype/id/长度内容；各检查唯一 pass，固定
+运行器等待关闭后正常返回。
+[mincore wasm32](https://github.com/HighCWu/distro/actions/runs/43486935527)、
+[mincore wasm64](https://github.com/HighCWu/distro/actions/runs/43486944810)、
+[通知 wasm32](https://github.com/HighCWu/distro/actions/runs/43486975718)、
+[通知 wasm64](https://github.com/HighCWu/distro/actions/runs/43486986458)。
 
 libarchive `a861e04` 的可执行探针使构建继续推进，随后在静态 Wasm
 安装的 RPATH 重链接配置失败。`9e46393` 对该静态构建设置
 `CMAKE_SKIP_RPATH=ON`，独立 SDK 配置、构建与安装复现通过，完整
 bsdtar 运行仍待验收。libffi 聚合检查实际停在新增源文件的构建路径，
-正在修复取源名称，聚合与变参的目标运行仍待确认。
+`10e7181` 修正 Nix 哈希前缀源路径复制后的文件名，独立 configure 与
+两个新增对象的编译通过，聚合与变参的完整目标运行仍待确认。
 
 `c8c3c54` 将 Wasm u32 字段解析改为 Number 运算，保留溢出、截断与
 非最短编码规则。`95614fc` 对模块重建分析增加有界缓存，每次命中
