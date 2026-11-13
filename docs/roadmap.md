@@ -3350,3 +3350,9 @@ distro `854dc7e`、集成 `6e16716` 已保留可恢复 Worker 发布错误的原
 message 和 cause，使既有 `dlerror` 可携带具体原因。真实 writer 到 loader
 错误缓冲及回滚后重试的轻量检查、双 TypeScript 项目与格式检查通过。
 固定源码目标运行尚待验收，维护运行失败仍未解决。
+
+distro `dff9a21`、集成 `248405d` 分离通道可用性等待与发布握手计时，
+原30秒预算在握手各阶段共用。相关轻验通过，双位宽发布运行回归进行中。
+维护运行失败已确认需要补齐普通循环的自动执行检查点，编译路径正在实现。
+[wasm32 回归](https://github.com/HighCWu/distro/actions/runs/43401943158)，
+[wasm64 回归](https://github.com/HighCWu/distro/actions/runs/43401954192)。
