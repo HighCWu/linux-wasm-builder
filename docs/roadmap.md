@@ -3353,6 +3353,21 @@ message 和 cause，使既有 `dlerror` 可携带具体原因。真实 writer �
 
 distro `dff9a21`、集成 `248405d` 分离通道可用性等待与发布握手计时，
 原30秒预算在握手各阶段共用。相关轻验通过，双位宽发布运行回归进行中。
-维护运行失败已确认需要补齐普通循环的自动执行检查点，编译路径正在实现。
+维护检查已接到仓库既有的可选 cooperative-poll 编译路径，默认关闭，覆盖
+动态 SDK 的应用与 DSO。此前遗漏了该既有配置，现已统一复用。
 [wasm32 回归](https://github.com/HighCWu/distro/actions/runs/43401943158)，
 [wasm64 回归](https://github.com/HighCWu/distro/actions/runs/43401954192)。
+
+Linux `24ea67d34` 与 distro `323ebd3` 将持有加载屏障时的计时器维护和
+协作调度分开，并增加成功完成动态操作后的安全检查点。轻量类型、格式与
+相关执行契约检查通过，内核双位宽构建成功，完整维护目标运行仍待验收。
+[内核构建](https://github.com/HighCWu/linux/actions/runs/43413116460)。
+
+distro `b86725c` 补齐标准与动态 SDK 最终 ThinLTO 链接的 SjLj 降级，
+用于恢复正常跨翻译单元 `setjmp`/`longjmp`。四种 SDK 组合的真实运行
+验收继续异步进行。上游 PNG/JPEG 的通用构建接入也分别验收，构建计划、
+编译成功和目标消费者成功按实际证据记录。
+
+Expat 固定上游静态库及普通 `xmlwf` CLI 已接入，消费者覆盖分块 UTF-8
+解析、属性、命名空间和格式错误诊断。本地轻量参照通过，双位宽 Wasm
+构建和真实运行继续独立验收。
