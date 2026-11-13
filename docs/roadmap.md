@@ -3331,3 +3331,9 @@ distro `816076d` / 集成 `00865de` 发布了已有共享内存线程中的动�
 
 Linux `c5debac90` 修正可选文件映射构建的沙箱脚本调用，
 `43343683271` 双位宽构建成功。默认 raw 构建维持独立配置。
+
+distro `9be5373`、集成 `a83a83a` 补齐 Worker 发布失败的 `dlerror` 信息，
+保留后续重新加载与原有清理路径。真实 loader 的双位宽轻量检查通过，
+固定源码目标验收仍在进行。
+[wasm32 CI](https://github.com/HighCWu/distro/actions/runs/43373466374)，
+[wasm64 CI](https://github.com/HighCWu/distro/actions/runs/43373472238)。

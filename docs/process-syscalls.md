@@ -9425,3 +9425,14 @@ wasm64 运行检查均已通过。实际 Heavy 日志均核实首次加载前线
 `/usr/bin/env` 不存在，双位宽均在编译前失败。Linux `c5debac90` 显式通过
 沙箱中的 Bash 执行脚本，复验 `43343683271` 的双位宽构建和制品上传成功。
 实际运行仍需按制品的配置、摘要及执行 ABI 单独验收。
+
+### Worker 动态加载错误信息
+
+distro `9be5373`、集成 `a83a83a` 使 Worker 发布协调器自身的超时、重入及
+通道错误进入既有 `dlerror` 路径，返回对应位宽的空句柄。保留控制流异常、
+初始化致命错误及既有回滚和清理次序。轻量验证覆盖真实 i32/i64 loader 的
+错误缓冲及失败后重新加载，类型和格式检查通过。
+
+固定版本的双位宽目标检查已派发，目前仍待实际阶段和关闭证据。
+[wasm32 CI](https://github.com/HighCWu/distro/actions/runs/43373466374)，
+[wasm64 CI](https://github.com/HighCWu/distro/actions/runs/43373472238)。
