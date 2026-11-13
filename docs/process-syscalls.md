@@ -9547,3 +9547,25 @@ Nix 语法与格式检查通过，双位宽内核和 Wasm 真实运行继续异�
 [内核构建](https://github.com/HighCWu/linux/actions/runs/43443232462)，
 [运行检查一](https://github.com/HighCWu/distro/actions/runs/43447829149)，
 [运行检查二](https://github.com/HighCWu/distro/actions/runs/43447841136)。
+
+首次运行检查在 libc 消费者编译时失败。固定 musl 源码原有 `mincore`
+声明和函数体均排除了 Wasm；`3b367ab` 恢复这两处既有接口的门控和调用
+路径，保持 GNU/BSD 特性宏要求。精确源码补丁检查、实现与消费者 Wasm64
+前端编译通过，集成 `182f2a8` 已发布，双位宽重新验收中。
+
+attr 的 POSIX `basename` 头文件修复 `3551d16` 与集成 `4b6f63f` 已发布。
+固定源编译在修复前复现错误、加入 `<libgen.h>` 后通过；libarchive 双位宽
+目标重新验收中。Expat 修复版 wasm64 实际日志已核实 parser、xmlwf 两个
+成功阶段、唯一 pass 和运行器关闭，wasm32 的完整阶段日志仍待核实。
+
+### libffi 的原始 Wasm 调用
+
+distro `0854338`、集成 `5353e38` 为固定上游 libffi 增加 Linux-Wasm
+后端，通过普通动态模块执行标准 `ffi_prep_cif` 和 `ffi_call` 的非变参
+整数、浮点及指针调用。ABI 签名缓存保存模块生命周期，支持窄整数结果的
+`ffi_arg` 扩展及忽略标量返回值。传输复用现有 `memfd_create`、`dlopen`
+与 `dlsym`，保持现有 libc 接口。
+
+本增量尚不支持聚合、变参和闭包。固定 SDK 前端编译、生成模块的真实
+Wasm32/Wasm64 引擎执行、补丁及 Nix 检查通过。完整包构建与 Linux-Wasm
+消费者已安排双位宽独立验收，目标运行结果尚未确认。
