@@ -4,6 +4,7 @@
 
 from pathlib import Path
 import os
+import shlex
 import subprocess
 import tempfile
 
@@ -14,12 +15,18 @@ section = source.split("/* WASM_DYNAMIC_FILE_REFS_BEGIN", 1)[1]
 section = "/*" + section.split("*/", 1)[1]
 section = section[2:].split("/* WASM_DYNAMIC_FILE_REFS_END */", 1)[0]
 assert (
-    "release_dynamic_files(mm);"
+    "wasm_dynamic_file_refs_release(mm);"
     in source.split("/* WASM_DYNAMIC_FILE_REFS_BEGIN", 1)[0]
 )
 init = (arch / "mm/init.c").read_text()
 assert "mm->context.dynamic_files = NULL;" in init
+assert "mm->context.dynamic_file_count = 0;" in init
 assert "mm->context.dynamic_file_next = 0;" in init
+assert "result = wasm_dynamic_files_clone(old_mm, mm);" in init
+evidence_dir = os.environ.get("WASM_DYNAMIC_EVIDENCE_DIR")
+evidence = Path(evidence_dir).resolve() if evidence_dir else None
+if evidence:
+    evidence.mkdir(parents=True, exist_ok=True)
 
 SHIM = r"""
 #define _GNU_SOURCE
@@ -47,6 +54,8 @@ struct file { int f_mode, refs; struct inode *inode; struct path f_path; };
 #endif
 #define AT_STATX_SYNC_AS_STAT 0
 static int getattr_failure;
+static int warn_on_count;
+static int kmalloc_calls, kmalloc_fail_at;
 static int vfs_getattr(const struct path *path, struct kstat *out, unsigned mask, unsigned flags) {
  assert(mask == STATX_INO && flags == AT_STATX_SYNC_AS_STAT);
  if (getattr_failure) return -EACCES;
@@ -69,11 +78,16 @@ static struct file *fget(int fd) {
  if (fd < 0 || fd >= 4 || !fds[fd]) return 0;
  fds[fd]->refs++; return fds[fd];
 }
+static struct file *get_file(struct file *file) {
+ assert(file && file->refs > 0); file->refs++; return file;
+}
 static void fput(struct file *file) { assert(file->refs > 0); file->refs--; }
 #define file_inode(file) ((file)->inode)
 #define huge_encode_dev(dev) (dev)
+#define WARN_ON_ONCE(condition) ((condition) ? (++warn_on_count, 1) : 0)
 static void *kmalloc(size_t size, int flags) {
- (void)flags; if (allocation_fail) return 0;
+ (void)flags; kmalloc_calls++;
+ if (allocation_fail || (kmalloc_fail_at && kmalloc_calls == kmalloc_fail_at)) return 0;
  void *p = malloc(size); assert(p); allocated++; return p;
 }
 static void kfree(void *p) { assert(p && allocated > 0); allocated--; free(p); }
@@ -111,10 +125,10 @@ int main(void) {
  ti.context_mm = &mm;
  fput(fds[0]); fds[0] = 0;
  mm.context.remote.accepting = false;
- release_dynamic_files(&mm);
+ wasm_dynamic_file_refs_release(&mm);
  assert(second.refs == 0 && allocated == 0 && !mm.context.dynamic_files);
  assert(!mm.context.dynamic_file_count);
- release_dynamic_files(&mm);
+ wasm_dynamic_file_refs_release(&mm);
  second.refs = 1; fds[0] = &second;
  assert(wasm_dynamic_file_pin_v1(0, 7, 12) == -ESRCH && second.refs == 1);
  mm.context.remote.accepting = true;
@@ -128,28 +142,118 @@ int main(void) {
  mm.context.dynamic_file_next = INT_MAX;
  assert(wasm_dynamic_file_pin_v1(0, 7, 12) == -ENOSPC && second.refs == 1);
  assert(!allocated && !mm.context.remote.mutex.held && mm.context.dynamic_file_count == 1024);
+
+ struct mm_struct copy_parent = { .context.remote.accepting = true };
+ struct mm_struct copy_child = { .context.remote.accepting = true };
+ struct mm_struct copy_child_second = { .context.remote.accepting = true };
+ struct mm_struct rejected_child = { .context.remote.accepting = true };
+ struct mm_struct empty_parent = { .context.remote.accepting = true };
+ struct mm_struct empty_child = { .context.remote.accepting = true };
+ struct inode c = { S_IFREG | 0600, 333, &sb, 13 }, d = { S_IFREG | 0600, 444, &sb, 14 };
+ struct file third = { FMODE_READ, 1, &c, { &c } }, fourth = { FMODE_READ, 1, &d, { &d } };
+ fds[1] = &third; fds[2] = &fourth;
+ task.mm = &copy_parent; ti.context_mm = &copy_parent;
+ int copy_id_a = wasm_dynamic_file_pin_v1(1, 7, 13);
+ int copy_id_b = wasm_dynamic_file_pin_v1(2, 7, 14);
+ assert(copy_id_a == 1 && copy_id_b == 2);
+ assert(copy_parent.context.dynamic_file_count == 2 && copy_parent.context.dynamic_file_next == 2);
+ assert(wasm_dynamic_file_copy_abi_v1() == 1);
+
+ /* Fail the second allocation: the first copied file reference must roll back. */
+ kmalloc_calls = 0; kmalloc_fail_at = 2;
+ assert(wasm_dynamic_files_clone(&copy_parent, &copy_child) == -ENOMEM);
+ kmalloc_fail_at = 0;
+ assert(!copy_child.context.dynamic_files && !copy_child.context.dynamic_file_count);
+ assert(copy_child.context.dynamic_file_next == 0);
+ assert(third.refs == 2 && fourth.refs == 2 && allocated == 2);
+
+ /* A closed source mm cannot be cloned even when a destination is available. */
+ copy_parent.context.remote.accepting = false;
+ assert(wasm_dynamic_files_clone(&copy_parent, &rejected_child) == -ESRCH);
+ assert(!rejected_child.context.dynamic_files && !rejected_child.context.dynamic_file_count);
+ assert(third.refs == 2 && fourth.refs == 2 && allocated == 2);
+ copy_parent.context.remote.accepting = true;
+
+ kmalloc_calls = 0;
+ assert(!wasm_dynamic_files_clone(&copy_parent, &copy_child));
+ assert(copy_child.context.dynamic_file_count == 2 && copy_child.context.dynamic_file_next == 2);
+ assert(copy_child.context.dynamic_files && copy_parent.context.dynamic_files);
+ assert(copy_child.context.dynamic_files != copy_parent.context.dynamic_files);
+ assert(copy_child.context.dynamic_files->id == copy_parent.context.dynamic_files->id);
+ assert(copy_child.context.dynamic_files->next != copy_parent.context.dynamic_files->next);
+ assert(copy_child.context.dynamic_files->next->id == copy_parent.context.dynamic_files->next->id);
+ assert(third.refs == 3 && fourth.refs == 3 && allocated == 4);
+
+ kmalloc_calls = 0;
+ assert(!wasm_dynamic_files_clone(&copy_parent, &copy_child_second));
+ assert(copy_child_second.context.dynamic_file_count == 2);
+ assert(copy_child_second.context.dynamic_file_next == 2);
+ assert(copy_child_second.context.dynamic_files != copy_child.context.dynamic_files);
+ assert(copy_child_second.context.dynamic_files->id == copy_child.context.dynamic_files->id);
+ assert(third.refs == 4 && fourth.refs == 4 && allocated == 6);
+
+ /* Releasing one child does not detach or unpin the parent or another child. */
+ wasm_dynamic_file_refs_release(&copy_child);
+ assert(!copy_child.context.dynamic_files && !copy_child.context.dynamic_file_count);
+ assert(copy_parent.context.dynamic_file_count == 2);
+ assert(copy_child_second.context.dynamic_file_count == 2);
+ assert(third.refs == 3 && fourth.refs == 3 && allocated == 4);
+
+ /* Releasing the parent leaves the remaining child's equal IDs intact. */
+ wasm_dynamic_file_refs_release(&copy_parent);
+ assert(!copy_parent.context.dynamic_files && !copy_parent.context.dynamic_file_count);
+ assert(copy_child_second.context.dynamic_file_count == 2 && copy_child_second.context.dynamic_file_next == 2);
+ assert(third.refs == 2 && fourth.refs == 2 && allocated == 2);
+ task.mm = &copy_child_second; ti.context_mm = &copy_child_second;
+ assert(!wasm_dynamic_file_unpin_v1(copy_id_a));
+ assert(copy_child_second.context.dynamic_file_count == 1 && third.refs == 1);
+ assert(!copy_parent.context.dynamic_files && copy_child_second.context.dynamic_files);
+ wasm_dynamic_file_refs_release(&copy_child_second);
+ assert(!copy_child_second.context.dynamic_files && !copy_child_second.context.dynamic_file_count);
+ assert(fourth.refs == 1 && allocated == 0);
+ fput(fds[1]); fds[1] = 0;
+ fput(fds[2]); fds[2] = 0;
+
+ /* The high-water ID is copied even when the source list is empty. */
+ empty_parent.context.dynamic_file_next = 37;
+ assert(!empty_parent.context.dynamic_files && !empty_parent.context.dynamic_file_count);
+ assert(!wasm_dynamic_files_clone(&empty_parent, &empty_child));
+ assert(!empty_child.context.dynamic_files && !empty_child.context.dynamic_file_count);
+ assert(empty_child.context.dynamic_file_next == 37);
+ third.refs = 1; fds[1] = &third;
+ task.mm = &empty_child; ti.context_mm = &empty_child;
+ assert(wasm_dynamic_file_pin_v1(1, 7, 13) == 38);
+ assert(!wasm_dynamic_file_unpin_v1(38) && third.refs == 1 && !allocated);
+ fput(fds[1]); fds[1] = 0;
+ assert(!warn_on_count);
  return 0;
 }
 """
 
 with tempfile.TemporaryDirectory(prefix="wasm-dynamic-file-") as directory:
     path = Path(directory)
-    (path / "test.c").write_text(SHIM + section + TEST)
+    test_source = path / "test.c"
+    test_source.write_text(SHIM + section + TEST)
+    if evidence:
+        (evidence / "test.c").write_bytes(test_source.read_bytes())
+    commands = []
     for compiler in os.environ.get("WASM_DYNAMIC_COMPILERS", "gcc clang").split():
-        subprocess.run(
-            [
-                compiler,
-                "-std=c11",
-                "-O2",
-                "-Wall",
-                "-Wextra",
-                "-Werror",
-                str(path / "test.c"),
-                "-o",
-                str(path / "check"),
-            ],
-            check=True,
-            timeout=30,
-        )
-        subprocess.run([str(path / "check")], check=True, timeout=10)
+        compile_command = [
+            compiler,
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            str(test_source),
+            "-o",
+            str(path / "check"),
+        ]
+        commands.append(shlex.join(compile_command))
+        subprocess.run(compile_command, check=True, timeout=30)
+        run_command = [str(path / "check")]
+        commands.append(shlex.join(run_command))
+        subprocess.run(run_command, check=True, timeout=10)
         print(f"{compiler}: actual kernel file-ref ownership and teardown model pass")
+    if evidence:
+        (evidence / "commands.txt").write_text("\n".join(commands) + "\n")
