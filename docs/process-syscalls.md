@@ -10111,7 +10111,10 @@ Wisp CONNECT、HTTP 正文及关闭。
 并等待机器和设备关闭。最终验收卡在第二轮夹具计数，两个连接
 收到了三个关闭通知。distro `0c243f5` 和主仓库 pin `e6fe4c3`
 改为逐连接验证。每轮都必须核对该连接的回复和关闭，最后仍要求
-恰好两条连接且页面关闭。两种浏览器均已派发复验。
+恰好两条连接且页面关闭。已核对固定 `0c243f5` 的复验日志。
+Chromium 和 Firefox 各完成两轮，逐轮通过 DNS、CONNECT 目标、
+HTTP 正文、连接关闭以及机器和设备关闭。每种浏览器都等待页面
+关闭，报告显示零跳过和零重试。验收使用可重复的 WebSocket 协议夹具。
 [源码](https://github.com/HighCWu/distro/commit/8bc122e) ·
 [首次 Chromium](https://github.com/HighCWu/distro/actions/runs/45706084210) ·
 [首次 Firefox](https://github.com/HighCWu/distro/actions/runs/45706091378) ·
