@@ -10041,6 +10041,9 @@ distro `2e8f450` 在普通文件、目录和符号链接的创建路径检查父
 身份。MemoryFs 在同一次操作内核对身份和写入，非独占创建转为打开
 已有文件时也检查父目录。旧 fid 的路径若已指向别的目录，则返回
 `ESTALE`，应用可以重新查找后重试。
+固定 `4ff80fa` 的 wasm64 Node 日志确认公共挂载、写入、硬链接、
+纳秒时间戳、扩展属性、宿主内容核对和卸载。运行器确认机器、设备
+和服务关闭，并输出 `::vm-test::closed`。
 [源码](https://github.com/HighCWu/distro/commit/2e8f450) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45664893159)
 
