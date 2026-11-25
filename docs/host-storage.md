@@ -725,6 +725,33 @@ distro `136a2e9` 修复多磁盘启动失败时的 Worker 回收，主仓库 pin
 先前已打开的磁盘关闭及其 Worker 退出，然后报告原始错误。真实 Node 子进程
 验证了这三条路径，包括清理操作失败时保留原始 HTTP 错误。
 
+### 浏览器按需读取远程磁盘
+
+distro `0514366` 将远程磁盘后端移到宿主 JavaScript SDK，主仓库 pin 为
+`8650bf4`。浏览器和 Node 的嵌入方可使用同一个接口，Node 运行器的
+`--disk` 参数也复用该后端。
+
+```js
+import { blockDevice, openHttpBlockStorage } from "@lowland/kernel";
+
+const storage = await openHttpBlockStorage(new URL("/root.ext4", location.href));
+const disk = blockDevice(storage);
+```
+
+把 `disk` 加入机器的设备列表。跨源镜像服务器须允许 CORS 请求和
+`If-Range` 预检，每个 `206` 响应须暴露 `Content-Range`、强 `ETag` 和
+`Content-Encoding: identity`。首次请求固定最终 URL、容量和镜像版本，
+后续逐块验证，设备关闭时取消仍在进行的读取。宿主后端以只读方式提供磁盘，
+Linux 用户程序经现有文件系统和块设备接口访问。
+
+固定 `dabbc19` 的 Linux/Wasm64 内核搭配 `0514366` 的运行层通过 Node
+25.9.0 和 Chrome 153.0.8010.36 验证。测试程序把远程 ext4 镜像挂在
+`/mnt`，读出指定文件，确认写入返回 `EROFS`，然后卸载。Chrome 使用两
+个不同端口实际完成 CORS 预检，两轮共读取 175,104 字节，分 16 次范围请求。
+Node 和 Chrome 均等到机器及三个设备关闭，并确认关闭后的存储读请求被拒绝。
+内核和运行器类型检查、13 项运行器存储测试通过。本轮真实运行覆盖 Wasm64
+只读挂载，使用临时测试服务器提供 8 MiB 镜像。
+
 ## 可写磁盘的块范围清零
 
 distro `cb9fbd9` 支持 virtio-blk `WRITE_ZEROES`，主仓库 pin 为
