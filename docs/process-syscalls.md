@@ -9935,7 +9935,9 @@ vfork 加载器限制。
 原有 exec、回收、文件动作和 ENOENT 恢复检查。新增阶段确认父进程
 在 `dlopen` 后能够启动并回收子进程，随后还能调用此前加载的库。
 Chrome 153.0.8010.36 通过新阶段两轮，并核实机器、设备和浏览器关闭。
-双位宽定向 CI 已提交，目标日志待验收。
+固定 `c00d52e` 的两路 Node CI 制品均包含回调 vfork、exec、回收、文件
+动作与 ENOENT 恢复阶段，以及加载库后的 exec、回收和父进程复用阶段。
+每路均有唯一的 `::vm-test::pass` 和 `::vm-test::closed`。
 [运行 45578886769](https://github.com/HighCWu/distro/actions/runs/45578886769) ·
 [运行 45578899266](https://github.com/HighCWu/distro/actions/runs/45578899266)
 

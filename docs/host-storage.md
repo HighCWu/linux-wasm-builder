@@ -752,6 +752,15 @@ Node 和 Chrome 均等到机器及三个设备关闭，并确认关闭后的存�
 内核和运行器类型检查、13 项运行器存储测试通过。本轮真实运行覆盖 Wasm64
 只读挂载，使用临时测试服务器提供 8 MiB 镜像。
 
+固定 `0514366` 的[打包检查](https://github.com/HighCWu/distro/actions/runs/45584485806)
+有三项启动回滚子测试在导入阶段失败。它们直接执行构建树中的源码，
+Node 从被符号链接指向的依赖目录找不到 `@lowland/kernel`。
+distro `324c2bb`、主仓库 pin `f9a8c64` 改用检查提供的打包入口，
+通过该子进程的 `NODE_OPTIONS` 保留 Worker 关闭监测。源码和本地模拟
+打包布局都通过了三个回滚场景，包括保留原始 HTTP 错误、配置前失败
+与配置后关闭设备。[正式打包复验](https://github.com/HighCWu/distro/actions/runs/45590830609)
+已启动。
+
 ## 可写磁盘的块范围清零
 
 distro `cb9fbd9` 支持 virtio-blk `WRITE_ZEROES`，主仓库 pin 为
