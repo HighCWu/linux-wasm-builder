@@ -10321,7 +10321,9 @@ distro `aa5cb25` 让同一进程内、同签名且同调用方式的动态调用
 普通调用仍恢复外层身份并传播原异常，尾调用继续使用
 `return_call`。回归检查让四种库身份交错调用，核对编译次数及每次
 实际观察到的库身份。761 项运行层检查和两套 TypeScript 检查通过。
-主仓库 pin 为 `96e47a3`，目标验收待核实。
+主仓库 pin 为 `96e47a3`。包含该改动的固定 `5a95dc2` 在 Node
+和 Chromium 日志中均通过了跨模块尾调用与调用方身份恢复。Node
+正常结束，Chromium 两轮均确认机器关闭，随后关闭浏览器。
 [源码](https://github.com/HighCWu/distro/commit/aa5cb25) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/96e47a3) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45683678768) ·
