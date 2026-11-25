@@ -10093,7 +10093,9 @@ distro `4a709dc` 在按路径读取 9P 元数据、首次列目录或刷新目�
 distro `5340c85` 允许 virtio 控制台从同一接收链的多个可写缓冲区
 接收输入，按照描述符顺序填充并报告准确长度。实际 packed queue
 用例验证跨缓冲区输入、后续链收到余下字节，以及错误链保留缓冲区
-内容。746 项检查及 TypeScript 通过，固定源码的目标检查仍在运行。
+内容。746 项检查及 TypeScript 通过。固定 `5340c85` 的 wasm64
+Chromium 149.0.7827.55 实际运行了两轮 9P。每轮完成挂载、读写、
+硬链接、时间戳、扩展属性、卸载、宿主核验与机器关闭，两轮后浏览器关闭。
 [源码](https://github.com/HighCWu/distro/commit/5340c85) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/679d041) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45668946464)
