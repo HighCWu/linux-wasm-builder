@@ -10022,6 +10022,14 @@ distro `e7cbedb`、主仓库 pin `cd28266` 移除了发布方在推进代数时
 [distro 源码](https://github.com/HighCWu/distro/commit/e7cbedb) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/cd28266)
 
+distro `24b2494`、主仓库 pin `7d6a216` 让发布方等待 Worker
+通道时只读取进程身份和代数，从加载器已保存的基线及目标生成增量。
+增量仍经过原有重建校验，代数推进时仍核对回调收到的目标，
+显式快照查询仍复制模块字节。734 项运行层测试和两套 TypeScript
+检查已通过，公开目标执行待验收。
+[distro 源码](https://github.com/HighCWu/distro/commit/24b2494) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/7d6a216)
+
 ## 动态加载后的回调式进程复制复验
 
 固定 `43f709b` 的两位宽 Node 任务均已核实实际阶段。标准
