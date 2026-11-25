@@ -3499,3 +3499,14 @@ LLVM 22 和 Node 的轻量验证覆盖两种位宽、空栈、非页对齐边界
 至少 8 字节的变参槽。固定 Clang 的 IR 和汇编已核对负整数、窄结构体
 和间接聚合指针。主仓库 `19b7ee8` 已同步 pin，完整执行仍待验收。
 [Linux64 ABI 检查](https://github.com/HighCWu/distro/actions/runs/45619326093)
+
+主栈检查和 Linux64 libffi 的首轮构建在 musl `mmap.c` 遇到内部 `weak`
+宏冲突。`efd256f` 改用双下划线形式的编译器属性，主仓库 `2ee7b2e`
+已更新 pin。固定 Clang 22 用生产头文件顺序重现旧错误，并成功编译
+新的 wasm32 和 wasm64 对象。将新 `mmap.o` 装入固定 Linux64 SDK 的
+临时归档后，Node 上的真实 `mincore` 消费者依次通过 data/BSS、主栈、
+映射空洞和部分前缀，共输出一次 pass，运行器正常返回。
+独立打包复验继续覆盖两种位宽及 Linux64 libffi。
+[wasm32 复验](https://github.com/HighCWu/distro/actions/runs/45621060580) ·
+[wasm64 复验](https://github.com/HighCWu/distro/actions/runs/45621060057) ·
+[Linux64 libffi 复验](https://github.com/HighCWu/distro/actions/runs/45621615759)
