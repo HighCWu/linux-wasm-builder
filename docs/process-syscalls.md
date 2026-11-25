@@ -10106,12 +10106,20 @@ distro `5721972` 和主仓库 pin `e185492` 补入相同的解析器配置，
 加入配置断言并把 wget 错误详情写入日志。复验已派发。每种浏览器
 运行两轮原版 BusyBox wget，通过协议夹具核对 DNS 转发、
 Wisp CONNECT、HTTP 正文及关闭。
+
+固定 `5721972` 的两种浏览器均跑完两轮 wget，核对了响应正文，
+并等待机器和设备关闭。最终验收卡在第二轮夹具计数，两个连接
+收到了三个关闭通知。distro `0c243f5` 和主仓库 pin `e6fe4c3`
+改为逐连接验证。每轮都必须核对该连接的回复和关闭，最后仍要求
+恰好两条连接且页面关闭。两种浏览器均已派发复验。
 [源码](https://github.com/HighCWu/distro/commit/8bc122e) ·
 [首次 Chromium](https://github.com/HighCWu/distro/actions/runs/45706084210) ·
 [首次 Firefox](https://github.com/HighCWu/distro/actions/runs/45706091378) ·
 [修正](https://github.com/HighCWu/distro/commit/5721972) ·
-[复验 Chromium](https://github.com/HighCWu/distro/actions/runs/45708605745) ·
-[复验 Firefox](https://github.com/HighCWu/distro/actions/runs/45708615455)
+[DNS 复验 Chromium](https://github.com/HighCWu/distro/actions/runs/45708605745) ·
+[DNS 复验 Firefox](https://github.com/HighCWu/distro/actions/runs/45708615455) ·
+[逐连接复验 Chromium](https://github.com/HighCWu/distro/actions/runs/45710755054) ·
+[逐连接复验 Firefox](https://github.com/HighCWu/distro/actions/runs/45710765157)
 
 ## 9P 创建目标与 virtio 网卡接收
 
