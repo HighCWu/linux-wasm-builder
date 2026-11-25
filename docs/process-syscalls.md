@@ -9767,11 +9767,19 @@ BusyBox `ip` 检查 veth 端点的创建、carrier 和删除，以及独立路�
 通用实现，保持 `CONFIG_MMU=n`。
 
 早期两组任务停在 `treefmt`，尚未启动目标。格式修正 `dabbc19` 已由
-根仓库 `345feff` 固定，等待四项真实目标阶段和关闭结果。
+根仓库 `345feff` 固定。已核实 wasm32 与 wasm64 的 loop 日志，各有
+分配、挂载并写入 ext4，以及只读重挂载读回、卸载和唯一通过标记。
+两路运行器均成功退出。该固定版本的运行器在退出前等待
+`machine.closed` 并检查存储清理。虚拟网络的目标阶段和关闭结果待核实。
 [loop wasm32](https://github.com/HighCWu/distro/actions/runs/45525364042) ·
 [loop wasm64](https://github.com/HighCWu/distro/actions/runs/45525370191) ·
 [虚拟网络 wasm32](https://github.com/HighCWu/distro/actions/runs/45525377554) ·
 [虚拟网络 wasm64](https://github.com/HighCWu/distro/actions/runs/45525385820)
+
+distro `7df00ca` 为两路 loop 检查保存 `runtime.log`，主仓库 pin 为
+`176ea4a`。文件保留运行器输出，并在进程成功退出后追加关闭标记；
+GitHub Actions 使该记录可单独下载。Nix 求值确认其他检查的生成脚本
+保持一致，轻量检查验证了运行器失败、超时与日志写入失败的退出状态。
 
 ## autofs 挂载与宿主 vsock 监听
 
