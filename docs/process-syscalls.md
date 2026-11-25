@@ -9897,9 +9897,9 @@ distro `6d50f67` 和主仓库 pin `39cbe01` 接入候选。运行检查使用临
 diod 可写导出，要求普通 C 程序创建和分块写入文件，重新打开并用
 `O_APPEND` 追加，再逐字节核对。断连后宿主独立核对 12,546 字节。
 原有挂载、目录读取、卸载和机器关闭同样列入门禁。
-GCC、Clang 隔离检查及候选源码哈希校验通过。wasm32 目标运行日志已核实
-挂载、创建、分块写入、追加、重新打开和逐字节读回，以及宿主验证、卸载、
-diod 正常退出和机器关闭。通过和关闭标记各出现一次。wasm64 运行仍待验收。
+GCC、Clang 隔离检查及候选源码哈希校验通过。wasm32 和 wasm64 的实际
+运行日志均确认挂载、创建、分块写入、追加、重新打开和逐字节读回，以及
+宿主验证、卸载、diod 正常退出和机器关闭。两路的通过和关闭标记各出现一次。
 [候选源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45596977129) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45597361703) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45597361980)
