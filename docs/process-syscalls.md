@@ -10022,9 +10022,34 @@ distro `982ad8c` 让 IndexedDB HTTP 磁盘接入现有 virtio
 非对齐边界保留区间外的字节，清零与普通写入共用严格事务提交。
 Chromium 153.0.8010.36 直接运行该后端，验证写入和清零排队、
 关闭重开后的精确字节和浏览器关闭。运行层 736 项测试及两套
-TypeScript 检查通过。Linux 整机的这条持久磁盘路径仍待验收。
+TypeScript 检查通过。
 [源码](https://github.com/HighCWu/distro/commit/982ad8c) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/bcf6ba8)
+
+同一后端搭配固定 wasm64 Linux 和已有 virtio 块设备，在真实 Chromium
+中启动两次。第一次 Linux 检查队列清零能力、发出 `BLKZEROOUT`，
+浏览器收到偏移 4,096 字节、长度 131,072 字节的准确设备请求。
+第一次关闭后，第二次启动重新打开同一个 IndexedDB 磁盘，Linux
+逐字节验证清零范围及其两侧。第二次启动未发出清零请求。两次均有
+实际阶段、通过与机器及三个设备关闭日志，随后浏览器关闭。
+
+## 9P 创建目标与 virtio 网卡接收
+
+distro `2e8f450` 在普通文件、目录和符号链接的创建路径检查父目录
+身份。MemoryFs 在同一次操作内核对身份和写入，非独占创建转为打开
+已有文件时也检查父目录。旧 fid 的路径若已指向别的目录，则返回
+`ESTALE`，应用可以重新查找后重试。
+[源码](https://github.com/HighCWu/distro/commit/2e8f450) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45664893159)
+
+distro `4ff80fa` 的 virtio 网卡先核对已投递接收链的容量。
+帧超出容量时，设备返回长度零的已用描述符，缓冲区保持原值，后续
+帧继续交付。Linux 的接收路径会释放短包缓冲区。实际 packed queue
+验证了使用标志、零长度和后继帧的跨缓冲区内容。739 项运行层检查
+及两套 TypeScript 检查通过，目标 CI 仍在运行。
+[源码](https://github.com/HighCWu/distro/commit/4ff80fa) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/912d93a) ·
+[wasm64 Chromium 网络检查](https://github.com/HighCWu/distro/actions/runs/45664893559)
 
 ## 动态加载后的新线程准入
 
