@@ -9789,7 +9789,9 @@ GitHub Actions 使该记录可单独下载。Nix 求值确认其他检查的生�
 distro `c13ab56` 增加 TAP 双向以太网检查，根 pin 为 `75d1c96`。
 测试用标准 TAP 与 packet socket 收发两条不同的以太网帧，核对帧内容、
 接口和来源地址，再确认最后一个 TAP 描述符关闭后接口移除。
-GCC 与 Clang 原生验证通过。双位宽目标记录还需核实。
+GCC 与 Clang 原生验证通过。已核对两种位宽的实际日志制品，各自通过
+双向收发、关闭后接口移除，以及原有 TUN、veth 和策略路由阶段。
+每份日志均只有一个通过标记，末行为 `::vm-test::closed`。
 [TAP wasm32](https://github.com/HighCWu/distro/actions/runs/45537393667) ·
 [TAP wasm64](https://github.com/HighCWu/distro/actions/runs/45537410587)
 
