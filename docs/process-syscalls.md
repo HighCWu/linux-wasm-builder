@@ -9991,6 +9991,13 @@ distro `6add20c`、主仓库 pin `43b2fd2` 让 9P 内存目录在按路径
 [distro 源码](https://github.com/HighCWu/distro/commit/6add20c) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/43b2fd2)
 
+distro `2dc95c1`、主仓库 pin `b5a6e70` 将同一检查用于删除和重命名。
+内存目录在改动前核对请求携带的文件身份及相关目录身份，
+失败的 Tremove 仍释放原 fid。13 项协议用例通过，
+覆盖替换对象不受影响、正常删除和重命名以及同 inode 无操作。
+[distro 源码](https://github.com/HighCWu/distro/commit/2dc95c1) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/b5a6e70)
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
