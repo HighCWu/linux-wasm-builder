@@ -9979,6 +9979,18 @@ distro `bff76c8` 和主仓库 pin `0d156c4` 同时包含时间戳修复和用户
 [distro 源码](https://github.com/HighCWu/distro/commit/add8903) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/0d156c4)
 
+#### 已查找文件的 inode 身份
+
+distro `6add20c`、主仓库 pin `43b2fd2` 让 9P 内存目录在按路径
+打开、截断或修改属性前核对 fid 保存的 inode。原路径若被另一文件取代，
+旧 fid 返回 `ESTALE`。已打开的文件在重命名或取消链接后仍沿用原 inode。
+实际协议回归覆盖打开前替换、属性修改前替换、用新 fid 正常修改，
+以及通过已打开的句柄修改和读取原文件。
+732 项运行层测试和两套 TypeScript 检查已通过。
+双位宽 Node 和 Chromium 的目标验收仍待派发。
+[distro 源码](https://github.com/HighCWu/distro/commit/6add20c) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/43b2fd2)
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
