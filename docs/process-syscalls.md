@@ -10000,11 +10000,31 @@ distro `2dc95c1`、主仓库 pin `b5a6e70` 将同一检查用于删除和重命�
 
 固定 distro `24b2494` 的 wasm32 Node 已核实实际运行日志。挂载后读取、
 重开写入文件、硬链接、纳秒时间戳和 `user.*` 扩展属性均通过。卸载后
-宿主核对了写入内容，运行器确认机器、设备和服务关闭。其它三项目标仍待验收。
+宿主核对了写入内容，运行器确认机器、设备和服务关闭。wasm32 Chromium
+也在两轮中完成同样的文件操作，核对宿主写入并等待机器关闭，最后确认浏览器
+关闭。两项 wasm64 工作流已成功，实际阶段日志仍待核实。
 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/45656891742) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45656890247) ·
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/45656889638) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45656889232)
+
+distro `a3048f7` 修正 9P 普通文件 fid 的访问权限。只写 fid 禁止读取，
+只读 fid 禁止写入，元数据操作保持独立。新建文件沿用已打开的句柄。
+非独占创建遇到已存在的文件时，按原访问模式打开并校验文件身份。
+固定 `982ad8c` 的 wasm64 Chromium 检查已启动。
+[源码](https://github.com/HighCWu/distro/commit/a3048f7) ·
+[目标检查](https://github.com/HighCWu/distro/actions/runs/45662612870)
+
+## 浏览器持久磁盘清零
+
+distro `982ad8c` 让 IndexedDB HTTP 磁盘接入现有 virtio
+`WRITE_ZEROES`。清零扇区显式存储，重开后覆盖底图的原始数据。
+非对齐边界保留区间外的字节，清零与普通写入共用严格事务提交。
+Chromium 153.0.8010.36 直接运行该后端，验证写入和清零排队、
+关闭重开后的精确字节和浏览器关闭。运行层 736 项测试及两套
+TypeScript 检查通过。Linux 整机的这条持久磁盘路径仍待验收。
+[源码](https://github.com/HighCWu/distro/commit/982ad8c) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/bcf6ba8)
 
 ## 动态加载后的新线程准入
 
