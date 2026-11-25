@@ -9858,7 +9858,14 @@ diod 的协议协商、打开、逐字节读回和连接关闭。
 
 目标运行使用原版 diod，要求分别核对 9P 挂载、目录枚举、读回文件及
 末尾换行、卸载、服务进程正常退出、唯一通过标记和机器与设备关闭。
-双位宽的目标验收尚在 CI 中。这一增量覆盖只读挂载路径，写入和文件
-映射需要各自验证。
-[wasm32](https://github.com/HighCWu/distro/actions/runs/45551709616) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45551717275)
+首轮两种位宽均完成挂载和目录枚举，随后在 BusyBox 管道比较阶段
+失败，未进入卸载及关闭门禁。
+[首轮 wasm32](https://github.com/HighCWu/distro/actions/runs/45551709616) ·
+[首轮 wasm64](https://github.com/HighCWu/distro/actions/runs/45551717275)。
+
+distro `67cd147` 改用标准 `open` 和 `read`，逐字节比较固定文本并
+读到 EOF。错误日志区分系统调用失败、短文件及首个字节偏差。根仓库
+pin 为 `bbf46bd`。GCC 和 Clang 的本机检查覆盖成功、截断和多余
+字节，双位宽目标复验已启动。当前验收范围为只读挂载。
+[复验 wasm32](https://github.com/HighCWu/distro/actions/runs/45554200511) ·
+[复验 wasm64](https://github.com/HighCWu/distro/actions/runs/45554207763)
