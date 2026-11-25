@@ -9920,13 +9920,27 @@ Linux 客户端沿用候选配置和标准 `trans=fd` 挂载。Node 与 Chromium
 
 本地通过了 725 项运行层测试、23 项运行器测试、TypeScript 检查以及
 Nix 语法和固定版本格式检查。npm 打包清单包含上游 MIT 许可证。
-实际挂载和关闭结果待 CI 核实。此候选使用单连接内存目录，
-宿主目录 API 和快照支持仍待后续增量。
+固定 `948c700` 的 wasm32 Node 日志已核实完整挂载、读写、卸载，
+宿主在断连后核验全部字节，随后正常关闭。其余目标阶段待核实。
+此候选使用单连接内存目录，宿主目录 API 和快照支持仍待后续增量。
 
 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/45641899609) ·
 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/45641903460) ·
 [Chromium wasm32](https://github.com/HighCWu/distro/actions/runs/45641907911) ·
 [Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/45641899462)
+
+#### 内存目录硬链接
+
+distro `c49c198`、主仓库 pin `90051f6` 接通标准 Tlink。源文件与目标
+目录的 inode 身份由服务端在插入前同时检查，陈旧 fid 返回 `ESTALE`。
+两个路径共享同一 inode、链接数和内容。同 inode 的 rename 保留两个路径
+以及相关 fid。内存目录真实挂载检查新增链接、经别名写入、恢复和卸载前
+删除别名的阶段，宿主继续核对原文件全部 12,546 字节。
+
+本地 727 项运行层测试和 GCC、Clang 原生参考通过。双位宽 Node
+挂载验收已启动，Chromium 夹具同样要求该阶段。
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/45643747722) ·
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/45643743158)
 
 ## 动态加载后的新线程准入
 
