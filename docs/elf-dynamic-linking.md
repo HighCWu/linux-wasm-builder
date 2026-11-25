@@ -1789,3 +1789,14 @@ Linux `dcb796168` 与 distro `96c859e` 移除了每个进程最多保活 1024 �
 [源码哈希检查](https://github.com/HighCWu/linux-wasm-builder/actions/runs/43098750239)、
 [wasm32 容量检查](https://github.com/HighCWu/distro/actions/runs/43101989587)、
 [wasm64 容量检查](https://github.com/HighCWu/distro/actions/runs/43101997912)。
+
+## 大型动态模块图的 Worker 发布
+
+distro `495fcf1`、主仓库 pin `2953e6f` 将动态模块内存与表的重叠校验改为排序扫描，反向
+owner 校验使用名称索引。零长度区间与端点仍沿用原来的严格判定。
+模块分析缓存现在可同时保留 1024 项，缓存模块字节仍受原有 64 MiB
+上限约束。没有改变 Worker 发布协议或追加图的校验规则。
+
+固定 `dabbc19` 的 Linux/Wasm64 内核搭配候选版运行层，在双 CPU
+Node 中完成了标准 C 用例的两次动态库加载，验证了先创建的线程仍能
+参与发布、构造函数内可继续等待线程，并通过了关机检查。
