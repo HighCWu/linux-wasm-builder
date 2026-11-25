@@ -9772,3 +9772,22 @@ BusyBox `ip` 检查 veth 端点的创建、carrier 和删除，以及独立路�
 [loop wasm64](https://github.com/HighCWu/distro/actions/runs/45525370191) ·
 [虚拟网络 wasm32](https://github.com/HighCWu/distro/actions/runs/45525377554) ·
 [虚拟网络 wasm64](https://github.com/HighCWu/distro/actions/runs/45525385820)
+
+## autofs 挂载与宿主 vsock 监听
+
+distro `a265f8d` 为双位宽启用官方 Linux 的 `AUTOFS_FS`，根 pin
+`9ce176d` 已同步。真实目标检查要求挂载协议 5 的间接 autofs，通过
+`/dev/autofs` 查询版本、设置并读回过期时间、停用挂载并验证通知管道
+释放，最后卸载。GCC、Clang、静态分析和原生控制设备版本查询通过。
+两种位宽的目标执行与关闭待核实。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45527668698) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45527675135)
+
+distro `786e9e7` 为宿主 virtio-vsock 设备接通监听。Linux 程序使用
+标准 `AF_VSOCK` 连接宿主端口。按两端地址区分连接，使用有界队列，
+并保留队列饱和时的关闭顺序。主仓库 pin 为 `cf298d8`。700 项宿主
+内核测试与 TypeScript 检查通过。Node v25.9.0 使用固定的 Linux
+`10e7181` 和运行器 `8bd2298`，替换为该版本 vsock 设备模块后，
+真实 wasm64 Linux 程序同时保持两路同端口连接，分别写入并读回正确
+字节，运行器在机器正常关闭后退出。该实测覆盖固定组合的双向数据与
+关闭，整套新源码的浏览器和双位宽验收仍待完成。
