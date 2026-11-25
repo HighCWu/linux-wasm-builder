@@ -10199,6 +10199,19 @@ distro `037d623`、主仓库 pin `186cf9a` 在组装 Worker 重放模块时，
 [distro 源码](https://github.com/HighCWu/distro/commit/037d623) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/186cf9a)
 
+## 普通动态加载复用准入模块
+
+distro `d882811` 在普通 `dlopen` 中复用同一原始字节数组在准入
+阶段得到的 Wasm 模块。读取和核验模块字节的步骤照常执行，尾调用改写、
+Worker 重放和调用元数据改写继续分别编译。现有根库与依赖库的回归用例
+核对原始和带调用元数据的字节各编译一次，并继续实际调用符号。
+750 项运行层测试和两套 TypeScript 检查通过。主仓库 pin 为
+`e3e1be0`，实际 Wasm 运行检查已启动。
+[源码](https://github.com/HighCWu/distro/commit/d882811) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/e3e1be0) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45678319487) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45678319802)
+
 ## 动态加载后的回调式进程复制复验
 
 固定 `43f709b` 的两位宽 Node 任务均已核实实际阶段。标准
