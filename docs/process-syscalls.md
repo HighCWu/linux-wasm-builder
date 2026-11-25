@@ -9922,3 +9922,19 @@ distro `38b88a0`、主仓库 pin `5153ce0` 在已有的私有内存复制阶段�
 715 项运行层测试通过。固定 Linux/Wasm64 内核搭配该运行层，在 Chrome
 双 CPU 下执行已有的回调式进程复制程序。两轮均通过 DSO、嵌套进程和
 数据隔离检查，且均等待机器与设备关闭。
+
+## 动态程序加载共享库后启动进程
+
+distro `c00d52e`、主仓库 pin `c986148` 支持动态 Wasm 主程序完成
+`dlopen` 后调用标准 `posix_spawn`。准入限于尚无共享线程、加载器已结束
+当前操作的既有 callback-vfork 调用形态。子 Worker 共用线性内存，在回调
+开始前重建已加载的模块和函数表并确认就绪。子端在 exec 或退出前仍受
+vfork 加载器限制。
+
+固定 Linux/Wasm64 内核及 SDK 搭配新运行层，在 Node 24.18.0 通过了
+原有 exec、回收、文件动作和 ENOENT 恢复检查。新增阶段确认父进程
+在 `dlopen` 后能够启动并回收子进程，随后还能调用此前加载的库。
+Chrome 153.0.8010.36 通过新阶段两轮，并核实机器、设备和浏览器关闭。
+双位宽定向 CI 已提交，目标日志待验收。
+[运行 45578886769](https://github.com/HighCWu/distro/actions/runs/45578886769) ·
+[运行 45578899266](https://github.com/HighCWu/distro/actions/runs/45578899266)
