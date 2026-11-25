@@ -10054,7 +10054,9 @@ distro `4ff80fa` 的 virtio 网卡先核对已投递接收链的容量。
 及两套 TypeScript 检查通过。固定 `4ff80fa` 的 Chromium 网络验证
 在建立连接前的监听检查超时。用例只读取 IPv4 表，启用 IPv6 的
 BusyBox 对只给端口的监听会优先尝试 IPv6。固定 `a7a007e` 的用例
-显式绑定 IPv4 并重跑，运行结果待核实。
+显式绑定 IPv4，wasm64 Chromium 实际访问了附加网卡上的 HTTP 服务。
+同次运行通过了文件元数据、进程回收、二进制管道和释放后拒绝输入等阶段，
+测试还确认机器已关闭。
 [源码](https://github.com/HighCWu/distro/commit/4ff80fa) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/912d93a) ·
 [wasm64 Chromium 网络检查](https://github.com/HighCWu/distro/actions/runs/45664893559)
@@ -10095,6 +10097,21 @@ distro `5340c85` 允许 virtio 控制台从同一接收链的多个可写缓冲�
 [源码](https://github.com/HighCWu/distro/commit/5340c85) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/679d041) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45668946464)
+
+distro `13566aa` 将 9P 的逐段路径查找绑定到 fid 捕获的目录身份。
+MemoryFs 在同一步完成身份校验和查找。有效的重命名目录仍可继续查找，
+被宿主替换的目录返回 `ESTALE`。部分成功的应答保留既有目标 fid，
+导出根的 `..` 仍留在根。未提供身份的旧后端沿用按路径查找，
+提供身份的后端须实现原子 lookup 才能从这类 fid 继续查找。
+
+distro `3d5d92f` 在发出控制台输出前核对整条描述符链可读，
+按顺序交付内容，向 Linux 报告设备写入长度为零。主仓库 pin
+`04baba0` 固定这两个修复。748 项运行层检查、源码和测试的 TypeScript
+检查通过。新 pin 的 wasm64 Node 9P 运行仍待验收。
+[9P 源码](https://github.com/HighCWu/distro/commit/13566aa) ·
+[控制台源码](https://github.com/HighCWu/distro/commit/3d5d92f) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/04baba0) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45670609112)
 
 ## 动态加载后的新线程准入
 
