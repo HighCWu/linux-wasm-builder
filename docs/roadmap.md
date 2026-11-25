@@ -3531,3 +3531,11 @@ Linux `49a6e956b` 在三份 Wasm defconfig 启用现有的 `TASKSTATS`、
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45627285659) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45627695521) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45627711020)
+
+### 默认 ABI 的 wasm32 libffi 验收
+
+distro `b7d3975` 的默认 wasm32 ABI 检查执行了实际消费者。日志确认
+混合参数调用、按值传递的变参聚合及唯一的通过标记。固定版本的运行器
+等待 `machine.closed` 并完成资源回收后返回成功。此结果覆盖默认 wasm32
+ABI，wasm64 和独立 Linux64 ABI 分别验收。
+[目标日志](https://github.com/HighCWu/distro/actions/runs/45616988044/job/139215000473)
