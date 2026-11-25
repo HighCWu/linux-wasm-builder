@@ -9886,6 +9886,22 @@ netfs 按原路径读取，再由调用者回拷，文件位置只前进实际�
 宿主在连接 EOF 后确认 diod 正常退出，运行器确认机器和设备关闭。
 每份日志各有一次通过标记和一次关闭标记，关闭标记位于最后一行。
 
+### 9P 同步非缓存写入
+
+Linux `2542f8289` 让 Wasm NOMMU 的 9P 同步非缓存写入能够读取来自
+独立用户线性内存的源缓冲区。位置和大小检查沿用 netfs。随后复制至
+受页大小与协商传输大小限制的内核缓冲，按服务端确认的字节数推进。
+首字节不可读时返回 `EFAULT`，无需发送请求。
+
+distro `6d50f67` 和主仓库 pin `39cbe01` 接入候选。运行检查使用临时
+diod 可写导出，要求普通 C 程序创建和分块写入文件，重新打开并用
+`O_APPEND` 追加，再逐字节核对。断连后宿主独立核对 12,546 字节。
+原有挂载、目录读取、卸载和机器关闭同样列入门禁。
+GCC、Clang 隔离检查及候选源码哈希校验通过。真实双位宽运行待验收。
+[候选源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45596977129) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45597361703) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45597361980)
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
