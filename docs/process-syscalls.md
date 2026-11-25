@@ -9920,8 +9920,8 @@ Linux 客户端沿用候选配置和标准 `trans=fd` 挂载。Node 与 Chromium
 
 本地通过了 725 项运行层测试、23 项运行器测试、TypeScript 检查以及
 Nix 语法和固定版本格式检查。npm 打包清单包含上游 MIT 许可证。
-固定 `948c700` 的 wasm32 Node 日志已核实完整挂载、读写、卸载，
-宿主在断连后核验全部字节，随后正常关闭。其余目标阶段待核实。
+固定 `948c700` 的 wasm32 和 wasm64 Node 日志均已核实挂载、读写、
+卸载以及断连后宿主核验全部字节。两份日志各有一次通过和关闭标记。
 此候选使用单连接内存目录，宿主目录 API 和快照支持仍待后续增量。
 
 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/45641899609) ·
@@ -9938,13 +9938,30 @@ distro `c49c198`、主仓库 pin `90051f6` 接通标准 Tlink。源文件与目�
 删除别名的阶段，宿主继续核对原文件全部 12,546 字节。
 
 本地 727 项运行层测试和 GCC、Clang 原生参考通过。双位宽 Node
-挂载验收已启动。distro `e8045d9`、主仓库 pin `b43c0bf`
-让 Chromium 检查保留运行日志制品。双位宽 Chromium 同样要求
-硬链接阶段及两轮完整关闭，实际运行结果待核实。
+挂载日志已确认别名写入、删除、卸载、宿主字节核验和关闭。
+distro `e8045d9`、主仓库 pin `b43c0bf` 让 Chromium 检查保留运行日志。
+固定 Chromium 149.0.7827.55 在两种位宽下各完成两轮，
+每轮均确认挂载、同 inode 别名、读写、卸载、宿主字节核验和机器关闭，
+且两轮结束后浏览器关闭。
 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/45643747722) ·
 [Node wasm64](https://github.com/HighCWu/distro/actions/runs/45643743158) ·
 [Chromium wasm32](https://github.com/HighCWu/distro/actions/runs/45644385033) ·
 [Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/45644390782)
+
+#### 有符号秒与纳秒精度
+
+distro `d914364`、主仓库 pin `82a3da7` 保留 Tsetattr 和 Rgetattr
+中的有符号 64 位秒数和纳秒字段。内存目录以这两个字段保存时间，
+不经过浮点毫秒转换。无效纳秒在改动元数据前被拒绝，
+同一 inode 的硬链接共享时间。Linux 夹具核对纪元前访问时间、
+纳秒级修改时间及 `UTIME_OMIT` 保留行为。
+
+本地 728 项运行层测试、TypeScript 检查和 GCC、Clang 原生参考已通过。
+双位宽 Node 和 Chromium 目标阶段与关闭结果待 CI 核实。
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/45647498343) ·
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/45647512023) ·
+[Chromium wasm32](https://github.com/HighCWu/distro/actions/runs/45647496556) ·
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/45647507781)
 
 ## 动态加载后的新线程准入
 
