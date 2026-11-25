@@ -9799,3 +9799,10 @@ distro `6e5848a` 接入双位宽真实目标检查，主仓库 pin 为
 47 项检查通过。真实目标阶段及关闭结果待核实。
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45529699813) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45529704836)
+
+distro `43dd637` 支持 Linux 发起的 vsock 半关闭，主仓库 pin 为
+`d259312`。Linux 调用 `shutdown(SHUT_WR)` 后，宿主读取剩余字节并收到
+EOF，仍可向 Linux 返回数据。Node v25.9.0 使用 Linux `10e7181`、
+运行器 `8bd2298` 和 `43dd637` 的设备模块验证了上述路径，双方均收到
+预期字节，运行器在 `machine.closed` 后正常退出。双位宽检查程序已加入
+半关闭和回复阶段，整套新源码的双位宽目标验收待完成。
