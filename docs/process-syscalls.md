@@ -10174,6 +10174,13 @@ distro `61a2968` 和主仓库 pin `3ca8247` 支持将浏览器提供的
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/45682521475) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45682534914)
 
+distro `5a95dc2` 保留 9P 文件名和符号链接目标开头的 U+FEFF。
+协议检查核对带此前缀和不带前缀的同目录文件各自返回正确内容，
+并核对符号链接目标的字节往返。目标夹具也通过标准路径读取导入的
+带前缀文件。
+[源码](https://github.com/HighCWu/distro/commit/5a95dc2) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45683700328)
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
@@ -10252,6 +10259,19 @@ distro `8146296` 将普通 `dlopen` 的文件与别名暂存限制在本次变�
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/c1ffd0c) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45680702900) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45680702845)
+
+### 动态调用包装器共享编译模块
+
+distro `aa5cb25` 让同一进程内、同签名且同调用方式的动态调用包装器
+共享引擎编译结果。库身份由每个包装器实例的不可变 i32 全局量提供。
+普通调用仍恢复外层身份并传播原异常，尾调用继续使用
+`return_call`。回归检查让四种库身份交错调用，核对编译次数及每次
+实际观察到的库身份。761 项运行层检查和两套 TypeScript 检查通过。
+主仓库 pin 为 `96e47a3`，目标验收待核实。
+[源码](https://github.com/HighCWu/distro/commit/aa5cb25) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/96e47a3) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45683678768) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45683690550)
 
 ## 动态加载后的回调式进程复制复验
 
