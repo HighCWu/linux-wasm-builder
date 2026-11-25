@@ -3540,12 +3540,20 @@ distro `b7d3975` 的默认 wasm32 ABI 检查执行了实际消费者。日志确
 ABI，wasm64 和独立 Linux64 ABI 分别验收。
 [目标日志](https://github.com/HighCWu/distro/actions/runs/45616988044/job/139215000473)
 
-### wasm64 进程 I/O 记账验收
+### 双位宽进程 I/O 记账验收
 
-固定 distro `625bac9` 的 wasm64 日志依次确认描述符 I/O 计数、
-标准 TASKSTATS 家族发现和当前 PID 的嵌套统计。唯一 pass 后记录
-机器与设备关闭。wasm32 工作流已成功，实际阶段日志待核对。
+固定 distro `625bac9` 的两路实际日志均依次确认描述符 I/O 计数、
+标准 TASKSTATS 家族发现和当前 PID 的嵌套统计。每路各有唯一 pass
+和机器及设备关闭标记。
+[wasm32 目标日志](https://github.com/HighCWu/distro/actions/runs/45627695521/job/139252419152) ·
 [wasm64 目标日志](https://github.com/HighCWu/distro/actions/runs/45627711020/job/139252422214)
+
+### wasm32 Worker 发布缓存验收
+
+固定 distro `b7d3975` 的 wasm32 目标确认首次加载前辅助线程已阻塞，
+随后动态库构造函数完成线程回收并输出唯一 pass。工作流的运行器等待
+机器和设备关闭后返回成功。
+[wasm32 目标日志](https://github.com/HighCWu/distro/actions/runs/45616991658/job/139215013547)
 
 ### 标准 PSI 压力记账
 
