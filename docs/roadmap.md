@@ -3564,10 +3564,10 @@ Linux 任务压力记账，保留 `CONFIG_MMU=n`。distro `350194b` 和
 `some total` 增长及触发器返回 `POLLPRI`，随后回收线程并关闭机器。
 
 三份配置经 Kconfig 解析，固定内核源码哈希经过公开工作流核验。
-GCC 和 Clang 宿主参考均通过实际触发器。固定 `350194b` 的 wasm32
-运行日志逐项确认标准记录解析、单 CPU 竞争时压力累计增长与线程回收，
-以及触发器唤醒 poll 并关闭。日志各有一次通过与关闭标记。wasm64 待验收。
+GCC 和 Clang 宿主参考均通过实际触发器。固定 `350194b` 的 wasm32 和
+wasm64 运行日志均逐项确认标准记录解析、单 CPU 竞争时压力累计增长与
+线程回收，以及触发器唤醒 poll 并关闭。每份日志各有一次通过与关闭标记。
 [Linux PSI 文档](https://docs.kernel.org/accounting/psi.html) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45632200217) ·
 [wasm32 目标日志](https://github.com/HighCWu/distro/actions/runs/45632589284/job/139269627832) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45632598279)
+[wasm64 目标日志](https://github.com/HighCWu/distro/actions/runs/45632598279/job/139269689310)
