@@ -10124,6 +10124,22 @@ HTTP 正文、连接关闭以及机器和设备关闭。每种浏览器都等待
 [逐连接复验 Chromium](https://github.com/HighCWu/distro/actions/runs/45710755054) ·
 [逐连接复验 Firefox](https://github.com/HighCWu/distro/actions/runs/45710765157)
 
+#### 多个 Wisp 代理
+
+distro `fc51018`、主仓库 pin `07adc30` 支持通过
+`wispNetwork([urlA, urlB])` 配置最多四个不同的 Wisp 端点。
+同一批待建立的 TCP 会话共享一次握手竞争，首个返回有效 Wisp v1
+初始 `CONTINUE` 的端点接收流量，其余连接随即关闭。代理断开时，
+应用会观察到现有连接失败，后续新会话可以重新选取代理。
+原有单端点形式仍可使用。
+
+13 项宿主检查和 TypeScript 检查通过。浏览器验收使用一个不应答
+握手的代理和一个正常代理。每轮要求 BusyBox wget 精确读回内容，
+并确认两条代理连接、机器、设备及最终页面关闭。目标 CI 待验收。
+[源码](https://github.com/HighCWu/distro/commit/fc51018) ·
+[Chromium](https://github.com/HighCWu/distro/actions/runs/45717034615) ·
+[Firefox](https://github.com/HighCWu/distro/actions/runs/45717041716)
+
 ## 9P 创建目标与 virtio 网卡接收
 
 distro `2e8f450` 在普通文件、目录和符号链接的创建路径检查父目录
