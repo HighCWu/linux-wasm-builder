@@ -761,6 +761,37 @@ distro `324c2bb`、主仓库 pin `f9a8c64` 改用检查提供的打包入口，
 与配置后关闭设备。[正式打包复验](https://github.com/HighCWu/distro/actions/runs/45590830609)
 已启动。
 
+### 浏览器可写的远程磁盘
+
+distro `8774da5` 在既有 virtio-blk 和 HTTP 范围读取上增加了稀疏写入层，
+主仓库 pin 为 `b7d20ff`。浏览器嵌入方把返回的存储交给同一个块设备。
+Linux 侧用常规挂载、文件读写和 `fsync`。
+
+```js
+import { blockDevice, openIndexedDbHttpBlockStorage } from "@lowland/kernel";
+
+const storage = await openIndexedDbHttpBlockStorage(
+  new URL("/root.ext4", location.href),
+  "workspace",
+);
+const disk = blockDevice(storage);
+```
+
+首次打开固定最终 URL、强 ETag 和容量。未写扇区按需从 HTTP 镜像读取，
+改动以 512 字节扇区存于同源 IndexedDB。每个后端写调用在严格持久化事务
+提交后完成，`flush` 等待排在它前面的写。相同名称由 Web Locks 独占。
+同名重开遇到不同镜像身份会拒绝并保留旧数据。机器关闭会释放数据库连接
+和锁。该机制需要浏览器提供 IndexedDB 和 Web Locks，并受浏览器的配额、
+存储清除与回收策略约束。远端镜像继续由原有只读 HTTP 后端访问。
+
+固定 `dabbc19` 的 Linux/Wasm64 内核和 `8774da5` 的运行层源码在
+Chrome 153.0.8010.36 验证了同一个 8 MiB 镜像的两次启动。第一台 Linux
+挂载远程 ext4，创建文件、`fsync` 并卸载。第二台经同名覆盖层重新
+挂载，核对原始样本和新增文件内容。浏览器同时检查并发打开拒绝、镜像
+身份不匹配拒绝和关闭后读请求拒绝。两轮机器、控制台、熵设备、磁盘及
+最终浏览器均关闭。跨源镜像两轮共收到 15 次范围请求，传输 121,344 字节。
+内核运行层的源码与测试 TypeScript 检查和 45 项块设备回归通过。
+
 ## 可写磁盘的块范围清零
 
 distro `cb9fbd9` 支持 virtio-blk `WRITE_ZEROES`，主仓库 pin 为
