@@ -10212,6 +10212,23 @@ Worker 重放和调用元数据改写继续分别编译。现有根库与依赖�
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45678319487) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45678319802)
 
+## 多模块动态加载的暂存与函数表检查
+
+distro `8146296` 将普通 `dlopen` 的文件与别名暂存限制在本次变更，
+依赖解析只保留从当前根模块可达的依赖。原有 inode 去重、描述符路径重开、
+失败回滚与提交时机保持有效。distro `83cdbae` 对没有 Start 或 Element
+段的普通侧模块省去实例化后的整表扫描。有这两类段的模块仍执行扫描，
+重定位、构造器和 Worker 重放仍使用原有路径。
+
+回归检查通过实际链接验证了驻留库重开、失败回滚、动态符号调用，
+以及 Start 和 active Element 写入旧表项后的处理。752 项运行层检查
+和两套 TypeScript 检查通过。主仓库 pin 为 `c1ffd0c`，目标 CI 正在运行。
+[暂存改动](https://github.com/HighCWu/distro/commit/8146296) ·
+[函数表改动](https://github.com/HighCWu/distro/commit/83cdbae) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/c1ffd0c) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45680702900) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45680702845)
+
 ## 动态加载后的回调式进程复制复验
 
 固定 `43f709b` 的两位宽 Node 任务均已核实实际阶段。标准
