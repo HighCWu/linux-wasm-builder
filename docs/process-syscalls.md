@@ -10048,7 +10048,9 @@ virtio-blk DISCARD。IndexedDB 覆盖层在严格事务中用紧凑零标记
 两次启动均核对了指定范围和相邻字节，并等待机器与设备关闭。
 第二次启动重开同一 IndexedDB 磁盘，读取结果保持，且没有再次丢弃。
 浏览器存储测试另外核实了旧数据升级、紧凑记录和部分写入。
-766 项运行层检查和两套 TypeScript 检查通过，公开打包验收仍在运行。
+766 项运行层检查和两套 TypeScript 检查通过。固定源码的公开打包日志
+也确认首次启动发出丢弃并核对字节、两次机器和设备关闭，以及重开后
+仍读回丢弃结果。Linux 路径和存储后端两项 Chromium 检查均通过。
 [源码](https://github.com/HighCWu/distro/commit/7a04d21) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/fd128fb) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45688214687)
