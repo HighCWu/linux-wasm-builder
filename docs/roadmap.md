@@ -3516,3 +3516,18 @@ LLVM 22 和 Node 的轻量验证覆盖两种位宽、空栈、非页对齐边界
 运行器等待 `machine.closed` 并关闭设备资源后返回成功。
 [wasm32 日志](https://github.com/HighCWu/distro/actions/runs/45621060580/job/139229228547) ·
 [wasm64 日志](https://github.com/HighCWu/distro/actions/runs/45621060057/job/139229212225)
+
+### 标准进程 I/O 记账
+
+Linux `49a6e956b` 在三份 Wasm defconfig 启用现有的 `TASKSTATS`、
+`TASK_XACCT` 和 `TASK_IO_ACCOUNTING`。Kconfig 解析后保留
+`CONFIG_MMU=n`。distro `625bac9` 与主仓库 pin `13a001d` 接入
+标准 `/proc/self/io` 和 Generic Netlink 的实际消费者。测试读取
+四项描述符 I/O 计数，并要求具有 `CAP_NET_ADMIN` 的目标进程通过
+内核 TASKSTATS 家族查询自己的 PID，核对嵌套统计与上游取整规则。
+
+本机 GCC 与 Clang 编译及 `/proc` 计数对照已通过。固定源码哈希已由
+公开工作流核验。双位宽的目标数据和关闭阶段待运行检查确认。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45627285659) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45627695521) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45627711020)
