@@ -9904,6 +9904,30 @@ GCC、Clang 隔离检查及候选源码哈希校验通过。wasm32 和 wasm64 �
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45597361703) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45597361980)
 
+### JavaScript 宿主 9P 目录
+
+distro `948c700`、主仓库 pin `eacb66b` 接入进程内的
+9P2000.L 服务端。服务端以 unkernel `83c65c3` 的 MIT 实现为基础，
+通过现有 virtio-vsock 提供内存目录。普通请求队列对读取施加背压，
+输出占用的请求槽保持到实际写入完成。控制回复独立限额，
+已取消请求的标签保留至 Rflush 发出。服务端中止通过 virtio-vsock
+发送 RST，并丢弃该连接未发送的数据。
+
+Linux 客户端沿用候选配置和标准 `trans=fd` 挂载。Node 与 Chromium
+使用同一夹具执行挂载、列目录、精确读取、创建、分块写入、追加、重开和卸载，
+并在 Linux 主动断开后由宿主逐字节验证 12,546 字节。浏览器每个页面启动两轮，
+验收包含机器、设备、服务端和浏览器关闭。原 diod 运行检查继续可用。
+
+本地通过了 725 项运行层测试、23 项运行器测试、TypeScript 检查以及
+Nix 语法和固定版本格式检查。npm 打包清单包含上游 MIT 许可证。
+实际挂载和关闭结果待 CI 核实。此候选使用单连接内存目录，
+宿主目录 API 和快照支持仍待后续增量。
+
+[Node wasm32](https://github.com/HighCWu/distro/actions/runs/45641899609) ·
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/45641903460) ·
+[Chromium wasm32](https://github.com/HighCWu/distro/actions/runs/45641907911) ·
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/45641899462)
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
