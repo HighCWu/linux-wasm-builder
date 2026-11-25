@@ -10053,6 +10053,21 @@ virtio-blk DISCARD。IndexedDB 覆盖层在严格事务中用紧凑零标记
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/fd128fb) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45688214687)
 
+### Node runner 显式只读磁盘
+
+distro `9d76343` 接通 `--disk-ro`，主仓库 pin 为 `f2975da`。
+宿主可写的本地镜像也能以只读描述符打开，virtio-blk 向 Linux
+报告只读设备。两种磁盘选项可混用，设备按参数出现顺序编号。
+打包入口识别显式磁盘选项，只有未指定镜像时才补默认根盘。
+
+Node 25.9.0 的 18 项存储和启动回归及 TypeScript 检查通过。
+使用已有 wasm64 Linux 构建实际启动后，`BLKROGET`、读回、拒绝写入
+和相邻可写盘刷盘均通过。运行器退出状态为 0，宿主核对只读镜像的
+完整哈希及可写盘的落盘字节。完整打包检查另由公开 CI 执行。
+[源码](https://github.com/HighCWu/distro/commit/9d76343) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/f2975da) ·
+[打包运行检查](https://github.com/HighCWu/distro/actions/runs/45689731910)
+
 ## 9P 创建目标与 virtio 网卡接收
 
 distro `2e8f450` 在普通文件、目录和符号链接的创建路径检查父目录
