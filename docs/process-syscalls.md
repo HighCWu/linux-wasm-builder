@@ -9836,3 +9836,11 @@ EOF，仍可向 Linux 返回数据。Node v25.9.0 使用 Linux `10e7181`、
 `SHUT_WR` 后收到该帧。每路运行均有唯一通过标记和整机、设备关闭记录。
 [半关闭 wasm32](https://github.com/HighCWu/distro/actions/runs/45539679792) ·
 [半关闭 wasm64](https://github.com/HighCWu/distro/actions/runs/45539689050)
+
+distro `82d32b6` 按调用顺序处理同一 vsock 流上的并发读取，主仓库 pin
+为 `b602b9a`。旧行为可让后发起的读取取走前一个 `readExactly()` 的
+后续字节。定向测试复现了旧行为，并验证修复后前缀、剩余字节、EOF
+及流量额度均正确。两种位宽的运行检查会在回复前排入同一流的多次读，
+核对拆分确认字节与半关闭后回复，目标验收正在进行。
+[顺序读取 wasm32](https://github.com/HighCWu/distro/actions/runs/45541591224) ·
+[顺序读取 wasm64](https://github.com/HighCWu/distro/actions/runs/45541598512)
