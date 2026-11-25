@@ -10072,6 +10072,39 @@ Linux 设备顺序、只读状态、拒绝写入、运行器关闭和镜像字�
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/f2975da) ·
 [打包运行检查](https://github.com/HighCWu/distro/actions/runs/45689731910)
 
+### 浏览器本地持久数据盘
+
+distro `0e13e65` 和主仓库 pin `5174f65` 接通
+`openIndexedDbBlockStorage(name, capacity)`。宿主可以直接将新盘接入
+virtio-blk，未写入的扇区读出零。同名重开须保持原容量。整扇区清零
+和丢弃可释放对应记录，部分清零继续保留相邻字节。数据盘和 HTTP
+镜像覆盖层各自使用独立的 IndexedDB 命名空间。
+
+49 项块设备检查、两套 TypeScript 检查和 Nix 格式检查通过。
+公开 Chromium 检查包括存储后端直接重开和 Linux 经标准
+`BLKDISCARD` 的两次启动验收，目标结果待核实。
+[源码](https://github.com/HighCWu/distro/commit/0e13e65) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/5174f65) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45706229158)
+
+### 浏览器出站 TCP 代理
+
+distro `8bc122e` 将 unkernel `83c65c3` 中的 MIT Wisp 协议适配思路
+接入现有网络网关。宿主从 `@lowland/guest/browser` 传入自己的
+`wispNetwork(url)` 实例作为 `createNetwork` 的配置。Linux 应用
+继续使用普通 socket。代理解析域名，浏览器网关为其分配稳定的合成
+IPv4 地址。该适配器覆盖 Wisp v1 TCP，连接失败可在发起后表现为
+重置，协议也无法传递 TCP 半关闭。
+
+17 项宿主轻量检查及 TypeScript 检查通过。已派发固定 `0b1eb72` 的
+Chromium 和 Firefox 验收。每种浏览器运行两轮原版 BusyBox wget，
+通过协议夹具核对 DNS 转发、Wisp CONNECT、HTTP 正文及关闭。
+目标结果和实际代理互通仍待核实。
+[源码](https://github.com/HighCWu/distro/commit/8bc122e) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/3a5efe4) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45706084210) ·
+[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/45706091378)
+
 ## 9P 创建目标与 virtio 网卡接收
 
 distro `2e8f450` 在普通文件、目录和符号链接的创建路径检查父目录
@@ -10337,7 +10370,8 @@ distro `a9d6218` 让已加载文件只保存导出描述符和准入元数据，
 新加载和失败的 `RTLD_NOLOAD` 路径，170 项加载相关测试及两套
 TypeScript 检查通过。已实例化库仍遵循现有常驻语义。固定 wasm64
 Node 日志核实了加载、驻留库复用、线程 TLS、异常路径恢复和跨模块尾调用，
-运行器等待资源关闭后正常退出。Chromium 待核实。
+运行器等待资源关闭后正常退出。固定 Chromium 验收同一源码，
+两轮均核实完整动态加载阶段和机器关闭，随后确认浏览器关闭。
 [源码](https://github.com/HighCWu/distro/commit/a9d6218) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/4780181) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45687755943) ·
