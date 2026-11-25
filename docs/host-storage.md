@@ -701,3 +701,19 @@ Node/Wasm32 目标日志已核实，新用例和既有共享目录回归共15项
 固定控制器要求上述精确输出及宿主状态，清理阶段等待机器关闭和控制台结束。
 本次验收范围为该版本的 Node/Wasm32 共享目录。
 [目标 CI](https://github.com/HighCWu/distro/actions/runs/42615506593)。
+
+## Node 运行器按需读取远程磁盘
+
+distro `1012361` 增加只读 HTTP(S) 磁盘，主仓库 pin 为 `7a62e3a`。
+使用 `wasm-linux-runner --disk https://example.org/root.ext4 --cmdline ro`
+可挂载支持只读启动的镜像。服务端须为字节范围请求返回 `206`、
+`Content-Range` 和强 ETag。首次只读一个扇区，随后用 `If-Range` 固定
+镜像版本。服务器回退整盘下载、返回错误范围或更换镜像时，运行器返回
+I/O 错误。单次请求的期限为 60 秒，关闭磁盘时会取消进行中的请求。
+
+Node v25.9.0 使用 Linux `10e7181`、运行时 `8bd2298` 和
+`1012361` 的运行器源码，实际挂载了 HTTP 上的 wasm64 ext4 根盘。
+`/init` 读出预期文件内容后关闭机器，运行器正常退出。8 MiB 镜像共
+传输 95,744 字节，分 10 次范围请求。采用上述固定版本组合，
+打包后的整套 CI 验收仍在进行。
+[运行器目标检查](https://github.com/HighCWu/distro/actions/runs/45533896040)。
