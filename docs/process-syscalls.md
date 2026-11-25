@@ -9819,7 +9819,9 @@ distro `6e5848a` 接入双位宽真实目标检查，主仓库 pin 为
 `fdb9621`。Linux 程序以标准 `AF_VSOCK` 打开两路连接，宿主逆序
 回复并核对两路各自的确认字节。运行器收到两端成功结果后才进入
 关闭流程，并等待机器与设备都关闭。C 语法检查与现有运行器的
-47 项检查通过。真实目标阶段及关闭结果待核实。
+47 项检查通过。已核实两种位宽的实际日志，宿主核对了两路请求和各自的
+确认字节，Linux 报告数据交换成功。两路均有唯一通过标记和整机、设备
+关闭记录。
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45529699813) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45529704836)
 
@@ -9828,4 +9830,7 @@ distro `43dd637` 支持 Linux 发起的 vsock 半关闭，主仓库 pin 为
 EOF，仍可向 Linux 返回数据。Node v25.9.0 使用 Linux `10e7181`、
 运行器 `8bd2298` 和 `43dd637` 的设备模块验证了上述路径，双方均收到
 预期字节，运行器在 `machine.closed` 后正常退出。双位宽检查程序已加入
-半关闭和回复阶段，整套新源码的双位宽目标验收待完成。
+半关闭和回复阶段。distro `f6acf43` 为该检查保存运行日志，主仓库 pin
+为 `4488a81`。新版本双位宽验收已启动，包含半关闭后的最终回复与关闭记录。
+[半关闭 wasm32](https://github.com/HighCWu/distro/actions/runs/45539679792) ·
+[半关闭 wasm64](https://github.com/HighCWu/distro/actions/runs/45539689050)
