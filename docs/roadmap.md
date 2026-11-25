@@ -3510,3 +3510,9 @@ LLVM 22 和 Node 的轻量验证覆盖两种位宽、空栈、非页对齐边界
 [wasm32 复验](https://github.com/HighCWu/distro/actions/runs/45621060580) ·
 [wasm64 复验](https://github.com/HighCWu/distro/actions/runs/45621060057) ·
 [Linux64 libffi 复验](https://github.com/HighCWu/distro/actions/runs/45621615759)
+
+`efd256f` 的 wasm32 和 wasm64 打包 `mincore` 检查均已通过。两份实际日志
+都有 data/BSS、链接栈、映射空洞和部分前缀阶段及唯一 pass。固定版本的
+运行器等待 `machine.closed` 并关闭设备资源后返回成功。
+[wasm32 日志](https://github.com/HighCWu/distro/actions/runs/45621060580/job/139229228547) ·
+[wasm64 日志](https://github.com/HighCWu/distro/actions/runs/45621060057/job/139229212225)
