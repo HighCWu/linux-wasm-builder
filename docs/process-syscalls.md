@@ -9957,11 +9957,27 @@ distro `d914364`、主仓库 pin `82a3da7` 保留 Tsetattr 和 Rgetattr
 纳秒级修改时间及 `UTIME_OMIT` 保留行为。
 
 本地 728 项运行层测试、TypeScript 检查和 GCC、Clang 原生参考已通过。
-双位宽 Node 和 Chromium 目标阶段与关闭结果待 CI 核实。
-[Node wasm32](https://github.com/HighCWu/distro/actions/runs/45647498343) ·
-[Node wasm64](https://github.com/HighCWu/distro/actions/runs/45647512023) ·
-[Chromium wasm32](https://github.com/HighCWu/distro/actions/runs/45647496556) ·
-[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/45647507781)
+原版 wasm32 Node 目标通过挂载、读写和硬链接，随后在时间戳读回时失败。
+Linux 客户端此前对 9P2000.L 挂载沿用从 1970 年起算的下界和一秒粒度，
+VFS 因而在发出请求前截断了夹具传入的时间。
+Linux `06bf6eaea` 为 9P2000.L 保留有符号秒数范围并使用一纳秒粒度，
+旧协议使用无符号 32 位秒数范围和一秒粒度。
+[原版 wasm32 Node 日志](https://github.com/HighCWu/distro/actions/runs/45647498343/job/139322596678) ·
+[Linux 修复](https://github.com/HighCWu/linux/commit/06bf6eaea3740062bf0f65136fd890482c627ee1)
+
+#### 用户扩展属性
+
+distro `add8903` 在 9P 内存目录实现普通文件和目录的 `user.*`
+属性。属性随 inode 共享，支持读、列表、创建、替换和删除。
+写入覆盖完整长度后才在 Tclunk 时提交，提交时再次核对 inode。
+单个值最长 64 KiB。沿用 Linux 与 QEMU 的零长度删除约定，
+因此这条协议路径无法单独表达设置空值。
+
+731 项运行层测试及两套 TypeScript 检查通过。
+distro `bff76c8` 和主仓库 pin `0d156c4` 同时包含时间戳修复和用户属性支持。
+双位宽 Node 和 Chromium 的目标阶段与关闭结果待验收。
+[distro 源码](https://github.com/HighCWu/distro/commit/add8903) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/0d156c4)
 
 ## 动态加载后的新线程准入
 
