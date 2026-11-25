@@ -9897,7 +9897,17 @@ distro `cbd80a8` 让已有动态加载状态的线程用当前代的图启动新
 内核 705 项轻量测试和 TypeScript 检查已通过。使用固定 wasm64 Linux
 和 SDK、搭配该运行时源码，在双 CPU Node 目标核对了首次加载前线程
 已阻塞、构造函数回收线程、新线程加入及第二次加载。Chrome 同一制品
-完成两轮，各观察到通过标记和机器及设备关闭。完整固定发布构建另行
-验收。
+完成两轮，各观察到通过标记和机器及设备关闭。固定 `cbd80a8` 的
+两位宽 Node CI 随后均在实际日志中确认首次加载前线程阻塞、构造函数
+回收线程和唯一通过标记。两路运行器均等到机器关闭后正常退出。
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45557481822) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45557489979)
+
+## 动态加载后的回调式进程复制复验
+
+固定 `43f709b` 的两位宽 Node 任务均已核实实际阶段。标准
+`clone(..., SIGCHLD, ...)` 回调验证首次子进程、加载 DSO 后的嵌套
+子进程、第二个子进程及父进程释放 DSO，核对了全局数据和 TLS 的隔离。
+每路仅有一个通过标记，运行器等待机器关闭后正常退出。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/43541200253) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/43541206402)
