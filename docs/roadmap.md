@@ -3469,3 +3469,18 @@ libffi `30e2845` / 集成 `4b8a256` 修复默认 wasm64 ABI 的连续整数变�
 增加动态映像私有 callback 进程复制候选及独立文件引用生命周期。
 主会话审查、宿主和类型检查通过；双位宽目标任务 `43541200253`、
 `43541206402` 异步验收，完整成功阶段与关闭证据尚待确认。
+
+`b7f025f` 支持默认 Wasm ABI 下向 `ffi_prep_cif_var` 传递按值聚合。
+标量可表示的单字段结构体内联到变参区，其他已支持的结构体通过
+指针槽引用按值副本。Clang 22 的双位宽 ABI 检查和原生消费者通过。
+实验 `-mabi=linux64` 有不同的槽布局，仍待单独适配。
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45616988044) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45616985882)
+
+`b7d3975` 调整动态模块重放分析的缓存准入。整图扫描使用剩余容量，
+独立模块准入保留原 LRU 策略。命中仍要求 ABI、模块键与全部字节匹配，
+继续使用 64 MiB 和 1024 项上限。两套 TypeScript 检查和相关宿主回归通过。
+[wasm32 发布检查](https://github.com/HighCWu/distro/actions/runs/45616991658) ·
+[wasm64 发布检查](https://github.com/HighCWu/distro/actions/runs/45616987714)
+
+主仓库 `d46d675` 已同步源码 pin。上述四项真实目标检查进行中。
