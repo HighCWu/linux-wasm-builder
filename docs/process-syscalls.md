@@ -10065,7 +10065,9 @@ distro `9d76343` 接通 `--disk-ro`，主仓库 pin 为 `f2975da`。
 Node 25.9.0 的 18 项存储和启动回归及 TypeScript 检查通过。
 使用已有 wasm64 Linux 构建实际启动后，`BLKROGET`、读回、拒绝写入
 和相邻可写盘刷盘均通过。运行器退出状态为 0，宿主核对只读镜像的
-完整哈希及可写盘的落盘字节。完整打包检查另由公开 CI 执行。
+完整哈希及可写盘的落盘字节。固定源码的公开打包日志也确认了实际
+Linux 设备顺序、只读状态、拒绝写入、运行器关闭和镜像字节核对。
+29 项运行器检查均通过。
 [源码](https://github.com/HighCWu/distro/commit/9d76343) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/f2975da) ·
 [打包运行检查](https://github.com/HighCWu/distro/actions/runs/45689731910)
