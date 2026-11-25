@@ -10035,6 +10035,24 @@ TypeScript 检查通过。
 逐字节验证清零范围及其两侧。第二次启动未发出清零请求。两次均有
 实际阶段、通过与机器及三个设备关闭日志，随后浏览器关闭。
 
+### IndexedDB HTTP 磁盘丢弃
+
+distro `7a04d21` 在可写且支持丢弃的存储上启用标准
+virtio-blk DISCARD。IndexedDB 覆盖层在严格事务中用紧凑零标记
+替换扇区内容。读回和重开仍返回零，缺少覆盖记录的普通扇区继续读取
+原 HTTP 镜像。数据库版本升至 2，保留版本 1 的身份和扇区记录。
+仍要求打开版本 1 的运行时会收到 `VersionError`。
+
+固定 wasm64 Linux 搭配候选运行层，在 Chromium 151.0.7922.34
+实际发出偏移 4,096 字节、长度 8,192 字节的 `BLKDISCARD`。
+两次启动均核对了指定范围和相邻字节，并等待机器与设备关闭。
+第二次启动重开同一 IndexedDB 磁盘，读取结果保持，且没有再次丢弃。
+浏览器存储测试另外核实了旧数据升级、紧凑记录和部分写入。
+766 项运行层检查和两套 TypeScript 检查通过，公开打包验收仍在运行。
+[源码](https://github.com/HighCWu/distro/commit/7a04d21) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/fd128fb) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45688214687)
+
 ## 9P 创建目标与 virtio 网卡接收
 
 distro `2e8f450` 在普通文件、目录和符号链接的创建路径检查父目录
@@ -10194,6 +10212,10 @@ distro `53e41ba` 从真实 OPFS 导入文件，再在导出快照内改用带前
 Linux 继续按这一名称读取精确内容。主仓库 pin 为 `33faf04`，复验进行中。
 [wasm64 Chromium 复验](https://github.com/HighCWu/distro/actions/runs/45686160551)
 
+已核对固定 `53e41ba` 的 Chromium 两轮和固定 `2537ace` 的 Node
+一轮实际日志。每轮均读回带前缀路径的准确内容，完成既有文件操作、
+卸载和关闭。Chromium 另有最终浏览器关闭记录。
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
@@ -10285,6 +10307,18 @@ distro `aa5cb25` 让同一进程内、同签名且同调用方式的动态调用
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/96e47a3) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45683678768) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45683690550)
+
+### 动态加载准入模块的引用范围
+
+distro `a9d6218` 让已加载文件只保存导出描述符和准入元数据，
+临时编译的准入模块只供本次加载使用。成功和失败均在返回前释放
+临时引用。Worker 快照复用已验证的 TLS 元数据。实际链接回归核对
+新加载和失败的 `RTLD_NOLOAD` 路径，170 项加载相关测试及两套
+TypeScript 检查通过。已实例化库仍遵循现有常驻语义。
+[源码](https://github.com/HighCWu/distro/commit/a9d6218) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/4780181) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45687755943) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45687765902)
 
 ## libffi 调用 binary128 long double
 
