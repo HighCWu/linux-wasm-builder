@@ -10143,7 +10143,8 @@ distro `df92412` 支持标准 AF_UNIX 路径套接字在 MemoryFs 导出上
 750 项运行层检查、两套 TypeScript 及原生和 Wasm64 C 语法检查通过。
 固定 `df92412` 的 wasm64 Chromium 两轮均核实了本地套接字收发、
 命名管道、卸载、宿主文件核对和机器关闭，随后浏览器正常关闭。
-同版本的 Node 目标仍在验收。
+同版本的 wasm64 Node 完成一轮，日志同样确认本地套接字收发、
+命名管道、卸载、宿主核验和机器关闭。
 [源码](https://github.com/HighCWu/distro/commit/df92412) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/5b528b0) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45675246544) ·
