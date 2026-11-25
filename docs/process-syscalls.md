@@ -9998,7 +9998,9 @@ distro `2dc95c1`、主仓库 pin `b5a6e70` 将同一检查用于删除和重命�
 [distro 源码](https://github.com/HighCWu/distro/commit/2dc95c1) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/b5a6e70)
 
-GitHub Actions 恢复后，固定 distro `24b2494` 的四项 9P 目标检查已启动。
+固定 distro `24b2494` 的 wasm32 Node 已核实实际运行日志。挂载后读取、
+重开写入文件、硬链接、纳秒时间戳和 `user.*` 扩展属性均通过。卸载后
+宿主核对了写入内容，运行器确认机器、设备和服务关闭。其它三项目标仍待验收。
 [wasm32 Node](https://github.com/HighCWu/distro/actions/runs/45656891742) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45656890247) ·
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/45656889638) ·
