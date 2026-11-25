@@ -3484,3 +3484,18 @@ libffi `30e2845` / 集成 `4b8a256` 修复默认 wasm64 ABI 的连续整数变�
 [wasm64 发布检查](https://github.com/HighCWu/distro/actions/runs/45616987714)
 
 主仓库 `d46d675` 已同步源码 pin。上述四项真实目标检查进行中。
+
+`debb5e0` 将 `mincore` 的逻辑覆盖扩展到 Wasm 主模块的链接栈。固定
+wasm64 基线在栈内页返回 `ENOMEM`，且驻留向量保持原值。修复读取链接器
+栈边界，逐页取整并沿用已有数据段和 mmap 记录的连续前缀规则。固定
+LLVM 22 和 Node 的轻量验证覆盖两种位宽、空栈、非页对齐边界和空洞。
+分配器与 mmap 共用 brk arena，堆的驻留查询仍需要独立的覆盖记录。
+主仓库 `8000adb` 已同步 pin，完整 syscall 检查已派发。
+[wasm32 检查](https://github.com/HighCWu/distro/actions/runs/45619168419) ·
+[wasm64 检查](https://github.com/HighCWu/distro/actions/runs/45619167207)
+
+`566206d` 新增独立的 `libffi-runtime-linux64-abi-wasm64` 构建。libffi
+归档和消费者使用同一 Linux64 动态 SDK，并根据编译器 ABI 标记选择
+至少 8 字节的变参槽。固定 Clang 的 IR 和汇编已核对负整数、窄结构体
+和间接聚合指针。主仓库 `19b7ee8` 已同步 pin，完整执行仍待验收。
+[Linux64 ABI 检查](https://github.com/HighCWu/distro/actions/runs/45619326093)
