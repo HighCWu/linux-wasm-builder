@@ -10011,7 +10011,9 @@ distro `2dc95c1`、主仓库 pin `b5a6e70` 将同一检查用于删除和重命�
 distro `a3048f7` 修正 9P 普通文件 fid 的访问权限。只写 fid 禁止读取，
 只读 fid 禁止写入，元数据操作保持独立。新建文件沿用已打开的句柄。
 非独占创建遇到已存在的文件时，按原访问模式打开并校验文件身份。
-固定 `982ad8c` 的 wasm64 Chromium 检查已启动。
+固定 `982ad8c` 的 wasm64 Chromium 实际日志确认两轮挂载、目录读取、
+创建写入、硬链接、时间戳和扩展属性。两轮均完成卸载、宿主内容核对、
+机器关闭，最后确认浏览器关闭。
 [源码](https://github.com/HighCWu/distro/commit/a3048f7) ·
 [目标检查](https://github.com/HighCWu/distro/actions/runs/45662612870)
 
@@ -10050,6 +10052,26 @@ distro `4ff80fa` 的 virtio 网卡先核对已投递接收链的容量。
 [源码](https://github.com/HighCWu/distro/commit/4ff80fa) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/912d93a) ·
 [wasm64 Chromium 网络检查](https://github.com/HighCWu/distro/actions/runs/45664893559)
+
+distro `18df198` 读取符号链接时将 fid 保存的身份交给后端。
+MemoryFs 原子核对身份与目标内容。符号链接被宿主替换或删除时返回
+`ESTALE`，通过协议重命名的存续 fid 仍能读取原链接。16 项真实
+9P 协议测试通过。
+[源码](https://github.com/HighCWu/distro/commit/18df198)
+
+## virtio 块设备序列号
+
+distro `e59a4bc` 支持存储在创建设备时配置序列号，Linux 可通过
+标准 virtio-blk `GET_ID` 和 sysfs 读取。设备验证输出链后写入
+20 字节字段，短序列号以零填充。无配置的磁盘保留既有行为。
+
+固定 wasm64 Linux 搭配该模块，在 Node 24.18.0 与 Chromium
+153.0.8010.36 验证了两块盘的短序列号和 20 字节序列号。
+Node 一轮和 Chromium 两轮均核对了实际 sysfs 内容和机器及四个设备
+关闭，Chromium 随后关闭。743 项运行层测试及两套 TypeScript
+检查通过。
+[源码](https://github.com/HighCWu/distro/commit/e59a4bc) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/3315e31)
 
 ## 动态加载后的新线程准入
 
