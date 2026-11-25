@@ -9881,3 +9881,23 @@ netfs 按原路径读取，再由调用者回拷，文件位置只前进实际�
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45555574384) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45555961770) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45555968070)
+
+已核实两路运行制品。每路均完成挂载、目录枚举、逐字节读回及卸载。
+宿主在连接 EOF 后确认 diod 正常退出，运行器确认机器和设备关闭。
+每份日志各有一次通过标记和一次关闭标记，关闭标记位于最后一行。
+
+## 动态加载后的新线程准入
+
+distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
+外层接收循环负责继续推进事务，避免内核维护递归等待同一个确认。
+distro `cbd80a8` 让已有动态加载状态的线程用当前代的图启动新线程，
+通道在持锁时核对代数，旧图返回 `EAGAIN` 且不占用准入槽位。
+主仓库 pin 为 `4ff17a1`。
+
+内核 705 项轻量测试和 TypeScript 检查已通过。使用固定 wasm64 Linux
+和 SDK、搭配该运行时源码，在双 CPU Node 目标核对了首次加载前线程
+已阻塞、构造函数回收线程、新线程加入及第二次加载。Chrome 同一制品
+完成两轮，各观察到通过标记和机器及设备关闭。完整固定发布构建另行
+验收。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45557481822) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45557489979)
