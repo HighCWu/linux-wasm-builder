@@ -9938,3 +9938,18 @@ Chrome 153.0.8010.36 通过新阶段两轮，并核实机器、设备和浏览�
 双位宽定向 CI 已提交，目标日志待验收。
 [运行 45578886769](https://github.com/HighCWu/distro/actions/runs/45578886769) ·
 [运行 45578899266](https://github.com/HighCWu/distro/actions/runs/45578899266)
+
+## 动态程序同步创建私有子进程
+
+distro `1420eba`、主仓库 pin `34d29f3` 支持回调式 `clone` 使用
+`CLONE_VFORK | SIGCHLD` 创建私有地址空间的子进程。运行层沿用私有
+内存复制和动态库重建，Linux 的 `kernel_clone` 挂起父进程，直到子进程
+执行 exec 或退出。现有私有复制准入限制仍然适用。
+
+固定 Linux/Wasm64 与 SDK 的同一测试映像在旧运行层中于 clone 返回
+`EOPNOTSUPP`。新运行层在 Node 24.18.0 完整通过五个阶段，新增阶段
+核对父进程恢复时已经可以立即读到子进程最后写出的标记及 EOF，并验证
+堆、主程序全局数据、TLS 和 DSO 状态隔离。Chrome 153.0.8010.36
+完成两轮，机器、设备和浏览器均正常关闭。双位宽打包目标记录真实运行日志。
+[wasm32 CI](https://github.com/HighCWu/distro/actions/runs/45586354350) ·
+[wasm64 CI](https://github.com/HighCWu/distro/actions/runs/45586363808)
