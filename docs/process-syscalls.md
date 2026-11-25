@@ -9791,3 +9791,11 @@ distro `786e9e7` 为宿主 virtio-vsock 设备接通监听。Linux 程序使用
 真实 wasm64 Linux 程序同时保持两路同端口连接，分别写入并读回正确
 字节，运行器在机器正常关闭后退出。该实测覆盖固定组合的双向数据与
 关闭，整套新源码的浏览器和双位宽验收仍待完成。
+
+distro `6e5848a` 接入双位宽真实目标检查，主仓库 pin 为
+`fdb9621`。Linux 程序以标准 `AF_VSOCK` 打开两路连接，宿主逆序
+回复并核对两路各自的确认字节。运行器收到两端成功结果后才进入
+关闭流程，并等待机器与设备都关闭。C 语法检查与现有运行器的
+47 项检查通过。真实目标阶段及关闭结果待核实。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45529699813) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45529704836)
