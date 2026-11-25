@@ -9783,6 +9783,15 @@ distro `7df00ca` 为两路 loop 检查保存 `runtime.log`，主仓库 pin 为
 GitHub Actions 使该记录可单独下载。Nix 求值确认其他检查的生成脚本
 保持一致，轻量检查验证了运行器失败、超时与日志写入失败的退出状态。
 [日志制品目标检查](https://github.com/HighCWu/distro/actions/runs/45536410374)。
+已下载并核实 wasm32 的制品，记录包含 ext4 写入、重挂载读回和卸载，
+随后是唯一通过标记以及最后一行 `::vm-test::closed`。
+
+distro `c13ab56` 增加 TAP 双向以太网检查，根 pin 为 `75d1c96`。
+测试用标准 TAP 与 packet socket 收发两条不同的以太网帧，核对帧内容、
+接口和来源地址，再确认最后一个 TAP 描述符关闭后接口移除。
+GCC 与 Clang 原生验证通过。双位宽目标记录还需核实。
+[TAP wasm32](https://github.com/HighCWu/distro/actions/runs/45537393667) ·
+[TAP wasm64](https://github.com/HighCWu/distro/actions/runs/45537410587)
 
 ## autofs 挂载与宿主 vsock 监听
 
