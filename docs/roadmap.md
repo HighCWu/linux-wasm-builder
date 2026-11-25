@@ -3539,3 +3539,25 @@ distro `b7d3975` 的默认 wasm32 ABI 检查执行了实际消费者。日志确
 等待 `machine.closed` 并完成资源回收后返回成功。此结果覆盖默认 wasm32
 ABI，wasm64 和独立 Linux64 ABI 分别验收。
 [目标日志](https://github.com/HighCWu/distro/actions/runs/45616988044/job/139215000473)
+
+### wasm64 进程 I/O 记账验收
+
+固定 distro `625bac9` 的 wasm64 日志依次确认描述符 I/O 计数、
+标准 TASKSTATS 家族发现和当前 PID 的嵌套统计。唯一 pass 后记录
+机器与设备关闭。wasm32 工作流已成功，实际阶段日志待核对。
+[wasm64 目标日志](https://github.com/HighCWu/distro/actions/runs/45627711020/job/139252422214)
+
+### 标准 PSI 压力记账
+
+Linux `730a1845f` 在 Wasm 配置启用通用 `CONFIG_PSI`，默认开启
+Linux 任务压力记账，保留 `CONFIG_MMU=n`。distro `350194b` 和
+主仓库 pin `a6e9c50` 接入独立目标检查。它读取 CPU、内存和 I/O
+标准记录，在单虚拟 CPU 上制造可运行线程竞争，并要求 CPU
+`some total` 增长及触发器返回 `POLLPRI`，随后回收线程并关闭机器。
+
+三份配置经 Kconfig 解析，固定内核源码哈希经过公开工作流核验。
+GCC 和 Clang 宿主参考均通过实际触发器。Wasm 目标阶段待验收。
+[Linux PSI 文档](https://docs.kernel.org/accounting/psi.html) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45632200217) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45632589284) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45632598279)
