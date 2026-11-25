@@ -10008,6 +10008,13 @@ distro `cbd80a8` 让已有动态加载状态的线程用当前代的图启动新
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45557481822) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45557489979)
 
+distro `e7cbedb`、主仓库 pin `cd28266` 移除了发布方在推进代数时
+生成的未使用快照副本。发布协议、图校验与提交顺序沿用原路径，
+显式查询仍返回独立快照。运行层 732 项测试及两套 TypeScript 检查通过，
+目标执行和大型模块图的内存峰值待核实。
+[distro 源码](https://github.com/HighCWu/distro/commit/e7cbedb) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/cd28266)
+
 ## 动态加载后的回调式进程复制复验
 
 固定 `43f709b` 的两位宽 Node 任务均已核实实际阶段。标准
