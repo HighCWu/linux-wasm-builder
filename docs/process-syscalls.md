@@ -10174,12 +10174,25 @@ distro `61a2968` 和主仓库 pin `3ca8247` 支持将浏览器提供的
 [wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/45682521475) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45682534914)
 
+固定 `61a2968` 的 wasm32 Node 和两种位宽的 Chromium 已核对实际日志。
+Node 完成一轮，Chromium 每种位宽完成两轮。各轮均完成导入路径读回、既有
+读写阶段、卸载、宿主字节核对和机器关闭，Chromium 随后关闭浏览器。
+旧 wasm64 Node 在内核包测试阶段因 Worker 发布的 5 毫秒测试竞争失败。
+distro `59ee9cf` 让该测试只在实际到达 Prepare 后推进测试时钟。
+[失败日志](https://github.com/HighCWu/distro/actions/runs/45682509968/job/139446666035) ·
+[wasm64 Node 复验](https://github.com/HighCWu/distro/actions/runs/45685637494)
+
 distro `5a95dc2` 保留 9P 文件名和符号链接目标开头的 U+FEFF。
 协议检查核对带此前缀和不带前缀的同目录文件各自返回正确内容，
 并核对符号链接目标的字节往返。目标夹具也通过标准路径读取导入的
 带前缀文件。
 [源码](https://github.com/HighCWu/distro/commit/5a95dc2) ·
-[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45683700328)
+[首次 wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45683700328)
+
+首次带前缀的 Chromium 夹具在 Linux 启动前遇到 `TypeMismatchError`。
+distro `53e41ba` 从真实 OPFS 导入文件，再在导出快照内改用带前缀的名称。
+Linux 继续按这一名称读取精确内容。主仓库 pin 为 `33faf04`，复验进行中。
+[wasm64 Chromium 复验](https://github.com/HighCWu/distro/actions/runs/45686160551)
 
 ## 动态加载后的新线程准入
 
@@ -10272,6 +10285,20 @@ distro `aa5cb25` 让同一进程内、同签名且同调用方式的动态调用
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/96e47a3) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45683678768) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45683690550)
+
+## libffi 调用 binary128 long double
+
+distro `2537ace` 支持标准 libffi 的独立 `long double` 参数、返回值和
+变参尾区。固定参数按低位和高位依次传入两个 i64，返回值通过隐藏指针
+写入 16 字节结果；变参区保持 16 字节槽与对齐。调用者忽略结果时也提供
+足够的临时空间。聚合内的 long double、complex 和闭包仍待各自的 ABI
+支持。固定 Clang 22 汇编已核对默认 wasm32、默认 wasm64 和 Linux64。
+在 Node 引擎直接执行生成模块已验证默认两种位宽的精确字节往返。
+主仓库 pin 为 `2cda450`，完整 Linux 执行与关闭仍待 CI 验收。
+[源码](https://github.com/HighCWu/distro/commit/2537ace) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45685608270) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45685619362) ·
+[Linux64](https://github.com/HighCWu/distro/actions/runs/45685629288)
 
 ## 动态加载后的回调式进程复制复验
 
