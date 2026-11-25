@@ -9974,6 +9974,7 @@ distro `1420eba`、主仓库 pin `34d29f3` 支持回调式 `clone` 使用
 [wasm32 CI](https://github.com/HighCWu/distro/actions/runs/45586354350) ·
 [wasm64 CI](https://github.com/HighCWu/distro/actions/runs/45586363808)
 
-已核实固定 `1420eba` 的 wasm32 打包运行制品。五个阶段覆盖首次复制、共享库
-和嵌套子进程、第二次复制、同步私有子进程及父进程关闭共享库。日志各有唯一的
-`::vm-test::pass` 和 `::vm-test::closed`。wasm64 打包任务仍在运行。
+已核实固定 `1420eba` 的 wasm32 和 wasm64 打包运行制品。两路各完成五个阶段，
+覆盖首次复制、共享库和嵌套子进程、第二次复制、同步私有子进程及父进程关闭
+共享库。每份日志均有唯一的 `::vm-test::pass` 和 `::vm-test::closed`，
+关闭标记位于最后一行。
