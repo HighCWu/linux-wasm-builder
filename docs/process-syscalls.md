@@ -9831,6 +9831,8 @@ EOF，仍可向 Linux 返回数据。Node v25.9.0 使用 Linux `10e7181`、
 运行器 `8bd2298` 和 `43dd637` 的设备模块验证了上述路径，双方均收到
 预期字节，运行器在 `machine.closed` 后正常退出。双位宽检查程序已加入
 半关闭和回复阶段。distro `f6acf43` 为该检查保存运行日志，主仓库 pin
-为 `4488a81`。新版本双位宽验收已启动，包含半关闭后的最终回复与关闭记录。
+为 `4488a81`。已核实同一源码的 wasm32 和 wasm64 运行日志。两路均完成
+独立流的数据交换和确认，宿主在第一路收到 EOF 后发送最终帧，Linux 在
+`SHUT_WR` 后收到该帧。每路运行均有唯一通过标记和整机、设备关闭记录。
 [半关闭 wasm32](https://github.com/HighCWu/distro/actions/runs/45539679792) ·
 [半关闭 wasm64](https://github.com/HighCWu/distro/actions/runs/45539689050)
