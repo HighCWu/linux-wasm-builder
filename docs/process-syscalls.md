@@ -10111,10 +10111,13 @@ distro `3d5d92f` 在发出控制台输出前核对整条描述符链可读，
 `04baba0` 固定这两个修复。748 项运行层检查、源码和测试的 TypeScript
 检查通过。固定 `3d5d92f` 的 wasm64 Node 记录了挂载、目录读取、精确
 读写、硬链接、时间戳、扩展属性及卸载，并报告宿主核验通过和机器关闭。
+Chromium 149.0.7827.55 对该版本完成了上述阶段各两轮，核实两次机器
+关闭和最终浏览器关闭。
 [9P 源码](https://github.com/HighCWu/distro/commit/13566aa) ·
 [控制台源码](https://github.com/HighCWu/distro/commit/3d5d92f) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/04baba0) ·
-[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45670609112)
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45670609112) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45671537926)
 
 ## 9P 挂载目录中的命名管道
 
@@ -10123,11 +10126,26 @@ distro `2eef838` 支持 Linux 在 MemoryFs 导出中调用标准 `mkfifo`，
 同一 Linux 内核通过 VFS 管道收发数据。实际目标用例会创建命名管道、
 核对文件类型、写入并读回二进制负载，随后删除管道和卸载文件系统。
 749 项运行层检查、两套 TypeScript 以及 C 用例的原生与 Wasm64
-语法检查通过。目标验收正在运行。
+语法检查通过。固定 `2eef838` 的 wasm64 Node 和 Chromium 日志
+均核实了命名管道的数据读写和清理。Node 完成一轮，Chromium 完成两轮。
+每轮都通过既有 9P 阶段、宿主文件核验与机器关闭，Chromium 随后关闭。
 [源码](https://github.com/HighCWu/distro/commit/2eef838) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/0ba1d74) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45673114868) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45673114194)
+
+## 9P 挂载目录中的 Unix 域套接字
+
+distro `df92412` 支持标准 AF_UNIX 路径套接字在 MemoryFs 导出上
+绑定，主仓库 pin 为 `5b528b0`。9P 服务端保存 inode 元数据，
+数据报在同一 Linux 实例的套接字之间传输。目标用例核对绑定、
+文件类型、本地数据报的精确字节及关闭和删除，继续覆盖命名管道。
+750 项运行层检查、两套 TypeScript 及原生和 Wasm64 C 语法检查通过。
+真实 Wasm 目标仍在验收。
+[源码](https://github.com/HighCWu/distro/commit/df92412) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/5b528b0) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45675246544) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45675246867)
 
 ## 动态加载后的新线程准入
 
