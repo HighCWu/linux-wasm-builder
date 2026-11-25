@@ -9869,3 +9869,15 @@ pin 为 `bbf46bd`。GCC 和 Clang 的本机检查覆盖成功、截断和多余
 字节，双位宽目标复验已启动。当前验收范围为只读挂载。
 [复验 wasm32](https://github.com/HighCWu/distro/actions/runs/45554200511) ·
 [复验 wasm64](https://github.com/HighCWu/distro/actions/runs/45554207763)
+
+wasm32 复验确认标准 `open` 成功，随后 `read` 返回 `EFAULT`。
+`cache=none` 令 9P 文件走 netfs 的非缓存读。该路径会尝试把用户
+迭代器提取为内核页，而 Wasm 用户内存位于独立线性内存。Linux
+`87df4047f` 在 Wasm NOMMU 下为这类同步读提供最多两个页的内核缓冲；
+netfs 按原路径读取，再由调用者回拷，文件位置只前进实际交付的字节数。
+原生边界验证覆盖了短读、EOF、错误和部分回拷。异步与缓存路径沿用原实现。
+源码预取核对了基线与候选哈希，distro `46a5a59` 及根 pin `3998221`
+已同步，实际挂载、读取、卸载和关闭待双位宽复验。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45555574384) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45555961770) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45555968070)
