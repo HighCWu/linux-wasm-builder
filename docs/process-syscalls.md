@@ -10333,7 +10333,9 @@ distro `a9d6218` 让已加载文件只保存导出描述符和准入元数据，
 临时编译的准入模块只供本次加载使用。成功和失败均在返回前释放
 临时引用。Worker 快照复用已验证的 TLS 元数据。实际链接回归核对
 新加载和失败的 `RTLD_NOLOAD` 路径，170 项加载相关测试及两套
-TypeScript 检查通过。已实例化库仍遵循现有常驻语义。
+TypeScript 检查通过。已实例化库仍遵循现有常驻语义。固定 wasm64
+Node 日志核实了加载、驻留库复用、线程 TLS、异常路径恢复和跨模块尾调用，
+运行器等待资源关闭后正常退出。Chromium 待核实。
 [源码](https://github.com/HighCWu/distro/commit/a9d6218) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/4780181) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45687755943) ·
@@ -10347,9 +10349,9 @@ distro `2537ace` 支持标准 libffi 的独立 `long double` 参数、返回值�
 足够的临时空间。聚合内的 long double、complex 和闭包仍待各自的 ABI
 支持。固定 Clang 22 汇编已核对默认 wasm32、默认 wasm64 和 Linux64。
 在 Node 引擎直接执行生成模块已验证默认两种位宽的精确字节往返。
-主仓库 pin 为 `2cda450`。固定 Linux64 目标日志确认混合调用、
+主仓库 pin 为 `2cda450`。固定 Linux64 与默认 wasm64 目标日志确认混合调用、
 按值聚合体变参、binary128 固定参数、隐藏返回指针和对齐变参均通过。
-运行器等待机器资源关闭后正常退出。默认两种位宽的 Linux 目标仍待核实。
+运行器等待机器资源关闭后正常退出。默认 wasm32 的 Linux 目标仍待核实。
 [源码](https://github.com/HighCWu/distro/commit/2537ace) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45685608270) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45685619362) ·
