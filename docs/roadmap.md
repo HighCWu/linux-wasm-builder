@@ -1279,6 +1279,8 @@ distro `6f28004` 为该场景增加测试专用文件操作追踪，失败时输
 
 - 稳定 virtio block、console、entropy、fs、net和vsock。
 - EROFS只读系统、ext4持久安装和OverlayFS临时可写层。
+- 双位宽构建已接入按需分配的 loop 块设备。util-linux 镜像读写与卸载的目标验收
+  见[loop 与虚拟网络检查](process-syscalls.md#loop-块设备与虚拟网络)。
 - OPFS块设备和目录共享，覆盖崩溃恢复、flush和并发。
 - Node宿主文件系统的路径隔离与竞态限制文档化。
 - tty/pty、ioctl、设备发现和热关闭语义。
@@ -1289,6 +1291,8 @@ distro `6f28004` 为该场景增加测试专用文件操作追踪，失败时输
 - virtio-net与虚拟交换机稳定性。
 - 浏览器可用的TCP、UDP、DNS宿主适配。
 - 多运行实例私网、端口转发和连接生命周期。
+- 双位宽构建已接入 TUN/TAP、veth、dummy 与 IPv4 策略路由。配置和检查范围
+  见[loop 与虚拟网络检查](process-syscalls.md#loop-块设备与虚拟网络)。
 - socket、poll/epoll、超时、半关闭和错误码一致性。
 - TLS、curl、SSH、包管理器和语言runtime的真实网络测试。
 - 明确浏览器安全模型，不伪装浏览器无法提供的原始网络能力。

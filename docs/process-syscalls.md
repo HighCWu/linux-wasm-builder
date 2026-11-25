@@ -9749,3 +9749,26 @@ Linux `16e342a1a` 为私有 mm 复制独立保留动态文件引用和 ID 高水
 新内核完整成功路径仍待两位宽真实目标验收，任务分别为
 `43541200253` 和 `43541206402`。该候选继续限制为已有 callback 入口，
 非空 DSO TLS replay、完整 C 栈 fork 及多线程私有 fork 仍有缺口。
+
+## loop 块设备与虚拟网络
+
+distro `2ddfbd0` 为两种位宽启用 Linux 通用 loop 驱动，初始设备数设为
+零，使用 `/dev/loop-control` 按需分配。util-linux 负载要求用实际
+`losetup` 挂接 ext4 镜像，写入并卸载，然后只读重挂确认数据留在后备
+文件，最后分离设备。镜像通过本机 `e2fsck -fn` 检查。该负载验证重挂
+后的文件内容，持久存储的断电语义不在本次验收范围内。
+
+distro `f6a742e` 启用 Linux 通用 TUN/TAP、veth、dummy 和 IPv4 策略路由。
+测试使用标准 `TUNSETIFF` 和 UDP socket 核对 TUN 双向 IPv4 收发，也用
+BusyBox `ip` 检查 veth 端点的创建、carrier 和删除，以及独立路由表在
+规则增删前后的选路。本机隔离网络命名空间通过这三项参考检查。Wasm
+目标还需分别验收。TAP 帧收发、跨命名空间转发和外部网络不在本次
+语料范围内。两项增量都通过 distro 的内核构建配置启用，复用 Linux
+通用实现，保持 `CONFIG_MMU=n`。
+
+早期两组任务停在 `treefmt`，尚未启动目标。格式修正 `dabbc19` 已由
+根仓库 `345feff` 固定，等待四项真实目标阶段和关闭结果。
+[loop wasm32](https://github.com/HighCWu/distro/actions/runs/45525364042) ·
+[loop wasm64](https://github.com/HighCWu/distro/actions/runs/45525370191) ·
+[虚拟网络 wasm32](https://github.com/HighCWu/distro/actions/runs/45525377554) ·
+[虚拟网络 wasm64](https://github.com/HighCWu/distro/actions/runs/45525385820)
