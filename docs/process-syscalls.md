@@ -10141,7 +10141,9 @@ distro `df92412` 支持标准 AF_UNIX 路径套接字在 MemoryFs 导出上
 数据报在同一 Linux 实例的套接字之间传输。目标用例核对绑定、
 文件类型、本地数据报的精确字节及关闭和删除，继续覆盖命名管道。
 750 项运行层检查、两套 TypeScript 及原生和 Wasm64 C 语法检查通过。
-真实 Wasm 目标仍在验收。
+固定 `df92412` 的 wasm64 Chromium 两轮均核实了本地套接字收发、
+命名管道、卸载、宿主文件核对和机器关闭，随后浏览器正常关闭。
+同版本的 Node 目标仍在验收。
 [源码](https://github.com/HighCWu/distro/commit/df92412) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/5b528b0) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45675246544) ·
