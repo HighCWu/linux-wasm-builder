@@ -9897,7 +9897,9 @@ distro `6d50f67` 和主仓库 pin `39cbe01` 接入候选。运行检查使用临
 diod 可写导出，要求普通 C 程序创建和分块写入文件，重新打开并用
 `O_APPEND` 追加，再逐字节核对。断连后宿主独立核对 12,546 字节。
 原有挂载、目录读取、卸载和机器关闭同样列入门禁。
-GCC、Clang 隔离检查及候选源码哈希校验通过。真实双位宽运行待验收。
+GCC、Clang 隔离检查及候选源码哈希校验通过。wasm32 目标运行日志已核实
+挂载、创建、分块写入、追加、重新打开和逐字节读回，以及宿主验证、卸载、
+diod 正常退出和机器关闭。通过和关闭标记各出现一次。wasm64 运行仍待验收。
 [候选源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45596977129) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45597361703) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45597361980)
@@ -9971,3 +9973,7 @@ distro `1420eba`、主仓库 pin `34d29f3` 支持回调式 `clone` 使用
 完成两轮，机器、设备和浏览器均正常关闭。双位宽打包目标记录真实运行日志。
 [wasm32 CI](https://github.com/HighCWu/distro/actions/runs/45586354350) ·
 [wasm64 CI](https://github.com/HighCWu/distro/actions/runs/45586363808)
+
+已核实固定 `1420eba` 的 wasm32 打包运行制品。五个阶段覆盖首次复制、共享库
+和嵌套子进程、第二次复制、同步私有子进程及父进程关闭共享库。日志各有唯一的
+`::vm-test::pass` 和 `::vm-test::closed`。wasm64 打包任务仍在运行。
