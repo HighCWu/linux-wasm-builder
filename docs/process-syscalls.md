@@ -9938,9 +9938,13 @@ distro `c49c198`、主仓库 pin `90051f6` 接通标准 Tlink。源文件与目�
 删除别名的阶段，宿主继续核对原文件全部 12,546 字节。
 
 本地 727 项运行层测试和 GCC、Clang 原生参考通过。双位宽 Node
-挂载验收已启动，Chromium 夹具同样要求该阶段。
+挂载验收已启动。distro `e8045d9`、主仓库 pin `b43c0bf`
+让 Chromium 检查保留运行日志制品。双位宽 Chromium 同样要求
+硬链接阶段及两轮完整关闭，实际运行结果待核实。
 [Node wasm32](https://github.com/HighCWu/distro/actions/runs/45643747722) ·
-[Node wasm64](https://github.com/HighCWu/distro/actions/runs/45643743158)
+[Node wasm64](https://github.com/HighCWu/distro/actions/runs/45643743158) ·
+[Chromium wasm32](https://github.com/HighCWu/distro/actions/runs/45644385033) ·
+[Chromium wasm64](https://github.com/HighCWu/distro/actions/runs/45644390782)
 
 ## 动态加载后的新线程准入
 
