@@ -10080,6 +10080,22 @@ Node 一轮和 Chromium 两轮均核对了实际 sysfs 内容和机器及四个�
 [源码](https://github.com/HighCWu/distro/commit/e59a4bc) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/3315e31)
 
+## 9P 元数据与 virtio 控制台输入
+
+distro `4a709dc` 在按路径读取 9P 元数据、首次列目录或刷新目录时
+核对 fid 保存的身份。打开的文件继续通过现有句柄读取原 inode
+元数据，目录分页继续使用已建立的快照。协议测试覆盖了宿主替换、
+正常重命名和打开后删除的文件。
+[源码](https://github.com/HighCWu/distro/commit/4a709dc)
+
+distro `5340c85` 允许 virtio 控制台从同一接收链的多个可写缓冲区
+接收输入，按照描述符顺序填充并报告准确长度。实际 packed queue
+用例验证跨缓冲区输入、后续链收到余下字节，以及错误链保留缓冲区
+内容。746 项检查及 TypeScript 通过，固定源码的目标检查仍在运行。
+[源码](https://github.com/HighCWu/distro/commit/5340c85) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/679d041) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45668946464)
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
