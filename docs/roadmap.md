@@ -1281,6 +1281,8 @@ distro `6f28004` 为该场景增加测试专用文件操作追踪，失败时输
 - EROFS只读系统、ext4持久安装和OverlayFS临时可写层。
 - 双位宽构建已接入按需分配的 loop 块设备。util-linux 镜像读写与卸载的目标验收
   见[loop 与虚拟网络检查](process-syscalls.md#loop-块设备与虚拟网络)。
+- 标准 9P2000.L 文件描述符挂载已有双位宽的独立候选构建。通过 vsock 挂载
+  只读目录的验收范围见[9P 文件描述符挂载](process-syscalls.md#9p-文件描述符挂载)。
 - OPFS块设备和目录共享，覆盖崩溃恢复、flush和并发。
 - Node宿主文件系统的路径隔离与竞态限制文档化。
 - tty/pty、ioctl、设备发现和热关闭语义。

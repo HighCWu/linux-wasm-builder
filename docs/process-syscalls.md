@@ -9845,3 +9845,20 @@ distro `82d32b6` 按调用顺序处理同一 vsock 流上的并发读取，主�
 并核对半关闭后的反向回复、唯一通过标记以及整机和设备关闭。
 [顺序读取 wasm32](https://github.com/HighCWu/distro/actions/runs/45541591224) ·
 [顺序读取 wasm64](https://github.com/HighCWu/distro/actions/runs/45541598512)
+
+## 9P 文件描述符挂载
+
+distro `76f19be` 增加默认关闭的 `ninepCandidate`，根仓库 pin 为
+`09d5da4`。wasm32 与 wasm64 的固定内核源码均已通过 `olddefconfig`
+检查，候选配置解析得到 `NET_9P`、`NET_9P_FD`、`9P_FS` 和
+`NETFS_SUPPORT`，并保持 `CONFIG_MMU=n`。这一增量使用 Linux 通用
+9P 客户端，通过标准 AF_VSOCK 文件描述符挂载只读 9P2000.L 导出。
+本机验证了 GCC 和 Clang 编译检查、Nix 双位宽检查求值，以及与原生
+diod 的协议协商、打开、逐字节读回和连接关闭。
+
+目标运行使用原版 diod，要求分别核对 9P 挂载、目录枚举、读回文件及
+末尾换行、卸载、服务进程正常退出、唯一通过标记和机器与设备关闭。
+双位宽的目标验收尚在 CI 中。这一增量覆盖只读挂载路径，写入和文件
+映射需要各自验证。
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45551709616) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45551717275)
