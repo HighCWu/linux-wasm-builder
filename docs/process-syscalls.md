@@ -10109,11 +10109,25 @@ MemoryFs 在同一步完成身份校验和查找。有效的重命名目录仍�
 distro `3d5d92f` 在发出控制台输出前核对整条描述符链可读，
 按顺序交付内容，向 Linux 报告设备写入长度为零。主仓库 pin
 `04baba0` 固定这两个修复。748 项运行层检查、源码和测试的 TypeScript
-检查通过。新 pin 的 wasm64 Node 9P 运行仍待验收。
+检查通过。固定 `3d5d92f` 的 wasm64 Node 记录了挂载、目录读取、精确
+读写、硬链接、时间戳、扩展属性及卸载，并报告宿主核验通过和机器关闭。
 [9P 源码](https://github.com/HighCWu/distro/commit/13566aa) ·
 [控制台源码](https://github.com/HighCWu/distro/commit/3d5d92f) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/04baba0) ·
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45670609112)
+
+## 9P 挂载目录中的命名管道
+
+distro `2eef838` 支持 Linux 在 MemoryFs 导出中调用标准 `mkfifo`，
+主仓库 pin 为 `0ba1d74`。服务端创建 FIFO inode 并报告文件类型，
+同一 Linux 内核通过 VFS 管道收发数据。实际目标用例会创建命名管道、
+核对文件类型、写入并读回二进制负载，随后删除管道和卸载文件系统。
+749 项运行层检查、两套 TypeScript 以及 C 用例的原生与 Wasm64
+语法检查通过。目标验收正在运行。
+[源码](https://github.com/HighCWu/distro/commit/2eef838) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/0ba1d74) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45673114868) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45673114194)
 
 ## 动态加载后的新线程准入
 
