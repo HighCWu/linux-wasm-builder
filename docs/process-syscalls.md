@@ -10150,6 +10150,30 @@ distro `df92412` 支持标准 AF_UNIX 路径套接字在 MemoryFs 导出上
 [wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45675246544) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45675246867)
 
+## 9P 宿主目录快照
+
+distro `61a2968` 和主仓库 pin `3ca8247` 支持将浏览器提供的
+`FileSystemDirectoryHandle` 或 Linux Node 上选定的目录导入
+`MemoryFs`。两个入口分别位于 `@lowland/kernel/ninep` 和
+`@lowland/kernel/ninep/node`。调用者提供文件内容字节和条目数量上限，
+根目录计入条目数。宿主可以用现有 9P 服务导出快照，Linux 应用通过
+标准挂载访问。源目录如有变化，可重新导入。允许写入的导出只改动副本。
+
+浏览器入口保留文件名、内容和空目录。Linux Node 入口支持 x86-64
+和 AArch64，使用目录描述符及 Linux `O_PATH` 固定读取对象，
+并保留普通权限和符号链接文本。这是逐文件导入，源目录在导入期间
+发生变化时可能需要重试。
+
+759 项运行层测试及两套 TypeScript 检查已通过。目标检查会在宿主
+删除测试源后，用 Linux 标准文件接口读回导入的嵌套文件，并继续
+验证 9P 写入、卸载及完整关闭。目标结果待核实。
+[源码](https://github.com/HighCWu/distro/commit/61a29688eb764aaae40b32b0b96ac4fb9395b6ba) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/3ca8247) ·
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/45682500811) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45682509968) ·
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/45682521475) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45682534914)
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
