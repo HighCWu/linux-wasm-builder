@@ -9998,6 +9998,12 @@ distro `2dc95c1`、主仓库 pin `b5a6e70` 将同一检查用于删除和重命�
 [distro 源码](https://github.com/HighCWu/distro/commit/2dc95c1) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/b5a6e70)
 
+GitHub Actions 恢复后，固定 distro `24b2494` 的四项 9P 目标检查已启动。
+[wasm32 Node](https://github.com/HighCWu/distro/actions/runs/45656891742) ·
+[wasm64 Node](https://github.com/HighCWu/distro/actions/runs/45656890247) ·
+[wasm32 Chromium](https://github.com/HighCWu/distro/actions/runs/45656889638) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45656889232)
+
 ## 动态加载后的新线程准入
 
 distro `46fd59d` 让接收方在等待发布确认时可以进行内核维护，
@@ -10029,6 +10035,15 @@ distro `24b2494`、主仓库 pin `7d6a216` 让发布方等待 Worker
 检查已通过，公开目标执行待验收。
 [distro 源码](https://github.com/HighCWu/distro/commit/24b2494) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/7d6a216)
+[wasm32 目标检查](https://github.com/HighCWu/distro/actions/runs/45657056528) ·
+[wasm64 目标检查](https://github.com/HighCWu/distro/actions/runs/45657151355)
+
+distro `2c2de94`、主仓库 pin `60ae0e0` 在重放模块与原模块逐字节
+一致时复用已验证的引擎模块。发生重写时仍单独编译重放字节。
+735 项运行层测试及两套 TypeScript 检查已通过。两类测试分别核对
+首次分析只编译一次、移除 start 后仍分别编译两次。该版本的目标验收待核实。
+[distro 源码](https://github.com/HighCWu/distro/commit/2c2de94) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/60ae0e0)
 
 ## 动态加载后的回调式进程复制复验
 
