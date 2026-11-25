@@ -10347,7 +10347,9 @@ distro `2537ace` 支持标准 libffi 的独立 `long double` 参数、返回值�
 足够的临时空间。聚合内的 long double、complex 和闭包仍待各自的 ABI
 支持。固定 Clang 22 汇编已核对默认 wasm32、默认 wasm64 和 Linux64。
 在 Node 引擎直接执行生成模块已验证默认两种位宽的精确字节往返。
-主仓库 pin 为 `2cda450`，完整 Linux 执行与关闭仍待 CI 验收。
+主仓库 pin 为 `2cda450`。固定 Linux64 目标日志确认混合调用、
+按值聚合体变参、binary128 固定参数、隐藏返回指针和对齐变参均通过。
+运行器等待机器资源关闭后正常退出。默认两种位宽的 Linux 目标仍待核实。
 [源码](https://github.com/HighCWu/distro/commit/2537ace) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45685608270) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45685619362) ·
