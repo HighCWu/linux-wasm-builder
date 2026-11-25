@@ -10048,10 +10048,14 @@ distro `4ff80fa` 的 virtio 网卡先核对已投递接收链的容量。
 帧超出容量时，设备返回长度零的已用描述符，缓冲区保持原值，后续
 帧继续交付。Linux 的接收路径会释放短包缓冲区。实际 packed queue
 验证了使用标志、零长度和后继帧的跨缓冲区内容。739 项运行层检查
-及两套 TypeScript 检查通过，目标 CI 仍在运行。
+及两套 TypeScript 检查通过。固定 `4ff80fa` 的 Chromium 网络验证
+在建立连接前的监听检查超时。用例只读取 IPv4 表，启用 IPv6 的
+BusyBox 对只给端口的监听会优先尝试 IPv6。固定 `a7a007e` 的用例
+显式绑定 IPv4 并重跑，运行结果待核实。
 [源码](https://github.com/HighCWu/distro/commit/4ff80fa) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/912d93a) ·
 [wasm64 Chromium 网络检查](https://github.com/HighCWu/distro/actions/runs/45664893559)
+[IPv4 复验](https://github.com/HighCWu/distro/actions/runs/45667443109)
 
 distro `18df198` 读取符号链接时将 fid 保存的身份交给后端。
 MemoryFs 原子核对身份与目标内容。符号链接被宿主替换或删除时返回
