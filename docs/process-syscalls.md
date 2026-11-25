@@ -10045,6 +10045,14 @@ distro `2c2de94`、主仓库 pin `60ae0e0` 在重放模块与原模块逐字节
 [distro 源码](https://github.com/HighCWu/distro/commit/2c2de94) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/60ae0e0)
 
+distro `037d623`、主仓库 pin `186cf9a` 在组装 Worker 重放模块时，
+以视图读取模块头及原样保留的区段，最后一次性复制到独立的输出缓冲区。
+735 项运行层测试及两套 TypeScript 检查通过。重放用例覆盖了非零输入
+偏移，核对组装前后输入字节一致，并在清空输入缓冲区后实际实例化输出。
+该版本的完整目标运行尚未验收。
+[distro 源码](https://github.com/HighCWu/distro/commit/037d623) ·
+[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/186cf9a)
+
 ## 动态加载后的回调式进程复制复验
 
 固定 `43f709b` 的两位宽 Node 任务均已核实实际阶段。标准
