@@ -9770,7 +9770,9 @@ BusyBox `ip` 检查 veth 端点的创建、carrier 和删除，以及独立路�
 根仓库 `345feff` 固定。已核实 wasm32 与 wasm64 的 loop 日志，各有
 分配、挂载并写入 ext4，以及只读重挂载读回、卸载和唯一通过标记。
 两路运行器均成功退出。该固定版本的运行器在退出前等待
-`machine.closed` 并检查存储清理。虚拟网络的目标阶段和关闭结果待核实。
+`machine.closed` 并检查存储清理。wasm32 与 wasm64 虚拟网络日志均已核实
+TUN 双向 IPv4 UDP、veth 对端生命周期、dummy 与策略路由三个阶段，
+两路各有唯一通过标记且运行器成功退出。
 [loop wasm32](https://github.com/HighCWu/distro/actions/runs/45525364042) ·
 [loop wasm64](https://github.com/HighCWu/distro/actions/runs/45525370191) ·
 [虚拟网络 wasm32](https://github.com/HighCWu/distro/actions/runs/45525377554) ·
@@ -9780,6 +9782,7 @@ distro `7df00ca` 为两路 loop 检查保存 `runtime.log`，主仓库 pin 为
 `176ea4a`。文件保留运行器输出，并在进程成功退出后追加关闭标记；
 GitHub Actions 使该记录可单独下载。Nix 求值确认其他检查的生成脚本
 保持一致，轻量检查验证了运行器失败、超时与日志写入失败的退出状态。
+[日志制品目标检查](https://github.com/HighCWu/distro/actions/runs/45536410374)。
 
 ## autofs 挂载与宿主 vsock 监听
 
@@ -9787,7 +9790,8 @@ distro `a265f8d` 为双位宽启用官方 Linux 的 `AUTOFS_FS`，根 pin
 `9ce176d` 已同步。真实目标检查要求挂载协议 5 的间接 autofs，通过
 `/dev/autofs` 查询版本、设置并读回过期时间、停用挂载并验证通知管道
 释放，最后卸载。GCC、Clang、静态分析和原生控制设备版本查询通过。
-两种位宽的目标执行与关闭待核实。
+wasm32 与 wasm64 的实际日志均已核实挂载与超时读回、停用与管道释放、
+卸载和唯一通过标记。两路运行器均通过固定版本的机器关闭门禁。
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45527668698) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45527675135)
 
