@@ -792,6 +792,25 @@ Chrome 153.0.8010.36 验证了同一个 8 MiB 镜像的两次启动。第一台 
 最终浏览器均关闭。跨源镜像两轮共收到 15 次范围请求，传输 121,344 字节。
 内核运行层的源码与测试 TypeScript 检查和 45 项块设备回归通过。
 
+### 浏览器本地持久数据盘
+
+可用 `openIndexedDbBlockStorage` 创建无需远程底镜像的数据盘。
+宿主提供同源内的磁盘名称和字节容量，容量须为 512 字节的正整数倍。
+Linux 通过普通 virtio-blk 接口读写。新盘未写入的扇区读出零，
+可在 Linux 中建立文件系统。
+
+```ts
+import { blockDevice, openIndexedDbBlockStorage } from "@lowland/kernel";
+
+const storage = await openIndexedDbBlockStorage("workspace-data", 64 * 1024 * 1024);
+const disk = blockDevice(storage);
+```
+
+关闭设备后可按同名、同容量重开。容量冲突会拒绝打开并保留已有数据，
+同名磁盘由 Web Locks 独占。写入使用 IndexedDB 严格事务，持久性仍
+受浏览器配额和站点存储策略约束。全扇区丢弃或清零释放对应存储记录。
+实际 Linux 两次启动的读回结果见[浏览器本地持久数据盘](process-syscalls.md#浏览器本地持久数据盘)。
+
 ## 可写磁盘的块范围清零
 
 distro `cb9fbd9` 支持 virtio-blk `WRITE_ZEROES`，主仓库 pin 为

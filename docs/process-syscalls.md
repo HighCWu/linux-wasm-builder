@@ -10081,8 +10081,11 @@ virtio-blk，未写入的扇区读出零。同名重开须保持原容量。整�
 镜像覆盖层各自使用独立的 IndexedDB 命名空间。
 
 49 项块设备检查、两套 TypeScript 检查和 Nix 格式检查通过。
-公开 Chromium 检查包括存储后端直接重开和 Linux 经标准
-`BLKDISCARD` 的两次启动验收，目标结果待核实。
+已核对固定 `0e13e65` 的 Chromium 日志。两种后端分别启动两次。
+首次 Linux 发出标准 `BLKDISCARD`，核对清零范围及相邻字节。
+第二次重开同名磁盘，核对结果仍在，并确认未再次发送丢弃。
+四次启动都等待机器及设备关闭。后端重开、独占锁和容量校验
+也通过，浏览器报告共四项测试通过、零跳过、零重试。
 [源码](https://github.com/HighCWu/distro/commit/0e13e65) ·
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/5174f65) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45706229158)
@@ -10096,14 +10099,19 @@ distro `8bc122e` 将 unkernel `83c65c3` 中的 MIT Wisp 协议适配思路
 IPv4 地址。该适配器覆盖 Wisp v1 TCP，连接失败可在发起后表现为
 重置，协议也无法传递 TCP 半关闭。
 
-17 项宿主轻量检查及 TypeScript 检查通过。已派发固定 `0b1eb72` 的
-Chromium 和 Firefox 验收。每种浏览器运行两轮原版 BusyBox wget，
-通过协议夹具核对 DNS 转发、Wisp CONNECT、HTTP 正文及关闭。
-目标结果和实际代理互通仍待核实。
+17 项宿主轻量检查及 TypeScript 检查通过。固定 `0b1eb72` 的首次
+Chromium 和 Firefox 日志均通过 Linux 入站网络检查，随后 BusyBox
+wget 返回失败。该测试根盘缺少正式系统镜像已有的 DNS 网关配置。
+distro `5721972` 和主仓库 pin `e185492` 补入相同的解析器配置，
+加入配置断言并把 wget 错误详情写入日志。复验已派发。每种浏览器
+运行两轮原版 BusyBox wget，通过协议夹具核对 DNS 转发、
+Wisp CONNECT、HTTP 正文及关闭。
 [源码](https://github.com/HighCWu/distro/commit/8bc122e) ·
-[主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/3a5efe4) ·
-[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45706084210) ·
-[wasm64 Firefox](https://github.com/HighCWu/distro/actions/runs/45706091378)
+[首次 Chromium](https://github.com/HighCWu/distro/actions/runs/45706084210) ·
+[首次 Firefox](https://github.com/HighCWu/distro/actions/runs/45706091378) ·
+[修正](https://github.com/HighCWu/distro/commit/5721972) ·
+[复验 Chromium](https://github.com/HighCWu/distro/actions/runs/45708605745) ·
+[复验 Firefox](https://github.com/HighCWu/distro/actions/runs/45708615455)
 
 ## 9P 创建目标与 virtio 网卡接收
 
