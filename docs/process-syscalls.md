@@ -10133,12 +10133,13 @@ distro `fc51018`、主仓库 pin `07adc30` 支持通过
 应用会观察到现有连接失败，后续新会话可以重新选取代理。
 原有单端点形式仍可使用。
 
-13 项宿主检查和 TypeScript 检查通过。浏览器验收使用一个不应答
-握手的代理和一个正常代理。每轮要求 BusyBox wget 精确读回内容，
-并确认两条代理连接、机器、设备及最终页面关闭。目标 CI 待验收。
+13 项宿主检查和 TypeScript 检查通过。固定 `fc51018` 的 Chromium
+和 Firefox 各完成两轮。每一轮均通过 BusyBox wget 域名解析、
+精确的 Wisp CONNECT 目标和 HTTP 正文检查。正常代理与暂未应答
+握手的代理均关闭，机器和设备也正常关闭。两轮后均确认页面关闭。
 [源码](https://github.com/HighCWu/distro/commit/fc51018) ·
-[Chromium](https://github.com/HighCWu/distro/actions/runs/45717034615) ·
-[Firefox](https://github.com/HighCWu/distro/actions/runs/45717041716)
+[Chromium](https://github.com/HighCWu/distro/actions/runs/45717034615/job/139565756995) ·
+[Firefox](https://github.com/HighCWu/distro/actions/runs/45717041716/job/139565807545)
 
 ## 9P 创建目标与 virtio 网卡接收
 
