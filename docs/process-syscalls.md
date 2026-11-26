@@ -10580,9 +10580,11 @@ socket-diag 目标，让未修改的 iproute2 7.3.0 `ss -0` 查询绑定到
 验证程序也确认 `/proc/net/packet` 不存在。
 
 原生隔离网络空间中的两阶段对照、Wasm64 前端和本地配置检查通过。
-两个位宽的实际 Node 目标仍待验收，需核对两条新增阶段、原有诊断及
-清理阶段、唯一通过标记和固定运行器关闭结果。
+固定 `e612ffb` 的 wasm32 和 wasm64 Node 实际日志均确认两条新增阶段、
+其余诊断、回环接口清理，以及各自唯一的通过标记。两个目标均正常退出。
+固定运行器在成功退出前等待 `machine.closed` 并关闭持有的设备资源，
+两路均无目标或关闭错误。
 [上游诊断处理器](https://github.com/torvalds/linux/blob/master/net/packet/diag.c) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45837967593) ·
-[wasm32](https://github.com/HighCWu/distro/actions/runs/45838300439) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45838296815)
+[wasm32 日志](https://github.com/HighCWu/distro/actions/runs/45838300439/job/139973100081) ·
+[wasm64 日志](https://github.com/HighCWu/distro/actions/runs/45838296815/job/139973114634)
