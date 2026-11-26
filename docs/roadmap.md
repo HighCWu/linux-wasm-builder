@@ -3623,11 +3623,11 @@ distro `038e1c8` 将压缩文件原样交给内核。独立程序核对四个完
 旧 wasm64 内核报告 `compression method xz not configured`。Linux
 `f97c43f65` 在三份 Wasm 配置中启用 `CONFIG_RD_XZ`，使用标准解压器。
 distro `dc25545` 将 CRC32、1 MiB 字典的 XZ 归档原样交给内核。
-宿主已验证归档完整往返以及解包后的权限、链接和跨页数据。公开
-wasm32 和 wasm64 目标启动及关闭检查已派发。
+宿主已验证归档完整往返。固定 `dc25545` 的 wasm32 和 wasm64
+目标日志均确认内核解包后的权限、链接和跨页数据，且各有一次通过和关闭标记。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45799761640) ·
-[wasm32](https://github.com/HighCWu/distro/actions/runs/45800640599) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45800639679)
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45800640599/job/139842822012) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45800639679/job/139842809996)
 
 ### TASKSTATS 线程调度等待记账
 
@@ -3648,3 +3648,14 @@ UDP 数据报、Linux 间连接及地址回收。地址回收用例在两次机�
 通过，共 9 项通过。首个 SYN、SYN-ACK 和最终 ACK 丢失由独立的
 packed virtio 网卡夹具覆盖。
 [Linux 网络日志](https://github.com/HighCWu/distro/actions/runs/45794509660/job/139821802580)
+
+### cgroup v2 块设备 I/O 记账
+
+旧 wasm64 内核的统一层级缺少 `io` 控制器。Linux `332e37e21`
+在三份 Wasm 配置启用 `CONFIG_BLK_CGROUP`。distro `f35dde9`
+在叶子 cgroup 读取只读 virtio 盘，核对 16 KiB 数据和对应设备的
+`rbytes`、`rios` 增量，再验证进程迁回、删除空组和卸载。固定 SDK 已编译，
+旧内核已复现缺口。当前双位宽 CI 正在验证统计和机器关闭。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45802822120) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45803313276) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45803314184)
