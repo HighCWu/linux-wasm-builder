@@ -10115,10 +10115,13 @@ distro `7090bb6` 和主仓库 pin `f3f6e90` 让普通写入在合并部分扇区
 覆盖底镜像的对应字节。含非零字节的扇区完整保留，仍等待严格事务提交。
 
 两套 TypeScript 检查、GCC 和 Clang 编译检查及两项 Chromium 后端检查
-已通过。已派发固定源码的 Linux 测试，覆盖普通 `pwrite` 写零、关机重开、
-相邻数据和 IndexedDB 中的实际扇区记录。
+已通过。固定 `7090bb6` 的 wasm64 Chromium 日志确认两种盘均通过 Linux
+普通 `pwrite` 写零、关机、重开读回及第二次关机。宿主读取真实 IndexedDB
+记录，确认本地盘的八个全零扇区不占记录，HTTP 盘的八个零标记遮住原数据。
+相邻数据和 raw 导出继续通过，该运行共通过四项检查。
 [源码](https://github.com/HighCWu/distro/commit/7090bb6) ·
-[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45783575803)
+[wasm64 Chromium 日志](https://github.com/HighCWu/distro/actions/runs/45783575803/job/139784827400) ·
+[运行日志制品](https://github.com/HighCWu/distro/actions/runs/45783575803/artifacts/15100640553)
 
 ### 浏览器出站 TCP 代理
 
