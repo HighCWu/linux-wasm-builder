@@ -3636,12 +3636,13 @@ distro `dc25545` 将 CRC32、1 MiB 字典的 XZ 归档原样交给内核。
 配置中启用通用任务延迟统计，运行时仍默认关闭。distro `bf0a0d5`
 提供独立检查，在单核运行中显式启用统计，创建两个竞争的线程，通过
 标准 TASKSTATS 按活跃 TID 读取等待次数与时长，再回收线程并恢复开关。
-固定 SDK 编译和旧内核反向检查已通过。固定 `bf0a0d5` 的 wasm32 日志
-确认两个活跃线程均有非零等待次数与时长，随后回收线程、恢复 sysctl，
-输出通过和关闭标记。wasm64 验收仍在运行。
+固定 SDK 编译和旧内核反向检查已通过。固定 `bf0a0d5` 的两路目标日志
+均确认两个活跃线程有非零等待次数与时长，随后回收线程、恢复 sysctl，
+并各输出一次通过和关闭标记。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45801468133) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45802158069/job/139848045042) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45802156516)
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45802156516/job/139848066170) ·
+[wasm64 运行日志制品](https://github.com/HighCWu/distro/actions/runs/45802156516/artifacts/15108538586)
 
 ### 虚拟 TCP 握手回归
 
@@ -3656,11 +3657,11 @@ packed virtio 网卡夹具覆盖。
 旧 wasm64 内核的统一层级缺少 `io` 控制器。Linux `332e37e21`
 在三份 Wasm 配置启用 `CONFIG_BLK_CGROUP`。distro `f35dde9`
 在叶子 cgroup 读取只读 virtio 盘，核对 16 KiB 数据和对应设备的
-`rbytes`、`rios` 增量，再验证进程迁回、删除空组和卸载。固定 SDK 已编译，
-旧内核已复现缺口。当前双位宽 CI 正在验证统计和机器关闭。
+`rbytes`、`rios` 增量，再验证进程迁回、删除空组和卸载。固定 `f35dde9`
+的双位宽日志均确认设备记账增加 65,536 字节和 1 次读取，以及通过和关闭标记。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45802822120) ·
-[wasm32](https://github.com/HighCWu/distro/actions/runs/45803313276) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45803314184)
+[wasm32 运行日志制品](https://github.com/HighCWu/distro/actions/runs/45803313276/artifacts/15109270801) ·
+[wasm64 运行日志制品](https://github.com/HighCWu/distro/actions/runs/45803314184/artifacts/15109490516)
 
 ### ext4 用户 inode 配额
 
