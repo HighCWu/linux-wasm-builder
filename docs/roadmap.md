@@ -3854,7 +3854,9 @@ Linux `2ff3fec6a` 在三份 Wasm 配置启用上游 `CONFIG_IP_ROUTE_MULTIPATH`
 及其配置依赖。distro `ab4ff12` 用标准 rtnetlink 核对下一跳网关、
 接口和权重，并确认删除后的路由转储结果和资源清理。相同检查已在原生
 隔离网络命名空间通过。固定 wasm64 内核在 Node 完成了两条加权下一跳
-的读回、删除复查和关闭。主仓库 `e2b3fea` 更新 pin，双位宽 CI 仍在验收。
+的读回、删除复查和关闭。主仓库 `e2b3fea` 更新 pin。对应的 wasm32 和
+wasm64 CI 运行日志均记录两条加权下一跳读回、删除复查、一次
+`::vm-test::pass` 和 `::vm-test::closed`。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45910812453) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45910814457) ·
