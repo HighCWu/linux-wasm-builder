@@ -3669,7 +3669,9 @@ packed virtio 网卡夹具覆盖。
 Wasm 配置启用通用配额和 ext4 的 vfsv1 格式。distro `d2b2ddb` 使用
 现有 Linux `quotactl_fd` 接口，从独立 ext4 盘读取用户配额格式，设置
 普通用户的 inode 上限，检查第二次创建返回 `EDQUOT` 以及删除后用量归零。
-宿主已核实镜像的用户配额 inode，固定 SDK 已编译，双位宽验收正在运行。
+宿主已核实镜像的用户配额 inode。固定 `d2b2ddb` 的 wasm64 目标日志
+确认设置限额、第一次创建成功、第二次返回 `EDQUOT`、删除后用量归零、
+卸载和机器关闭。wasm32 检查仍在运行。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45804051273) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45804508224) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45804506798)
+[wasm64 运行日志制品](https://github.com/HighCWu/distro/actions/runs/45804506798/artifacts/15109537482)
