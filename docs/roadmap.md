@@ -3766,8 +3766,9 @@ distro `aaea5bd` 加入独立的双位宽运行检查，确认超块压缩编号
 `user.*` 属性返回 `EOPNOTSUPP`。Linux `14ff2e16e` 在三份
 Wasm 配置启用上游 `CONFIG_SQUASHFS_XATTR`。distro `08b581b`
 的独立 Zstd 镜像检查覆盖 `getxattr`、`listxattr`、缺失属性的
-`ENODATA` 和短缓冲区的 `ERANGE`。宿主已核实镜像中的属性和值，
-主仓库 `855bf68` 已更新 pin，固定版本的双位宽运行正在验收。
+`ENODATA` 和短缓冲区的 `ERANGE`。固定 wasm64 内核在 Node
+核实了这些结果以及卸载和机器关闭。主仓库 `855bf68` 已更新 pin，
+固定版本的双位宽 CI 运行仍在验收。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45901307565) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45901311834) ·
