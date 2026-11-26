@@ -3610,10 +3610,21 @@ distro `038e1c8` 将压缩文件原样交给内核。独立程序核对四个完
 64 KiB 页及尾部、权限、符号链接和空目录。生成的镜像已核对 Zstd 头和
 解压后的 cpio 内容。首轮公开 CI 双位宽均进入 `/init`，随后在文件权限检查
 失败。Nix store 规范化源文件权限，distro `adb5ead` 改为在归档前显式设置
-本用例的文件与目录权限。宿主 cpio、Zstd 和原生检查程序已通过，双位宽
-目标复验待结果。
+本用例的文件与目录权限。固定 `adb5ead` 的两路目标复验均确认解包后的
+数据、权限和链接。两路各出现一次通过和机器关闭标记。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45794256977) ·
 [wasm32 首轮](https://github.com/HighCWu/distro/actions/runs/45794744774) ·
 [wasm64 首轮](https://github.com/HighCWu/distro/actions/runs/45794753965) ·
-[复验](https://github.com/HighCWu/distro/actions/runs/45799207365) ·
-[复验](https://github.com/HighCWu/distro/actions/runs/45799207478)
+[wasm32 复验](https://github.com/HighCWu/distro/actions/runs/45799207478/job/139837865711) ·
+[wasm64 复验](https://github.com/HighCWu/distro/actions/runs/45799207365/job/139837859443)
+
+### XZ 压缩启动镜像
+
+旧 wasm64 内核报告 `compression method xz not configured`。Linux
+`f97c43f65` 在三份 Wasm 配置中启用 `CONFIG_RD_XZ`，使用标准解压器。
+distro `dc25545` 将 CRC32、1 MiB 字典的 XZ 归档原样交给内核。
+宿主已验证归档完整往返以及解包后的权限、链接和跨页数据。公开
+wasm32 和 wasm64 目标启动及关闭检查已派发。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45799761640) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45800640599) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45800639679)
