@@ -10599,8 +10599,11 @@ Linux `ef685a343` 在连续页全部进入页面缓存后发布新长度，保�
 使用实际函数体的宿主故障模型覆盖整批分配失败、前三个插入位置的失败
 及成功扩容。GCC 与 Clang 均通过，旧函数的失败对照发布了错误的长度。
 distro `01bfd48` 的标准 memfd 消费者增加未对齐扩容和最后一页清零检查，
-原生 GCC/Clang 及 Wasm64 前端检查通过。双位宽 Node 目标待核实成功路径
-及关闭。真实内核内存分配失败尚未在目标执行环境注入。
+原生 GCC/Clang 及 Wasm64 前端检查通过。固定 `01bfd48` 的 wasm32 和 wasm64
+Node 日志均确认精确文件长度和末页清零，随后通过原有创建标志、文件 I/O、
+截断和关闭检查，并各输出一次通过标记。两项运行器均正常退出，固定运行器
+在成功退出前等待 `machine.closed` 并关闭持有的设备资源。
+真实内核内存分配失败尚未在目标执行环境注入。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45845749647) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45846606276/job/140002007507) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45846606106/job/140001984520)
