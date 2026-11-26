@@ -53,9 +53,14 @@ static struct thread_info info;
 static struct pt_regs regs;
 static struct pt_regs *irq_regs;
 static int irq_enabled=1, ticks, user_ticks, entries, exits;
+static int worker_waits, worker_prepares;
 static unsigned long arch_local_save_flags(void) { return irq_enabled; }
 #define current_thread_info() (&info)
 #define current_pt_regs() (&regs)
+#define TIF_WASM_WORKER_BARRIER 16
+#define _TIF_WASM_WORKER_BARRIER (1UL << TIF_WASM_WORKER_BARRIER)
+static void wasm_worker_checkpoint_wait(void);
+static void wasm_worker_prepare_user_return(struct pt_regs *r);
 #define local_irq_save(flags) do { flags=irq_enabled; irq_enabled=0; } while (0)
 #define local_irq_restore(flags) do { irq_enabled=(flags); } while (0)
 #define raw_local_irq_save local_irq_save
@@ -83,6 +88,18 @@ __attribute__((optnone)) void *memset(void *to, int value, __SIZE_TYPE__ count) 
     return to;
 }
 static void wasm_user_call(void) { BUG_ON(!info.in_user_context); }
+/* The pinned test extraction omits worker_checkpoint.c and its header. Keep
+ * strict stand-ins for the two declared hooks and test their real dispatch
+ * from entry-common.h without folding them into the user-phase transition. */
+static void wasm_worker_checkpoint_wait(void) {
+    BUG_ON(info.in_user_context);
+    worker_waits++;
+}
+static void wasm_worker_prepare_user_return(struct pt_regs *r) {
+    BUG_ON(irq_enabled || info.in_user_context || r!=current_pt_regs());
+    worker_prepares++;
+    wasm_worker_checkpoint_wait();
+}
 static int wasm_user_signal_v1_call_handler(uintptr_t trampoline, uintptr_t fn, u32 sig,
         unsigned long sp, unsigned long base, unsigned long size, u32 flags) {
     BUG_ON(!info.in_user_context || trampoline!=1 || fn!=2 || sig!=10 ||
@@ -102,10 +119,21 @@ static void generic_handle_domain_irq(void *domain, irq_hw_number_t hwirq) {
 suffix = r'''
 __attribute__((export_name("interrupt"))) void interrupt(void) { run_irq(2); }
 __attribute__((export_name("mask"))) void mask(int enabled) { irq_enabled=enabled; }
+__attribute__((export_name("exercise_user_return_hooks"))) void exercise_user_return_hooks(int barrier) {
+    BUG_ON(info.in_user_context || (barrier!=0 && barrier!=1));
+    unsigned long flags;
+    local_irq_save(flags);
+    arch_exit_to_user_mode_work(current_pt_regs(), barrier ? _TIF_WASM_WORKER_BARRIER : 0);
+    arch_exit_to_user_mode_prepare(current_pt_regs(), 0);
+    BUG_ON(irq_enabled);
+    local_irq_restore(flags);
+    BUG_ON(irq_enabled!=!!flags);
+}
 __attribute__((export_name("stats"))) int stats(int field) {
     switch(field) {
     case 0:return ticks; case 1:return user_ticks; case 2:return entries;
     case 3:return exits; case 4:return irq_enabled; case 5:return !!irq_regs;
+    case 6:return worker_waits; case 7:return worker_prepares;
     default:__builtin_trap();
     }
 }
@@ -131,7 +159,18 @@ const address = process.argv[2] === '64' ? 'i64' : 'i32';
 const p=n=>address==='i64'?BigInt(n):n;
 assert.equal(e.user_context_v1(2),0);
 e.wasm_check_user_context_abi(); // default configuration has no mandatory import
+assert.equal(e.stats(6),0);
+assert.equal(e.stats(7),0);
+e.exercise_user_return_hooks(0);
+assert.equal(e.stats(6),1,'return preparation waits for the worker checkpoint');
+assert.equal(e.stats(7),1,'entry-common prepare hook reaches the kernel helper');
+assert.equal(e.stats(4),1,'return hooks restore the incoming IRQ state');
+e.exercise_user_return_hooks(1);
+assert.equal(e.stats(6),3,'pending barrier work waits before return preparation');
+assert.equal(e.stats(7),2);
+assert.equal(e.user_context_v1(2),0,'return preparation stays in kernel phase');
 e.wasm_run_user();
+assert.equal(e.stats(6),4,'startup waits for the worker checkpoint before entering user phase');
 assert.equal(e.user_context_v1(2),0);
 assert.equal(e.wasm_run_user_signal(p(1),p(2),10,p(4096),p(2048),p(2048),3),17);
 assert.equal(e.user_context_v1(2),0,'signal returns to its live kernel caller');
