@@ -3737,8 +3737,8 @@ distro `210a62f` 为 LZMA 添加独立检查，核对镜像超块的算法标记
 
 distro `86ddb03` 将镜像的显式时间参数和 Nix 提供的
 `SOURCE_DATE_EPOCH` 隔开。修复前两路 CI 均在镜像生成阶段失败。
-主仓库 `3604179` 更新了 pin。固定 `86ddb03` 的 wasm32 运行日志
-已核实读取、卸载、一次通过和机器关闭。
+主仓库 `3604179` 更新了 pin。固定 `86ddb03` 的 wasm32 和 wasm64
+运行日志分别核实了读取、卸载、一次通过和机器关闭。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45896430651) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45896434543) ·
@@ -3750,8 +3750,9 @@ distro `86ddb03` 将镜像的显式时间参数和 Nix 提供的
 带 `CONFIG_RD_XZ` 的旧 wasm64 内核仍拒绝挂载 XZ 压缩的 SquashFS，
 返回 `EINVAL`。Linux `3a248a878` 启用上游 `CONFIG_SQUASHFS_XZ`。
 distro `aaea5bd` 加入独立的双位宽运行检查，确认超块压缩编号为 4，
-再由标准 Linux mount 和文件读取接口核对完整数据。宿主已核实镜像
-及全部提取字节。主仓库 `ae79f53` 更新两个 pin，实际目标正在验收。
+再由标准 Linux mount 和文件读取接口核对完整数据。固定 wasm64 内核
+已在本地 Node 核实跨页读取、文件尾部、卸载和机器关闭。主仓库
+`ae79f53` 更新两个 pin，双位宽 CI 运行仍在验收。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45898412037) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45898479866) ·
