@@ -3773,7 +3773,7 @@ Wasm 配置启用上游 `CONFIG_SQUASHFS_XATTR`。distro `08b581b`
 从镜像元数据验值，并独立核对提取出的数据。新镜像也已在 wasm64
 Node 完成实际读取、卸载和机器关闭。固定 `0bf4d0a` 的 wasm64
 复验日志也确认 get/list、错误返回、卸载、一次通过和机器关闭。
-wasm32 CI 复验仍在进行。
+带同一镜像修复的 `80f9485` wasm32 复验日志也确认全部阶段和关闭。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45901307565) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45901311834) ·
