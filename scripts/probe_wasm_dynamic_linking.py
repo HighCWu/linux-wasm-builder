@@ -5,6 +5,7 @@
 from pathlib import Path
 import argparse
 import json
+import re
 import subprocess
 import tempfile
 
@@ -177,6 +178,24 @@ def _add_imported_function_export(data: bytes, name: str) -> tuple[bytes, int]:
     payload = _write_varuint(count + 1) + data[entries_start:end] + entry
     replacement = b"\x07" + _write_varuint(len(payload)) + payload
     return data[:start] + replacement + data[end:], function_index
+
+
+def _resolve_relative_typescript_imports(source: str, source_path: Path) -> str:
+    # The blocked-constructor control is staged in a temporary directory. Keep
+    # every relative TS dependency anchored to the original process module so
+    # the negative and positive controls load the same complete dependency graph.
+    import_pattern = re.compile(
+        r'(?P<prefix>\b(?:from\s+|import\s*(?:\(\s*)?))(?P<quote>["\'])(?P<specifier>(?:\.\.?/)[^"\']+\.ts)(?P=quote)'
+    )
+
+    def resolve(match: re.Match[str]) -> str:
+        dependency = (source_path.parent / match.group("specifier")).resolve()
+        if not dependency.is_file():
+            raise RuntimeError(f"missing TypeScript dependency {dependency}")
+        quote = match.group("quote")
+        return f"{match.group('prefix')}{quote}{dependency.as_uri()}{quote}"
+
+    return import_pattern.sub(resolve, source)
 
 
 MAIN = r"""
@@ -946,19 +965,9 @@ with tempfile.TemporaryDirectory(prefix="wasm-dylink-probe-") as tmp:
         raise RuntimeError(
             "constructor blocking control did not replace the actual execution boundary"
         )
-    for name in (
-        "dylink_linker",
-        "dylink",
-        "dylink_call_metadata",
-        "dylink_address",
-        "dylink_call_wrapper",
-        "wasm_binary",
-        "wasm",
-        "linux-string",
-    ):
-        blocked = blocked.replace(
-            f'"./{name}.ts"', json.dumps((runtime / f"{name}.ts").as_uri())
-        )
+    blocked = _resolve_relative_typescript_imports(
+        blocked, runtime / "dylink_process.ts"
+    )
     (directory / "blocked-process.ts").write_text(blocked)
     (directory / "blocked-probe.mjs").write_text(
         runner.replace(
