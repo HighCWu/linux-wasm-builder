@@ -3806,7 +3806,8 @@ distro `96ac518` 为既有 iproute2 检查增加 `ss -w -4 -a -n -e`，
 按 inode 核对活动套接字及关闭后的消失，同时确认 procfs 回退不可用。
 主仓库 `74e736a` 已更新两个 pin。固定内核在 wasm64 Node 中通过标准
 netlink 查询核实了活动套接字及关闭后的消失，机器和设备正常关闭。
-使用上游 `ss` 的双位宽目标仍在验收。
+使用上游 `ss` 的两路 CI 运行日志均核实活动 inode、关闭后从新转储消失、
+回环清理及一次通过。两路运行器均从机器和磁盘关闭路径返回成功。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45904567523) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45904570558) ·
@@ -3820,9 +3821,24 @@ netlink 查询核实了活动套接字及关闭后的消失，机器和设备正
 distro `2185ac4` 的运行检查把自身迁入子组，执行 CPU 运算，读取递增的
 `cpuacct.usage`，再迁回根组、移除空子组并卸载。固定内核在 wasm64 Node
 已验证全部阶段和机器关闭。主仓库 `16626eb` 更新两个 pin。
-双位宽 distro 运行检查仍在验收。
+wasm64 distro 运行日志也已验证迁组、计费增长、清理和机器关闭。
+wasm32 仍在验收。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45905431368) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45905433223) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45906106044) ·
 [wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45906110707)
+
+### IPv6 策略路由
+
+旧 wasm64 内核对 `AF_INET6` 的 `RTM_GETRULE` 返回 `EOPNOTSUPP`。
+Linux `047dad874` 在三份 Wasm 配置启用上游 `CONFIG_IPV6_MULTIPLE_TABLES`。
+固定 wasm64 内核已在 Node 返回 IPv6 规则并正常关闭。
+distro `5315537` 在现有虚拟网络检查中增加独立 IPv6 路由表，使用 BusyBox
+核对规则转储、出接口、源地址、撤销规则后的路由选择及清理。原生隔离网络
+命名空间已验证该命令序列。主仓库 `a98f5a4` 更新两个 pin，双位宽 CI 正在验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45907082528) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45907086468) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45907873068) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45907879206)
