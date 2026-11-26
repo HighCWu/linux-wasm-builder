@@ -10564,6 +10564,8 @@ umask 的 mode 传给后端，在发送 inode 响应前关闭临时句柄。目�
 inode、大小和权限得以保留。设备节点和 FIFO 仍返回不支持。
 
 原生 Linux 对照、45 项 FUSE 宿主测试及 TypeScript 源码和测试类型检查均通过。
-固定源码的 Node 虚拟机正在验收。
+固定 `9881429` 的 Node 运行日志确认文件创建子测试通过。该子测试断言
+目标程序退出 0 并逐行匹配输出，其中包括常规文件 `mknod` 的通过标记。
+目录共享套件共通过 16 项，卸载后由夹具等待机器与启动控制台关闭。
 [Linux FUSE UAPI](https://github.com/torvalds/linux/blob/master/include/uapi/linux/fuse.h) ·
-[Node 目标检查](https://github.com/HighCWu/distro/actions/runs/45828227863)
+[Node 目标日志](https://github.com/HighCWu/distro/actions/runs/45828227863/job/139938031168)
