@@ -10554,3 +10554,16 @@ distro `1420eba`、主仓库 pin `34d29f3` 支持回调式 `clone` 使用
 一次通过标记，固定运行器完成关闭后退出。
 [文件系统日志](https://github.com/HighCWu/distro/actions/runs/45792501084/job/139815010231) ·
 [进程日志](https://github.com/HighCWu/distro/actions/runs/45792508127/job/139815004402)
+
+## virtio-fs 上使用 mknod 创建常规文件
+
+distro `9881429` / 集成 `1b10565` 接通 Linux 在共享目录上发出的
+`FUSE_MKNOD` 常规文件请求。运行时复用后端的排他创建，将 Linux 已应用
+umask 的 mode 传给后端，在发送 inode 响应前关闭临时句柄。目标回归检查
+文件为空、权限符合调用者的 umask、同名请求返回 `EEXIST`，以及该文件的
+inode、大小和权限得以保留。设备节点和 FIFO 仍返回不支持。
+
+原生 Linux 对照、45 项 FUSE 宿主测试及 TypeScript 源码和测试类型检查均通过。
+固定源码的 Node 虚拟机正在验收。
+[Linux FUSE UAPI](https://github.com/torvalds/linux/blob/master/include/uapi/linux/fuse.h) ·
+[Node 目标检查](https://github.com/HighCWu/distro/actions/runs/45828227863)
