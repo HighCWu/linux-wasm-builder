@@ -3719,9 +3719,9 @@ distro `672b3b8` 和集成 `659feb8` 已更新源码 pin。
 distro `210a62f` 为 LZMA 添加独立检查，核对镜像超块的算法标记、
 跨页压缩簇和提取后的完整字节。主仓库 `09d44aa` 更新两个源码 pin。
 
-使用 Linux 构建产物的 wasm64 Node 运行确认块设备和普通文件均可挂载，
-并逐字节核对顺序读取、跨页 `pread`、随机游标和文件尾部。两次卸载和
-清理完成，运行器正常退出。下列 distro 双位宽任务负责验证完整的固定构建链。
+固定 `210a62f` 的 wasm32 与 wasm64 Node 目标日志均确认块设备和普通文件
+挂载成功，并逐字节核对顺序读取、跨页 `pread`、随机游标和文件尾部。
+两路均完成卸载与清理，各输出一次通过和机器关闭标记。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45893799137) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45893802049) ·
