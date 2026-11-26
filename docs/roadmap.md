@@ -3628,3 +3628,23 @@ wasm32 和 wasm64 目标启动及关闭检查已派发。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45799761640) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45800640599) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45800639679)
+
+### TASKSTATS 线程调度等待记账
+
+旧 wasm64 内核中，实际 SDK 程序挂载 procfs 后找不到
+`/proc/sys/kernel/task_delayacct`。Linux `9b54aa5f7` 在三份 Wasm
+配置中启用通用任务延迟统计，运行时仍默认关闭。distro `bf0a0d5`
+提供独立检查，在单核运行中显式启用统计，创建两个竞争的线程，通过
+标准 TASKSTATS 按活跃 TID 读取等待次数与时长，再回收线程并恢复开关。
+固定 SDK 编译和旧内核反向检查已通过，新内核双位宽验收正在运行。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45801468133) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45802158069) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45802156516)
+
+### 虚拟 TCP 握手回归
+
+固定 `71c5b06` 的真实 Linux 网络日志确认双向 TCP、反压、最大
+UDP 数据报、Linux 间连接及地址回收。地址回收用例在两次机器关闭后才
+通过，共 9 项通过。首个 SYN、SYN-ACK 和最终 ACK 丢失由独立的
+packed virtio 网卡夹具覆盖。
+[Linux 网络日志](https://github.com/HighCWu/distro/actions/runs/45794509660/job/139821802580)
