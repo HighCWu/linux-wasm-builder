@@ -3752,7 +3752,8 @@ distro `86ddb03` 将镜像的显式时间参数和 Nix 提供的
 distro `aaea5bd` 加入独立的双位宽运行检查，确认超块压缩编号为 4，
 再由标准 Linux mount 和文件读取接口核对完整数据。固定 wasm64 内核
 已在本地 Node 核实跨页读取、文件尾部、卸载和机器关闭。主仓库
-`ae79f53` 更新两个 pin，双位宽 CI 运行仍在验收。
+`ae79f53` 更新两个 pin。固定 `aaea5bd` 的双位宽 CI 日志均确认
+跨页读取、文件尾部、卸载、一次通过和机器关闭。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45898412037) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45898479866) ·
