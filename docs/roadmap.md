@@ -3771,7 +3771,9 @@ Wasm 配置启用上游 `CONFIG_SQUASHFS_XATTR`。distro `08b581b`
 两路初版 CI 在 Nix 沙箱生成镜像时对宿主文件调用 setxattr，均返回
 `EOPNOTSUPP`。distro `0bf4d0a` 改用打包器直接写入镜像属性，
 从镜像元数据验值，并独立核对提取出的数据。新镜像也已在 wasm64
-Node 完成实际读取、卸载和机器关闭，双位宽 CI 复验进行中。
+Node 完成实际读取、卸载和机器关闭。固定 `0bf4d0a` 的 wasm64
+复验日志也确认 get/list、错误返回、卸载、一次通过和机器关闭。
+wasm32 CI 复验仍在进行。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45901307565) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45901311834) ·
@@ -3793,3 +3795,17 @@ distro `80f9485` 的运行检查在私有磁盘副本上使用 UTF-8 长文件�
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45903121603) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45903583028) ·
 [wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45903591652)
+
+### IPv4 raw 套接字诊断
+
+旧 wasm64 内核可以创建并绑定回环 ICMP raw 套接字，但标准
+`NETLINK_SOCK_DIAG` 查询返回 `ENOENT`。Linux `de65747d0`
+在三份 Wasm 配置启用上游 `CONFIG_INET_RAW_DIAG`。
+distro `96ac518` 为既有 iproute2 检查增加 `ss -w -4 -a -n -e`，
+按 inode 核对活动套接字及关闭后的消失，同时确认 procfs 回退不可用。
+主仓库 `74e736a` 已更新两个 pin，双位宽目标仍在验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45904567523) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45904570558) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45904817039) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45904821965)
