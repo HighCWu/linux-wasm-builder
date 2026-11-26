@@ -3767,10 +3767,29 @@ distro `aaea5bd` 加入独立的双位宽运行检查，确认超块压缩编号
 Wasm 配置启用上游 `CONFIG_SQUASHFS_XATTR`。distro `08b581b`
 的独立 Zstd 镜像检查覆盖 `getxattr`、`listxattr`、缺失属性的
 `ENODATA` 和短缓冲区的 `ERANGE`。固定 wasm64 内核在 Node
-核实了这些结果以及卸载和机器关闭。主仓库 `855bf68` 已更新 pin，
-固定版本的双位宽 CI 运行仍在验收。
+核实了这些结果以及卸载和机器关闭。主仓库 `855bf68` 已更新 pin。
+两路初版 CI 在 Nix 沙箱生成镜像时对宿主文件调用 setxattr，均返回
+`EOPNOTSUPP`。distro `0bf4d0a` 改用打包器直接写入镜像属性，
+从镜像元数据验值，并独立核对提取出的数据。新镜像也已在 wasm64
+Node 完成实际读取、卸载和机器关闭，双位宽 CI 复验进行中。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45901307565) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45901311834) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45901874433) ·
-[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45901882451)
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45901882451) ·
+[wasm32 复验](https://github.com/HighCWu/distro/actions/runs/45903775031) ·
+[wasm64 复验](https://github.com/HighCWu/distro/actions/runs/45903399129)
+
+### VFAT 磁盘长文件名
+
+旧 wasm64 内核挂载有效 FAT16 盘返回 `ENODEV`。Linux `bf816b5a5`
+在三份 Wasm 配置启用上游 VFAT 及所需字符集，双位宽内核构建已通过。
+distro `80f9485` 的运行检查在私有磁盘副本上使用 UTF-8 长文件名。
+固定 wasm64 内核已在 Node 验证写入、同步、卸载、重新挂载后逐字节
+读取以及机器关闭。宿主随后使用 `fsck.fat` 核实了输出镜像。
+主仓库 `26fbc65` 更新两个 pin，双位宽 CI 运行仍在验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45903117784) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45903121603) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45903583028) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45903591652)
