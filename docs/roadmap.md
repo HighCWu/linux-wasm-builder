@@ -3710,3 +3710,20 @@ distro `672b3b8` 和集成 `659feb8` 已更新源码 pin。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45861540193) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45862778167)
+
+### microLZMA 压缩 EROFS
+
+固定 Linux `1394685a7` 的 wasm64 内核在挂载 microLZMA 镜像时报告
+算法 1 未启用，返回 `EOPNOTSUPP`。Linux `ce98dca83` 在三份 Wasm
+配置启用上游 EROFS microLZMA 解压，双位宽内核构建通过。
+distro `210a62f` 为 LZMA 添加独立检查，核对镜像超块的算法标记、
+跨页压缩簇和提取后的完整字节。主仓库 `09d44aa` 更新两个源码 pin。
+
+使用 Linux 构建产物的 wasm64 Node 运行确认块设备和普通文件均可挂载，
+并逐字节核对顺序读取、跨页 `pread`、随机游标和文件尾部。两次卸载和
+清理完成，运行器正常退出。下列 distro 双位宽任务负责验证完整的固定构建链。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45893799137) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45893802049) ·
+[wasm32 运行任务](https://github.com/HighCWu/distro/actions/runs/45894385080) ·
+[wasm64 运行任务](https://github.com/HighCWu/distro/actions/runs/45894391606)
