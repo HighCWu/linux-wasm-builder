@@ -38,6 +38,7 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
                 check=True,
             )
             creation = source.name == "file-creation-modes.c"
+            expected_stages = 4 if creation else 3
             fixture = work / ("creation-root" if creation else "file")
             if creation:
                 fixture.mkdir(exist_ok=True)
@@ -46,9 +47,10 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
             result = subprocess.run(
                 [str(program), str(fixture)], capture_output=True, text=True, timeout=15
             )
-            assert result.returncode == 0 and result.stdout.count(" pass\n") == 3, (
-                result.stdout + result.stderr
-            )
+            assert (
+                result.returncode == 0
+                and result.stdout.count(" pass\n") == expected_stages
+            ), (result.stdout + result.stderr)
             if creation:
                 assert not list(fixture.iterdir())
             else:
@@ -56,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix="file-timestamps-") as directory:
                     b"unchanged" if source == SOURCE else b"new"
                 )
             print(
-                f"{compiler}: native {source.stem} three-stage syscall reference pass"
+                f"{compiler}: native {source.stem} {expected_stages}-stage syscall reference pass"
             )
     for compiler in ("gcc", "clang"):
         program = work / "external-metadata"
