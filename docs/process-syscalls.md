@@ -10569,3 +10569,20 @@ inode、大小和权限得以保留。设备节点和 FIFO 仍返回不支持。
 目录共享套件共通过 16 项，卸载后由夹具等待机器与启动控制台关闭。
 [Linux FUSE UAPI](https://github.com/torvalds/linux/blob/master/include/uapi/linux/fuse.h) ·
 [Node 目标日志](https://github.com/HighCWu/distro/actions/runs/45828227863/job/139938031168)
+
+## 使用 ss 查看 AF_PACKET 套接字
+
+Linux `e5ee8b1b5` 在三份 Wasm 配置启用上游 `PACKET_DIAG`。
+distro `e612ffb` 固定该内核并在最终配置中要求该选项。它扩展现有
+socket-diag 目标，让未修改的 iproute2 7.3.0 `ss -0` 查询绑定到
+`lo` 的 datagram packet socket，匹配套接字 inode、类型和绑定接口，
+再关闭该描述符并确认新查询中找不到原 inode。目标镜像没有 procfs，
+验证程序也确认 `/proc/net/packet` 不存在。
+
+原生隔离网络空间中的两阶段对照、Wasm64 前端和本地配置检查通过。
+两个位宽的实际 Node 目标仍待验收，需核对两条新增阶段、原有诊断及
+清理阶段、唯一通过标记和固定运行器关闭结果。
+[上游诊断处理器](https://github.com/torvalds/linux/blob/master/net/packet/diag.c) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45837967593) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45838300439) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45838296815)

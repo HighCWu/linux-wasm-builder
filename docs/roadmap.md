@@ -3687,3 +3687,10 @@ IGMPv3 报告，入组后收到预期数据，退组后停止投递，套接字�
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45808040571) ·
 [wasm32 运行日志制品](https://github.com/HighCWu/distro/actions/runs/45808806639/artifacts/15113860246) ·
 [wasm64 运行日志制品](https://github.com/HighCWu/distro/actions/runs/45808807101/artifacts/15114015468)
+
+### AF_PACKET 套接字诊断
+
+Linux `e5ee8b1b5` / distro `e612ffb` / 集成 `d856a60` 启用上游
+`PACKET_DIAG`。既有 `ss` 目标增加回环绑定的套接字发现与关闭检查，
+并检查 procfs 回退不可用。原生隔离网络对照已通过，双位宽目标运行中。
+[验证范围与任务](process-syscalls.md#使用-ss-查看-af_packet-套接字)
