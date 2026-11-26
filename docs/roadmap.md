@@ -3572,3 +3572,12 @@ wasm64 运行日志均逐项确认标准记录解析、单 CPU 竞争时压力�
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45632200217) ·
 [wasm32 目标日志](https://github.com/HighCWu/distro/actions/runs/45632589284/job/139269627832) ·
 [wasm64 目标日志](https://github.com/HighCWu/distro/actions/runs/45632598279/job/139269689310)
+
+### 静态 libjq 消费者
+
+distro `8b0874c` 生成 `libjq.pc` 的静态依赖，依据安装产物区分
+Oniguruma 符号已归入 libjq 和独立 libonig 两种布局，同时保留 libm
+依赖。目标检查用 `pkg-config --static --cflags --libs libjq` 提供的
+参数构建普通 C 消费者，运行 jq 正则过滤并核对输出与退出。
+归档布局的宿主验证已通过，Wasm 构建和运行由公开 CI 验收。
+[目标检查](https://github.com/HighCWu/distro/actions/runs/45791011930)

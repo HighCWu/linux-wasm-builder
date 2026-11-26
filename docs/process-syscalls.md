@@ -10519,3 +10519,18 @@ distro `1420eba`、主仓库 pin `34d29f3` 支持回调式 `clone` 使用
 覆盖首次复制、共享库和嵌套子进程、第二次复制、同步私有子进程及父进程关闭
 共享库。每份日志均有唯一的 `::vm-test::pass` 和 `::vm-test::closed`，
 关闭标记位于最后一行。
+
+## 非对齐 raw brk 后的分配
+
+固定 wasm64 Node 复现了 raw `brk` 增长一字节后，`malloc` 返回未对齐
+地址，`free` 在 mallocng 查找元数据时触发 trap。musl `6f329948`
+在 Wasm 后备分配中按 mallocng 的 16 字节单元对齐新区域。默认路径在
+原有锁内计算并提交完整范围。实验 syscall 配置通过原有受限 `sbrk`
+单次预留，再择取对齐范围。既有公共 libc API 继续使用同一接口。
+
+使用固定 SDK 仅替换两个目标对象，同一 Node 运行器确认分配对齐、内存
+可写并正常释放。distro `66253ea` 固定源码并将此场景加入实验
+`brk` 配置的双位宽目标检查。堆与 mmap 现仍共用单调区域，这次修复
+覆盖非对齐增长后的分配。缩小 break 仍返回当前地址。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45790525016) ·
+[双位宽目标检查](https://github.com/HighCWu/distro/actions/runs/45790741792)
