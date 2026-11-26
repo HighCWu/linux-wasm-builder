@@ -3789,7 +3789,8 @@ Node 完成实际读取、卸载和机器关闭。固定 `0bf4d0a` 的 wasm64
 distro `80f9485` 的运行检查在私有磁盘副本上使用 UTF-8 长文件名。
 固定 wasm64 内核已在 Node 验证写入、同步、卸载、重新挂载后逐字节
 读取以及机器关闭。宿主随后使用 `fsck.fat` 核实了输出镜像。
-主仓库 `26fbc65` 更新两个 pin，双位宽 CI 运行仍在验收。
+主仓库 `26fbc65` 更新两个 pin。固定 `80f9485` 的两路 CI 运行日志均确认
+同步写入、重新挂载后逐字节读取、关闭文件以及机器关闭。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45903117784) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45903121603) ·
@@ -3803,9 +3804,25 @@ distro `80f9485` 的运行检查在私有磁盘副本上使用 UTF-8 长文件�
 在三份 Wasm 配置启用上游 `CONFIG_INET_RAW_DIAG`。
 distro `96ac518` 为既有 iproute2 检查增加 `ss -w -4 -a -n -e`，
 按 inode 核对活动套接字及关闭后的消失，同时确认 procfs 回退不可用。
-主仓库 `74e736a` 已更新两个 pin，双位宽目标仍在验收。
+主仓库 `74e736a` 已更新两个 pin。固定内核在 wasm64 Node 中通过标准
+netlink 查询核实了活动套接字及关闭后的消失，机器和设备正常关闭。
+使用上游 `ss` 的双位宽目标仍在验收。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45904567523) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45904570558) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45904817039) ·
 [wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45904821965)
+
+### cgroup v1 CPU 用量统计
+
+旧 wasm64 内核挂载 `cpuacct` 控制器返回 `EINVAL`。Linux `4befbb159`
+在三份 Wasm 配置启用上游 `CONFIG_CGROUP_CPUACCT`。
+distro `2185ac4` 的运行检查把自身迁入子组，执行 CPU 运算，读取递增的
+`cpuacct.usage`，再迁回根组、移除空子组并卸载。固定内核在 wasm64 Node
+已验证全部阶段和机器关闭。主仓库 `16626eb` 更新两个 pin。
+双位宽 distro 运行检查仍在验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45905431368) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45905433223) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45906106044) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45906110707)
