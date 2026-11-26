@@ -19,20 +19,32 @@ assert compilers
 
 
 def profile_recipe(recipe):
-    # The base CRT patch applies to every profile; execution patches and fork
+    # The base CRT/mmap patches apply to every profile; execution patches and fork
     # declarations remain opt-in and must not leak into other profiles.
     text = " ".join(recipe.split())
-    return all(fragment in text for fragment in (
+    required = (
         "enableForkContinuation ? false",
-        "assert !(enableForkContinuation && enableDynamicLoader);",
+        "enableDynamicLoader ? false",
         "enableCooperativePoll ? false",
+        "assert !(enableForkContinuation && enableDynamicLoader);",
         "assert !(enableCooperativePoll && enableDynamicLoader);",
         'lib.optionalString enableForkContinuation " -DWASM_FORK_CONTINUATION=1"',
-        "patches = [ ./wasm-crt1.patch ] "
+        'lib.optionalString enableDynamicLoader " -fvisibility=default -DWASM_DYNAMIC_LOADER=1"',
+        'lib.optionalString enableCooperativePoll " -fsanitize-coverage=trace-pc,no-prune,edge"',
+        "patches = [ ./wasm-crt1.patch ./wasm-mincore.patch ./wasm-mmap-query.patch ] "
         "++ lib.optional enableForkContinuation ./fork-continuation.patch "
         "++ lib.optional enableDynamicLoader ./dynamic-loader.patch "
         "++ lib.optional enableCooperativePoll ./cooperative-poll.patch;",
-    ))
+    )
+    optional_patches = (
+        "./fork-continuation.patch",
+        "./dynamic-loader.patch",
+        "./cooperative-poll.patch",
+    )
+    return (
+        all(text.count(fragment) == 1 for fragment in required)
+        and all(text.count(patch) == 1 for patch in optional_patches)
+    )
 
 
 with tempfile.TemporaryDirectory(prefix="wasm-terminal-") as tmp:
@@ -52,9 +64,19 @@ with tempfile.TemporaryDirectory(prefix="wasm-terminal-") as tmp:
     assert profile_recipe(recipe.replace("\n", " \n\t")), "formatting does not change the gate"
     for broken in (
         recipe.replace("enableForkContinuation ? false", "enableForkContinuation ? true"),
+        recipe.replace("enableDynamicLoader ? false", "enableDynamicLoader ? true"),
+        recipe.replace("enableCooperativePoll ? false", "enableCooperativePoll ? true"),
         recipe.replace("lib.optional enableForkContinuation ./fork-continuation.patch", "[ ./fork-continuation.patch ]"),
+        recipe.replace("lib.optional enableDynamicLoader ./dynamic-loader.patch", "[ ./dynamic-loader.patch ]"),
+        recipe.replace("lib.optional enableCooperativePoll ./cooperative-poll.patch", "[ ./cooperative-poll.patch ]"),
         recipe.replace("assert !(enableForkContinuation && enableDynamicLoader);", ""),
         recipe.replace("assert !(enableCooperativePoll && enableDynamicLoader);", ""),
+        recipe.replace('lib.optionalString enableForkContinuation " -DWASM_FORK_CONTINUATION=1"',
+                       '" -DWASM_FORK_CONTINUATION=1"'),
+        recipe.replace('lib.optionalString enableDynamicLoader " -fvisibility=default -DWASM_DYNAMIC_LOADER=1"',
+                       '" -fvisibility=default -DWASM_DYNAMIC_LOADER=1"'),
+        recipe.replace('lib.optionalString enableCooperativePoll " -fsanitize-coverage=trace-pc,no-prune,edge"',
+                       '" -fsanitize-coverage=trace-pc,no-prune,edge"'),
     ):
         assert not profile_recipe(broken), "unconditional or mixed profiles must be rejected"
     (work / "bits").mkdir()
