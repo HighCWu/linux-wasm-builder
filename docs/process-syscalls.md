@@ -10623,5 +10623,12 @@ distro `c618112` 为可信宿主的启动配置提供内部授权。授权匹配
 
 公开 Node 测试通过同长改写模块验证精确匹配，验证授权输入变更后仍绑定
 原对象，并确认辅助内存和 `env.memory` 的数据彼此独立。内核包源码和
-测试 TypeScript 检查通过，769 项 Node 测试通过。已有双位宽动态 Worker
-发布检查由 GitHub Actions 异步执行。
+测试 TypeScript 检查通过，769 项 Node 测试通过。
+
+固定 `c618112` 的 wasm32 和 wasm64 Node 目标日志均确认首个线程在
+`dlopen` 前进入阻塞，构造器唤醒并回收该线程，随后创建的线程和第二个
+动态模块也能调用。两路各有一次通过标记。固定运行器在成功退出前等待
+`machine.closed` 并释放设备资源，两路均无关闭错误。该目标覆盖普通动态
+Worker 发布，辅助内存精确授权由上述独立 Node 测试覆盖。
+[wasm32 目标日志](https://github.com/HighCWu/distro/actions/runs/45853629146/job/140026359375) ·
+[wasm64 目标日志](https://github.com/HighCWu/distro/actions/runs/45853685833/job/140026574191)
