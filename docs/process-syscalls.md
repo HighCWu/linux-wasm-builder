@@ -10588,3 +10588,19 @@ socket-diag 目标，让未修改的 iproute2 7.3.0 `ss -0` 查询绑定到
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45837967593) ·
 [wasm32 日志](https://github.com/HighCWu/distro/actions/runs/45838300439/job/139973100081) ·
 [wasm64 日志](https://github.com/HighCWu/distro/actions/runs/45838296815/job/139973114634)
+
+## NOMMU ramfs 空文件扩容
+
+Linux `ef685a343` 在连续页全部进入页面缓存后发布新长度，保留调用方
+指定的未对齐大小。整批分配失败时长度保持为零。插入失败时移除已经插入
+的页，再释放还未插入的页。当前 tiny-shmem 的 memfd 使用该 ramfs 路径，
+其文件操作仍返回 `EOPNOTSUPP` 给 `fallocate`。
+
+使用实际函数体的宿主故障模型覆盖整批分配失败、前三个插入位置的失败
+及成功扩容。GCC 与 Clang 均通过，旧函数的失败对照发布了错误的长度。
+distro `01bfd48` 的标准 memfd 消费者增加未对齐扩容和最后一页清零检查，
+原生 GCC/Clang 及 Wasm64 前端检查通过。双位宽 Node 目标待核实成功路径
+及关闭。真实内核内存分配失败尚未在目标执行环境注入。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45845749647) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45846606276/job/140002007507) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45846606106/job/140001984520)
