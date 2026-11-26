@@ -3598,3 +3598,16 @@ distro `86d8f96` 用实际压缩镜像检查块设备与文件后端、跨页读
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45792967672) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45793408661) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45793416973)
+
+### Zstd 压缩启动镜像
+
+固定旧 wasm64 内核能启动未压缩的 cpio，同一镜像用 Zstd 压缩后在内核
+报告未配置该压缩格式。Linux `030cb2807` 在三份 Wasm 配置启用
+`CONFIG_RD_ZSTD`，使用 Linux 标准 initramfs 解压入口。
+
+distro `038e1c8` 将压缩文件原样交给内核。独立程序核对四个完整
+64 KiB 页及尾部、权限、符号链接和空目录。生成的镜像已核对 Zstd 头和
+解压后的 cpio 内容。双位宽启动与机器关闭由公开 CI 验收。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45794256977) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45794744774) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45794753965)

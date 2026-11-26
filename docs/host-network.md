@@ -162,3 +162,12 @@ distro `2d9456c` 为一个在途数据段或 FIN 保存发送序号。确认未�
 实际 virtio 队列夹具丢弃首次数据段和首次 FIN，并验证原序号、载荷、确认
 与半关闭。夹具还覆盖等待确认期间的取消。Linux 网络回归正在公开 CI 验收。
 [Node 目标检查](https://github.com/HighCWu/distro/actions/runs/45792493747)
+
+### 握手丢包恢复
+
+distro `71c5b06` 用原序号重传 SYN 和 SYN-ACK，继续采用连接建立时的
+总截止时间。出站桥接仍在宿主开始使用流后发送 SYN-ACK。最终 ACK 丢失时，
+主动建立的一侧只回应与当前连接已接受的序号和确认号相符的重复 SYN-ACK。
+packed virtio 夹具覆盖首次报文丢失、错误序号、取消和建连后的数据传输。
+Linux 运行检查独立验收。
+[Node 目标检查](https://github.com/HighCWu/distro/actions/runs/45794509660)
