@@ -10090,6 +10090,20 @@ virtio-blk，未写入的扇区读出零。同名重开须保持原容量。整�
 [主仓库 pin](https://github.com/HighCWu/linux-wasm-builder/commit/5174f65) ·
 [wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45706229158)
 
+#### 导出浏览器本地数据盘
+
+distro `9091e32` 和主仓库 pin `c3231ba` 接入宿主端
+`exportIndexedDbBlockStorage(name, capacity, destination)`。关闭使用
+磁盘的 Linux 后，宿主可以把已提交的数据顺序写入标准 raw 镜像。
+导出持有原有的独占锁，按最多 1 MiB 的块等待写入，未分配扇区输出零。
+活动盘、未知盘和容量不符均在接触输出流前拒绝。写入失败后释放磁盘锁，
+宿主可重新导出。
+
+两套 TypeScript 检查和 Chromium 的两项 IndexedDB 后端检查已通过。
+固定版本的公开运行检查会核对 Linux 的丢弃结果、相邻数据、机器关闭和
+实际导出字节。[源码](https://github.com/HighCWu/distro/commit/9091e32) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45780394420)
+
 ### 浏览器出站 TCP 代理
 
 distro `8bc122e` 将 unkernel `83c65c3` 中的 MIT Wisp 协议适配思路
