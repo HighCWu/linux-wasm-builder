@@ -3821,8 +3821,7 @@ netlink 查询核实了活动套接字及关闭后的消失，机器和设备正
 distro `2185ac4` 的运行检查把自身迁入子组，执行 CPU 运算，读取递增的
 `cpuacct.usage`，再迁回根组、移除空子组并卸载。固定内核在 wasm64 Node
 已验证全部阶段和机器关闭。主仓库 `16626eb` 更新两个 pin。
-wasm64 distro 运行日志也已验证迁组、计费增长、清理和机器关闭。
-wasm32 仍在验收。
+两路 distro 运行日志也已验证迁组、计费增长、清理和机器关闭。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45905431368) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45905433223) ·
@@ -3836,9 +3835,13 @@ Linux `047dad874` 在三份 Wasm 配置启用上游 `CONFIG_IPV6_MULTIPLE_TABLES
 固定 wasm64 内核已在 Node 返回 IPv6 规则并正常关闭。
 distro `5315537` 在现有虚拟网络检查中增加独立 IPv6 路由表，使用 BusyBox
 核对规则转储、出接口、源地址、撤销规则后的路由选择及清理。原生隔离网络
-命名空间已验证该命令序列。主仓库 `a98f5a4` 更新两个 pin，双位宽 CI 正在验收。
+命名空间已验证该命令序列。主仓库 `a98f5a4` 更新两个 pin。
+首轮两路 CI 在脚本格式检查停止。distro `90d750f` 修正重定向格式，
+主仓库 `6e834bf` 更新 pin。目标运行仍在验收。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45907082528) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45907086468) ·
-[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45907873068) ·
-[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45907879206)
+[wasm32 首轮检查](https://github.com/HighCWu/distro/actions/runs/45907873068) ·
+[wasm64 首轮检查](https://github.com/HighCWu/distro/actions/runs/45907879206) ·
+[wasm32 复验](https://github.com/HighCWu/distro/actions/runs/45908360383) ·
+[wasm64 复验](https://github.com/HighCWu/distro/actions/runs/45908368504)
