@@ -10607,3 +10607,21 @@ Node 日志均确认精确文件长度和末页清零，随后通过原有创建
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45845749647) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45846606276/job/140002007507) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45846606106/job/140001984520)
+
+## 动态模块的宿主辅助内存授权
+
+distro `c618112` 为可信宿主的启动配置提供内部授权。授权匹配动态模块的
+完整原始字节，并把命名的辅助 Wasm 共享内存绑定给该模块。加载器在初次
+加载、Worker 重建和动态发布时分别验证模块。宿主通过 Worker 启动通道
+传递内存对象，动态模块或加载快照无法自行提供授权。ABI 中的 `env.memory`
+继续绑定进程的线性内存。
+
+这是机器范围内授予特定代码的能力。适用对象包括该机器内加载同一可信
+模块的不同进程。宿主选择何种模块和内存，文件权限和业务对象授权由
+调用方负责。配置入口为内部接口，Linux syscall、musl 和默认 SDK 行为
+沿用现有接口。
+
+公开 Node 测试通过同长改写模块验证精确匹配，验证授权输入变更后仍绑定
+原对象，并确认辅助内存和 `env.memory` 的数据彼此独立。内核包源码和
+测试 TypeScript 检查通过，769 项 Node 测试通过。已有双位宽动态 Worker
+发布检查由 GitHub Actions 异步执行。
