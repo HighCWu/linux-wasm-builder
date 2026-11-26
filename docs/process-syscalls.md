@@ -10108,6 +10108,18 @@ distro `9091e32` 和主仓库 pin `c3231ba` 接入宿主端
 [wasm64 Chromium 日志](https://github.com/HighCWu/distro/actions/runs/45780394420/job/139774298008) ·
 [运行日志制品](https://github.com/HighCWu/distro/actions/runs/45780394420/artifacts/15098921322)
 
+#### 普通块设备写入保留零扇区的稀疏表示
+
+distro `7090bb6` 和主仓库 pin `f3f6e90` 让普通写入在合并部分扇区后
+检查最终内容。本地盘释放全零扇区的记录。带 HTTP 底镜像的盘以原有零标记
+覆盖底镜像的对应字节。含非零字节的扇区完整保留，仍等待严格事务提交。
+
+两套 TypeScript 检查、GCC 和 Clang 编译检查及两项 Chromium 后端检查
+已通过。已派发固定源码的 Linux 测试，覆盖普通 `pwrite` 写零、关机重开、
+相邻数据和 IndexedDB 中的实际扇区记录。
+[源码](https://github.com/HighCWu/distro/commit/7090bb6) ·
+[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45783575803)
+
 ### 浏览器出站 TCP 代理
 
 distro `8bc122e` 将 unkernel `83c65c3` 中的 MIT Wisp 协议适配思路
