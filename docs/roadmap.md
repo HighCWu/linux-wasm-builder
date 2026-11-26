@@ -3837,8 +3837,8 @@ distro `5315537` 在现有虚拟网络检查中增加独立 IPv6 路由表，使
 核对规则转储、出接口、源地址、撤销规则后的路由选择及清理。原生隔离网络
 命名空间已验证该命令序列。主仓库 `a98f5a4` 更新两个 pin。
 首轮两路 CI 在脚本格式检查停止。distro `90d750f` 修正重定向格式，
-主仓库 `6e834bf` 更新 pin。wasm64 复验日志已核实 TUN、TAP、veth、
-IPv4 和 IPv6 策略路由、一次通过和关闭。wasm32 仍在验收。
+主仓库 `6e834bf` 更新 pin。双位宽复验日志均已核实 TUN、TAP、veth、
+IPv4 和 IPv6 策略路由、一次通过和关闭。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45907082528) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45907086468) ·
