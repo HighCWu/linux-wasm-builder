@@ -10100,9 +10100,13 @@ distro `9091e32` 和主仓库 pin `c3231ba` 接入宿主端
 宿主可重新导出。
 
 两套 TypeScript 检查和 Chromium 的两项 IndexedDB 后端检查已通过。
-固定版本的公开运行检查会核对 Linux 的丢弃结果、相邻数据、机器关闭和
-实际导出字节。[源码](https://github.com/HighCWu/distro/commit/9091e32) ·
-[wasm64 Chromium](https://github.com/HighCWu/distro/actions/runs/45780394420)
+固定 `9091e32` 的 wasm64 Chromium 运行日志确认两种后端各启动两次。
+首次丢弃扇区并核对相邻数据，第二次重开后确认丢弃结果仍在。四次均等待
+机器和设备关闭。零底盘在第二次关闭后完成失败重试，并逐字节核对导出的
+524,288 字节。该运行共通过四项检查。
+[源码](https://github.com/HighCWu/distro/commit/9091e32) ·
+[wasm64 Chromium 日志](https://github.com/HighCWu/distro/actions/runs/45780394420/job/139774298008) ·
+[运行日志制品](https://github.com/HighCWu/distro/actions/runs/45780394420/artifacts/15098921322)
 
 ### 浏览器出站 TCP 代理
 
