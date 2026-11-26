@@ -10534,3 +10534,12 @@ distro `1420eba`、主仓库 pin `34d29f3` 支持回调式 `clone` 使用
 覆盖非对齐增长后的分配。缩小 break 仍返回当前地址。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45790525016) ·
 [双位宽目标检查](https://github.com/HighCWu/distro/actions/runs/45790741792)
+
+## 恢复 LTP 的 getcwd 和 getrandom
+
+固定 wasm64 Node 的直接探针确认 `getcwd` 在超界或过短缓冲区时返回预期
+错误，`getrandom` 对非零长度的空缓冲区返回 `EFAULT`。distro
+`0aabe62` 将这两个用例恢复到 LTP 文件系统及进程波次。完整 LTP
+进程设置、执行与关闭另由公开 CI 验收。
+[文件系统](https://github.com/HighCWu/distro/actions/runs/45792501084) ·
+[进程](https://github.com/HighCWu/distro/actions/runs/45792508127)

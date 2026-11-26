@@ -3581,3 +3581,20 @@ Oniguruma 符号已归入 libjq 和独立 libonig 两种布局，同时保留 li
 参数构建普通 C 消费者，运行 jq 正则过滤并核对输出与退出。
 归档布局的宿主验证已通过，Wasm 构建和运行由公开 CI 验收。
 [目标检查](https://github.com/HighCWu/distro/actions/runs/45791011930)
+
+固定 `8b0874c` 的运行制品确认正则消费者成功、唯一通过标记和机器关闭。
+[目标日志](https://github.com/HighCWu/distro/actions/runs/45791011930/job/139809915195)
+
+### LZ4 压缩 EROFS
+
+Linux `1b181a392` 为 NOMMU 增加散布页解压。单页和连续页仍直接访问。
+不连续输入复制到有界缓冲，不连续输出解压成功后才按实际字节范围回写。
+Wasm 配置启用 EROFS LZ4，保留 `CONFIG_MMU=n`。
+
+现有生产函数的真实 liblz4 轻验覆盖两种页大小、重叠、部分解压和失败清理。
+distro `86d8f96` 用实际压缩镜像检查块设备与文件后端、跨页读取、随机
+游标、尾部和卸载。已通过镜像检查确认至少一个解压簇跨四个 64 KiB 页。
+双位宽 Linux 运行和关闭由公开 CI 验收。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45792967672) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45793408661) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45793416973)
