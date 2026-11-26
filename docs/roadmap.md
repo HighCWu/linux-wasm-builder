@@ -3681,8 +3681,9 @@ Wasm 配置启用通用配额和 ext4 的 vfsv1 格式。distro `d2b2ddb` 使用
 旧 wasm64 内核已能在回环接口收发多播 UDP，但同一入组请求未产生
 IGMPv3 报告。Linux `356819383` 启用标准 `CONFIG_IP_MULTICAST`。
 distro `1545910` 在隔离的 Linux 回环接口捕获内核报告并匹配组地址，
-同时核对入组后的 UDP 数据与退组后的停止投递。原生隔离网络对照已通过，
-双位宽目标 CI 正在运行。
+同时核对入组后的 UDP 数据与退组后的停止投递。原生隔离网络对照已通过。
+固定 `1545910` 的 wasm32 和 wasm64 Node 日志均确认内核发出对应组的
+IGMPv3 报告，入组后收到预期数据，退组后停止投递，套接字与机器均关闭。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45808040571) ·
-[wasm32](https://github.com/HighCWu/distro/actions/runs/45808806639) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45808807101)
+[wasm32 运行日志制品](https://github.com/HighCWu/distro/actions/runs/45808806639/artifacts/15113860246) ·
+[wasm64 运行日志制品](https://github.com/HighCWu/distro/actions/runs/45808807101/artifacts/15114015468)
