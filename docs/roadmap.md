@@ -3594,7 +3594,8 @@ Wasm 配置启用 EROFS LZ4，保留 `CONFIG_MMU=n`。
 现有生产函数的真实 liblz4 轻验覆盖两种页大小、重叠、部分解压和失败清理。
 distro `86d8f96` 用实际压缩镜像检查块设备与文件后端、跨页读取、随机
 游标、尾部和卸载。已通过镜像检查确认至少一个解压簇跨四个 64 KiB 页。
-双位宽 Linux 运行和关闭由公开 CI 验收。
+公开 Node CI 在 wasm32 和 wasm64 均确认块设备与文件后端的读取、卸载、
+通过标记和机器关闭。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45792967672) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45793408661) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45793416973)
@@ -3607,7 +3608,12 @@ distro `86d8f96` 用实际压缩镜像检查块设备与文件后端、跨页读
 
 distro `038e1c8` 将压缩文件原样交给内核。独立程序核对四个完整
 64 KiB 页及尾部、权限、符号链接和空目录。生成的镜像已核对 Zstd 头和
-解压后的 cpio 内容。双位宽启动与机器关闭由公开 CI 验收。
+解压后的 cpio 内容。首轮公开 CI 双位宽均进入 `/init`，随后在文件权限检查
+失败。Nix store 规范化源文件权限，distro `adb5ead` 改为在归档前显式设置
+本用例的文件与目录权限。宿主 cpio、Zstd 和原生检查程序已通过，双位宽
+目标复验待结果。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45794256977) ·
-[wasm32](https://github.com/HighCWu/distro/actions/runs/45794744774) ·
-[wasm64](https://github.com/HighCWu/distro/actions/runs/45794753965)
+[wasm32 首轮](https://github.com/HighCWu/distro/actions/runs/45794744774) ·
+[wasm64 首轮](https://github.com/HighCWu/distro/actions/runs/45794753965) ·
+[复验](https://github.com/HighCWu/distro/actions/runs/45799207365) ·
+[复验](https://github.com/HighCWu/distro/actions/runs/45799207478)
