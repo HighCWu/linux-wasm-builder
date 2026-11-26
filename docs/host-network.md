@@ -152,6 +152,10 @@ distro `b241124` 在网卡完成关闭、旧 TCP/UDP 连接及分片状态清理
 已用正确检查名派发，真实 Linux 阶段待核实。
 [Node 目标检查](https://github.com/HighCWu/distro/actions/runs/45790191281)
 
+固定 `b241124` 的 Node 日志确认地址复用用例通过。用例等待两个 Linux
+实例的关闭，核对旧句柄拒绝及复用地址后的 TCP 回显和进程退出。
+[实际运行日志](https://github.com/HighCWu/distro/actions/runs/45790191281/job/139807140885)
+
 ## 已建立 TCP 连接的重传
 
 distro `2d9456c` 为一个在途数据段或 FIN 保存发送序号。确认未到时使用

@@ -10535,6 +10535,11 @@ distro `1420eba`、主仓库 pin `34d29f3` 支持回调式 `clone` 使用
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45790525016) ·
 [双位宽目标检查](https://github.com/HighCWu/distro/actions/runs/45790741792)
 
+固定 `66253ea` 的实际 Node 日志在 wasm32 和 wasm64 均确认标准查询、
+非对齐 break 后的分配和释放、实时限额以及并发分配四个阶段。各出现一次
+通过标记，固定运行器等待机器及设备关闭后成功退出。
+[双位宽运行日志](https://github.com/HighCWu/distro/actions/runs/45790741792/job/139808972678)
+
 ## 恢复 LTP 的 getcwd 和 getrandom
 
 固定 wasm64 Node 的直接探针确认 `getcwd` 在超界或过短缓冲区时返回预期
@@ -10543,3 +10548,9 @@ distro `1420eba`、主仓库 pin `34d29f3` 支持回调式 `clone` 使用
 进程设置、执行与关闭另由公开 CI 验收。
 [文件系统](https://github.com/HighCWu/distro/actions/runs/45792501084) ·
 [进程](https://github.com/HighCWu/distro/actions/runs/45792508127)
+
+固定 `0aabe62` 的 wasm32 Node 日志确认 `getcwd01` 五项和
+`getrandom01` 四项均为 TPASS，两个用例都退出 0。两套波次各有
+一次通过标记，固定运行器完成关闭后退出。
+[文件系统日志](https://github.com/HighCWu/distro/actions/runs/45792501084/job/139815010231) ·
+[进程日志](https://github.com/HighCWu/distro/actions/runs/45792508127/job/139815004402)
