@@ -3636,9 +3636,11 @@ distro `dc25545` 将 CRC32、1 MiB 字典的 XZ 归档原样交给内核。
 配置中启用通用任务延迟统计，运行时仍默认关闭。distro `bf0a0d5`
 提供独立检查，在单核运行中显式启用统计，创建两个竞争的线程，通过
 标准 TASKSTATS 按活跃 TID 读取等待次数与时长，再回收线程并恢复开关。
-固定 SDK 编译和旧内核反向检查已通过，新内核双位宽验收正在运行。
+固定 SDK 编译和旧内核反向检查已通过。固定 `bf0a0d5` 的 wasm32 日志
+确认两个活跃线程均有非零等待次数与时长，随后回收线程、恢复 sysctl，
+输出通过和关闭标记。wasm64 验收仍在运行。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45801468133) ·
-[wasm32](https://github.com/HighCWu/distro/actions/runs/45802158069) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45802158069/job/139848045042) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45802156516)
 
 ### 虚拟 TCP 握手回归
@@ -3659,3 +3661,14 @@ packed virtio 网卡夹具覆盖。
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45802822120) ·
 [wasm32](https://github.com/HighCWu/distro/actions/runs/45803313276) ·
 [wasm64](https://github.com/HighCWu/distro/actions/runs/45803314184)
+
+### ext4 用户 inode 配额
+
+旧 wasm64 内核拒绝 `usrquota` 挂载选项。Linux `88e061f9c` 在三份
+Wasm 配置启用通用配额和 ext4 的 vfsv1 格式。distro `d2b2ddb` 使用
+现有 Linux `quotactl_fd` 接口，从独立 ext4 盘读取用户配额格式，设置
+普通用户的 inode 上限，检查第二次创建返回 `EDQUOT` 以及删除后用量归零。
+宿主已核实镜像的用户配额 inode，固定 SDK 已编译，双位宽验收正在运行。
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45804051273) ·
+[wasm32](https://github.com/HighCWu/distro/actions/runs/45804508224) ·
+[wasm64](https://github.com/HighCWu/distro/actions/runs/45804506798)
