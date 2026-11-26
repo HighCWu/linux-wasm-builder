@@ -3695,3 +3695,18 @@ Linux `e5ee8b1b5` / distro `e612ffb` / 集成 `d856a60` 启用上游
 并检查 procfs 回退不可用。原生隔离网络对照和双位宽 Node 目标均通过，
 确认诊断阶段、回环接口清理和运行器正常关闭。
 [验证范围与任务](process-syscalls.md#使用-ss-查看-af_packet-套接字)
+
+### ext4 文件完整性校验
+
+旧 wasm64 内核在支持 verity 的 ext4 卷上对 `FS_IOC_MEASURE_VERITY`
+返回 `EOPNOTSUPP`。Linux `1394685a7` 在三份 Wasm defconfig 启用上游
+`CONFIG_FS_VERITY`，wasm32 与 wasm64 内核构建均通过。
+distro `672b3b8` 和集成 `659feb8` 已更新源码 pin。
+
+固定 wasm64 内核的 Node 验证使用标准 C 和 Linux ioctl，确认未启用的
+文件返回 `ENODATA`，成功启用 verity，摘要缓冲区过小返回 `EOVERFLOW`，
+正常取得 SHA-256 摘要并读回原数据。随后确认不能以写方式打开文件，
+卸载 ext4 并关闭机器。该验证覆盖 wasm64 的真实运行。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45861540193) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45862778167)
