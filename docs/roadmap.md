@@ -3966,8 +3966,10 @@ wasm64 内核在 Node 中核实了四个运行阶段、一次 `::vm-test::pass`
 `92451af` 更新两处 pin。双位宽内核构建通过。独立 wasm64 Node 运行
 使用固定内核核实完整 `卷ABC`、NUL、缓冲区尾部和重挂持久性，以及
 原有的长文件名写入、读回和清理。运行器记录一次通过，并确认机器和
-三个设备关闭。关闭后 `fsck.exfat -n` 确认镜像干净。distro 双位宽
-运行检查仍在验收。
+三个设备关闭。关闭后 `fsck.exfat -n` 确认镜像干净。distro 的 wasm32
+和 wasm64 目标日志各确认五个阶段。两份日志均记录卷标 UTF-8、NUL 和
+缓冲区尾部校验、长文件名写入和同步、重挂后卷标持久性、精确顺序及跨页
+读取、删除文件和卸载，并各记录一次通过和关闭。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45923488387) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45923491244) ·
