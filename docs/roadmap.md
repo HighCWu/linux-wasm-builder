@@ -3930,7 +3930,8 @@ Wasm 快路径检查当前段的起始偏移与实际请求长度，让不对齐
 393,389 字节的 UTF-8 长名文件，重挂后校验完整内容、跨页 `pread`、
 EOF 和描述符位置，随后删除文件并卸载。运行记录有一次 `::vm-test::pass`，
 机器与三个设备均已关闭。关闭后 `fsck.exfat -n` 确认镜像干净。distro
-双位宽运行检查继续验收。
+双位宽日志均确认长文件名写入、重挂校验、删除卸载、一次
+`::vm-test::pass` 和一次 `::vm-test::closed`。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45921162145) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45921163999) ·
@@ -3944,7 +3945,9 @@ EOF 和描述符位置，随后删除文件并卸载。运行记录有一次 `::
 加入两路检查，要求只读挂载、顺读和跨页 `pread` 精确读回 393,389 字节、
 EOF、写入返回 `EROFS` 和正常卸载。首轮检查的 Nix 求值找不到
 `pkgs.genisoimage`。distro `b60c2ea` 改由固定 nixpkgs 的 `cdrkit` 提供
-该命令，主仓库 `da8ccfa` 更新 pin。内核构建与两路复验正在进行。
+该命令，主仓库 `da8ccfa` 更新 pin。双位宽内核构建已通过。固定
+wasm64 内核在 Node 中核实了四个运行阶段、一次 `::vm-test::pass`
+以及机器和三个设备关闭。distro 双位宽复验仍在进行。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45922344177) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45922345759) ·
@@ -3952,3 +3955,17 @@ EOF、写入返回 `EROFS` 和正常卸载。首轮检查的 Nix 求值找不到
 [wasm64 首轮](https://github.com/HighCWu/distro/actions/runs/45922616328) ·
 [wasm32 复验](https://github.com/HighCWu/distro/actions/runs/45922775865) ·
 [wasm64 复验](https://github.com/HighCWu/distro/actions/runs/45922781051)
+
+### exFAT Unicode 卷标读回
+
+旧内核通过 `FS_IOC_SETFSLABEL` 接受 `卷ABC`，随后用
+`FS_IOC_GETFSLABEL` 只读回 `卷A`。Linux `f1fca3205` 使用输出缓冲区的
+字节容量，并保留终止 NUL 的空间。distro `27b6eb6` 校验初始卷标、
+更新后的精确 UTF-8 字节、NUL、缓冲区尾部和重挂后的持久性。主仓库
+`92451af` 更新两处 pin。测试程序已通过原生和 wasm64 编译检查，
+固定版本的目标运行待验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45923488387) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45923491244) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45923704827) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45923709502)
