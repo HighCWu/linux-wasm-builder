@@ -3947,7 +3947,8 @@ EOF、写入返回 `EROFS` 和正常卸载。首轮检查的 Nix 求值找不到
 `pkgs.genisoimage`。distro `b60c2ea` 改由固定 nixpkgs 的 `cdrkit` 提供
 该命令，主仓库 `da8ccfa` 更新 pin。双位宽内核构建已通过。固定
 wasm64 内核在 Node 中核实了四个运行阶段、一次 `::vm-test::pass`
-以及机器和三个设备关闭。distro 双位宽复验仍在进行。
+以及机器和三个设备关闭。distro 双位宽复验日志同样核实只读挂载、精确
+读回、`EROFS`、卸载、一次 `::vm-test::pass` 和一次 `::vm-test::closed`。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45922344177) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45922345759) ·
