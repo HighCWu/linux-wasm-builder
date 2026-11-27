@@ -3892,10 +3892,28 @@ Linux `29c01cecc` 在三份 Wasm 配置中启用上游 `IPV6_SUBTREES`，
 主仓库 `bae04eb` 更新两处 pin。
 
 隔离原生参考及使用固定 wasm64 内核产物的 Node 运行已完成全部阶段，
-核实路由与地址移除、唯一 pass 以及机器和三个设备关闭。distro 的
-双位宽运行检查仍在验收。
+核实路由与地址移除、唯一 pass 以及机器和三个设备关闭。distro
+的 wasm32 和 wasm64 日志均核实六个阶段、一次 `::vm-test::pass`
+和一次 `::vm-test::closed`。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45916954157) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45916955502) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45917533390) ·
 [wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45917540335)
+
+### ext4 小请求直接 I/O 对齐
+
+旧 wasm64 内核在同一 ext4 镜像上接受了起始地址偏移一字节的
+4 KiB 读写，却对同样偏移的 64 KiB 请求返回 `EINVAL`。单段 BIO
+快路径跳过了拆分路径里的 DMA 对齐检查。Linux `4d73271e3` 在
+Wasm 快路径检查当前段的起始偏移与实际请求长度，让不对齐的请求
+走现有校验。distro `7160b60` 增加 4 KiB 检查，核对正常传输、
+拒绝不对齐的缓冲区、文件内容和描述符位置。主仓库 `d211cc6`
+更新两处 pin。内核双位宽构建已通过。独立的 wasm64 Node 运行在
+固定内核产物上核实了四种标量访问、拒绝 4 KiB 未对齐缓冲区、一次
+`::vm-test::pass` 以及机器和三个设备关闭。distro 双位宽检查继续验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45919622834) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45919624344) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45920432416) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45920437521)
