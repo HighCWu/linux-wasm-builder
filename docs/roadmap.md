@@ -3936,3 +3936,19 @@ EOF 和描述符位置，随后删除文件并卸载。运行记录有一次 `::
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45921163999) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45921599486) ·
 [wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45921604495)
+
+### UDF 光盘镜像
+
+旧 wasm64 内核挂载有效的 UDF 1.02 镜像返回 `ENODEV`。Linux
+`4b445ede3` 在三份 Wasm 配置中启用上游 `UDF_FS`。distro `07fe79f`
+加入两路检查，要求只读挂载、顺读和跨页 `pread` 精确读回 393,389 字节、
+EOF、写入返回 `EROFS` 和正常卸载。首轮检查的 Nix 求值找不到
+`pkgs.genisoimage`。distro `b60c2ea` 改由固定 nixpkgs 的 `cdrkit` 提供
+该命令，主仓库 `da8ccfa` 更新 pin。内核构建与两路复验正在进行。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45922344177) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45922345759) ·
+[wasm32 首轮](https://github.com/HighCWu/distro/actions/runs/45922608921) ·
+[wasm64 首轮](https://github.com/HighCWu/distro/actions/runs/45922616328) ·
+[wasm32 复验](https://github.com/HighCWu/distro/actions/runs/45922775865) ·
+[wasm64 复验](https://github.com/HighCWu/distro/actions/runs/45922781051)
