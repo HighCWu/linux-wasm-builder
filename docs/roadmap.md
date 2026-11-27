@@ -3962,8 +3962,11 @@ wasm64 内核在 Node 中核实了四个运行阶段、一次 `::vm-test::pass`
 `FS_IOC_GETFSLABEL` 只读回 `卷A`。Linux `f1fca3205` 使用输出缓冲区的
 字节容量，并保留终止 NUL 的空间。distro `27b6eb6` 校验初始卷标、
 更新后的精确 UTF-8 字节、NUL、缓冲区尾部和重挂后的持久性。主仓库
-`92451af` 更新两处 pin。测试程序已通过原生和 wasm64 编译检查，
-固定版本的目标运行待验收。
+`92451af` 更新两处 pin。双位宽内核构建通过。独立 wasm64 Node 运行
+使用固定内核核实完整 `卷ABC`、NUL、缓冲区尾部和重挂持久性，以及
+原有的长文件名写入、读回和清理。运行器记录一次通过，并确认机器和
+三个设备关闭。关闭后 `fsck.exfat -n` 确认镜像干净。distro 双位宽
+运行检查仍在验收。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45923488387) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45923491244) ·
