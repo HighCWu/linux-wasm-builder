@@ -3862,3 +3862,20 @@ wasm64 CI 运行日志均记录两条加权下一跳读回、删除复查、一�
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45910814457) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45911118817) ·
 [wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45911123113)
+
+### ISO 9660 与 Joliet 安装介质
+
+旧 wasm64 内核对标准 `mount(..., "iso9660", MS_RDONLY, ...)`
+返回 `ENODEV`。Linux `78f680370` 在三份 Wasm 配置中启用上游
+`ISO9660_FS` 和 `JOLIET`。distro `8bf48d6` 生成只有 Joliet 长名的
+只读镜像，按 Unicode 文件名打开，并核对 393389 字节的完整内容、跨页
+`pread`、`EROFS` 和卸载。主仓库 `c8582c6` 更新两处 pin。
+
+固定 wasm64 内核产物已在 Node 完成四个阶段，报告一次
+`::vm-test::pass`，机器与三个设备均已关闭。distro 固定版本的 wasm32
+和 wasm64 运行检查仍在验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45914982875) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45914985143) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45915454673) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45915460717)
