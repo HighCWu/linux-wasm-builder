@@ -3911,9 +3911,28 @@ Wasm 快路径检查当前段的起始偏移与实际请求长度，让不对齐
 拒绝不对齐的缓冲区、文件内容和描述符位置。主仓库 `d211cc6`
 更新两处 pin。内核双位宽构建已通过。独立的 wasm64 Node 运行在
 固定内核产物上核实了四种标量访问、拒绝 4 KiB 未对齐缓冲区、一次
-`::vm-test::pass` 以及机器和三个设备关闭。distro 双位宽检查继续验收。
+`::vm-test::pass` 以及机器和三个设备关闭。两路 distro 日志均核实
+六个直接 I/O 阶段和一次 `::vm-test::pass`。对应版本的运行器在等待
+`machine.closed` 并关闭磁盘后才返回成功。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45919622834) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45919624344) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45920432416) ·
 [wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45920437521)
+
+### exFAT 卷读写
+
+旧 wasm64 内核挂载有效的 32 MiB exFAT 镜像返回 `ENODEV`。Linux
+`9526ba635` 在三份 Wasm 配置中启用上游 `EXFAT_FS`。distro `75902e1`
+添加双位宽运行检查，主仓库 `c2bef2c` 同步两处 pin。
+
+双位宽内核构建通过。独立 wasm64 Node 运行在固定内核镜像上创建并同步
+393,389 字节的 UTF-8 长名文件，重挂后校验完整内容、跨页 `pread`、
+EOF 和描述符位置，随后删除文件并卸载。运行记录有一次 `::vm-test::pass`，
+机器与三个设备均已关闭。关闭后 `fsck.exfat -n` 确认镜像干净。distro
+双位宽运行检查继续验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45921162145) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45921163999) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45921599486) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45921604495)
