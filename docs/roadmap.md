@@ -3872,8 +3872,10 @@ wasm64 CI 运行日志均记录两条加权下一跳读回、删除复查、一�
 `pread`、`EROFS` 和卸载。主仓库 `c8582c6` 更新两处 pin。
 
 固定 wasm64 内核产物已在 Node 完成四个阶段，报告一次
-`::vm-test::pass`，机器与三个设备均已关闭。distro 固定版本的 wasm32
-和 wasm64 运行检查仍在验收。
+`::vm-test::pass`，机器与三个设备均已关闭。distro `8bf48d6`
+的两份运行日志均确认只读挂载、Unicode Joliet 路径及精确数据读取、
+写入返回 `EROFS` 和正常卸载，各记录一次 `::vm-test::pass` 与
+`::vm-test::closed`。
 
 [双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45914982875) ·
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45914985143) ·
