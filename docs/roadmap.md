@@ -3881,3 +3881,21 @@ wasm64 CI 运行日志均记录两条加权下一跳读回、删除复查、一�
 [源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45914985143) ·
 [wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45915454673) ·
 [wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45915460717)
+
+### IPv6 源前缀路由
+
+旧 wasm64 内核对带 IPv6 源前缀的 `RTM_NEWROUTE` 返回 `EINVAL`。
+Linux `29c01cecc` 在三份 Wasm 配置中启用上游 `IPV6_SUBTREES`，
+沿用已启用的多路由表条件。distro `07f1847` 通过标准 rtnetlink 验证
+同一目的地址的匹配源走 loopback 单播路由，非匹配源返回
+`ENETUNREACH`，删除路由后原匹配源也返回 `ENETUNREACH`。
+主仓库 `bae04eb` 更新两处 pin。
+
+隔离原生参考及使用固定 wasm64 内核产物的 Node 运行已完成全部阶段，
+核实路由与地址移除、唯一 pass 以及机器和三个设备关闭。distro 的
+双位宽运行检查仍在验收。
+
+[双位宽内核构建](https://github.com/HighCWu/linux/actions/runs/45916954157) ·
+[源码预取](https://github.com/HighCWu/linux-wasm-builder/actions/runs/45916955502) ·
+[wasm32 运行检查](https://github.com/HighCWu/distro/actions/runs/45917533390) ·
+[wasm64 运行检查](https://github.com/HighCWu/distro/actions/runs/45917540335)
